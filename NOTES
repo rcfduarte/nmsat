@@ -1,0 +1,30 @@
+#################################################
+#     Initial notes on parameter refactoring    #
+#################################################
+
+Talking points:
+- take out IntelliJ files from repo (.idea dir), as well as .pyc
+- 'data_prefix' and 'data_label' always part of 'kernel_pars'? if yes, we can access them directly after some error-checking
+- emoo / range > 3: not entirely sure...
+- set up email alert for commits?
+
+********************************************
+*** Functions that could be reconsidered ***
+********************************************
+
+
+
+
+********************************************
+***             Questions                ***
+********************************************
+1.     t_start, t_stop, dt, int(round((t_stop-t_start) / float(dt))), len(signal)))
+Exception: Inconsistent arguments: t_start=1000, t_stop=2000, dt=0.1 implies 10000 elements, actually 9999
+
+
+===============================
+********************************************
+***                 TODO                 ***
+********************************************
+1. Computations.py, create package instead, different module for each kind of computation function (simulation)
+

@@ -1,0 +1,337 @@
+\input{./Style.ParameterTables}
+
+\begin{document}
+%%% Macros - formatting symbols...
+\global\long\def\taum{\tau_{\text{m}}}
+\global\long\def\taur{\tau_{\text{r}}}
+\global\long\def\taua{\tau_{\alpha}}
+\global\long\def\ms{\:\mathrm{ms}}
+\global\long\def\mV{\:\mathrm{mV}}
+\global\long\def\Hz{\:\mathrm{Hz}}
+\global\long\def\pA{\:\mathrm{pA}}
+\global\long\def\pF{\:\mathrm{pF}}
+\foreignlanguage{american}{}\global\long\def\E{\mathrm{E}}
+\foreignlanguage{american}{}\global\long\def\I{\mathrm{I}}
+\foreignlanguage{american}{}\global\long\def\NE{N_{\mathrm{E}}}
+\foreignlanguage{american}{}\global\long\def\NI{N_{\mathrm{I}}}
+\foreignlanguage{american}{}\global\long\def\EX{\mathrm{E_{x}}}
+\foreignlanguage{american}{}\global\long\def\Esip{\mathrm{E_{SIP}}}
+\foreignlanguage{american}{}\global\long\def\Nsip{N_{\mathrm{SIP}}}
+\foreignlanguage{american}{}\global\long\def\Cstim{C_{\mathrm{stim}}}
+
+\selectlanguage{american}%
+\global\long\def\kp{K_{+}\left(\Delta t\right)}
+\global\long\def\km{K_{-}\left(\Delta t\right)}
+\global\long\def\wdot{\dot{w}}
+\global\long\def\nus{\nu_{\mathrm{s}}}
+\global\long\def\nua{\nu_{\mathrm{a}}}
+\global\long\def\nur{\nu_{\mathrm{r}}}
+\global\long\def\nstim{N_{\mathrm{stim}}}
+\global\long\def\Estim{\mathrm{E_{stim}}}
+\global\long\def\JE{J_{\mathrm{E}}}
+\global\long\def\JI{J_{\mathrm{I}}}
+
+\begin{table}[ph]
+    \selectlanguage{english}%
+    \begin{tabular}{|@{\hspace*{1mm}}p{3cm}@{}|@{\hspace*{1mm}}p{12.7cm-\arrayrulewidth}@{\hspace*{1mm}}|}
+        \hline
+        \multicolumn{2}{|>{\color{white}\columncolor{black}}c|}{\textbf{A: Model Summary}}\tabularnewline
+        \hline
+        \textbf{Populations} & {{ net_populations_description }} \tabularnewline
+        \hline
+        \textbf{Topology} & {{ net_populations_topology }} \tabularnewline
+        \hline
+        \textbf{Connectivity} & {{ net_connectivity_description }}\tabularnewline
+        \hline
+        \textbf{Neuron model} & {{ net_neuron_models }}\tabularnewline
+        \hline
+        \textbf{Synapse model} & {{ net_synapse_models }}\tabularnewline
+        \hline
+        \textbf{Plasticity} & {{ net_plasticity }}\tabularnewline
+        \hline
+        \textbf{Input} & {{ input_general_description }}\tabularnewline
+        \hline
+        \textbf{Measurements} & {{ measurements_description }}\tabularnewline
+        \hline
+    \end{tabular}
+
+    \begin{tabular}{|@{\hspace*{1mm}}p{3cm}@{}|@{\hspace*{1mm}}p{3cm}@{}|@{\hspace*{1mm}}p{9.6cm-\arrayrulewidth}@{\hspace*{1mm}}|}
+        \hline
+        \multicolumn{3}{|>{\color{white}\columncolor{black}}c|}{\textbf{B: Populations}}\tabularnewline
+        \hline
+        \textbf{Name} & \textbf{Elements} & \textbf{Size}\tabularnewline
+        \hline
+        {{ population_names_elements_sizes }}
+        \hline
+    \end{tabular}
+
+    \begin{tabular}{|@{\hspace*{1mm}}p{1.5cm}@{}|@{\hspace*{1mm}}p{2.5cm}@{}|@{\hspace*{1mm}}p{2.5cm}@{}|@{\hspace*{1mm}}p{9.0cm-\arrayrulewidth}@{\hspace*{1mm}}|}
+        \hline
+        \multicolumn{4}{|>{\color{white}\columncolor{black}}c|}{\textbf{C: Connectivity}}\tabularnewline
+        \hline
+        \textbf{Name} & \textbf{Source} & \textbf{Target} & \textbf{Pattern}\tabularnewline
+        \hline
+        {{ connectivity_name_src_tgt_pattern }}
+    \end{tabular}
+
+    \begin{tabular}{|@{\hspace*{1mm}}p{3cm}@{}|@{\hspace*{1mm}}p{12.75cm-\arrayrulewidth}@{\hspace*{1mm}}|}
+        \hline
+        \multicolumn{2}{|>{\color{black}\columncolor{gray}}c|}{\textbf{D: Neuron Models}}\tabularnewline
+        	    \hline
+	    \textbf{Name} & {{ neuron_model_name }}\tabularnewline
+	    \hline
+	    \textbf{Subthreshold dynamics} & if $\left(t>t^{*}+\tau_{\mathrm{ref}}\right)$
+
+	    \quad{}
+	    {{ sub_th_dynamics_eq }}
+	    \quad{}
+
+	    else
+
+	    \quad{} $V(t)=V_{\mathrm{reset}}$
+
+	    \vspace{1mm}
+	    \textrm{ {{ input_currents }} }
+	    \tabularnewline
+	    \hline
+	    \textbf{Spiking} & If $V(t-)<\Theta$ OR $V(t+)\geq\Theta$
+
+	    \hspace*{3mm}1. set $t^{*}=t$
+	    \hspace*{3mm}2. emit spike with time stamp $t^{*}$\tabularnewline
+	    \hline
+	\end{tabular}
+
+
+\end{table}
+
+
+
+\begin{table}[ph]
+\selectlanguage{english}%
+\begin{tabular}{|@{\hspace*{1mm}}p{3cm}@{}|@{\hspace*{1mm}}p{10.7cm-\arrayrulewidth}@{\hspace*{1mm}}|}
+\hline
+\multicolumn{2}{|>{\color{white}\columncolor{black}}c|}{\textbf{A: Model Summary}}\tabularnewline
+\hline
+\textbf{Populations} & {{ net_population_description }} \tabularnewline
+\hline
+\textbf{Connectivity} & {{ net_connectivity_description }}\tabularnewline
+\hline
+\textbf{Neuron model} & {{ net_neuron_models }}\tabularnewline
+\hline
+\textbf{Input} & {{ input_general_description }}\tabularnewline
+\hline
+\textbf{Measurements} & {{ measurements_description }}\tabularnewline
+\hline
+\end{tabular}
+
+\begin{tabular}{|@{\hspace*{1mm}}p{3cm}@{}|@{\hspace*{1mm}}p{3cm}@{}|@{\hspace*{1mm}}p{7.6cm-2\arrayrulewidth}@{\hspace*{1mm}}|}
+\hline
+\multicolumn{3}{|>{\color{white}\columncolor{black}}c|}{\textbf{B: Populations}}\tabularnewline
+\hline
+\textbf{Name} & \textbf{Elements} & \textbf{Size}\tabularnewline
+\hline
+Network & {{ net_all_description }}  & {{ net_population_number }}\tabularnewline
+\hline
+{{ population_name }}  & {{ }}  & $50$\tabularnewline
+\hline
+$G_{i,j}$ & Neuron Populations $\text{\ensuremath{\E}}_{i,j}$, $\I_{i,j}$  & One excitatory population $\text{\ensuremath{\E}}_{i}$ per group
+$G_{i}$
+
+One inhibitory population $\I_{i}$ per group $G_{i}$\tabularnewline
+\hline
+$\text{\ensuremath{\E}}_{i,j}$  & Iaf Neuron & $100$\tabularnewline
+\hline
+$\I_{i,j}$  & Iaf Neuron & $25$\tabularnewline
+\hline
+\end{tabular}
+
+\begin{tabular}{|@{\hspace*{1mm}}p{1.5cm}@{}|@{\hspace*{1mm}}p{2.3cm}@{}|@{\hspace*{1mm}}p{2.5cm}@{}|@{\hspace*{1mm}}p{7.2cm-3\arrayrulewidth}@{\hspace*{1mm}}|}
+\hline
+\multicolumn{4}{|>{\color{white}\columncolor{black}}c|}{\textbf{C: Connectivity}}\tabularnewline
+\hline
+\textbf{Name} & \textbf{Source} & \textbf{Target} & \textbf{Pattern}\tabularnewline
+\hline
+$FF$ & $\text{\ensuremath{\E}}_{i,j}$  & $\text{\ensuremath{\E}}_{i+1,j}+\I_{i+1,j}$ & Random divergent, $1\rightarrow C_{\mathrm{Ex}}$, weight $\JE$,
+delay $d$\tabularnewline
+\hline
+$INH_{\mathrm{l}}$ & $\I_{i,j}$
+
+for $j\in\left\{ 1\cdots4\right\} $ & $Ch_{j}$
+
+for $j\in\left\{ 1\cdots4\right\} $ & Random divergent, $1\rightarrow C_{\mathrm{Inl}}$, weight $\JI$,
+delay $d$\tabularnewline
+\hline
+$INH_{\mathrm{u}}$ & $\I_{i,j}$
+
+for $j\in\left\{ 5\cdots8\right\} $ & $Ch_{j}$
+
+for $j\in\left\{ 5\cdots8\right\} $ & Random divergent, $1\rightarrow C_{\mathrm{Inu}}$, weight $\JI$,
+delay $d$\tabularnewline
+\hline
+$X_{\mathrm{ll}}$ & $\text{\ensuremath{\E}}_{i,j}$
+
+for $j\in\left\{ 1\cdots4\right\} $ & $\text{\ensuremath{\E}}_{i+1,k}$
+
+for $k\in\left\{ 1\cdots4\right\} $,
+
+$j\neq k$ & Random divergent, $1\rightarrow C_{\mathrm{ll}}$, weight $\JE$,
+delay $d$\tabularnewline
+\hline
+$X_{\mathrm{ul}}$ & $\text{\ensuremath{\E}}_{i,j}$
+
+for $j\in\left\{ 1\cdots4\right\} $ & $\text{\ensuremath{\E}}_{i+1,k}$
+
+for $k\in\left\{ 5\cdots8\right\} $ & Random divergent, $1\rightarrow C_{\mathrm{ul}}$, weight $\JE$,
+delay $d$. \tabularnewline
+\hline
+$X_{\mathrm{lu}}$ & $\text{\ensuremath{\E}}_{i,j}$
+
+for $j\in\left\{ 5\cdots8\right\} $ & $\text{\ensuremath{\E}}_{i+1,k}$
+
+for $k\in\left\{ 1\cdots4\right\} $ & Random divergent, $1\rightarrow C_{\mathrm{lu}}$, weight $\JE$,
+delay $d$.  \tabularnewline
+\hline
+$FF_{\mathrm{loop}}$ & $\text{\ensuremath{\E}}_{50,j}$
+
+for $j\in\left\{ 1\cdots4\right\} $ & $\text{\ensuremath{\E}}_{1,j}$
+
+for $j\in\left\{ 1\cdots4\right\} $ & If present, random divergent, $1\rightarrow C_{\mathrm{Ex}}$, weight
+$\JE$, delay $d$\tabularnewline
+\hline
+\end{tabular}
+
+\begin{tabular}{|@{\hspace*{1mm}}p{3cm}@{}|@{\hspace*{1mm}}p{10.7cm-1\arrayrulewidth}@{\hspace*{1mm}}|}
+\hline
+\multicolumn{2}{|>{\color{white}\columncolor{black}}c|}{\textbf{D: Neuron Models}}\tabularnewline
+\hline
+\textbf{Name} & Iaf neuron\tabularnewline
+\hline
+\textbf{Type } & Leaky integrate-and fire, $\alpha$-current input\tabularnewline
+\hline
+\textbf{Subthreshold dynamics} & if $\left(t>t^{*}+\tau_{\mathrm{ref}}\right)$ \quad{}$\tau_{\mathrm{m}}\frac{dV}{dt}=-V+\frac{I_{\mathrm{syn}}(t)}{C_{\mathrm{m}}}$
+\quad{}else\quad{} $V(t)=V_{\mathrm{reset}}$
+
+\textrm{$I_{\mathrm{syn}}=\sum_{i}\sum_{s\in S_{i}}J_{i}I_{\alpha}(t-s-d)$}
+
+\textrm{$I_{\alpha}(t)=\frac{e}{\tau_{\alpha}}t\, e^{-t/\tau_{\mathrm{\alpha}}}$}\tabularnewline
+\hline
+\textbf{Spiking} & If $V(t-)<\Theta$ OR $V(t+)\geq\Theta$
+
+\hspace*{3mm}1. set $t^{*}=t$
+
+\hspace*{3mm}2. emit spike with time stamp $t^{*}$\tabularnewline
+\hline
+\end{tabular}
+
+\begin{tabular}{|@{\hspace*{1mm}}p{3cm}@{}|@{\hspace*{1mm}}p{2.7cm}@{}|@{\hspace*{1mm}}p{7.9cm-2\arrayrulewidth}@{\hspace*{1mm}}|}
+\hline
+\multicolumn{3}{|>{\color{white}\columncolor{black}}c|}{\textbf{E: Input}}\tabularnewline
+\hline
+\textbf{Type} & \textbf{Target} & \textbf{Description}\tabularnewline
+\hline
+\textbf{Poisson generator} & all $\text{\ensuremath{\E}}_{i}$, $\text{\ensuremath{\I}}_{i}$  & Independent for each neuron, rate $\nu_{\mathrm{x}}$, weight $J_{\mathrm{x}}$\tabularnewline
+\hline
+\textbf{Pulse packet} & $\text{\ensuremath{\E}}_{1,j}+\I_{1,j}$
+
+for $j\in\left\{ 1\cdots4\right\} $ & Spike volleys with Gaussian distribution containing $a$ spikes with
+temporal precision $\sigma$, weight $J_{\mathrm{pp}}$\tabularnewline
+\hline
+\end{tabular}
+
+\begin{tabular}{|c||c|}
+\hline
+\multicolumn{2}{|>{\color{white}\columncolor{black}}c|}{\raggedright{}\textbf{F: Measurements}}\tabularnewline
+\hline
+\multicolumn{2}{|@{\hspace*{1mm}}p{13.8cm}@{\hspace*{1mm}}|}{Spikes from all upper and lower level chains}\tabularnewline
+\hline
+\end{tabular}
+
+\caption{Tabular description of network model after \citet{Nordlie-2009_e1000456}\label{tab:network-model}}
+\selectlanguage{american}%
+\end{table}
+
+
+\begin{table}[ph]
+\selectlanguage{english}%
+\begin{tabular}{|>{\raggedright}p{1cm}|>{\raggedright}p{1.4cm}|>{\raggedright}p{10.8cm}|}
+\hline
+\multicolumn{3}{|>{\color{white}\columncolor{black}}c|}{\textbf{A: Connectivity}}\tabularnewline
+\hline
+\textbf{Name} & \textbf{Value} & \textbf{Description}\tabularnewline
+\hline
+$C_{\mathrm{Ex}}$ & $40$ & Number of outgoing feed-forward connections from each excitatory neuron\tabularnewline
+\hline
+$C_{\mathrm{Inl}}$ & $10$ & Number of outgoing connections from each lower level inhibitory neuron\tabularnewline
+\hline
+$C_{\mathrm{Inu}}$ & $15$ & Number of outgoing connections from each upper level inhibitory neuron\tabularnewline
+\hline
+$C_{\mathrm{ll}}$ & $3$ & Number of outgoing lower level cross-connections from each lower level
+excitatory neuron\tabularnewline
+\hline
+$C_{\mathrm{ul}}$ & $8$ & Number of outgoing upper level cross-connections from each lower level
+excitatory neuron\tabularnewline
+\hline
+$C_{\mathrm{lu}}$ & $8$ & Number of outgoing lower level cross-connections from each upper level
+excitatory neuron\tabularnewline
+\hline
+$J_{E}$ & $17.92\pA$ & Amplitude of excitatory connection, $\Rightarrow$$0.2\mV$ EPSP amplitude\tabularnewline
+\hline
+$J_{I}$ & $-71.70\pA$ & Amplitude of inhibitory connection, $\Rightarrow$$-0.8\mV$ EPSP
+amplitude\tabularnewline
+\hline
+$d$ & $1\ms$ & Synaptic transmission delay\tabularnewline
+\hline
+\end{tabular}
+
+\vspace*{0.2cm}
+
+\begin{tabular}{|>{\raggedright}p{1cm}|>{\raggedright}p{1.4cm}|>{\raggedright}p{10.8cm}|}
+\hline
+\multicolumn{3}{|>{\color{white}\columncolor{black}}c|}{\textbf{B: Neuron Model}}\tabularnewline
+\hline
+\textbf{Name} & \textbf{Value} & \textbf{Description}\tabularnewline
+\hline
+$\tau_{\mathrm{m}}$ & $20\ms$ & Membrane time constant\tabularnewline
+\hline
+$C_{\mathrm{m}}$ & $200\pF$ & Membrane capacitance\tabularnewline
+\hline
+$\Theta$ & $20\mV$ & Fixed firing threshold\tabularnewline
+\hline
+$V_{0}$ & $0\mV$ & Resting potential\tabularnewline
+\hline
+$V_{\mathrm{reset}}$ & $V_{0}$ & Reset potential\tabularnewline
+\hline
+$\tau_{\mathrm{ref}}$ & $2\ms$ & Absolute refractory period\tabularnewline
+\hline
+$\tau_{\mathrm{\alpha}}$ & $1\ms$ & Rise time of postsynaptic current\tabularnewline
+\hline
+\end{tabular}
+
+\vspace*{0.2cm}
+
+\begin{tabular}{|>{\raggedright}p{1cm}|>{\raggedright}p{1.4cm}|>{\raggedright}p{10.8cm}|}
+\hline
+\multicolumn{3}{|>{\color{white}\columncolor{black}}c|}{\textbf{C: Input}}\tabularnewline
+\hline
+\textbf{Name} & \textbf{Value} & \textbf{Description}\tabularnewline
+\hline
+$\nu_{\mathrm{x}}$ & $6157\:\mathrm{Hz}$ & External Poisson rate\tabularnewline
+\hline
+$J_{\mathrm{x}}$ & $8.96\pA$ & Amplitude of external excitatory connection $\Rightarrow$$0.1\mV$
+EPSP amplitude\tabularnewline
+\hline
+$J_{\mathrm{pp}}$ & $17.92\pA$ & Amplitude of pulse packet connection $\Rightarrow$$0.2\mV$ EPSP
+amplitude\tabularnewline
+\hline
+$a$ & $100$ & Number of spikes in a volley\tabularnewline
+\hline
+$\sigma$ & $1\;\mathrm{ms}$ & Standard deviation of a Gaussian spike volley\tabularnewline
+\hline
+\end{tabular}
+
+\caption{Simulation parameters\label{tab:parameters}}
+\selectlanguage{american}%
+\end{table}
+\selectlanguage{english}%
+
+\end{document}
