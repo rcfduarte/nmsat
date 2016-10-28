@@ -798,7 +798,7 @@ class ParameterSpace:
 			# call build_parameters for each range combination, and pack returned values into a list (set)
 			# contains a single dictionary if no range parameters
 			param_ranges = [module_obj.build_parameters( *elem ) for elem in range_combinations]
-			global_label = param_ranges[0]["kernel_pars"]["data_prefix"]
+			global_label = param_ranges[0].kernel_pars["data_prefix"]
 
 			if n_ranges <= 3 and not emoo:
 				# verify parameter integrity / completeness
@@ -842,7 +842,30 @@ class ParameterSpace:
 
 			return param_sets, param_axes, global_label, n_ranges
 
-		self.parameter_sets, self.parameter_axes, self.label, self.dimensions = parse_parameters_file(initializer)
+		def parse_parameters_dict(url):
+			"""
+			Simple parser for dictionary (text) parameter scripts, not .py!
+			:param url:
+			:return:
+			"""
+			# TODO is set label always global?
+			param_set 	= ParameterSet(url, label='global')
+			try:
+				validate_parameter_sets([param_set])
+			except ValueError as error:
+				print ("Invalid parameter file! Error: %s" % error)
+
+			param_axes	= {}
+			label 		= param_set.kernel_pars["data_prefix"]
+			dim			= 1
+			return param_set, param_axes, label, dim
+
+
+		if initializer.endswith(".py"):
+			self.parameter_sets, self.parameter_axes, self.label, self.dimensions = parse_parameters_file(initializer)
+		else:
+			self.parameter_sets, self.parameter_axes, self.label, self.dimensions = parse_parameters_dict(initializer)
+
 		if emoo:
 			self.additional_parameters = dict()
 			from Modules.analysis import Emoo
