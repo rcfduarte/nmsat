@@ -1,6 +1,7 @@
 __author__ = 'duarte'
 import sys
-sys.path.append('/home/neuro/Desktop/CODE/NetworkSimulationTestbed/')
+sys.path.append('../../')
+sys.path.append('../ParameterSets/')
 from Modules.input_architect import *
 from Modules.visualization import *
 from Modules.io import set_storage_locations
@@ -17,7 +18,7 @@ online = True
 ###################################################################################
 # Extract parameters from file and build global ParameterSet
 # =================================================================================
-params_file = '../ParameterSets/spike_pattern_input_sequence.py'
+params_file = '../ParameterSets/_originals/X_spike_pattern_input_sequence.py'
 set_global_rcParams('../../Defaults/matplotlib_rc')
 
 parameter_set = ParameterSet(set_params_dict(params_file), label='global')

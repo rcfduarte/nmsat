@@ -281,51 +281,6 @@ class Parameter(object):
 		return s
 
 
-#######################################################################################
-class ParameterRange(Parameter):
-	"""
-	Specify a list of possible values for a given parameter.
-	"""
-
-	def __init__(self, name, value, units=None, shuffle=False):
-		if not isiterable(value):
-			raise TypeError("ParameterRange values must be iterable")
-		Parameter.__init__(self, name, next(value.__iter__()), units)
-		self._values = np.copy(value)
-		self._iter_values = self._values.__iter__()
-		if shuffle:
-			np.random.shuffle(self._values)
-
-	def __repr__(self):
-		units_str = ''
-		if self.units:
-			units_str = ', units="%s"' % self.units
-		return 'ParameterRange(%s%s)' % (self._values.__repr__(), units_str)
-
-	def __iter__(self):
-		self._iter_values = self._values.__iter__()
-		return self._iter_values
-
-	def __next__(self):
-		self._value = next(self._iter_values)
-		return self._value
-
-	def next(self):
-		return self.__next__()
-
-	def __len__(self):
-		return len(self._values)
-
-	def __eq__(self, o):
-		if (type(self) == type(o) and
-				    self.name == o.name and
-				    self._values == o._values and
-				    self.units == o.units):
-			return True
-		else:
-			return False
-
-
 #########################################################################################
 class ParameterSet(dict):
 	"""
@@ -460,10 +415,10 @@ class ParameterSet(dict):
 		ad, od = self.as_dict(), other.as_dict()
 		for key in ad:
 			if ad[key] != od[key]:
-				pp = pprint.PrettyPrinter(indent=4)
-				print "KEY: ", key
-				pp.pprint(ad[key])
-				pp.pprint(od[key])
+				# pp = pprint.PrettyPrinter(indent=4)
+				# print "KEY: ", key
+				# pp.pprint(ad[key])
+				# pp.pprint(od[key])
 				return False
 		return True
 
@@ -765,15 +720,13 @@ class ParameterSpace:
 	a `ParameterSet`.
 	"""
 
-	def __init__(self, initializer, emoo=False, keep_all=False, new_config=False):
+	def __init__(self, initializer, emoo=False, keep_all=False):
 		"""
 		Generate ParameterSpace containing a list of all ParameterSets
 		:param initializer: file url
 		:return:
 		"""
 		assert isinstance(initializer, str), "Filename must be provided"
-		with open(initializer, 'r') as fp:
-			self.parameter_file = fp.readlines()
 
 		def validate_parameters_file(module):
 			"""
@@ -808,7 +761,7 @@ class ParameterSpace:
 			:param param_sets:
 			:return:
 			"""
-			required_dicts = ["kernel_pars", "encoding_pars", "neuron", "net_pars", "rec_devices"]
+			required_dicts = ["kernel_pars", "encoding_pars", "net_pars"]
 			for p_set in param_sets:
 				for d in required_dicts:
 					if d not in p_set:
@@ -819,10 +772,7 @@ class ParameterSpace:
 					raise ValueError("`data_prefix` missing from `kernel_pars`!")
 
 
-
-		#############################################################
-		def parse_parameters_file_new(url):
-			# TODO @Q: data_prefix / data_label: do we need both?
+		def parse_parameters_file(url):
 			"""
 
 			:param url:
@@ -892,123 +842,7 @@ class ParameterSpace:
 
 			return param_sets, param_axes, global_label, n_ranges
 
-
-		def parse_parameters_file(url):
-			"""
-			Read in the parameters file and separate...
-			:param url [str] full path to file
-			:return:
-			"""
-
-			par_ranges = []
-			par_ranges_index = []
-			global_label = ''
-			# pars_derived = []
-			with open(url, 'r') as fp:
-				data = fp.readlines()
-				for idx, nn in enumerate(data):
-					# Extremely stupid way of doing this!!! TODO: re-think
-					if nn.find('ParameterRange') != -1:
-						par_ranges.append(nn)
-						par_ranges_index.append(idx)
-					# TODO @Q why the < 10?
-					if (nn.find('data_prefix') != -1) and (nn.find('data_prefix') < 10):
-						idx1 = nn.find(':')
-						idx2 = nn.find(',')
-						global_label = str(nn[idx1+3:idx2-1])
-					elif nn.find('data_label') == 0:
-						global_label = str(nn[nn.find('=')+3:-2])
-
-			# determine the total number of parameter ranges present in the parameters
-			n_ranges = len(par_ranges)
-			#assert n_ranges <= 3, "ParameterScans can only be done for a maximum of 3 ParameterRanges"
-
-			# execute the ParameterRange to obtain the variables
-			for n in par_ranges:
-				exec(n) in locals(), globals()
-
-			# determine the variable names and the size of the ranges
-			var_names = [x[:x.index('=')] for x in par_ranges]  # list with range variable names
-			for idx, ii in enumerate(var_names):
-				var_names[idx] = ii.strip()
-
-			domain_lens = [len((globals()[var_names[idx]])._values) for idx, x in enumerate(par_ranges)]
-			domain_values = [(globals()[var_names[idx]])._values for idx, x in enumerate(par_ranges)]
-			dom_len = np.prod(domain_lens)
-
-			if n_ranges <= 3 and not emoo:
-				param_axes = dict()
-				param_sets = []
-				for nn in range(int(dom_len)):
-					new_data = list(np.copy(data))
-					params_label = global_label
-					if n_ranges >= 1:
-						idx_x = nn % domain_lens[0]
-						new_data[par_ranges_index[0]] = var_names[0] + ' = ' + str(domain_values[0][idx_x]) + '\n'
-						params_label += '_' + var_names[0] + '=' + str(domain_values[0][idx_x])
-						param_axes['xlabel'] = var_names[0]
-						param_axes['xticks'] = domain_values[0]
-						param_axes['xticklabels'] = [str(xx) for xx in domain_values[0]]
-					if n_ranges >= 2:
-						idx_y = (nn // domain_lens[0]) % domain_lens[1]
-						new_data[par_ranges_index[1]] = var_names[1] + ' = ' + str(domain_values[1][idx_y]) + '\n'
-						params_label += '_' + var_names[1] + '=' + str(domain_values[1][idx_y])
-						param_axes['ylabel'] = var_names[1]
-						param_axes['yticks'] = domain_values[1]
-						param_axes['yticklabels'] = [str(xx) for xx in domain_values[1]]
-					if n_ranges == 3:
-						idx_z = ((nn // domain_lens[0]) // domain_lens[1]) % domain_lens[2]
-						new_data[par_ranges_index[2]] = var_names[2] + ' = ' + str(domain_values[2][idx_z]) + '\n'
-						params_label += '_' + var_names[2] + '=' + str(domain_values[2][idx_z])
-						param_axes['zlabel'] = var_names[2]
-						param_axes['zticks'] = domain_values[2]
-						param_axes['zticklabels'] = [str(xx) for xx in domain_values[2]]
-					params_file = 'tmp_{0}.py'.format(nn)
-					with open(params_file, 'w') as fp:
-						fp.writelines(new_data)
-
-					set = ParameterSet(set_params_dict(params_file), label=params_label)
-					if not keep_all:
-						set = set.clean(termination='pars')
-					set.update({'label': params_label})
-					param_sets.append(set)
-					os.remove(params_file)
-					if os.path.isfile(params_file+'c'):
-						os.remove(params_file+'c')
-
-				return param_sets, param_axes, global_label, n_ranges
-
-			elif (n_ranges > 3) or (emoo is True):
-				print "Preparing ParameterSpace for EMOO..."
-				param_axes = dict()
-				param_sets = []
-				params_label = global_label
-				new_data = list(np.copy(data))
-				for nn_rang in range(n_ranges):
-					param_axes.update({str(var_names[nn_rang]): domain_values[nn_rang]})
-					new_data[par_ranges_index[nn_rang]] = var_names[nn_rang] + ' = ' + str(domain_values[0][0]) + '\n'
-					params_label += '_' + var_names[nn_rang] + '=' + str(domain_values[0][0])
-
-
-				params_file = 'tmp.py'
-				with open(params_file, 'w') as fp:
-					fp.writelines(new_data)
-				set = ParameterSet(set_params_dict(params_file), label=params_label)
-				if not keep_all:
-					set = set.clean(termination='pars')
-				set.update({'label': params_label})
-				exit(0)
-				param_sets.append(set)
-				os.remove(params_file)
-				if os.path.isfile(params_file + 'c'):
-					os.remove(params_file + 'c')
-
-				return param_sets, param_axes, params_label, n_ranges
-
-		if new_config:
-			self.parameter_sets, self.parameter_axes, self.label, self.dimensions = parse_parameters_file_new(initializer)
-		else:
-			self.parameter_sets, self.parameter_axes, self.label, self.dimensions = parse_parameters_file(initializer)
+		self.parameter_sets, self.parameter_axes, self.label, self.dimensions = parse_parameters_file(initializer)
 		if emoo:
 			self.additional_parameters = dict()
 			from Modules.analysis import Emoo
