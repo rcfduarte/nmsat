@@ -41,8 +41,8 @@ def run(parameter_set, analysis_interval=None, population='E', plot=False, displ
 
 		print '\nTrial {0}'.format(str(n_trial))
 		nest.ResetKernel()
-		kernel_pars = copy_dict(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(), type='kernel'),
-		                        {'grng_seed': parameter_set.kernel_pars['grng_seed'][n_trial]})
+		kernel_pars = copy_dict(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(), param_type='kernel'),
+								{'grng_seed': parameter_set.kernel_pars['grng_seed'][n_trial]})
 		nest.SetKernelStatus(kernel_pars)
 
 		####################################################

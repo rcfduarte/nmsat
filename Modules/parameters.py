@@ -76,31 +76,37 @@ def set_params_dict(source_file):
 	return d
 
 
-def extract_nestvalid_dict(d, type='neuron'):
+def extract_nestvalid_dict(d, param_type='neuron'):
 	"""
 	Verify whether the parameters dictionary are in the correct format, with adequate keys, in agreement with the nest
 	parameters dictionaries so that they can later be passed as direct input to nest
 	:param d: parameter dictionary
-	:param type: type of parameters - kernel, neuron, population, network, connections, topology,
+	:param param_type: type of parameters - kernel, neuron, population, network, connections, topology,
 	:return: valid dictionary
 	"""
+	# QUESTION why import nest here? is it not already imported? and if not, it should be!
 	import nest
-	if type == 'neuron' or type == 'synapse' or type == 'device':
+	if param_type == 'neuron' or param_type == 'synapse' or param_type == 'device':
 		assert d['model'] in nest.Models(), "Model %s not currently implemented in %s" % (d['model'], nest.version())
 
 		accepted_keys = nest.GetDefaults(d['model']).keys()
 		accepted_keys.remove('model')
-		nest_dict = {k: v for k, v in d.iteritems() if k in accepted_keys}
-		return nest_dict
-	elif type == 'kernel':
+	elif param_type == 'kernel':
 		accepted_keys = nest.GetKernelStatus().keys()
-		# if d['system']['local']:
-		# 	accepted_keys.remove('num_processes')
-		nest_dict = {k: v for k, v in d.iteritems() if k in accepted_keys}
-		return nest_dict
+		# nest_dict = {k: v for k, v in d.iteritems() if k in accepted_keys}
 	else:
 		# TODO
-		print "%s not implemented yet" % type
+		print("{!s} not implemented yet".format(param_type))
+		assert False
+
+	# DONE added warning for unknown kernel dictionary entries
+	nest_dict = {}
+	for k, v in d.iteritems():
+		if k in accepted_keys:
+			nest_dict[k] = v
+		else:
+			print("WARNING: unknown kernel parameter `{}`!".format(k))
+	return nest_dict
 
 
 def isiterable(x):

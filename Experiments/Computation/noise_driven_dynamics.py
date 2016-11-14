@@ -33,7 +33,7 @@ def run(parameter_set, net=None, analysis_interval=None, plot=False, display=Fal
 	# =======================================================
 	print '\nRuning ParameterSet {0}'.format(parameter_set.label)
 	nest.ResetKernel()
-	nest.SetKernelStatus(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(), type='kernel'))
+	nest.SetKernelStatus(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(), param_type='kernel'))
 
 	####################################################
 	# Build network

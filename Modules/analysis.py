@@ -2798,19 +2798,19 @@ class StateExtractor(object):
 		print("- State acquisition from Population {0} [{1}]".format(src_obj.name, initializer.state_variable))
 		self.parameters = initializer
 		if initializer.state_variable == 'V_m':
-			device_specs = extract_nestvalid_dict(initializer.state_specs, type='device')
+			device_specs = extract_nestvalid_dict(initializer.state_specs, param_type='device')
 			mm = nest.Create('multimeter', 1, device_specs)
 			# src_obj.attached_devices.append(mm)
 			nest.Connect(mm, gids)
 			self.gids = mm
 
 		elif initializer.state_variable == 'spikes':
-			neuron_specs = extract_nestvalid_dict(initializer.state_specs, type='neuron')
+			neuron_specs = extract_nestvalid_dict(initializer.state_specs, param_type='neuron')
 			state_rec_neuron = nest.Create(initializer.state_specs.model, len(gids), neuron_specs)
 			nest.Connect(gids, state_rec_neuron, 'one_to_one', syn_spec={'weight': 1., 'delay': 0.1,
 			                                                             'model': 'static_synapse'})
 			# src_obj.attached_devices.append(state_rec_neuron)
-			device_specs = extract_nestvalid_dict(copy_dict(initializer.device_specs, {}), type='device')
+			device_specs = extract_nestvalid_dict(copy_dict(initializer.device_specs, {}), param_type='device')
 			# device_specs = {'record_from': ['V_m'], 'record_to': ['memory'],
 			#                 'interval': 1.}  #initializer.sampling_times}
 			mm = nest.Create('multimeter', 1, device_specs)

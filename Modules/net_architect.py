@@ -18,11 +18,13 @@ sys.path.append('../')
 from parameters import *
 from analysis import *
 import nest
+from nest import topology as tp
 from Modules.signals import *
 from Modules.analysis import *
 from Modules.io import *
 import itertools
 import time
+import random
 
 
 def verify_pars_consistency(pars_set, not_allowed_keys, n=0):
@@ -338,7 +340,7 @@ class Population(object):
 			pars_st = decoding_pars.state_extractor
 			self.state_variables.append(pars_st.state_variable)
 			if pars_st.state_variable == 'V_m':
-				mm_specs = extract_nestvalid_dict(pars_st.state_specs, type='device')
+				mm_specs = extract_nestvalid_dict(pars_st.state_specs, param_type='device')
 				mm = nest.Create('multimeter', 1, mm_specs)
 				self.state_extractors.append(mm)
 				nest.Connect(mm, self.gids)
@@ -349,7 +351,7 @@ class Population(object):
 								   'V_th': sys.float_info.max, 'V_reset': 0.,
 								   'V_min': 0.}
 				rec_neuron_pars.update(pars_st.state_specs)
-				filter_neuron_specs = extract_nestvalid_dict(rec_neuron_pars, type='neuron')
+				filter_neuron_specs = extract_nestvalid_dict(rec_neuron_pars, param_type='neuron')
 
 				rec_neurons = nest.Create(rec_neuron_pars['model'], len(self.gids), filter_neuron_specs)
 				if pars_st.state_specs.has_key('start'):
@@ -485,7 +487,7 @@ class Population(object):
 		After garthering all state vectors, compile a standard state matrix
 		:return:
 		"""
-		assert(self.state_matrix), "State matrix elements need to be stored before calling this function"
+		assert self.state_matrix, "State matrix elements need to be stored before calling this function"
 		states = []
 		if len(self.state_matrix) > 1 and sampling_times is None:
 			states = []
@@ -570,7 +572,37 @@ class Network(object):
 
 		def create_populations(net_pars_set):
 
-			populations = [[] for _ in range(net_pars_set.n_populations)]
+			def topology_random_grid_3D(size_x, size_y, size_z, N = None):
+				"""
+				Returns the positions of neurons on a 3D grid structure, where each point lies within [-0.5, 0.5) on
+				each axis.
+				:param size_x: nr size on X coordinate
+				:param size_y:
+				:param size_z:
+				:param N: number of neurons to place randomly on the grid. If none given, each grid position is filled.
+				:return:
+				"""
+				if N is None:
+					N = size_x * size_y * size_z
+
+				# calculate normalized distance between neurons on each axis
+				d_x = 1. / (size_x + 1)
+				d_y = 1. / (size_y + 1)
+				d_z = 1. / (size_z + 1)
+				# compute grid positions on the [-0.5 + d_axis, 0.5 - d_axis) interval with d_axis distance
+				coord_x = np.arange(-0.5 + d_x / 2, 0.5, d_x)
+				coord_y = np.arange(-0.5 + d_y / 2, 0.5, d_y)
+				coord_z = np.arange(-0.5 + d_z / 2, 0.5, d_z)
+
+				positions = []
+				for i in range(N):
+					pos = [random.choice(coord_x), random.choice(coord_y), random.choice(coord_z)]
+					while pos not in positions:
+						positions.append(pos)
+				return positions
+				# END ---------------------------------------------------
+
+			populations = [[]] * net_pars_set.n_populations
 			# specify the keys not to be passed to the population objects
 			not_allowed_keys = ['_url', 'label', 'n_populations', 'parameters', 'names', 'description']
 
@@ -591,7 +623,7 @@ class Network(object):
 						neuron_dict = subpop_dict['neuron_pars']
 						nest.CopyModel(subpop_dict['neuron_pars']['model'], net_pars_set.pop_names[n][nn])
 						nest.SetDefaults(net_pars_set.pop_names[n][nn], extract_nestvalid_dict(neuron_dict,
-						                                                                       type='neuron'))
+																							   param_type='neuron'))
 						if net_pars_set.topology[n][nn]:
 							import nest.topology as tp
 							tp_dict = subpop_dict['topology_dict']
@@ -606,9 +638,8 @@ class Network(object):
 							subpop_dict.update({'is_subpop': False, 'gids': gids})
 							populations[n].append(Population(ParameterSet(subpop_dict)))
 
-						print "\n Creating population %s, with ids %s" % (str(net_pars_set.pop_names[n][nn]),
-						                                               '[' + str(min(gids)) + '-' + str(max(gids)) +
-						                                               ']')
+						print ("\n Creating population {0!s}, with ids [{1!s}-{2!s}]".format(net_pars_set.pop_names[n][nn],
+																							 min(gids), max(gids)))
 
 				else:
 					# create a normal population
@@ -618,10 +649,11 @@ class Network(object):
 					# create neuron model named after the population
 					nest.CopyModel(net_pars_set.neuron_pars[n]['model'], net_pars_set.pop_names[n])
 					# set default parameters
-					nest.SetDefaults(net_pars_set.pop_names[n], extract_nestvalid_dict(neuron_dict, type='neuron'))
+					nest.SetDefaults(net_pars_set.pop_names[n], extract_nestvalid_dict(neuron_dict, param_type='neuron'))
 
+					# QUESTION can this do 3D topology? I don't really see how...
 					if net_pars_set.topology[n]:
-						import nest.topology as tp
+						import nest.topology as vtp
 						tp_dict = pop_dict['topology_dict']
 						tp_dict.update({'elements': net_pars_set.pop_names[n]})
 						layer = tp.CreateLayer(tp_dict)
@@ -635,15 +667,15 @@ class Network(object):
 						# set up population objects
 						pop_dict.update({'gids': gids, 'is_subpop': False})
 						populations[n] = Population(ParameterSet(pop_dict))
-					print "\n Creating population %s, with ids %s" % (str(net_pars_set.pop_names[n]),
-					                                               '[' + str(min(gids)) + '-' + str(max(gids)) +
-					                                               ']')
+					print ("\n Creating population {0!s}, with ids [{1!s}-{2!s}]".format(net_pars_set.pop_names[n],
+																						 min(gids), max(gids)))
+
 			return populations
 
 		assert verify_pars_consistency(net_pars_set, ['_url', 'label', 'n_populations', 'parameters', 'names',
-		                                              'analog_device_pars', 'description'],
-		                               net_pars_set.n_populations), "Dimensionality of population parameters is " \
-		                                                            "inconsistent!"
+		                                              'analog_device_pars', 'description'], net_pars_set.n_populations), \
+			"Dimensionality of population parameters is inconsistent!"
+
 		self.populations = create_populations(net_pars_set)
 		self.n_populations = net_pars_set.n_populations
 		self.n_neurons = net_pars_set.n_neurons
@@ -671,17 +703,17 @@ class Network(object):
 		Combine sub-populations into a main Population object
 		:param sub_populations: [list] - of Population objects to merge
 		:param name: [str] - name of new population
+		:param merge_activity:
 		:return: new Population object
 		"""
 		from Modules.signals import empty, SpikeList
 		assert sub_populations, "No sub-populations to merge provided..."
 		gids_list = [list(x.gids) for x in sub_populations]
-		gIds = list(itertools.chain.from_iterable(gids_list))
+		gids = list(itertools.chain.from_iterable(gids_list))
 
-		pop_dict = {'pop_names': name, 'n_neurons': len(gIds),
-		            'gids': gIds, 'is_subpop': False}
+		pop_dict = {'pop_names': name, 'n_neurons': len(gids), 'gids': gids, 'is_subpop': False}
 
-		if np.mean([x.topology for x in sub_populations]) == 1.:
+		if all([x.topology for x in sub_populations]):
 			positions = [list(x.topology_dict['positions']) for x in sub_populations]
 			positions = list(itertools.chain.from_iterable(positions))
 
@@ -692,8 +724,7 @@ class Network(object):
 			tp_dict = {'elements': elements, 'positions': positions,
 			           'edge_wrap': bool(np.mean([x.topology_dict['edge_wrap'] for x in sub_populations]))}
 
-			pop_dict.update({'topology': True, 'layer_gid': layer_ids,
-			                 'topology_dict': tp_dict})
+			pop_dict.update({'topology': True, 'layer_gid': layer_ids, 'topology_dict': tp_dict})
 		else:
 			pop_dict.update({'topology': False})
 
@@ -710,16 +741,16 @@ class Network(object):
 				t_start = round(np.min([x.t_start for x in spk_activity_list]))
 				t_stop = round(np.max([x.t_stop for x in spk_activity_list]))
 
-				new_SpkList = SpikeList([], [], t_start=t_start, t_stop=t_stop, dims=n_neurons)
+				new_spike_list = SpikeList([], [], t_start=t_start, t_stop=t_stop, dims=n_neurons)
 
 				for n in spk_activity_list:
 					if not isinstance(n, list):
 						gids.append(n.id_list)
 						for idd in n.id_list:
-							new_SpkList.append(idd, n.spiketrains[idd])
+							new_spike_list.append(idd, n.spiketrains[idd])
 					else:
 						print "Merge specific spiking activity"   # TODO
-				new_population.spiking_activity = new_SpkList
+				new_population.spiking_activity = new_spike_list
 
 			if not empty(analog_activity):
 				# TODO - extend AnalogSignalList[0] with [1] ...
@@ -727,6 +758,7 @@ class Network(object):
 					new_population.analog_activity.append(n)
 
 		self.merged_populations.append(new_population)
+		# QUESTION why do we return this here? not needed or is it?
 		return new_population
 
 	def connect_devices(self):
@@ -735,7 +767,7 @@ class Network(object):
 
 		NOTE: Should only be called once! Otherwise, connections are repeated..
 		"""
-		print "\n Connecting Devices: "
+		print ("\n Connecting Devices: ")
 		for n in range(self.n_populations):
 
 			if isinstance(self.record_spikes[n], list):
@@ -748,7 +780,7 @@ class Network(object):
 						dev_dict['label'] += self.population_names[n][nn] + '_' + dev_dict['model']
 						self.device_names[n].append(dev_dict['label'])
 						dev_gid = self.populations[n][nn].record_spikes(extract_nestvalid_dict(
-							dev_dict, type='device'))
+							dev_dict, param_type='device'))
 						self.device_gids[n].append(dev_gid)
 						self.n_devices[n] += 1
 						print "- Connecting %s to %s, with label %s and id %s" % (
@@ -767,7 +799,7 @@ class Network(object):
 						else:
 							ids = None
 						dev_gid = self.populations[n][nn].record_analog(extract_nestvalid_dict(dev_dict,
-						                            type='device'), ids=ids, record=dev_dict['record_from'])
+																							   param_type='device'), ids=ids, record=dev_dict['record_from'])
 						self.device_gids[n].append(dev_gid)
 						self.n_devices[n] += 1
 						print "- Connecting %s to %s %s, with label %s and id %s" % (
@@ -783,7 +815,7 @@ class Network(object):
 					self.device_type[n].append(dev_dict['model'])
 					dev_dict['label'] += new_pop.name + '_' + dev_dict['model']
 					self.device_names[n].append(dev_dict['label'])
-					dev_gid = new_pop.record_spikes(extract_nestvalid_dict(dev_dict, type='device'))
+					dev_gid = new_pop.record_spikes(extract_nestvalid_dict(dev_dict, param_type='device'))
 					self.device_gids[n].append(dev_gid)
 					self.n_devices[n] += 1
 					print "- Connecting %s to %s, with label %s and id %s" % (dev_dict['model'], new_pop.name,
@@ -800,8 +832,8 @@ class Network(object):
 							ids.append(self.populations[n].gids[i])
 					else:
 						ids = None
-					dev_gid = new_pop.record_analog(extract_nestvalid_dict(dev_dict, type='device'), ids=ids,
-					                                record=dev_dict['record_from'])
+					dev_gid = new_pop.record_analog(extract_nestvalid_dict(dev_dict, param_type='device'), ids=ids,
+													record=dev_dict['record_from'])
 					self.device_gids[n].append(dev_gid)
 
 					self.n_devices[n] += 1
@@ -816,7 +848,7 @@ class Network(object):
 					self.device_type[n].append(dev_dict['model'])
 					dev_dict['label'] += '_' + self.population_names[n] + '_' + dev_dict['model']
 					self.device_names[n].append(dev_dict['label'])
-					dev_gid = self.populations[n].record_spikes(extract_nestvalid_dict(dev_dict, type='device'))
+					dev_gid = self.populations[n].record_spikes(extract_nestvalid_dict(dev_dict, param_type='device'))
 					self.device_gids[n].append(dev_gid)
 					self.n_devices[n] += 1
 					print "- Connecting %s to %s, with label %s and id %s" % (dev_dict['model'], self.population_names[n],
@@ -834,8 +866,8 @@ class Network(object):
 								ids.append(self.populations[n].gids[i])
 						else:
 							ids = None
-						dev_gid = self.populations[n].record_analog(extract_nestvalid_dict(dev_dict, type='device'),
-						                                            ids=ids, record=dev_dict['record_from'])
+						dev_gid = self.populations[n].record_analog(extract_nestvalid_dict(dev_dict, param_type='device'),
+																	ids=ids, record=dev_dict['record_from'])
 						self.device_gids[n].append(dev_gid)
 
 						self.n_devices[n] += 1
@@ -871,8 +903,8 @@ class Network(object):
 									ids.append(self.populations[n].gids[i])
 							else:
 								ids = None
-							dev_gid = self.populations[n].record_analog(extract_nestvalid_dict(dev_dict, type='device'),
-							                                            ids=ids, record=dev_dict['record_from'])
+							dev_gid = self.populations[n].record_analog(extract_nestvalid_dict(dev_dict, param_type='device'),
+																		ids=ids, record=dev_dict['record_from'])
 							self.device_gids[n].append(dev_gid)
 
 							self.n_devices[n] += 1
@@ -898,9 +930,9 @@ class Network(object):
 		"""
 		if progress:
 			from Modules.visualization import progress_bar
-		print "\n Connecting populations: "
+		print ("\n Connecting populations: ")
 		for n in range(connect_pars_set.n_synapse_types):
-			print "    - %s [%s]" % (connect_pars_set.synapse_types[n], connect_pars_set.models[n])
+			print ("    - %s [%s]" % (connect_pars_set.synapse_types[n], connect_pars_set.models[n]))
 
 			# index of source and target populations in the population lists
 			if connect_pars_set.synapse_types[n][1] in self.population_names:
@@ -1141,7 +1173,7 @@ class Network(object):
 			                   'local_id', 'model', 'parent']
 			for idx_pop, pop_obj in enumerate(list(iterate_obj_list(net.populations))):
 				# get generic neuron_pars (update individually later):
-				neuron = extract_nestvalid_dict(nest.GetStatus([pop_obj.gids[0]])[0], type='neuron')
+				neuron = extract_nestvalid_dict(nest.GetStatus([pop_obj.gids[0]])[0], param_type='neuron')
 				d_tmp = {k: v for k, v in neuron.items() if k not in status_elements}
 				neuron_pars[idx_pop] = copy_dict(d_tmp, {'model': nest.GetStatus([pop_obj.gids[0]])[0]['model']})
 				if isinstance(pop_obj.topology, dict):

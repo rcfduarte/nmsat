@@ -940,12 +940,12 @@ class Grammar:
 		"""
 		Displays all the relevant information.
 		"""
-		print '***************************************************************************'
+		print('***************************************************************************')
 		if self.name is not None:
-			print 'Generative mechanism abides to %s rules' % self.name
-		print 'Unique states:', self.states
-		print 'Alphabet:', self.alphabet
-		print 'Transition table: '
+			print ('Generative mechanism abides to %s rules' % self.name)
+		print('Unique states:', self.states)
+		print('Alphabet:', self.alphabet)
+		print('Transition table: ')
 		self.print_transitiontable(self.generate_transitiontable(), self.states)
 	# print '\nGrammar complexity (n, TE): {0}{1}'.format(self.n_gram, self.topological_entropy)
 
@@ -1263,7 +1263,7 @@ class StimulusSet(object):
 		Initialize the StimulusSet object
 		:param initializer: stimulus ParameterSet
 		"""
-		print "\n Generating StimulusSet: "
+		print("\n Generating StimulusSet: ")
 		self.grammar = None
 		self.full_stim_set = None
 		self.transient_stim_set = None
@@ -1367,6 +1367,7 @@ class StimulusSet(object):
 		:param separator: str used to separate the individual strings...
 		:return n: iterator for full stimulus sequence
 		"""
+		# QUESTION what exactly is string_length?
 		if self.grammar is not None:
 			self.full_stim_set = self.grammar.generate_string_set(n_strings, string_length, debug=False)
 			str_set = self.grammar.concatenate_stringset(self.full_stim_set, separator=separator)
@@ -1374,16 +1375,13 @@ class StimulusSet(object):
 		else:
 			seq = []
 			for n in range(n_strings):
-				if string_length:
-					length = np.random.randint(string_length[0], string_length[1])
-				else:
-					length = 1
-				idxs = np.random.randint(0, len(self.elements), length)
-				str = []
+				length 	= np.random.randint(string_length[0], string_length[1]) if string_length else 1
+				idxs 	= np.random.randint(0, len(self.elements), length)
+				str_ 	= []
 				for nn in idxs:
-					str.append(self.elements[nn])
+					str_.append(self.elements[nn])
 
-				seq.append(str)
+				seq.append(str_)
 		return seq
 
 	def stimulus_sequence_to_binary(self, seq):
@@ -1423,6 +1421,8 @@ class StimulusSet(object):
 		"""
 		Create the full stimulus set (optional)
 		:param set_length:
+		:param string_length:
+		:param separator:
 		:return:
 		"""
 		self.full_set_labels = self._build_stimulus_seq(set_length, string_length, separator)
@@ -1431,8 +1431,9 @@ class StimulusSet(object):
 			seq = self.grammar.correct_symbolseq(seq)
 		else:
 			seq = self.full_set_labels
+		# Question: what is the binary function below?
 		self.full_set = self.stimulus_sequence_to_binary(seq)
-		print "\t- Creating full stimulus sequence [{0}]".format(str(len(self.full_set_labels)))
+		print ("\t- Creating full stimulus sequence [{0}]".format(str(len(self.full_set_labels))))
 
 	def create_unique_set(self, n_discard=0):
 		"""
@@ -1530,7 +1531,7 @@ class StimulusSet(object):
 			self.full_set_labels.insert(n_discard, self.unique_set_labels)
 			self.full_set_labels = list(itertools.chain(*self.full_set_labels))
 			self.full_set = self.stimulus_sequence_to_binary(self.full_set_labels)
-		print "\t- Creating transient set [{0}]".format(str(len(self.transient_set_labels)))
+		print ("\t- Creating transient set [{0}]".format(str(len(self.transient_set_labels))))
 
 	def save(self, path):
 		"""
@@ -2756,7 +2757,7 @@ class Generator:
 				model_dict = initializer.model_pars
 				model_dict['model'] = initializer.model
 				nest.CopyModel(initializer.model, self.name[nn])
-				nest.SetDefaults(self.name[nn], extract_nestvalid_dict(model_dict, type='device'))
+				nest.SetDefaults(self.name[nn], extract_nestvalid_dict(model_dict, param_type='device'))
 
 				# TODO: Test
 				if initializer.topology:
@@ -2902,7 +2903,7 @@ class EncodingLayer:
 				elif encoder_pars.models[nn] == 'NEF':
 					neuron_dict = encoder_pars.neuron_pars[nn]
 					nest.CopyModel(neuron_dict['model'], encoder_pars.labels[nn])
-					nest.SetDefaults(encoder_pars.labels[nn], extract_nestvalid_dict(neuron_dict, type='neuron'))
+					nest.SetDefaults(encoder_pars.labels[nn], extract_nestvalid_dict(neuron_dict, param_type='neuron'))
 
 					if encoder_pars.topology[nn]:
 						import nest.topology as tp
@@ -2926,7 +2927,7 @@ class EncodingLayer:
 						else:
 							label = 'encoder_spikes'
 						dev_gid = encoders[-1].record_spikes(extract_nestvalid_dict(encoder_pars.spike_device_pars[nn],
-						                                                  type='device'), label=label)
+																					param_type='device'), label=label)
 						print "- Connecting %s to %s, with label %s and id %s" % (
 							encoder_pars.spike_device_pars[nn]['model'], 
 							encoders[-1].name, label, str(dev_gid))
@@ -2937,7 +2938,7 @@ class EncodingLayer:
 						else:
 							label = 'encoder_analogs'
 						dev_gid = encoders[-1].record_analog(extract_nestvalid_dict(encoder_pars.analogue_device_pars[nn],
-						                                                  type='device'), label=label)
+																					param_type='device'), label=label)
 						print "- Connecting %s to %s, with label %s and id %s" % (
 							encoder_pars.analogue_device_pars[nn]['model'],
 							encoders[-1].name, label, str(dev_gid))
@@ -2945,7 +2946,7 @@ class EncodingLayer:
 				elif encoder_pars.models[nn] == 'parrot_neuron':
 					neuron_dict = encoder_pars.neuron_pars[nn]
 					nest.CopyModel(neuron_dict['model'], encoder_pars.labels[nn])
-					nest.SetDefaults(encoder_pars.labels[nn], extract_nestvalid_dict(neuron_dict, type='neuron'))
+					nest.SetDefaults(encoder_pars.labels[nn], extract_nestvalid_dict(neuron_dict, param_type='neuron'))
 					if encoder_pars.topology[nn]:
 						import nest.topology as tp
 						tp_dict = encoder_pars.topology_dict[nn]
@@ -2969,7 +2970,7 @@ class EncodingLayer:
 						else:
 							label = 'encoder_spikes'
 						dev_gid = encoders[-1].record_spikes(extract_nestvalid_dict(encoder_pars.spike_device_pars[nn],
-						                                                            type='device'), label=label)
+																					param_type='device'), label=label)
 						print "- Connecting %s to %s, with label %s and id %s" % (
 							encoder_pars.spike_device_pars[nn]['model'],
 							encoders[-1].name, label, str(dev_gid))

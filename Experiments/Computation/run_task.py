@@ -36,7 +36,7 @@ def run(parameter_set, plot=True, display=True, save=False, online=True, debug=F
 	print '\nRuning ParameterSet {0}'.format(parameter_set.label)
 	nest.ResetKernel()
 	nest.set_verbosity('M_WARNING')
-	nest.SetKernelStatus(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(), type='kernel'))
+	nest.SetKernelStatus(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(), param_type='kernel'))
 
 	###################################################################################
 	# Build network

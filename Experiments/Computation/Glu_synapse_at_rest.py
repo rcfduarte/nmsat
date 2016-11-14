@@ -32,7 +32,7 @@ def run(parameter_set, plot=False, save=True):
 	print '\nRuning ParameterSet {0}'.format(parameter_set.label)
 	nest.ResetKernel()
 	nest.set_verbosity('M_WARNING')
-	nest.SetKernelStatus(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(), type='kernel'))
+	nest.SetKernelStatus(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(), param_type='kernel'))
 	nest.SetKernelStatus({'resolution': 0.1, 'print_time': False})
 	spike_times = np.arange(100., parameter_set.additional.totalT, 500.)  # np.array([20., 100., 250., 500., 800.,
 	# 1200., 1500.])

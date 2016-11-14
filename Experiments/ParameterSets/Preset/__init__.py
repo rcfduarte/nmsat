@@ -170,6 +170,7 @@ def rec_device_defaults(default_set=0, start=0., stop=sys.float_info.max, resolu
 
 
 def set_neuron_defaults(default_set=1):
+	# TODO extend the commentary on this?
 	"""
 	Collections of single neuron ParameterSets
 
@@ -182,8 +183,8 @@ def set_neuron_defaults(default_set=1):
 	:return: ParameterSet
 	"""
 	if default_set == 1.1:
-		print "\nLoading Default Neuron Set 1.1 - iaf_cond_mtime, fixed voltage threshold, fixed absolute refractory " \
-		      "time, Fast synapses (AMPA, GABAa), heterogeneous parameters"
+		print ("\nLoading Default Neuron Set 1.1 - iaf_cond_mtime, fixed voltage threshold, fixed absolute refractory \
+		        time, Fast synapses (AMPA, GABAa), heterogeneous parameters")
 		neuron_pars = {
 			'description': {
 				'neurons': 'Leaky integrate-and-fire, fixed voltage threshold, fixed absolute refractory time',
@@ -238,8 +239,8 @@ def set_neuron_defaults(default_set=1):
 			}
 		}
 	elif default_set == 1.2:
-		print "\nLoading Default Neuron Set 1.2 - iaf_cond_mtime, fixed voltage threshold, fixed absolute refractory " \
-		      "time, Fast synapses (AMPA, GABAa), homogeneous parameters"
+		print ("\nLoading Default Neuron Set 1.2 - iaf_cond_mtime, fixed voltage threshold, fixed absolute refractory \
+		        time, Fast synapses (AMPA, GABAa), homogeneous parameters")
 		neuron_pars = {
 			'description': {
 				'neurons': 'Leaky integrate-and-fire, fixed voltage threshold, fixed absolute refractory time',
@@ -319,10 +320,10 @@ def set_neuron_defaults(default_set=1):
 		}
 
 	elif default_set == 1.3:
-		print "\nLoading Default Neuron Set 1.3 - iaf_cond_mtime, fixed voltage threshold, fixed absolute refractory " \
-		      "time, " \
-		      "Fast and slow synapses (AMPA, GABAa, NMDA, GABAb)," \
-		      " homogeneous parameters"
+		print ("\nLoading Default Neuron Set 1.3 - iaf_cond_mtime, fixed voltage threshold, fixed absolute refractory "
+			   "time, "
+			   "Fast and slow synapses (AMPA, GABAa, NMDA, GABAb),"
+			   " homogeneous parameters")
 		neuron_pars = {
 			'description': {
 				'neurons': 'Leaky integrate-and-fire, fixed voltage threshold, fixed absolute refractory time',
@@ -403,8 +404,8 @@ def set_neuron_defaults(default_set=1):
 		}
 
 	elif default_set == 1.4:
-		print "\nLoading Default Neuron Set 1.4 - iaf_cond_mtime, Fast and slow synapses (AMPA, GABAa, NMDA, GABAb), " \
-		      "heterogeneous neurons parameters"
+		print ("\nLoading Default Neuron Set 1.4 - iaf_cond_mtime, Fast and slow synapses (AMPA, GABAa, NMDA, GABAb), "
+		       "heterogeneous neurons parameters")
 		neuron_pars = {
 			'description': {
 				'neurons': 'Leaky integrate-and-fire, random voltage threshold, absolute refractory time',
@@ -485,8 +486,8 @@ def set_neuron_defaults(default_set=1):
 		}
 
 	elif default_set == 1.5:
-		print "\nLoading Default Neuron Set 1.5 - iaf_cond_mtime, fixed voltage threshold, fixed absolute refractory " \
-		      "time, Fast synapses (AMPA, GABAa), randomized parameters"
+		print ("\nLoading Default Neuron Set 1.5 - iaf_cond_mtime, fixed voltage threshold, fixed absolute refractory "
+		       "time, Fast synapses (AMPA, GABAa), randomized parameters")
 		neuron_pars = {
 			'description': {
 				'neurons': 'Leaky integrate-and-fire, fixed voltage threshold, fixed absolute refractory time',
@@ -566,8 +567,8 @@ def set_neuron_defaults(default_set=1):
 		}
 
 	elif default_set == 2.1:
-		print "\nLoading Default Neuron Set 2.1 - iaf_cond_exp, fixed voltage threshold, fixed absolute refractory " \
-		      "time, Fast, exponential synapses (AMPA, GABAa), homogeneous parameters"
+		print ("\nLoading Default Neuron Set 2.1 - iaf_cond_exp, fixed voltage threshold, fixed absolute refractory "
+		       "time, Fast, exponential synapses (AMPA, GABAa), homogeneous parameters")
 		neuron_pars = {
 			'description': {
 				'neurons': 'Leaky integrate-and-fire, fixed voltage threshold, fixed absolute refractory time',
@@ -612,8 +613,8 @@ def set_neuron_defaults(default_set=1):
 			}
 		}
 	elif default_set == 2.2:
-		print "\nLoading Default Neuron Set 2.2 - iaf_cond_exp_sfa_rr, fixed voltage threshold, dynamic refractory " \
-		      "time spike frequency adaptation, Fast, conductance-based exponential synapses, homogeneous parameters"
+		print ("\nLoading Default Neuron Set 2.2 - iaf_cond_exp_sfa_rr, fixed voltage threshold, dynamic refractory "
+		       "time spike frequency adaptation, Fast, conductance-based exponential synapses, homogeneous parameters")
 		neuron_pars = {
 			'description': {
 				'neurons': 'Leaky integrate-and-fire, sfa, dynamic refractory time',
@@ -665,8 +666,8 @@ def set_neuron_defaults(default_set=1):
 		}
 
 	elif default_set == 2.3:
-		print "\nLoading Default Neuron Set 1.3 - iaf_cond_mtime, fixed voltage threshold, fixed absolute refractory " \
-		      "time, Fast and slow synapses (AMPA, GABAa, NMDA, GABAb), homogeneous parameters"
+		print ("\nLoading Default Neuron Set 1.3 - iaf_cond_mtime, fixed voltage threshold, fixed absolute refractory "
+		       "time, Fast and slow synapses (AMPA, GABAa, NMDA, GABAb), homogeneous parameters")
 		neuron_pars = {
 			'description': {
 				'neurons': 'Leaky integrate-and-fire, fixed voltage threshold, fixed absolute refractory time',
@@ -723,8 +724,8 @@ def set_neuron_defaults(default_set=1):
 		}
 
 	elif default_set == 4:
-		print "\nLoading Default Neuron Set 4 - iaf_cond_exp, fixed voltage threshold, fixed absolute refractory " \
-		      "time, Fast, exponential synapses (AMPA, GABAa), homogeneous parameters"
+		print ("\nLoading Default Neuron Set 4 - iaf_cond_exp, fixed voltage threshold, fixed absolute refractory "
+		       "time, Fast, exponential synapses (AMPA, GABAa), homogeneous parameters")
 		neuron_pars = {
 			'description': {
 				'neurons': 'Leaky integrate-and-fire, fixed voltage threshold, fixed absolute refractory time',
@@ -765,8 +766,8 @@ def set_neuron_defaults(default_set=1):
 			}
 		}
 	elif default_set == 5:
-		print "\nLoading Default Neuron Set 5 - amat2_psc_exp, fixed voltage threshold, fixed absolute refractory " \
-		      "time, Fast, exponential synapses, homogeneous parameters"
+		print ("\nLoading Default Neuron Set 5 - amat2_psc_exp, fixed voltage threshold, fixed absolute refractory "
+		       "time, Fast, exponential synapses, homogeneous parameters")
 		neuron_pars = {
 			'description': {
 				'neurons': 'Leaky integrate-and-fire, Multi-Timescale Adaptive threshold, fixed absolute '
@@ -812,8 +813,8 @@ def set_neuron_defaults(default_set=1):
 			},
 		}
 	elif default_set == 5.1:
-		print "\nLoading Default Neuron Set 5.1 - amat2_psc_exp, fixed voltage threshold, fixed absolute refractory " \
-		      "time, Fast, exponential synapses, homogeneous parameters"
+		print ("\nLoading Default Neuron Set 5.1 - amat2_psc_exp, fixed voltage threshold, fixed absolute refractory "
+		       "time, Fast, exponential synapses, homogeneous parameters")
 		neuron_pars = {
 			'description': {
 				'neurons': 'Leaky integrate-and-fire, Multi-Timescale Adaptive threshold, fixed absolute '
@@ -898,8 +899,8 @@ def set_neuron_defaults(default_set=1):
 		}
 
 	elif default_set == 6:
-		print "\nLoading Default Neuron Set 6 - iaf_psc_exp_ps, fixed voltage threshold, fixed absolute refractory " \
-		      "time, Fast, current-based exponential synapses, homogeneous parameters"
+		print ("\nLoading Default Neuron Set 6 - iaf_psc_exp_ps, fixed voltage threshold, fixed absolute refractory "
+		       "time, Fast, current-based exponential synapses, homogeneous parameters")
 		neuron_pars = {
 			'description': {
 				'neurons': 'Leaky integrate-and-fire, fixed firing threshold, fixed absolute refractory time',
@@ -928,8 +929,8 @@ def set_neuron_defaults(default_set=1):
 			},
 		}
 	elif default_set == 7.1:
-		print "\nLoading Default Neuron Set 7.1 - aeif_cond_exp, fixed voltage threshold, fixed absolute refractory " \
-		      "time, Fast, conductance-based exponential synapses"
+		print ("\nLoading Default Neuron Set 7.1 - aeif_cond_exp, fixed voltage threshold, fixed absolute refractory "
+		       "time, Fast, conductance-based exponential synapses")
 		neuron_pars = {
 			'description': {
 				'neurons': 'Adaptive Leaky integrate-and-fire, fixed firing threshold, fixed absolute refractory time',
@@ -984,8 +985,8 @@ def set_neuron_defaults(default_set=1):
 			},
 		}
 	elif default_set == 7.2:
-		print "\nLoading Default Neuron Set 7.2 - aeif_cond_exp, fixed voltage threshold, fixed absolute refractory " \
-		      "time, Fast, conductance-based exponential synapses"
+		print ("\nLoading Default Neuron Set 7.2 - aeif_cond_exp, fixed voltage threshold, fixed absolute refractory "
+		       "time, Fast, conductance-based exponential synapses")
 		neuron_pars = {
 			'description': {
 				'neurons': 'Adaptive Leaky integrate-and-fire, fixed firing threshold, fixed absolute refractory time',
@@ -1040,8 +1041,8 @@ def set_neuron_defaults(default_set=1):
 			},
 		}
 	elif default_set == 7.3:
-		print "\nLoading Default Neuron Set 7.3 - aeif_cond_exp, fixed voltage threshold, fixed absolute refractory " \
-		      "time, Fast, conductance-based exponential synapses"
+		print ("\nLoading Default Neuron Set 7.3 - aeif_cond_exp, fixed voltage threshold, fixed absolute refractory "
+		       "time, Fast, conductance-based exponential synapses")
 		neuron_pars = {
 			'description': {
 				'neurons': 'Adaptive Leaky integrate-and-fire, fixed firing threshold, fixed absolute refractory time',
@@ -1096,9 +1097,9 @@ def set_neuron_defaults(default_set=1):
 			},
 		}
 	elif default_set == 8.1:
-		print "\nLoading Default Neuron Set 8.1 - iaf_cond_exp_sfa_rr, fixed voltage threshold, dynamic refractory " \
-		      "time " \
-		      "spike frequency adaptation, Fast, conductance-based exponential synapses, homogeneous parameters"
+		print ("\nLoading Default Neuron Set 8.1 - iaf_cond_exp_sfa_rr, fixed voltage threshold, dynamic refractory "
+			   "time "
+			   "spike frequency adaptation, Fast, conductance-based exponential synapses, homogeneous parameters")
 		neuron_pars = {
 			'description': {
 				'neurons': 'Leaky integrate-and-fire, sfa, dynamic refractory time',
@@ -1145,9 +1146,9 @@ def set_neuron_defaults(default_set=1):
 			},
 		}
 	elif default_set == 8.2:
-		print "\nLoading Default Neuron Set 8.2 - iaf_cond_exp_sfa_rr, fixed voltage threshold, dynamic refractory " \
-		      "time " \
-		      "spike frequency adaptation, Fast, conductance-based exponential synapses, homogeneous parameters"
+		print ("\nLoading Default Neuron Set 8.2 - iaf_cond_exp_sfa_rr, fixed voltage threshold, dynamic refractory "
+			   "time "
+			   "spike frequency adaptation, Fast, conductance-based exponential synapses, homogeneous parameters")
 		neuron_pars = {
 			'description': {
 				'neurons': 'Leaky integrate-and-fire, sfa, dynamic refractory time',
@@ -1194,9 +1195,9 @@ def set_neuron_defaults(default_set=1):
 			},
 		}
 	elif default_set == 8.3:
-		print "\nLoading Default Neuron Set 8.3 - iaf_cond_exp_sfa_rr, fixed voltage threshold, dynamic refractory " \
-		      "time " \
-		      "spike frequency adaptation, Fast, conductance-based exponential synapses, homogeneous parameters"
+		print ("\nLoading Default Neuron Set 8.3 - iaf_cond_exp_sfa_rr, fixed voltage threshold, dynamic refractory "
+			   "time "
+			   "spike frequency adaptation, Fast, conductance-based exponential synapses, homogeneous parameters")
 		neuron_pars = {
 			'description': {
 				'neurons': 'Leaky integrate-and-fire, sfa, dynamic refractory time',
@@ -1247,9 +1248,9 @@ def set_neuron_defaults(default_set=1):
 			},
 		}
 	elif default_set == 8.4:
-		print "\nLoading Default Neuron Set 8.4 - iaf_cond_exp_sfa_rr, fixed voltage threshold, dynamic refractory " \
-		      "time " \
-		      "spike frequency adaptation, Fast, conductance-based exponential synapses, homogeneous parameters"
+		print ("\nLoading Default Neuron Set 8.4 - iaf_cond_exp_sfa_rr, fixed voltage threshold, dynamic refractory "
+			   "time "
+			   "spike frequency adaptation, Fast, conductance-based exponential synapses, homogeneous parameters")
 		neuron_pars = {
 			'description': {
 				'neurons': 'Leaky integrate-and-fire, sfa, dynamic refractory time',
@@ -1303,13 +1304,19 @@ def set_neuron_defaults(default_set=1):
 
 
 def set_network_defaults(default_set=1, neuron_set=1, connection_set=0, N=1250, kernel_pars=None, **synapse_pars):
+	# IDEA make a class for all the possible sets, along with their description, so one can also print-help it? overview
 	"""
 
 	:param default_set:
+	:param neuron_set:
+	:param connection_set:
+	:param N:
+	:param kernel_pars:
+	:param synapse_pars:
 	:return:
 	"""
 	if default_set == 1.1:
-		print "\nLoading Default Network Set 1 - Short time constants"
+		print ("\nLoading Default Network Set 1 - Short time constants")
 		syn_pars = ParameterSet(synapse_pars)
 		nE = 0.8 * N
 		nI = 0.2 * N
@@ -1322,36 +1329,36 @@ def set_network_defaults(default_set=1, neuron_set=1, connection_set=0, N=1250, 
 		# ===========================================================================================================
 		net_pars = {
 			'n_populations': 2,
-			'pop_names': ['E', 'I'],
-			'n_neurons': [int(nE), int(nI)],
-			'neuron_pars': [neuron_pars['E'], neuron_pars['I']],
-			'randomize_neuron_pars': [{'V_m': (np.random.uniform, {'low': -70., 'high': -50.})},
-			                          {'V_m': (np.random.uniform, {'low': -70., 'high': -50.})}],
-			'topology': [False, False],
+			'pop_names': 	 ['E', 'I'],
+			'n_neurons': 	 [int(nE), int(nI)],
+			'neuron_pars': 	 [neuron_pars['E'], neuron_pars['I']],
+			'topology': 	 [False, False],
 			'topology_dict': [None, None],
 			'record_spikes': [True, True],
+			'randomize_neuron_pars': [{'V_m': (np.random.uniform, {'low': -70., 'high': -50.})},
+									  {'V_m': (np.random.uniform, {'low': -70., 'high': -50.})}],
 			'spike_device_pars': [copy_dict(rec_devices,
-			                                {'model': 'spike_detector',
-			                                 'record_to': ['memory'],
-			                                 'interval': 0.1,
-			                                 'label': 'E_Spikes'}),
+			                                {'model': 		'spike_detector',
+			                                 'record_to': 	['memory'],
+			                                 'interval': 	0.1,
+			                                 'label':		'E_Spikes'}),
 			                      copy_dict(rec_devices,
-			                                {'model': 'spike_detector',
-			                                 'record_to': ['memory'],
-			                                 'interval': 0.1,
-			                                 'label': 'I_Spikes'})],
-			'record_analogs': [False, False],
-			'analog_device_pars': [None, None],
-			'description': {'topology': 'None'}
+			                                {'model': 		'spike_detector',
+			                                 'record_to': 	['memory'],
+			                                 'interval': 	0.1,
+			                                 'label': 		'I_Spikes'})],
+			'record_analogs': 		[False, False],
+			'analog_device_pars': 	[None, None],
+			'description': 			{'topology': 'None'}
 		}
 		#############################################################################################################
 		# SYNAPSE Parameters
 		# ============================================================================================================
 		connection_pars, neuron_pars = set_connection_defaults(default_set=connection_set, syn_pars=syn_pars,
-		                                          neuron_pars=neuron_pars)
+															   neuron_pars=neuron_pars)
 
 	elif default_set == 1.2:
-		print "\nLoading Default Network Set 2 - Long time constants"
+		print ("\nLoading Default Network Set 2 - Long time constants")
 		syn_pars = ParameterSet(synapse_pars)
 		nE = 0.8 * N
 		nI = 0.2 * N
@@ -1391,10 +1398,10 @@ def set_network_defaults(default_set=1, neuron_set=1, connection_set=0, N=1250, 
 		# SYNAPSE Parameters
 		# ============================================================================================================
 		connection_pars, neuron_pars = set_connection_defaults(default_set=connection_set, syn_pars=syn_pars,
-		                                          neuron_pars=neuron_pars)
+															   neuron_pars=neuron_pars)
 
 	elif default_set == 3:
-		print "\nLoading Default Network Set 3 - AMAT"
+		print ("\nLoading Default Network Set 3 - AMAT")
 		syn_pars = ParameterSet(synapse_pars)
 		nE = 0.8 * N
 		nI = 0.2 * N
@@ -1436,10 +1443,10 @@ def set_network_defaults(default_set=1, neuron_set=1, connection_set=0, N=1250, 
 		# SYNAPSE Parameters
 		# ============================================================================================================
 		connection_pars, neuron_pars = set_connection_defaults(default_set=connection_set, syn_pars=syn_pars,
-		                                          neuron_pars=neuron_pars)
+															   neuron_pars=neuron_pars)
 
 	elif default_set == 3.1:
-		print "\nLoading Default Network Set 3.1 - Two-pool system"
+		print ("\nLoading Default Network Set 3.1 - Two-pool system")
 		syn_pars = ParameterSet(synapse_pars)
 		nE = 0.8 * N
 		nI = 0.2 * N
@@ -1514,7 +1521,7 @@ def set_network_defaults(default_set=1, neuron_set=1, connection_set=0, N=1250, 
 		neuron_pars['description']['synapses'] += ' Non-adapting'
 
 	elif default_set == 4.1:
-		print "\nLoading Default Network Set 4.1 - Standard BRN, grid topology"
+		print ("\nLoading Default Network Set 4.1 - Standard BRN, grid topology")
 		syn_pars = ParameterSet(synapse_pars)
 		nE = 0.8 * N
 		nI = 0.2 * N
@@ -1565,9 +1572,9 @@ def set_network_defaults(default_set=1, neuron_set=1, connection_set=0, N=1250, 
 		# SYNAPSE Parameters
 		# ============================================================================================================
 		connection_pars, neuron_pars = set_connection_defaults(default_set=connection_set, syn_pars=syn_pars,
-		                                          neuron_pars=neuron_pars)
+															   neuron_pars=neuron_pars)
 	elif default_set == 4:
-		print "\nLoading Default Network Set 4 - Standard BRN"
+		print ("\nLoading Default Network Set 4 - Standard BRN")
 		syn_pars = ParameterSet(synapse_pars)
 		nE = 0.8 * N
 		nI = 0.2 * N
@@ -1612,7 +1619,7 @@ def set_network_defaults(default_set=1, neuron_set=1, connection_set=0, N=1250, 
 		                                          neuron_pars=neuron_pars)
 
 	elif default_set == 5:
-		print "\nLoading Default Network Set 5 - Single Neuron DC input"
+		print ("\nLoading Default Network Set 5 - Single Neuron DC input")
 		neuron_pars = set_neuron_defaults(default_set=neuron_set)
 		n_pars = {k: v for k, v in neuron_pars.items() if k != 'description'}
 		multimeter = rec_device_defaults(device_type='multimeter')
@@ -1641,7 +1648,7 @@ def set_network_defaults(default_set=1, neuron_set=1, connection_set=0, N=1250, 
 		connection_pars = {}
 
 	elif default_set == 5.1:
-		print "\nLoading Default Network Set 5.1 - Single Neuron DC input Variable parameters"
+		print ("\nLoading Default Network Set 5.1 - Single Neuron DC input Variable parameters")
 		neuron_pars = set_neuron_defaults(default_set=neuron_set)
 		n_pars = {k: v for k, v in neuron_pars.items() if k != 'description'}
 		multimeter = rec_device_defaults(device_type='multimeter')
@@ -1747,10 +1754,10 @@ def set_network_defaults(default_set=1, neuron_set=1, connection_set=0, N=1250, 
 		}
 		##############################################################
 		connection_pars, neuron_pars = set_connection_defaults(default_set=connection_set, syn_pars=syn_pars,
-		                                          neuron_pars=neuron_pars)
+															   neuron_pars=neuron_pars)
 
 	elif default_set == 6.1:
-		print "\nLoading Default Network Set 5.2 - Single Neuron Synaptic input, heterogeneous"
+		print ("\nLoading Default Network Set 5.2 - Single Neuron Synaptic input, heterogeneous")
 		syn_pars = ParameterSet(synapse_pars)
 		nE = 0.8 * N
 		nI = 0.2 * N
@@ -1830,7 +1837,7 @@ def set_network_defaults(default_set=1, neuron_set=1, connection_set=0, N=1250, 
 		                                          neuron_pars=neuron_pars)
 
 	elif default_set == 6.2:
-		print "\nLoading Default Network Set 2 - Long time constants, heterogeneous"
+		print ("\nLoading Default Network Set 2 - Long time constants, heterogeneous")
 		syn_pars = ParameterSet(synapse_pars)
 		nE = 0.8 * N
 		nI = 0.2 * N
@@ -1913,9 +1920,9 @@ def set_network_defaults(default_set=1, neuron_set=1, connection_set=0, N=1250, 
 		}
 		##############################################################
 		connection_pars, neuron_pars = set_connection_defaults(default_set=connection_set, syn_pars=syn_pars,
-		                                          neuron_pars=neuron_pars)
+															   neuron_pars=neuron_pars)
 	elif default_set == 6.3:
-		print "\nLoading Default Network Set 2 - Long time constants, homogeneous"
+		print ("\nLoading Default Network Set 2 - Long time constants, homogeneous")
 		syn_pars = ParameterSet(synapse_pars)
 		nE = 0.8 * N
 		nI = 0.2 * N
@@ -1981,6 +1988,8 @@ def set_connection_defaults(default_set=0, syn_pars=None, neuron_pars=None):
 	"""
 
 	:param default_set:
+	:param syn_pars:
+	:param neuron_pars:
 	:return:
 	"""
 	connection_pars = {}

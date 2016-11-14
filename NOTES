@@ -20,6 +20,10 @@ Talking points:
 ********************************************
 1.     t_start, t_stop, dt, int(round((t_stop-t_start) / float(dt))), len(signal)))
 Exception: Inconsistent arguments: t_start=1000, t_stop=2000, dt=0.1 implies 10000 elements, actually 9999
+ === Renato already knows about this
+
+2.      specifics of a 3D topology with two populations, E and I. How are distances between the neurons of the two
+        layers calculated: are the layers actually in the same coordinate system (one on top of the other, so to say?)
 
 
 ===============================

@@ -5,7 +5,8 @@ sys.path.append('../ParameterSets/')
 from Modules.input_architect import *
 from Modules.visualization import *
 from Modules.io import set_storage_locations
-from Experiments.Computations import iterate_input_sequence
+# from Experiments.Computations import iterate_input_sequence
+import Experiments.Computation
 import numpy as np
 import nest
 
@@ -46,7 +47,7 @@ results = dict()
 print '\nRuning ParameterSet {0}'.format(parameter_set.label)
 nest.ResetKernel()
 nest.set_verbosity('M_WARNING')
-nest.SetKernelStatus(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(), type='kernel'))
+nest.SetKernelStatus(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(), param_type='kernel'))
 
 ###################################################################################
 # Build network
