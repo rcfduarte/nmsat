@@ -1,3 +1,5 @@
+# TODO check for input / simulation resolution match = error
+
 __author__ = 'duarte'
 import sys
 sys.path.append('../../')
@@ -5,7 +7,7 @@ sys.path.append('../ParameterSets/')
 from Modules.input_architect import *
 from Modules.visualization import *
 from Modules.io import set_storage_locations
-# from Experiments.Computations import iterate_input_sequence
+from Experiments.Computation import iterate_input_sequence
 import Experiments.Computation
 import numpy as np
 import nest
@@ -19,10 +21,12 @@ online = True
 ###################################################################################
 # Extract parameters from file and build global ParameterSet
 # =================================================================================
-params_file = '../ParameterSets/_originals/X_spike_pattern_input_sequence.py'
+# params_file = '../ParameterSets/_originals/X_spike_pattern_input_sequence.py'
+params_file = '../ParameterSets/legenstein_maass_spike_template_classification.py'
 set_global_rcParams('../../Defaults/matplotlib_rc')
 
-parameter_set = ParameterSet(set_params_dict(params_file), label='global')
+# parameter_set = ParameterSet(set_params_dict(params_file), label='global')
+parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
 
 if not isinstance(parameter_set, ParameterSet):
@@ -60,13 +64,13 @@ net.merge_subpopulations([net.populations[0], net.populations[1]], name='EI')
 # =================================================================================
 for n in list(iterate_obj_list(net.populations)):
 	n.randomize_initial_states('V_m', randomization_function=np.random.uniform, low=0.0, high=15.)
-
+# TODO @barni: different neuron models have different resting/starting potential, check here and throw error?
 ###################################################################################
 # Build and connect input
 # =================================================================================
 # Create StimulusSet
 stim_set_time = time.time()
-stim = StimulusSet(parameter_set, unique_set=True)
+stim = StimulusSet(parameter_set)
 stim.create_set(parameter_set.stim_pars.full_set_length)
 stim.discard_from_set(parameter_set.stim_pars.transient_set_length)
 stim.divide_set(parameter_set.stim_pars.transient_set_length, parameter_set.stim_pars.train_set_length,
@@ -79,7 +83,7 @@ inputs = InputSignalSet(parameter_set, stim, online=online)
 if stim.transient_set_labels:
 	inputs.generate_transient_set(stim)
 	parameter_set.kernel_pars.transient_t = inputs.transient_stimulation_time
-inputs.generate_unique_set(stim)
+# inputs.generate_unique_set(stim)  # Question: this can remain commented out, right?
 inputs.generate_train_set(stim)
 inputs.generate_test_set(stim)
 print "- Elapsed Time: {0}".format(str(time.time() - input_set_time))
@@ -116,8 +120,8 @@ enc_layer.connect(parameter_set.encoding_pars, net)
 if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input_decoder"):
 	enc_layer.connect_decoders(parameter_set.encoding_pars.input_decoder)
 
-if plot and debug:
-	vis.extract_encoder_connectivity(enc_layer, net, display, save=paths['figures']+paths['label'])
+# if plot and debug:
+# 	vis.extract_encoder_connectivity(enc_layer, net, display, save=paths['figures']+paths['label'])
 
 #######################################################################################
 # Set-up Analysis
@@ -130,7 +134,7 @@ net.connect_decoders(parameter_set.decoding_pars)
 # ====================================================================================
 net.connect_populations(parameter_set.connection_pars)
 
-if plot and debug:
+if plot and debug and False:
 	fig_W = pl.figure()
 	topology = vis.TopologyPlots(parameter_set.connection_pars, net)
 	topology.print_network(depth=3)

@@ -205,16 +205,16 @@ def merge_signal_lists(sl1, sl2, operation=np.add):
 
 def generate_template(n_neurons, rate, duration, resolution=0.01, store=False):
 	"""
-	Generates a spatiotemporal spike template
+	Generates a spatio-temporal spike template
 	:param n_neurons: Number of neurons that compose the pattern
 	:param rate: spike rate in the template
 	:param duration: [ms] total duration of template
 	:param store: save the template in the provided path
 	:return: SpikeList object
 	"""
-	gen = StochasticGenerator()
-	times = []
-	ids = []
+	gen 	= StochasticGenerator()
+	times 	= []
+	ids 	= []
 	for n in range(n_neurons):
 		spk_times = gen.poisson_generator(rate, t_start=0., t_stop=duration, array=True)
 		times.append(list(spk_times))
@@ -1367,7 +1367,6 @@ class StimulusSet(object):
 		:param separator: str used to separate the individual strings...
 		:return n: iterator for full stimulus sequence
 		"""
-		# QUESTION what exactly is string_length?
 		if self.grammar is not None:
 			self.full_stim_set = self.grammar.generate_string_set(n_strings, string_length, debug=False)
 			str_set = self.grammar.concatenate_stringset(self.full_stim_set, separator=separator)
@@ -1431,7 +1430,6 @@ class StimulusSet(object):
 			seq = self.grammar.correct_symbolseq(seq)
 		else:
 			seq = self.full_set_labels
-		# Question: what is the binary function below?
 		self.full_set = self.stimulus_sequence_to_binary(seq)
 		print ("\t- Creating full stimulus sequence [{0}]".format(str(len(self.full_set_labels))))
 
@@ -1455,45 +1453,45 @@ class StimulusSet(object):
 			self.transient_set = self.stimulus_sequence_to_binary(self.transient_set_labels)
 		print "\t- Creating unique stimulus sequence [{0}]".format(str(len(self.unique_set_labels)))
 
-	def divide_set(self, transient_set_lenght, train_set_length, test_set_length):
+	def divide_set(self, transient_set_length, train_set_length, test_set_length):
 		"""
 		Divide the full dataset into train and test data.
 		Alternatively generate train and test data independently
+		:param transient_set_length:
 		:param train_set_length: length of train set
 		:param test_set_length: length of test set
 		:return:
 		"""
 		assert (self.full_set is not None), "Full set hasn't been generated"
 		if hasattr(self, 'unique_set'):
-			assert (len(self.full_set_labels) == transient_set_lenght + train_set_length + test_set_length + len(
-				self.unique_set_labels)), \
-				"Inconsistent dimensions"
+			assert (len(self.full_set_labels) == transient_set_length + train_set_length + test_set_length +
+					len(self.unique_set_labels)), "Inconsistent dimensions"
 			unique_set_length = len(self.unique_set_labels)
 		else:
-			assert (len(self.full_set_labels) == transient_set_lenght + train_set_length + test_set_length), \
+			assert (len(self.full_set_labels) == transient_set_length + train_set_length + test_set_length), \
 				"Inconsistent dimensions"
 			unique_set_length = 0
 
 		if self.grammar is not None:
-			self.train_set_labels = self.full_set_labels[transient_set_lenght + unique_set_length:train_set_length +
-			                                                                     transient_set_lenght + unique_set_length]
-			self.test_set_labels = self.full_set_labels[transient_set_lenght + unique_set_length + train_set_length:]
-			set = self.full_set.copy()
-			if not isinstance(set, np.ndarray):
-				set = set.toarray()
-			train_set = set[:, transient_set_lenght+unique_set_length:transient_set_lenght+unique_set_length
-			                                                          +train_set_length]
-			test_set = set[:, transient_set_lenght + unique_set_length + train_set_length:]
+			self.train_set_labels = self.full_set_labels[transient_set_length + unique_set_length:train_set_length +
+														 transient_set_length + unique_set_length]
+			self.test_set_labels = self.full_set_labels[transient_set_length + unique_set_length + train_set_length:]
+			set_ = self.full_set.copy()
+			if not isinstance(set_, np.ndarray):
+				set_ = set_.toarray()
+			train_set = set_[:, transient_set_length + unique_set_length:transient_set_length + unique_set_length +
+							train_set_length]
+			test_set = set_[:, transient_set_length + unique_set_length + train_set_length:]
 		else:
-			self.train_set_labels = self.full_set_labels[transient_set_lenght + unique_set_length:train_set_length +
-			                                                                     transient_set_lenght + unique_set_length]
-			self.test_set_labels = self.full_set_labels[transient_set_lenght + unique_set_length + train_set_length:]
-			set = self.full_set.copy()
-			if not isinstance(set, np.ndarray):
-				set = set.toarray()
-			train_set = set[:, transient_set_lenght+unique_set_length:transient_set_lenght+unique_set_length
-			                                                          +train_set_length]
-			test_set = set[:, transient_set_lenght + unique_set_length + train_set_length:]
+			self.train_set_labels = self.full_set_labels[transient_set_length + unique_set_length:train_set_length +
+														 transient_set_length + unique_set_length]
+			self.test_set_labels = self.full_set_labels[transient_set_length + unique_set_length + train_set_length:]
+			set_ = self.full_set.copy()
+			if not isinstance(set_, np.ndarray):
+				set_ = set_.toarray()
+			train_set = set_[:, transient_set_length + unique_set_length:transient_set_length + unique_set_length
+							+ train_set_length]
+			test_set = set_[:, transient_set_length + unique_set_length + train_set_length:]
 
 		if check_dependency('scipy.sparse'):
 			import scipy.sparse as sparse
@@ -1502,7 +1500,8 @@ class StimulusSet(object):
 		else:
 			self.train_set = train_set
 			self.test_set = test_set
-		print "\t- Dividing set [train={0} / test={1}]".format(str(len(self.train_set_labels)), str(len(self.test_set_labels)))
+		print "\t- Dividing set [train={0} / test={1}]".format(str(len(self.train_set_labels)),
+															   str(len(self.test_set_labels)))
 
 	def discard_from_set(self, n_discard=0):
 		"""
@@ -2215,6 +2214,10 @@ class InputNoise(StochasticGenerator):
 
 ########################################################################################################################
 class InputSignalSet(object):
+	# TODO comment
+	"""
+
+	"""
 
 	def __init__(self, parameter_set, stim_obj=None, online=False):
 		print "\n Generating Input Signals: "
@@ -2240,10 +2243,10 @@ class InputSignalSet(object):
 			self.full_set_signal_iterator = None
 		if 'spike_pattern' in parameter_set.encoding_pars.generator.labels and stim_obj is not None:
 			self.spike_patterns = []
-			n_input_neurons = parameter_set.encoding_pars.encoder.n_neurons[0]
-			pattern_duration = parameter_set.input_pars.signal.durations
-			rate = parameter_set.input_pars.signal.max_amplitude
-			resolution = parameter_set.input_pars.signal.resolution
+			n_input_neurons 	= parameter_set.encoding_pars.encoder.n_neurons[0]
+			pattern_duration 	= parameter_set.input_pars.signal.durations
+			rate 				= parameter_set.input_pars.signal.max_amplitude
+			resolution 			= parameter_set.input_pars.signal.resolution
 
 			if parameter_set.encoding_pars.generator.gen_to_enc_W is None:
 				for n in range(stim_obj.dims):
@@ -2404,6 +2407,7 @@ class InputSignalSet(object):
 		self.train_set_signal = InputSignal(self.parameters.signal, self.online)
 
 		if self.online:
+			# Question: should we first fix this?
 			print "- InputSignal will be generated online. train_set is now a generator.. (no noise is added...)"
 			# TODO: Noise is not added
 			self.train_set_signal_iterator = self.train_set_signal.set_signal_online(stimulus_set.train_set)

@@ -572,36 +572,6 @@ class Network(object):
 
 		def create_populations(net_pars_set):
 
-			def topology_random_grid_3D(size_x, size_y, size_z, N = None):
-				"""
-				Returns the positions of neurons on a 3D grid structure, where each point lies within [-0.5, 0.5) on
-				each axis.
-				:param size_x: nr size on X coordinate
-				:param size_y:
-				:param size_z:
-				:param N: number of neurons to place randomly on the grid. If none given, each grid position is filled.
-				:return:
-				"""
-				if N is None:
-					N = size_x * size_y * size_z
-
-				# calculate normalized distance between neurons on each axis
-				d_x = 1. / (size_x + 1)
-				d_y = 1. / (size_y + 1)
-				d_z = 1. / (size_z + 1)
-				# compute grid positions on the [-0.5 + d_axis, 0.5 - d_axis) interval with d_axis distance
-				coord_x = np.arange(-0.5 + d_x / 2, 0.5, d_x)
-				coord_y = np.arange(-0.5 + d_y / 2, 0.5, d_y)
-				coord_z = np.arange(-0.5 + d_z / 2, 0.5, d_z)
-
-				positions = []
-				for i in range(N):
-					pos = [random.choice(coord_x), random.choice(coord_y), random.choice(coord_z)]
-					while pos not in positions:
-						positions.append(pos)
-				return positions
-				# END ---------------------------------------------------
-
 			populations = [[]] * net_pars_set.n_populations
 			# specify the keys not to be passed to the population objects
 			not_allowed_keys = ['_url', 'label', 'n_populations', 'parameters', 'names', 'description']
@@ -653,7 +623,7 @@ class Network(object):
 
 					# QUESTION can this do 3D topology? I don't really see how...
 					if net_pars_set.topology[n]:
-						import nest.topology as vtp
+						import nest.topology as tp
 						tp_dict = pop_dict['topology_dict']
 						tp_dict.update({'elements': net_pars_set.pop_names[n]})
 						layer = tp.CreateLayer(tp_dict)
@@ -722,7 +692,8 @@ class Network(object):
 			layer_ids = [x.layer_gid for x in sub_populations]
 
 			tp_dict = {'elements': elements, 'positions': positions,
-			           'edge_wrap': bool(np.mean([x.topology_dict['edge_wrap'] for x in sub_populations]))}
+			           'edge_wrap': all(bool('edge_wrap' in x.topology_dict and x.topology_dict['edge_wrap'])
+										for x in sub_populations)}
 
 			pop_dict.update({'topology': True, 'layer_gid': layer_ids, 'topology_dict': tp_dict})
 		else:

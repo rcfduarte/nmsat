@@ -1616,7 +1616,7 @@ def set_network_defaults(default_set=1, neuron_set=1, connection_set=0, N=1250, 
 		# SYNAPSE Parameters
 		# ============================================================================================================
 		connection_pars, neuron_pars = set_connection_defaults(default_set=connection_set, syn_pars=syn_pars,
-		                                          neuron_pars=neuron_pars)
+															   neuron_pars=neuron_pars)
 
 	elif default_set == 5:
 		print ("\nLoading Default Network Set 5 - Single Neuron DC input")
@@ -1999,13 +1999,12 @@ def set_connection_defaults(default_set=0, syn_pars=None, neuron_pars=None):
 		#############################################################################################################
 		# SYNAPSE Parameters
 		# ============================================================================================================
-		synapses = syn_pars.connected_populations #[('E', 'E'), ('E', 'I'), ('I', 'E'), ('I', 'I')]
-		synapse_names = [n[1]+n[0] for n in synapses]
-		synapse_models = syn_pars.synapse_models
-		model_pars = syn_pars.synapse_model_parameters
+		synapses 		= syn_pars.connected_populations #[('E', 'E'), ('E', 'I'), ('I', 'E'), ('I', 'I')]
+		synapse_names 	= [n[1]+n[0] for n in synapses]
+		synapse_models 	= syn_pars.synapse_models
+		model_pars 		= syn_pars.synapse_model_parameters
 
-		assert (
-		np.mean([n in synapses for n in syn_pars.connected_populations]).astype(bool)), "Inconsistent Parameters"
+		assert (all(n in synapses for n in syn_pars.connected_populations)), "Inconsistent Parameters"
 		connection_pars = {
 			'n_synapse_types': len(synapses),
 			'synapse_types': synapses,
@@ -2106,14 +2105,16 @@ def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=
 	"""
 
 	:param default_set:
+	:param input_dimensions:
+	:param n_encoding_neurons:
+	:param encoder_neuron_pars:
+	:param synapse_pars:
 	:return:
 	"""
 	if default_set == 0:
 		print "\nLoading Default Encoding Set 0 - Empty Settings (add background noise)"
 		encoding_pars = {
-			'description': {'general': r'',
-			                'specific': r'',
-			                'parameters': r''},
+			'description': {'general': r'', 'specific': r'', 'parameters': r''},
 			'encoder': {
 				'N': 0,
 				'labels': [],
@@ -2354,10 +2355,10 @@ def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=
 		        'weight_dist', 'delay_dist', 'preset_W']
 		if not np.mean([n in synapse_pars.keys() for n in keys]).astype(bool):
 			raise TypeError("Incorrect Synapse Parameters")
-		syn_pars = ParameterSet(synapse_pars)
-		connections = [(n, gen_label) for n in syn_pars.target_population_names]
+		syn_pars	  = ParameterSet(synapse_pars)
+		connections   = [(n, gen_label) for n in syn_pars.target_population_names]
 		synapse_names = [gen_label+'syn' for _ in syn_pars.target_population_names]
-		conn_tp = [False for _ in range(len(connections))]
+		conn_tp 	  = [False for _ in range(len(connections))]
 		if hasattr(syn_pars, 'jitter'):
 			jitter = syn_pars.jitter
 		else:
@@ -2365,7 +2366,7 @@ def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=
 
 		print "\nLoading Default Encoding Set 4 - Stochastic spike encoding, {0} fixed spike pattern templates " \
 		      "composed of {1} independent spike trains connected to {2}".format(
-				str(input_dimensions), str(n_encoding_neurons), str(syn_pars.target_population_names))
+			str(input_dimensions), str(n_encoding_neurons), str(syn_pars.target_population_names))
 
 		encoding_pars = {
 			'description': {'general': 'Precise spatiotemporal spike pattern encoding (each input symbol is converted to '

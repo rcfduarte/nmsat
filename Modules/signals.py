@@ -1090,7 +1090,7 @@ class SpikeList(object):
 		self.spiketrains = {}
 		id_list = np.sort(id_list)
 
-		##### Implementation base on pure Numpy arrays, that seems to be faster for
+		##### Implementation based on pure Numpy arrays, that seems to be faster for
 		## large spike files. Still not very efficient in memory, because we are not
 		## using a generator to build the SpikeList...
 
@@ -1113,7 +1113,6 @@ class SpikeList(object):
 
 		if len(self) > 0 and (self.t_start is None or self.t_stop is None):
 			self.__calc_startstop()
-
 			del spikes
 
 	def __del__(self):

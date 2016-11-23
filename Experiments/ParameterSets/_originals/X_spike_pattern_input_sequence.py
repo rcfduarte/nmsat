@@ -44,7 +44,7 @@ wI = -gamma * wE
 
 recurrent_synapses = dict(
 	synapse_model_parameters = [{}, {}, {}, {}],
-	connected_populations	 =[('E', 'E'), ('E', 'I'), ('I', 'E'), ('I', 'I')],
+	connected_populations	 = [('E', 'E'), ('E', 'I'), ('I', 'E'), ('I', 'I')],
 	synapse_models 			 = ['static_synapse', 'static_synapse', 'static_synapse', 'static_synapse'],
 	pre_computedW 	= [None, None, None, None],
 	weights 		= [wE, wI, wE, wI],
