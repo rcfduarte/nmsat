@@ -2047,8 +2047,8 @@ def discrete_readout_test(state, target, readout, index):
 def train_all_readouts(parameters, net, stim, input_signal, encoding_layer, flush=False, debug=False, plot=True,
                        display=True, save=False):
 	"""
-	Train all readouts attached to network object
-	:param net:
+		Train all readouts attached to network object
+	:param parameters:
 	:return:
 	"""
 	from Modules.net_architect import Network

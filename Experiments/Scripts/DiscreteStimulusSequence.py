@@ -12,7 +12,6 @@ import Experiments.Computation
 import numpy as np
 import nest
 
-
 plot = True
 display = True
 save = True
@@ -133,7 +132,14 @@ net.connect_decoders(parameter_set.decoding_pars)
 # Connect Network
 # ====================================================================================
 net.connect_populations(parameter_set.connection_pars)
+# gidsE = net.populations[0].gids
+# gidsI = net.populations[1].gids
+# print len(nest.GetConnections(source=gidsE, target=gidsE))
+# print len(nest.GetConnections(source=gidsE, target=gidsI))
+# print len(nest.GetConnections(source=gidsI, target=gidsE))
+# print len(nest.GetConnections(source=gidsI, target=gidsI))
 
+####################
 if plot and debug and False:
 	fig_W = pl.figure()
 	topology = vis.TopologyPlots(parameter_set.connection_pars, net)
@@ -187,22 +193,22 @@ if stim.transient_set_labels:
 ######################################################################################
 # Simulate (Unique Sequence)
 # ====================================================================================
-if not online:
-	print "\nUnique Sequence time = {0} ms".format(str(inputs.unique_stimulation_time))
-
-iterate_input_sequence(net, inputs.unique_set_signal, enc_layer,
-                       sampling_times=parameter_set.decoding_pars.global_sampling_times,
-                       stim_set=stim, input_set=inputs, set_name='unique', store_responses=False,
-                       jitter=parameter_set.encoding_pars.generator.jitter)
-results['rank'] = get_state_rank(net)
-n_stim = len(stim.elements)
-print "State Rank: {0} / {1}".format(str(results['rank']), str(n_stim))
-for n_pop in list(itertools.chain(*[net.populations, net.merged_populations])):
-	if not empty(n_pop.state_matrix):
-		n_pop.flush_states()
-for n_enc in enc_layer.encoders:
-	if not empty(n_enc.state_matrix):
-		n_enc.flush_states()
+# if not online:
+# 	print "\nUnique Sequence time = {0} ms".format(str(inputs.unique_stimulation_time))
+#
+# iterate_input_sequence(net, inputs.unique_set_signal, enc_layer,
+#                        sampling_times=parameter_set.decoding_pars.global_sampling_times,
+#                        stim_set=stim, input_set=inputs, set_name='unique', store_responses=False,
+#                        jitter=parameter_set.encoding_pars.generator.jitter)
+# results['rank'] = get_state_rank(net)
+# n_stim = len(stim.elements)
+# print "State Rank: {0} / {1}".format(str(results['rank']), str(n_stim))
+# for n_pop in list(itertools.chain(*[net.populations, net.merged_populations])):
+# 	if not empty(n_pop.state_matrix):
+# 		n_pop.flush_states()
+# for n_enc in enc_layer.encoders:
+# 	if not empty(n_enc.state_matrix):
+# 		n_enc.flush_states()
 
 #######################################################################################
 # Simulate (Train period)
@@ -236,9 +242,8 @@ test_all_readouts(parameter_set, net, stim, inputs.test_set_signal, encoding_lay
                   plot=plot, display=display, save=paths)
 
 results['Performance'] = {}
-results['Performance'].update(analyse_performance_results(net, enc_layer, plot=plot, display=display, save=paths[
-	                                                                                                  'figures']+paths[
-	'label']))
+results['Performance'].update(analyse_performance_results(net, enc_layer, plot=plot, display=display,
+														  save=paths['figures']+paths['label']))
 
 # #######################################################################################
 # # Save data

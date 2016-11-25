@@ -1434,9 +1434,10 @@ class Network(object):
 		Combine the activity lists attached to each population into a list of SpikeList or AnalogList objects
 		corresponding to each sub-population
 		NOTE: This function will copy the activity lists contained in the lower-level Population objects into the
-		properties of the Network object (it may be redundant to maintain both activitysets, and it's only useful in
+		properties of the Network object (it may be redundant to maintain both activity sets, and it's only useful in
 		certain situations)
 		"""
+		#TODO Question should we revisit this?
 
 		for n in range(self.n_populations):
 			if isinstance(self.populations[n], list) and self.n_devices[n]:

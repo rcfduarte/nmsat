@@ -1582,7 +1582,7 @@ class InputSignal(object):
 				self.interval_parameters = initializer.i_stim_i
 				self.intervals = initializer.i_stim_i
 				self.global_start = initializer.start_time
-				self.global_stop = initializer.stop_time
+				self.global_stop = initializer.stop_time  # TODO @barni rewrite for loops below
 				self.onset_times = [[] for _ in range(self.dimensions)]
 				self.offset_times = [[] for _ in range(self.dimensions)]
 				self.time_data = None
@@ -2407,7 +2407,6 @@ class InputSignalSet(object):
 		self.train_set_signal = InputSignal(self.parameters.signal, self.online)
 
 		if self.online:
-			# Question: should we first fix this?
 			print "- InputSignal will be generated online. train_set is now a generator.. (no noise is added...)"
 			# TODO: Noise is not added
 			self.train_set_signal_iterator = self.train_set_signal.set_signal_online(stimulus_set.train_set)

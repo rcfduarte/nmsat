@@ -1,38 +1,73 @@
 """
-[[X]] grid= 6*6*15
-[[X]] eN = 0.8
-[[X]] iN = 0.2
-probability of synaptic connection= distrib.
+[[SOLVED]] grid= 6*6*15
+[[SOLVED]] eN = 0.8
+[[SOLVED]] iN = 0.2
+[[SOLVED]] probability of synaptic connection= distrib.
 
-? static vs stdp synapses
-
-----
+======================================================================
 Neuron parameters:
- [[X]] membrane time constant 30ms,
- [[X]] absolute refractory period 3ms (excitatory neurons), 2ms (inhibitory neurons),
- [[X]] threshold 15mV (for a resting membrane potential assumed to be 0),
- [[X]] reset voltage 13.5mV,
- constant nonspecific background current I b independently chosen for each neuron from the interval [14.975nA, 15.025nA],
- input resistance 1 Mohm.
+[[SOLVED]] 	membrane time constant 30ms,
+[[SOLVED]] 	absolute refractory period 3ms (excitatory neurons), 2ms (inhibitory neurons),
+[[SOLVED]] 	threshold 15mV (for a resting membrane potential assumed to be 0),
+[[SOLVED]] 	reset voltage 13.5mV,
+[[MISSING]] constant nonspecific background current I_b independently chosen for each neuron
+			from the interval [14.975nA, 15.025nA],
+[[MISSING]] input resistance 1 Mohm.
 
-----
+======================================================================
+[[GAVE IT A SHOT]]
+	The postsynaptic current was modeled as an exponential decay exp(-t/tau_s )
+	with tau_s =3ms (tau_s =6ms) for excitatory (inhibitory) synapses
 
-U (use), D (time constant for depression), F (time constant for facilitation): randomly chosen
-from Gaussian distributions
-.5, 1.1, .05 (EE)
-.05, .125, 1.2 (EI)
-.25, .7, .02 (IE)
-.32, .144, .06 (II).
+[[GAVE IT A SHOT]]
+   "2.) The time constant of each tsodyks_synapse targeting a particular neuron
+   must be chosen equal to that neuron's synaptic time constant. In particular that means
+   that all synapses targeting a particular neuron have the same parameter tau_psc."
 
-The scaling parameter A (in nA) was chosen  to be 1.2 (EE), 1.6 (EI), -3.0 (IE), -2.8 (II).
-In the case of input synapses the parameter A had a value of 0.1 nA.
-The SD of each parameter was chosen to be 50 % of its mean (with negative
-values replaced by values chosen from an appropriate uniform distribution).
+   tau_psc (tsodyks) == tau_syn_ex / tau_syn_in (iaf_psc_exp) ???
 
-----
-[[X]]
-The transmission delays between liquid neurons were chosen uniformly
-to be 1.5 ms (EE), and 0.8 for the other connections.
+======================================================================
+[[GAVE IT A SHOT]]
+[[HALFWAY]]
+	Ref. says: U (use), D (time constant for depression), F (time constant for facilitation):
+	all randomly chosen from Gaussian distributions
+
+	Questions:
+		1) is U (use) === U (maximum probability of release) in the model?
+	    	U         double - maximum probability of release [0,1] 	= U?
+            tau_psc   double - time constant of synaptic current in ms  = time constant for decay? = tau_psc, one in the synapse, and also one in the iaf_psc_exp neuron?
+            tau_fac   double - time constant for facilitation in ms     = F ?
+            tau_rec   double - time constant for depression in ms       = D ?
+
+	Values from paper: U, D, F
+		.5, 	1.1, 	.05 (EE)
+		.05, 	.125, 	1.2 (EI)
+		.25, 	.7, 	.02 (IE)
+		.32, 	.144, 	.06 (II).
+
+[[MISSING]] === what's the A?
+	The scaling parameter A (in nA) was chosen  to be 1.2 (EE), 1.6 (EI), -3.0 (IE), -2.8 (II).
+	In the case of input synapses the parameter A had a value of 0.1 nA.
+	The SD of each parameter was chosen to be 50 % of its mean (with negative
+	values replaced by values chosen from an appropriate uniform distribution).
+
+======================================================================
+[[SOLVED]] The transmission delays between liquid neurons were chosen uniformly
+			to be 1.5 ms (EE), and 0.8 for the other connections.
+
+======================================================================
+[[SOLVED]] jitter with N(0, 10ms)
+
+======================================================================
+[[MISSING]]
+I_background = "constant unspecific background current"
+
+the reference says:
+	The background current, I b , had a constant value for each neuron, randomly
+	distributed across the network. We chose a uniform distribution centered
+	at the threshold level with a range of 0.05 mV; this resulted in the basal
+	firing rates of the excitatory neurons being between 1 and 20 Hz, with an
+	average of 7 Hz.
 """
 
 
@@ -43,9 +78,7 @@ import numpy as np
 import random
 
 """
-encoding_decoding_tests
-- to run with function .. in Computation
-or with DiscreteInput_NStep_Analysis.py (debugging)
+
 """
 __author__ = 'duarte'
 
@@ -58,9 +91,10 @@ def topology_random_grid_3D(size_x, size_y, size_z, layers=None):
 	"""
 	Returns the positions of neurons on a 3D grid structure, where each point lies within [-0.5, 0.5) on
 	each axis.
-	:param size_x: nr size on X coordinate
+	:param size_x: size on X coordinate
 	:param size_y:
 	:param size_z:
+	:param layers: a list specifying how many neurons should be placed on each layer
 	:return:
 	"""
 	if layers is None:
@@ -108,48 +142,89 @@ def build_parameters():
 	# ######################################################################################################################
 	# Neuron, Synapse and Network Parameters
 	# ######################################################################################################################
-	N 		= 540
-	delayEE = 1.5
-	delay  	= 0.8
+	N 		= 540 # 6x6x15 grid
+	N_e		= .8  # number of excitatory neurons
+	N_i		= .2  # number of inhibitory neurons
 
-	gamma = 6.
+	delayEE = 1.5  # delay for EE synapses
+	delay  	= 0.8  # delay for all other synapses
 
-	wE = 32.29
-	wI = -gamma * wE
+	gamma = 6.  		# Question: haven't touched this? Monday
+	wE = 32.29 			# Question: haven't touched this? Monday
+	wI = -gamma * wE 	# Question: haven't touched this? Monday
+	kernel_lambda_sigma = 4.   # chosen randomly for now, it's a parameter of the experiment, keeps changing
 
 	recurrent_synapses = dict(
-		synapse_model_parameters = [{}, {}, {}, {}], # Question: what's this?
+		# Question: !!!!!!!!
+		# Question: @Renato: can you take a closer look here? sigma is only temporary. Or does this actually belong
+		# ..........to syn_specs?
+		# TODO adjust sigma properly here
+		synapse_model_parameters = [# EE
+									{'tau_psc': 3., # excitatory synapses
+									 'tau_fac': {'distribution': 'normal', 'mean': 0.05, 'sigma': 0.},
+									 'tau_rec': {'distribution': 'normal', 'mean': 1.1, 'sigma': 0.},
+									 'U': 		{'distribution': 'normal', 'mean': 0.5, 'sigma': 0.}},
+
+									# EI
+									{'tau_psc': 3., # excitatory synapses
+									 'tau_fac': {'distribution': 'normal', 'mean': 1.2, 'sigma': 0.},
+									 'tau_rec': {'distribution': 'normal', 'mean': 0.125, 'sigma': 0.},
+									 'U': 		{'distribution': 'normal', 'mean': 0.05, 'sigma': 0.}},
+
+									# IE
+									{'tau_psc': 6., # inhibitory synapses
+									 'tau_fac': {'distribution': 'normal', 'mean': 0.02, 'sigma': 0.},
+									 'tau_rec': {'distribution': 'normal', 'mean': 0.7, 'sigma': 0.},
+									 'U': 		{'distribution': 'normal', 'mean': 0.25, 'sigma': 0.}},
+
+									# II
+									{'tau_psc': 6., # inhibitory synapses
+									 'tau_fac': {'distribution': 'normal', 'mean': 0.06, 'sigma': 0.},
+									 'tau_rec': {'distribution': 'normal', 'mean': 0.144, 'sigma': 0.},
+									 'U': 		{'distribution': 'normal', 'mean': 0.32, 'sigma': 0.}}],
+
+
 		connected_populations	 = [('E', 'E'), ('E', 'I'), ('I', 'E'), ('I', 'I')],
-		# synapse_models 			 = ['static_synapse', 'static_synapse', 'static_synapse', 'static_synapse'],
-		synapse_models 	= ['stdp_synapse', 'stdp_synapse', 'stdp_synapse', 'stdp_synapse'],
+		synapse_models 	= ['tsodyks_synapse', 'tsodyks_synapse', 'tsodyks_synapse', 'tsodyks_synapse'],
 		pre_computedW 	= [None, None, None, None], # Question: needed right now?
-		weights 		= [wE, wI, wE, wI],
+		weights 		= [wE, wI, wE, wI], 		# Question: these should probably be changed but no clue with what
 		delays 			= [delayEE, delay, delay, delay],
 		conn_specs 		= [   {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
-							   'kernel': {'gaussian': {'p_center': 1., 'sigma': 4., 'mean': 0., 'c': 0.}}},
+							   'kernel': {'gaussian': {'p_center': 1., 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}},
 							  {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
-							   'kernel': {'gaussian': {'p_center': 1., 'sigma': 4., 'mean': 0., 'c': 0.}}},
+							   'kernel': {'gaussian': {'p_center': 1., 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}},
 							  {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
-							   'kernel': {'gaussian': {'p_center': 1., 'sigma': 4., 'mean': 0., 'c': 0.}}},
+							   'kernel': {'gaussian': {'p_center': 1., 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}},
 							  {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
-							   'kernel': {'gaussian': {'p_center': 1., 'sigma': 4., 'mean': 0., 'c': 0.}}} ],
+							   'kernel': {'gaussian': {'p_center': 1., 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}} ],
 		syn_specs 		= [{}, {}, {}, {}]
 	)
+	# Question: neuron_set=6 sets the model to iaf_psc_exp_ps
 	neuron_pars, net_pars, connection_pars = set_network_defaults(default_set=4, neuron_set=6, connection_set=1.1, N=N,
 																  kernel_pars=kernel_pars, **recurrent_synapses)
 
-	net_pars['neuron_pars'][0].update({'V_reset': 13.5, 'tau_m': 30., 't_ref': 3.})
-	net_pars['neuron_pars'][1].update({'V_reset': 13.5, 'tau_m': 30., 't_ref': 2.})
+	# Question: do the tau_syn_ex/in make sense?
+	net_pars['neuron_pars'][0].update({'V_reset': 13.5,
+									   'tau_m': 30.,
+									   'tau_syn_ex': 3.,  # tau for excitatory synapses
+									   'tau_syn_in': 6.,  # tau for inhibitory synapses
+									   't_ref': 3.})
+
+	net_pars['neuron_pars'][1].update({'V_reset': 13.5,
+									   'tau_m': 30.,
+									   'tau_syn_ex': 3.,  # tau for excitatory synapses
+									   'tau_syn_in': 6.,  # tau for inhibitory synapses
+									   't_ref': 2.})
 
 	connection_pars.topology_dependent = [True, True, True, True] # Question: True for connection within 1 layer also?
-	grid_positions = topology_random_grid_3D(6, 6, 15, [int(6*6*15*.8), int(6*6*15*.2)])
+	grid_positions = topology_random_grid_3D(6, 6, 15, [int(6*6*15*N_e), int(6*6*15*N_i)])
 
 	net_pars.update({ 'topology': 		[True, True],
 					  'topology_dict': 	[{'positions': grid_positions[0]}, {'positions': grid_positions[1]}]})
 	# ######################################################################################################################
 	# Input Parameters
 	# ######################################################################################################################
-	n_trials 	= 2500
+	n_trials 	= 2500 #150 # 2500
 	n_discard 	= 10
 
 	n_stim = 80
@@ -160,12 +235,12 @@ def build_parameters():
 		grammar 	= None,
 		full_set_length 	 = int(n_trials + n_discard),
 		transient_set_length = int(n_discard),
-		train_set_length 	 = 2000,
-		test_set_length 	 = 500
+		train_set_length 	 = 2000, #100, #2000,
+		test_set_length 	 = 500 #50 #500
 	)
 
 	inp_resolution 		= 1.
-	inp_amplitude 		= 20.
+	inp_amplitude 		= 20 #1500. # 20.
 	inp_duration 		= 200.
 	inter_stim_interval = 0.
 
@@ -191,25 +266,25 @@ def build_parameters():
 	# ######################################################################################################################
 	# Encoding Parameters
 	# ######################################################################################################################
-	# Question: this one?
+	# Question: don't know what this one is, Monday
 	filter_tau 	= 20.                              # time constant of exponential filter (applied to spike trains)
 	n_afferents = 4		                           # number of stimulus-specific afferents (if necessary)
 	n_stim 		= stim_pars['n_stim']              # number of different input stimuli
 
-	w_in = 20. # Question: this one?
+	w_in = 20. # Question: paper doesn't really mentions this
 
 	# Input connectivity
 	input_synapses = dict(
 		target_population_names = ['EI'],
-		conn_specs	= [{'rule': 'fixed_outdegree', 'outdegree': 25}],
+		conn_specs	= [{'rule': 'fixed_outdegree', 'outdegree': 25}], #Question: how to set this?
 		syn_specs	= [{}],
-		models		= ['static_synapse'],
+		models		= ['static_synapse'], #Question: should this be tsodyks as well?
 		model_pars	= [{}],
 		weight_dist	= [w_in],
 		delay_dist	= [1.],
 		preset_W	= [None],
 		gen_to_enc_W= None,
-		jitter		= None) # Question: how to define gaussian jitter?
+		jitter		= 10.) # Gaussian jitter with 10ms SD, 0 mean
 
 	encoding_pars = set_encoding_defaults(default_set=4, input_dimensions=n_stim,
 										  n_encoding_neurons=n_afferents, **input_synapses)
