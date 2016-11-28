@@ -159,7 +159,25 @@ def build_parameters():
 		# Question: @Renato: can you take a closer look here? sigma is only temporary. Or does this actually belong
 		# ..........to syn_specs?
 		# TODO adjust sigma properly here
-		synapse_model_parameters = [# EE
+		synapse_model_parameters = [{}, {}, {}, {}],
+
+
+		connected_populations	 = [('E', 'E'), ('E', 'I'), ('I', 'E'), ('I', 'I')],
+		synapse_models 	= ['tsodyks_synapse', 'tsodyks_synapse', 'tsodyks_synapse', 'tsodyks_synapse'],
+		pre_computedW 	= [None, None, None, None], # Question: needed right now?
+		weights 		= [wE, wI, wE, wI], 		# Question: these should probably be changed but no clue with what
+		delays 			= [delayEE, delay, delay, delay],
+		conn_specs 		= [   {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
+							   'kernel': {'gaussian': {'p_center': 1., 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}},
+							  {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
+							   'kernel': {'gaussian': {'p_center': 1., 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}},
+							  {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
+							   'kernel': {'gaussian': {'p_center': 1., 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}},
+							  {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
+							   'kernel': {'gaussian': {'p_center': 1., 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}} ],
+		# syn_specs 		= [{}, {}, {}, {}]
+		syn_specs		= [
+									# EE
 									{'tau_psc': 3., # excitatory synapses
 									 'tau_fac': {'distribution': 'normal', 'mean': 0.05, 'sigma': 0.},
 									 'tau_rec': {'distribution': 'normal', 'mean': 1.1, 'sigma': 0.},
@@ -181,23 +199,7 @@ def build_parameters():
 									{'tau_psc': 6., # inhibitory synapses
 									 'tau_fac': {'distribution': 'normal', 'mean': 0.06, 'sigma': 0.},
 									 'tau_rec': {'distribution': 'normal', 'mean': 0.144, 'sigma': 0.},
-									 'U': 		{'distribution': 'normal', 'mean': 0.32, 'sigma': 0.}}],
-
-
-		connected_populations	 = [('E', 'E'), ('E', 'I'), ('I', 'E'), ('I', 'I')],
-		synapse_models 	= ['tsodyks_synapse', 'tsodyks_synapse', 'tsodyks_synapse', 'tsodyks_synapse'],
-		pre_computedW 	= [None, None, None, None], # Question: needed right now?
-		weights 		= [wE, wI, wE, wI], 		# Question: these should probably be changed but no clue with what
-		delays 			= [delayEE, delay, delay, delay],
-		conn_specs 		= [   {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
-							   'kernel': {'gaussian': {'p_center': 1., 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}},
-							  {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
-							   'kernel': {'gaussian': {'p_center': 1., 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}},
-							  {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
-							   'kernel': {'gaussian': {'p_center': 1., 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}},
-							  {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
-							   'kernel': {'gaussian': {'p_center': 1., 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}} ],
-		syn_specs 		= [{}, {}, {}, {}]
+									 'U': 		{'distribution': 'normal', 'mean': 0.32, 'sigma': 0.}}]
 	)
 	# Question: neuron_set=6 sets the model to iaf_psc_exp_ps
 	neuron_pars, net_pars, connection_pars = set_network_defaults(default_set=4, neuron_set=6, connection_set=1.1, N=N,
@@ -224,7 +226,7 @@ def build_parameters():
 	# ######################################################################################################################
 	# Input Parameters
 	# ######################################################################################################################
-	n_trials 	= 2500 #150 # 2500
+	n_trials 	= 150 # 2500
 	n_discard 	= 10
 
 	n_stim = 80
@@ -235,26 +237,26 @@ def build_parameters():
 		grammar 	= None,
 		full_set_length 	 = int(n_trials + n_discard),
 		transient_set_length = int(n_discard),
-		train_set_length 	 = 2000, #100, #2000,
-		test_set_length 	 = 500 #50 #500
+		train_set_length 	 = 100, #2000,
+		test_set_length 	 = 50 #500
 	)
 
 	inp_resolution 		= 1.
-	inp_amplitude 		= 20 #1500. # 20.
+	inp_amplitude 		= 1500. # 20.
 	inp_duration 		= 200.
 	inter_stim_interval = 0.
 
 	input_pars = {'signal': {
-					'N': n_stim,
-						'durations'		: [inp_duration],
-						'i_stim_i'		: [inter_stim_interval],
-						'kernel'		: ('box', {}),
-						'start_time'	: 0.,
-						'stop_time'		: sys.float_info.max,
-						'max_amplitude'	: [inp_amplitude],
-						'min_amplitude'	: 0.,
-						'resolution'	: inp_resolution},
-					'noise': {
+					'N' 			: n_stim,
+					'durations'		: [inp_duration],
+					'i_stim_i'		: [inter_stim_interval],
+					'kernel'		: ('box', {}),
+					'start_time'	: 0.,
+					'stop_time'		: sys.float_info.max,
+					'max_amplitude'	: [inp_amplitude],
+					'min_amplitude'	: 0.,
+					'resolution'	: inp_resolution},
+					'noise': { # Question: what noise is this?
 						'N'				: 0,
 						'noise_source'	: ['GWN'],
 						'noise_pars'	: {'amplitude': 5., 'mean': 1., 'std': 0.25},
@@ -293,15 +295,16 @@ def build_parameters():
 	# ######################################################################################################################
 	# Decoding / Readout Parameters
 	# ######################################################################################################################
-	state_sampling = None #1.(cannot start at 0)
-	readout_labels = ['class0']
+	state_sampling 	= None #1.(cannot start at 0)
+	n_readouts		= 10
+	readout_labels 	= ['class' + str(i) for i in range(n_readouts)]
 
 	decoders = dict(
 		decoded_population		= [['E', 'I']],
 		state_variable			= ['spikes'],
 		filter_time				= filter_tau,
 		readouts				= readout_labels,
-		readout_algorithms		= ['ridge'],
+		readout_algorithms		= ['ridge'] * n_readouts,
 		global_sampling_times	= state_sampling)
 
 	decoding_pars = set_decoding_defaults(default_set=1, output_resolution=1., to_memory=True, kernel_pars=kernel_pars,
@@ -312,7 +315,7 @@ def build_parameters():
 		state_variable	= ['spikes'],
 		filter_time		= filter_tau,
 		readouts		= readout_labels,
-		readout_algorithms		= ['ridge'],
+		readout_algorithms		= ['ridge'] * n_readouts,
 		output_resolution		= inp_resolution,
 		global_sampling_times	= state_sampling)
 
