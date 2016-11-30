@@ -132,12 +132,6 @@ net.connect_decoders(parameter_set.decoding_pars)
 # Connect Network
 # ====================================================================================
 net.connect_populations(parameter_set.connection_pars)
-# gidsE = net.populations[0].gids
-# gidsI = net.populations[1].gids
-# print len(nest.GetConnections(source=gidsE, target=gidsE))
-# print len(nest.GetConnections(source=gidsE, target=gidsI))
-# print len(nest.GetConnections(source=gidsI, target=gidsE))
-# print len(nest.GetConnections(source=gidsI, target=gidsI))
 
 ####################
 if plot and debug and False:

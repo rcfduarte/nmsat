@@ -73,8 +73,11 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 
 	if store_responses:
 		print "\n\n!!! All responses will be stored !!!"
-		labels = np.unique(getattr(stim_set, '{0}_set_labels'.format(current_set)))
+		labels = np.unique(getattr(stim_set, '{0}_set_labels'.format(current_set))				   )
 		set_labels = getattr(stim_set, '{0}_set_labels'.format(current_set))
+
+		# tmp_set_labels = getattr(stim_set, '{0}_set_labels'.format(current_set))
+		# set_labels = [label if not isinstance(label, list) else label[0] for label in tmp_set_labels]
 		epochs = {k: [] for k in labels}
 
 	####################################################################################################################
@@ -87,7 +90,6 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 
 		# ################################ Main Loop ###################################
 		for idx, t in enumerate(t_samp):
-
 			t_int = nest.GetKernelStatus()['time']
 
 			if input_set.online and idx < set_size:
@@ -100,6 +102,8 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 					t += intervals[-1]
 				t_sim = t - t_int
 				if store_responses:
+					print "###shyte: " + str(idx) + ", type: " + str(type(idx))
+					print "###shyte 2: " + str(set_labels[idx])
 					epochs[set_labels[idx]].append((t_int, t_samp[-1]))
 					print idx, set_labels[idx], epochs[set_labels[idx]][-1]
 			else:

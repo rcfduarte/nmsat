@@ -91,7 +91,7 @@ __author__ = 'duarte'
 
 run 			= 'local'
 # data_label 		= 'Legenstein_Maass_Reconstruction.NoiseDrivenDynamics'
-data_label 		= 'Legenstein_Maass_Reconstruction.DiscreteStimulusSequence2'
+data_label 		= 'Legenstein_Maass_Reconstruction.DiscreteStimulusSequence'
 project_label 	= 'Alzheimer'
 
 
@@ -295,7 +295,8 @@ def build_parameters():
 	# Input connectivity
 	input_synapses = dict(
 		target_population_names = ['EI'],
-		conn_specs	= [{'rule': 'fixed_outdegree', 'outdegree': int(N * 0.3)}], #Question: how to set this?
+		conn_specs	= [{'rule': 'fixed_outdegree', 'outdegree': int(N * 0.3)}],
+		# conn_specs	= [{'rule': 'all_to_all'}],
 		syn_specs	= [{}],
 		models		= ['static_synapse'],
 		model_pars	= [{}],
@@ -314,14 +315,14 @@ def build_parameters():
 	# ######################################################################################################################
 	state_sampling 	= None #1.(cannot start at 0)
 	n_readouts		= 1
-	readout_labels 	= ['class' + str(i) for i in range(n_readouts)]
+	readout_labels 	= ['class0']
 
 	decoders = dict(
 		decoded_population		= [['E', 'I']],
 		state_variable			= ['spikes'],
 		filter_time				= filter_tau,
 		readouts				= readout_labels,
-		readout_algorithms		= ['pinv'] * n_readouts,
+		readout_algorithms		= ['pinv'],
 		global_sampling_times	= state_sampling)
 
 	decoding_pars = set_decoding_defaults(default_set=1, output_resolution=1., to_memory=True, kernel_pars=kernel_pars,
@@ -332,7 +333,7 @@ def build_parameters():
 		state_variable	= ['spikes'],
 		filter_time		= filter_tau,
 		readouts		= readout_labels,
-		readout_algorithms		= ['pinv'] * n_readouts,
+		readout_algorithms		= ['pinv'],
 		output_resolution		= inp_resolution,
 		global_sampling_times	= state_sampling)
 
