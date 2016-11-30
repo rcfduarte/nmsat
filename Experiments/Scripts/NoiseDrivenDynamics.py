@@ -1,7 +1,6 @@
 __author__ = 'duarte'
 import sys
-# sys.path.append('/home/neuro/Desktop/CODE/NetworkSimulationTestbed/')
-sys.path.append('/home/zajzon/code/network_simulation_testbed/')
+sys.path.append('../../')
 from Modules.parameters import *
 from Modules.net_architect import *
 from Modules.input_architect import *
@@ -20,13 +19,15 @@ debug = False
 # =================================================================================
 #params_file = '../ParameterSets/noise_driven_dynamics.py'
 params_file = '../ParameterSets/DC_noiseinput'
+# params_file = '../ParameterSets/legenstein_maass_spike_template_classification.py'
 
 # set plotting defaults
 set_global_rcParams('../../Defaults/matplotlib_rc')
 
 # create parameter set
-#parameter_set = ParameterSet(set_params_dict(params_file), label='global')
+# parameter_set = ParameterSet(set_params_dict(params_file), label='global')
 
+# parameter_set = ParameterSpace(params_file)[0]
 parameter_set = ParameterSet(params_file, label='global')
 parameter_set = parameter_set.clean(termination='pars')
 
@@ -40,6 +41,7 @@ if plot:
 	import Modules.visualization as vis
 	vis.set_global_rcParams(parameter_set.kernel_pars['mpl_path'])
 paths = set_storage_locations(parameter_set, save)
+
 np.random.seed(parameter_set.kernel_pars['np_seed'])
 
 analysis_interval = [parameter_set.kernel_pars.transient_t,
@@ -50,13 +52,14 @@ analysis_interval = [parameter_set.kernel_pars.transient_t,
 # =======================================================
 print '\nRuning ParameterSet {0}'.format(parameter_set.label)
 nest.ResetKernel()
-nest.SetKernelStatus(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(), type='kernel'))
+nest.SetKernelStatus(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(), param_type='kernel'))
 
 ####################################################
 # Build network
 # ===================================================
 net = Network(parameter_set.net_pars)
-
+# @barni: this is required here, because encoding layer references the 'EI' population
+net.merge_subpopulations([net.populations[0], net.populations[1]], name='EI')
 #######################################################
 # Randomize initial variable values
 # =====================================================

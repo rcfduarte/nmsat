@@ -2,7 +2,7 @@
 [[SOLVED]] grid= 6*6*15
 [[SOLVED]] eN = 0.8
 [[SOLVED]] iN = 0.2
-[[SOLVED]] probability of synaptic connection= distrib.
+[[SOLVED]] ++> probability of synaptic connection= distrib. There's a C in Maass, but not our paper. C = p_center
 
 ======================================================================
 Neuron parameters:
@@ -10,16 +10,19 @@ Neuron parameters:
 [[SOLVED]] 	absolute refractory period 3ms (excitatory neurons), 2ms (inhibitory neurons),
 [[SOLVED]] 	threshold 15mV (for a resting membrane potential assumed to be 0),
 [[SOLVED]] 	reset voltage 13.5mV,
-[[MISSING]] constant nonspecific background current I_b independently chosen for each neuron
+[[CHECK]]   constant nonspecific background current I_b independently chosen for each neuron
 			from the interval [14.975nA, 15.025nA],
-[[MISSING]] input resistance 1 Mohm.
+			==> randomize initial value, careful at units
+			+?> used np.uniform, individually for each neuron. Still need randomization?
+[[CHECK]]   input resistance 1 Mohm.  ===> t=RC, solve equation
+			t=RC, s= ohm * Faraday === ms = Mohm * pF * 10^-3
 
 ======================================================================
-[[GAVE IT A SHOT]]
+[[SOLVED]]
 	The postsynaptic current was modeled as an exponential decay exp(-t/tau_s )
 	with tau_s =3ms (tau_s =6ms) for excitatory (inhibitory) synapses
 
-[[GAVE IT A SHOT]]
+[[SOLVED]]
    "2.) The time constant of each tsodyks_synapse targeting a particular neuron
    must be chosen equal to that neuron's synaptic time constant. In particular that means
    that all synapses targeting a particular neuron have the same parameter tau_psc."
@@ -38,18 +41,24 @@ Neuron parameters:
             tau_psc   double - time constant of synaptic current in ms  = time constant for decay? = tau_psc, one in the synapse, and also one in the iaf_psc_exp neuron?
             tau_fac   double - time constant for facilitation in ms     = F ?
             tau_rec   double - time constant for depression in ms       = D ?
-
+	===> values are actually in seconds, in NEST ms though.. adjust!!!!
 	Values from paper: U, D, F
 		.5, 	1.1, 	.05 (EE)
 		.05, 	.125, 	1.2 (EI)
 		.25, 	.7, 	.02 (IE)
 		.32, 	.144, 	.06 (II).
 
-[[MISSING]] === what's the A?
+	===> trunc_normal instead of normal distribution for tau_fac, tau_rec, etc.
+
+[[SOLVED]] === what's the A?
 	The scaling parameter A (in nA) was chosen  to be 1.2 (EE), 1.6 (EI), -3.0 (IE), -2.8 (II).
 	In the case of input synapses the parameter A had a value of 0.1 nA.
 	The SD of each parameter was chosen to be 50 % of its mean (with negative
 	values replaced by values chosen from an appropriate uniform distribution).
+
+	===> A is the synaptic weight, in pA (paper has nA), it's also a distribution, means are defined!
+	===> first try it fixed, maybe later turn to real distributions?!
+	W_scale scales just A
 
 ======================================================================
 [[SOLVED]] The transmission delays between liquid neurons were chosen uniformly
@@ -71,9 +80,7 @@ the reference says:
 """
 
 
-import sys
 from Preset import *
-from Preset.Paths import paths
 import numpy as np
 import random
 
@@ -83,7 +90,8 @@ import random
 __author__ = 'duarte'
 
 run 			= 'local'
-data_label 		= 'AD_StimulusDriven_SingleRunComparison'
+# data_label 		= 'Legenstein_Maass_Reconstruction.NoiseDrivenDynamics'
+data_label 		= 'Legenstein_Maass_Reconstruction.DiscreteStimulusSequence2'
 project_label 	= 'Alzheimer'
 
 
@@ -100,14 +108,10 @@ def topology_random_grid_3D(size_x, size_y, size_z, layers=None):
 	if layers is None:
 		layers = [size_x * size_y * size_z]
 
-	# calculate normalized distance between neurons on each axis
-	d_x = 1. / (size_x + 1)
-	d_y = 1. / (size_y + 1)
-	d_z = 1. / (size_z + 1)
-	# compute grid positions on the [-0.5 + d_axis, 0.5 - d_axis) interval with d_axis distance
-	coord_x = np.arange(-0.5 + d_x / 2, 0.5, d_x)
-	coord_y = np.arange(-0.5 + d_y / 2, 0.5, d_y)
-	coord_z = np.arange(-0.5 + d_z / 2, 0.5, d_z)
+	# compute possible grid positions
+	coord_x = np.arange(-size_x / 2., size_x / 2., 1)
+	coord_y = np.arange(-size_y / 2., size_y / 2., 1)
+	coord_z = np.arange(-size_z / 2., size_z / 2., 1)
 
 	layer_positions	= []
 	used_positions  = []
@@ -149,84 +153,98 @@ def build_parameters():
 	delayEE = 1.5  # delay for EE synapses
 	delay  	= 0.8  # delay for all other synapses
 
-	gamma = 6.  		# Question: haven't touched this? Monday
-	wE = 32.29 			# Question: haven't touched this? Monday
-	wI = -gamma * wE 	# Question: haven't touched this? Monday
 	kernel_lambda_sigma = 4.   # chosen randomly for now, it's a parameter of the experiment, keeps changing
+	W_scale 	 = 1.
+	connect_C_EE = 0.3 # connectivity parameter C controlling exp. distribution (Maass 2002)
+	connect_C_EI = 0.2 # connectivity parameter C controlling exp. distribution (Maass 2002)
+	connect_C_IE = 0.4 # connectivity parameter C controlling exp. distribution (Maass 2002)
+	connect_C_II = 0.1 # connectivity parameter C controlling exp. distribution (Maass 2002)
 
 	recurrent_synapses = dict(
-		# Question: !!!!!!!!
-		# Question: @Renato: can you take a closer look here? sigma is only temporary. Or does this actually belong
-		# ..........to syn_specs?
-		# TODO adjust sigma properly here
 		synapse_model_parameters = [{}, {}, {}, {}],
 
-
+		# T<-S, WATCH OUT!!!
 		connected_populations	 = [('E', 'E'), ('E', 'I'), ('I', 'E'), ('I', 'I')],
+		synapse_names 	= ['EE_synapse', 'EI_synapse', 'IE_synapse', 'II_synapse'],
 		synapse_models 	= ['tsodyks_synapse', 'tsodyks_synapse', 'tsodyks_synapse', 'tsodyks_synapse'],
-		pre_computedW 	= [None, None, None, None], # Question: needed right now?
-		weights 		= [wE, wI, wE, wI], 		# Question: these should probably be changed but no clue with what
+		pre_computedW 	= [None, None, None, None],
+		# TODO in the paper this is actually a normal distribution, for now fixed but later try changing it?
+		# Maass 2002 says nA as unit, NEST uses pA.. 1.2 nA == 1200 pA
+		weights 		= [1200 * W_scale, -3000 * W_scale, 1600 * W_scale, -2800 * W_scale],
 		delays 			= [delayEE, delay, delay, delay],
 		conn_specs 		= [   {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
-							   'kernel': {'gaussian': {'p_center': 1., 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}},
+							   'kernel': {'gaussian': {'p_center': connect_C_EE, 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}},
 							  {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
-							   'kernel': {'gaussian': {'p_center': 1., 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}},
+							   'kernel': {'gaussian': {'p_center': connect_C_EI, 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}},
 							  {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
-							   'kernel': {'gaussian': {'p_center': 1., 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}},
+							   'kernel': {'gaussian': {'p_center': connect_C_IE, 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}},
 							  {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
-							   'kernel': {'gaussian': {'p_center': 1., 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}} ],
-		# syn_specs 		= [{}, {}, {}, {}]
+							   'kernel': {'gaussian': {'p_center': connect_C_II, 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}} ],
 		syn_specs		= [
-									# EE
-									{'tau_psc': 3., # excitatory synapses
-									 'tau_fac': {'distribution': 'normal', 'mean': 0.05, 'sigma': 0.},
-									 'tau_rec': {'distribution': 'normal', 'mean': 1.1, 'sigma': 0.},
-									 'U': 		{'distribution': 'normal', 'mean': 0.5, 'sigma': 0.}},
+							# E<-E
+							{
+								'model': 	'EE_synapse',
+								'tau_psc': 	3., # excitatory synapses
+								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 0.05, 'sigma': 0.025},
+								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 1.1, 'sigma': 0.55},
+								'U':		{'distribution': 'normal_clipped', 'mu': 0.5, 'sigma': 0.25}},
 
-									# EI
-									{'tau_psc': 3., # excitatory synapses
-									 'tau_fac': {'distribution': 'normal', 'mean': 1.2, 'sigma': 0.},
-									 'tau_rec': {'distribution': 'normal', 'mean': 0.125, 'sigma': 0.},
-									 'U': 		{'distribution': 'normal', 'mean': 0.05, 'sigma': 0.}},
+							# E<-I
+							{
+								'model': 	'EI_synapse',
+								'tau_psc': 	6., # inhibitory synapses
+								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 0.02, 'sigma': 0.01},
+								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 0.7, 'sigma': 0.35},
+								'U': 		{'distribution': 'normal_clipped', 'mu': 0.25, 'sigma': 0.125}},
 
-									# IE
-									{'tau_psc': 6., # inhibitory synapses
-									 'tau_fac': {'distribution': 'normal', 'mean': 0.02, 'sigma': 0.},
-									 'tau_rec': {'distribution': 'normal', 'mean': 0.7, 'sigma': 0.},
-									 'U': 		{'distribution': 'normal', 'mean': 0.25, 'sigma': 0.}},
+							# IE
+							{
+								'model': 	'IE_synapse',
+								'tau_psc': 	3.,  # excitatory synapses
+								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 1.2, 'sigma': 0.6},
+								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 0.125, 'sigma': 0.0625},
+								'U':  		{'distribution': 'normal_clipped', 'mu': 0.05, 'sigma': 0.}},
 
-									# II
-									{'tau_psc': 6., # inhibitory synapses
-									 'tau_fac': {'distribution': 'normal', 'mean': 0.06, 'sigma': 0.},
-									 'tau_rec': {'distribution': 'normal', 'mean': 0.144, 'sigma': 0.},
-									 'U': 		{'distribution': 'normal', 'mean': 0.32, 'sigma': 0.}}]
+							# II
+							{
+								'model': 	'II_synapse',
+								'tau_psc': 	6., # inhibitory synapses
+								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 0.06, 'sigma': 0.03},
+								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 0.144, 'sigma': 0.072},
+								'U': 		{'distribution': 'normal_clipped', 'mu': 0.32, 'sigma': 0.16} } ]
 	)
-	# Question: neuron_set=6 sets the model to iaf_psc_exp_ps
+
 	neuron_pars, net_pars, connection_pars = set_network_defaults(default_set=4, neuron_set=6, connection_set=1.1, N=N,
 																  kernel_pars=kernel_pars, **recurrent_synapses)
 
-	# Question: do the tau_syn_ex/in make sense?
+	# for C_m:  30ms = 1Mohm * 30000 pF
 	net_pars['neuron_pars'][0].update({'V_reset': 13.5,
-									   'tau_m': 30.,
+									   'tau_m': 30., # in ms
 									   'tau_syn_ex': 3.,  # tau for excitatory synapses
 									   'tau_syn_in': 6.,  # tau for inhibitory synapses
-									   't_ref': 3.})
+									   't_ref': 3.,
+									   'I_e': float(np.random.uniform(14975, 15025)),
+									   'C_m': 30. * 1000 }) # C_m is in pF as required by the neuron model
 
 	net_pars['neuron_pars'][1].update({'V_reset': 13.5,
 									   'tau_m': 30.,
 									   'tau_syn_ex': 3.,  # tau for excitatory synapses
 									   'tau_syn_in': 6.,  # tau for inhibitory synapses
-									   't_ref': 2.})
+									   't_ref': 2.,
+									   'I_e': float(np.random.uniform(14975, 15025)),
+									   'C_m': 30. * 1000})  # C_m is in pF as required by the neuron model
 
-	connection_pars.topology_dependent = [True, True, True, True] # Question: True for connection within 1 layer also?
+	connection_pars.topology_dependent = [True, True, True, True]
 	grid_positions = topology_random_grid_3D(6, 6, 15, [int(6*6*15*N_e), int(6*6*15*N_i)])
 
 	net_pars.update({ 'topology': 		[True, True],
-					  'topology_dict': 	[{'positions': grid_positions[0]}, {'positions': grid_positions[1]}]})
+					  'topology_dict': 	[{'positions': grid_positions[0], 'extent':	[6., 6., 15.]},
+										 {'positions': grid_positions[1], 'extent': [6., 6., 15.]}]})
+
 	# ######################################################################################################################
 	# Input Parameters
 	# ######################################################################################################################
-	n_trials 	= 150 # 2500
+	n_trials 	= 100 # 2500
 	n_discard 	= 10
 
 	n_stim = 80
@@ -237,12 +255,12 @@ def build_parameters():
 		grammar 	= None,
 		full_set_length 	 = int(n_trials + n_discard),
 		transient_set_length = int(n_discard),
-		train_set_length 	 = 100, #2000,
+		train_set_length 	 = 50, #2000,
 		test_set_length 	 = 50 #500
 	)
 
 	inp_resolution 		= 1.
-	inp_amplitude 		= 1500. # 20.
+	inp_amplitude 		= 20. # 20.
 	inp_duration 		= 200.
 	inter_stim_interval = 0.
 
@@ -256,7 +274,7 @@ def build_parameters():
 					'max_amplitude'	: [inp_amplitude],
 					'min_amplitude'	: 0.,
 					'resolution'	: inp_resolution},
-					'noise': { # Question: what noise is this?
+					'noise': {
 						'N'				: 0,
 						'noise_source'	: ['GWN'],
 						'noise_pars'	: {'amplitude': 5., 'mean': 1., 'std': 0.25},
@@ -268,19 +286,18 @@ def build_parameters():
 	# ######################################################################################################################
 	# Encoding Parameters
 	# ######################################################################################################################
-	# Question: don't know what this one is, Monday
-	filter_tau 	= 20.                              # time constant of exponential filter (applied to spike trains)
+	filter_tau 	= 30.                              # time constant of exponential filter (applied to spike trains)
 	n_afferents = 4		                           # number of stimulus-specific afferents (if necessary)
 	n_stim 		= stim_pars['n_stim']              # number of different input stimuli
 
-	w_in = 20. # Question: paper doesn't really mentions this
+	w_in = 100. # [pA] In the case of input synapses the parameter A had a value of 0.1 nA.
 
 	# Input connectivity
 	input_synapses = dict(
 		target_population_names = ['EI'],
-		conn_specs	= [{'rule': 'fixed_outdegree', 'outdegree': 25}], #Question: how to set this?
+		conn_specs	= [{'rule': 'fixed_outdegree', 'outdegree': int(N * 0.3)}], #Question: how to set this?
 		syn_specs	= [{}],
-		models		= ['static_synapse'], #Question: should this be tsodyks as well?
+		models		= ['static_synapse'],
 		model_pars	= [{}],
 		weight_dist	= [w_in],
 		delay_dist	= [1.],
@@ -296,7 +313,7 @@ def build_parameters():
 	# Decoding / Readout Parameters
 	# ######################################################################################################################
 	state_sampling 	= None #1.(cannot start at 0)
-	n_readouts		= 10
+	n_readouts		= 1
 	readout_labels 	= ['class' + str(i) for i in range(n_readouts)]
 
 	decoders = dict(
@@ -304,7 +321,7 @@ def build_parameters():
 		state_variable			= ['spikes'],
 		filter_time				= filter_tau,
 		readouts				= readout_labels,
-		readout_algorithms		= ['ridge'] * n_readouts,
+		readout_algorithms		= ['pinv'] * n_readouts,
 		global_sampling_times	= state_sampling)
 
 	decoding_pars = set_decoding_defaults(default_set=1, output_resolution=1., to_memory=True, kernel_pars=kernel_pars,
@@ -315,7 +332,7 @@ def build_parameters():
 		state_variable	= ['spikes'],
 		filter_time		= filter_tau,
 		readouts		= readout_labels,
-		readout_algorithms		= ['ridge'] * n_readouts,
+		readout_algorithms		= ['pinv'] * n_readouts,
 		output_resolution		= inp_resolution,
 		global_sampling_times	= state_sampling)
 
