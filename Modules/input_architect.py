@@ -1582,7 +1582,7 @@ class InputSignal(object):
 				self.interval_parameters = initializer.i_stim_i
 				self.intervals = initializer.i_stim_i
 				self.global_start = initializer.start_time
-				self.global_stop = initializer.stop_time  # TODO @barni rewrite for loops below
+				self.global_stop = initializer.stop_time
 				self.onset_times = [[] for _ in range(self.dimensions)]
 				self.offset_times = [[] for _ in range(self.dimensions)]
 				self.time_data = None
@@ -1596,9 +1596,9 @@ class InputSignal(object):
 		:param onset: global signal onset time [ms]
 		:return:
 		"""
-		assert isinstance(signal, list) or isinstance(signal, np.ndarray) or isinstance(signal, AnalogSignalList), "Provided " \
-		                                                                                              "signal must be a list " \
-		                                                                            "or numpy array or AnalogSignalList"
+		assert isinstance(signal, list) or isinstance(signal, np.ndarray) or isinstance(signal, AnalogSignalList), \
+			"Provided signal must be a list or numpy array or AnalogSignalList"
+
 		if isinstance(signal, list):
 			signal = np.array(signal)
 		elif isinstance(signal, np.ndarray):

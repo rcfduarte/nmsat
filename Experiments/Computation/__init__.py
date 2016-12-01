@@ -65,19 +65,20 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 		current_set = [key for key, value in set_sizes.items() if set_size == value][0]
 	else:
 		assert(set_name is not None), "set_name needs to be provided in online mode.."
-		current_set = set_name
-		set_size = len(getattr(stim_set, '{0}_set_labels'.format(current_set)))
+		current_set 	= set_name
+		set_size 		= len(getattr(stim_set, '{0}_set_labels'.format(current_set)))
 		signal_iterator = getattr(input_set, '{0}_set_signal_iterator'.format(current_set))
-		stimulus_seq = getattr(stim_set, '{0}_set'.format(current_set))
-		intervals = [0] #?
+		stimulus_seq 	= getattr(stim_set, '{0}_set'.format(current_set))
+		intervals 		= [0] #?
 
 	if store_responses:
 		print "\n\n!!! All responses will be stored !!!"
 		labels = np.unique(getattr(stim_set, '{0}_set_labels'.format(current_set))				   )
-		set_labels = getattr(stim_set, '{0}_set_labels'.format(current_set))
+		# set_labels = getattr(stim_set, '{0}_set_labels'.format(current_set))
 
-		# tmp_set_labels = getattr(stim_set, '{0}_set_labels'.format(current_set))
-		# set_labels = [label if not isinstance(label, list) else label[0] for label in tmp_set_labels]
+		tmp_set_labels = getattr(stim_set, '{0}_set_labels'.format(current_set))
+		set_labels = [label if not isinstance(label, list) else label[0] for label in tmp_set_labels]
+		print "set_labels: " + str(set_labels)
 		epochs = {k: [] for k in labels}
 
 	####################################################################################################################
@@ -121,6 +122,8 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 				print idx, set_labels[idx], epochs[set_labels[idx]][-1]
 				print (t_int, t_samp[-1])
 			elif store_responses and input_set.online:
+				# TODO this is a bug, idx can be == len(set_labels), causing an IndexError
+				# Question: what to do here?
 				epochs[set_labels[idx]].append((t_int, t))
 				print (t_int, t)
 			elif store_responses:
@@ -138,16 +141,16 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 					else:
 						stimulus_id = [nx for nx in range(stim_set.dims) if t_samp[idx] in input_signal.offset_times[nx]]
 					if t_int == 0.:
-						spks = input_set.spike_patterns[stimulus_id[0]].time_offset(t_int + nest.GetKernelStatus()[
-							'resolution'], True)
+						spks = input_set.spike_patterns[stimulus_id[0]].time_offset(
+							t_int + nest.GetKernelStatus()['resolution'], True)
 					else:
 						spks = input_set.spike_patterns[stimulus_id[0]].time_offset(t_int, True)
 					if jitter is not None:
 						spks.jitter(jitter)
 						# TODO @barni remove, only debug Question: here or where to put the cutoff?
-						# for k, train in spks.spiketrains.iteritems():
-						# 	train.spike_times[:] = [spike for spike in train.spike_times if
-						# 							spike >= train.t_start and spike <= train.t_stop]
+						for k, train in spks.spiketrains.iteritems():
+							train.spike_times[:] = [spike for spike in train.spike_times if
+													train.t_start <= spike <= train.t_stop]
 
 					enc_layer.update_state(spks)
 

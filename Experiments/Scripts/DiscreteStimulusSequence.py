@@ -69,7 +69,7 @@ for n in list(iterate_obj_list(net.populations)):
 # =================================================================================
 # Create StimulusSet
 stim_set_time = time.time()
-stim = StimulusSet(parameter_set)
+stim = StimulusSet(parameter_set, unique_set=True)
 stim.create_set(parameter_set.stim_pars.full_set_length)
 stim.discard_from_set(parameter_set.stim_pars.transient_set_length)
 stim.divide_set(parameter_set.stim_pars.transient_set_length, parameter_set.stim_pars.train_set_length,
@@ -82,7 +82,7 @@ inputs = InputSignalSet(parameter_set, stim, online=online)
 if stim.transient_set_labels:
 	inputs.generate_transient_set(stim)
 	parameter_set.kernel_pars.transient_t = inputs.transient_stimulation_time
-# inputs.generate_unique_set(stim)  # Question: this can remain commented out, right?
+inputs.generate_unique_set(stim)  # Question: this can remain commented out, right?
 inputs.generate_train_set(stim)
 inputs.generate_test_set(stim)
 print "- Elapsed Time: {0}".format(str(time.time() - input_set_time))
@@ -187,23 +187,23 @@ if stim.transient_set_labels:
 ######################################################################################
 # Simulate (Unique Sequence)
 # ====================================================================================
-# if not online:
-# 	print "\nUnique Sequence time = {0} ms".format(str(inputs.unique_stimulation_time))
-#
-# iterate_input_sequence(net, inputs.unique_set_signal, enc_layer,
-#                        sampling_times=parameter_set.decoding_pars.global_sampling_times,
-#                        stim_set=stim, input_set=inputs, set_name='unique', store_responses=False,
-#                        jitter=parameter_set.encoding_pars.generator.jitter)
-# results['rank'] = get_state_rank(net)
-# n_stim = len(stim.elements)
-# print "State Rank: {0} / {1}".format(str(results['rank']), str(n_stim))
-# for n_pop in list(itertools.chain(*[net.populations, net.merged_populations])):
-# 	if not empty(n_pop.state_matrix):
-# 		n_pop.flush_states()
-# for n_enc in enc_layer.encoders:
-# 	if not empty(n_enc.state_matrix):
-# 		n_enc.flush_states()
+if not online:
+	print "\nUnique Sequence time = {0} ms".format(str(inputs.unique_stimulation_time))
 
+iterate_input_sequence(net, inputs.unique_set_signal, enc_layer,
+                       sampling_times=parameter_set.decoding_pars.global_sampling_times,
+                       stim_set=stim, input_set=inputs, set_name='unique', store_responses=False,
+                       jitter=parameter_set.encoding_pars.generator.jitter)
+results['rank'] = get_state_rank(net)
+n_stim = len(stim.elements)
+print "State Rank: {0} / {1}".format(str(results['rank']), str(n_stim))
+for n_pop in list(itertools.chain(*[net.populations, net.merged_populations])):
+	if not empty(n_pop.state_matrix):
+		n_pop.flush_states()
+for n_enc in enc_layer.encoders:
+	if not empty(n_enc.state_matrix):
+		n_enc.flush_states()
+exit(0)
 #######################################################################################
 # Simulate (Train period)
 # =====================================================================================
@@ -226,7 +226,7 @@ if not online:
 	print "\nTest time = {0} ms".format(str(inputs.test_stimulation_time))
 iterate_input_sequence(net, inputs.test_set_signal, enc_layer,
                        sampling_times=parameter_set.decoding_pars.global_sampling_times,
-                       stim_set=stim, input_set=inputs, set_name='test', store_responses=paths['activity'],
+                       stim_set=stim, input_set=inputs, set_name='test', store_responses=False,#paths['activity'],
                        jitter=parameter_set.encoding_pars.generator.jitter)
 
 #######################################################################################

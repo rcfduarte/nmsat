@@ -1078,15 +1078,16 @@ class SpikeList(object):
 	## Constructor and key methods to manipulate the SpikeList objects   ##
 	#######################################################################
 	def __init__(self, spikes, id_list, t_start=None, t_stop=None, dims=None):
+		#TODO is it not better if there are 2, corresponding lists, [spk_time] and [ids]? seems more efficient
 		"""
 		Constructor of the SpikeList object
 
 		See also
 			SpikeList, load_spikelist
 		"""
-		self.t_start = t_start
-		self.t_stop = t_stop
-		self.dimensions = dims
+		self.t_start 	 = t_start
+		self.t_stop 	 = t_stop
+		self.dimensions  = dims
 		self.spiketrains = {}
 		id_list = np.sort(id_list)
 

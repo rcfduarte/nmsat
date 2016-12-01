@@ -294,7 +294,7 @@ class Population(object):
 				status = nest.GetStatus([initializer])[0]['events']
 			else:
 				status = nest.GetStatus(initializer)[0]['events']
-			if len(status) == 2:
+			if len(status) == 2: # TODO can we optimize this iteration over spikes?
 				spk_times = status['times']
 				neuron_ids = status['senders']
 				tmp = [(neuron_ids[n], spk_times[n]) for n in range(len(spk_times))]
@@ -572,7 +572,7 @@ class Network(object):
 
 		def create_populations(net_pars_set):
 
-			populations = [[]] * net_pars_set.n_populations
+			populations = [[] for _ in range(net_pars_set.n_populations)]
 			# specify the keys not to be passed to the population objects
 			not_allowed_keys = ['_url', 'label', 'n_populations', 'parameters', 'names', 'description']
 

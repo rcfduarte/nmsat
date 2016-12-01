@@ -91,7 +91,7 @@ __author__ = 'duarte'
 
 run 			= 'local'
 # data_label 		= 'Legenstein_Maass_Reconstruction.NoiseDrivenDynamics'
-data_label 		= 'Legenstein_Maass_Reconstruction.DiscreteStimulusSequence'
+data_label 		= 'Legenstein_Maass_Reconstruction.DiscreteStimulusSequence.unique.lambda=6.W_scale=6'
 project_label 	= 'Alzheimer'
 
 
@@ -153,17 +153,17 @@ def build_parameters():
 	delayEE = 1.5  # delay for EE synapses
 	delay  	= 0.8  # delay for all other synapses
 
-	kernel_lambda_sigma = 4.   # chosen randomly for now, it's a parameter of the experiment, keeps changing
-	W_scale 	 = 1.
+	kernel_lambda = 6.  # definition corresponds exactly to the one in the paper
+	W_scale 	 = 6.
 	connect_C_EE = 0.3 # connectivity parameter C controlling exp. distribution (Maass 2002)
 	connect_C_EI = 0.2 # connectivity parameter C controlling exp. distribution (Maass 2002)
 	connect_C_IE = 0.4 # connectivity parameter C controlling exp. distribution (Maass 2002)
 	connect_C_II = 0.1 # connectivity parameter C controlling exp. distribution (Maass 2002)
+	kernel_sigma = kernel_lambda / np.sqrt(2)  #required because we use a Gaussian for the exponential distance
 
 	recurrent_synapses = dict(
 		synapse_model_parameters = [{}, {}, {}, {}],
-
-		# T<-S, WATCH OUT!!!
+		# T<-S
 		connected_populations	 = [('E', 'E'), ('E', 'I'), ('I', 'E'), ('I', 'I')],
 		synapse_names 	= ['EE_synapse', 'EI_synapse', 'IE_synapse', 'II_synapse'],
 		synapse_models 	= ['tsodyks_synapse', 'tsodyks_synapse', 'tsodyks_synapse', 'tsodyks_synapse'],
@@ -173,13 +173,13 @@ def build_parameters():
 		weights 		= [1200 * W_scale, -3000 * W_scale, 1600 * W_scale, -2800 * W_scale],
 		delays 			= [delayEE, delay, delay, delay],
 		conn_specs 		= [   {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
-							   'kernel': {'gaussian': {'p_center': connect_C_EE, 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}},
+							   'kernel': {'gaussian': {'p_center': connect_C_EE, 'sigma': kernel_sigma, 'mean': 0., 'c': 0.}}},
 							  {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
-							   'kernel': {'gaussian': {'p_center': connect_C_EI, 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}},
+							   'kernel': {'gaussian': {'p_center': connect_C_EI, 'sigma': kernel_sigma, 'mean': 0., 'c': 0.}}},
 							  {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
-							   'kernel': {'gaussian': {'p_center': connect_C_IE, 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}},
+							   'kernel': {'gaussian': {'p_center': connect_C_IE, 'sigma': kernel_sigma, 'mean': 0., 'c': 0.}}},
 							  {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
-							   'kernel': {'gaussian': {'p_center': connect_C_II, 'sigma': kernel_lambda_sigma, 'mean': 0., 'c': 0.}}} ],
+							   'kernel': {'gaussian': {'p_center': connect_C_II, 'sigma': kernel_sigma, 'mean': 0., 'c': 0.}}} ],
 		syn_specs		= [
 							# E<-E
 							{
@@ -247,7 +247,7 @@ def build_parameters():
 	n_trials 	= 100 # 2500
 	n_discard 	= 10
 
-	n_stim = 80
+	n_stim = 500
 
 	stim_pars = dict(
 		n_stim 		= n_stim,

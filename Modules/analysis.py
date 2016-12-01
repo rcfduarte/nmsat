@@ -2757,8 +2757,8 @@ def get_state_rank(network):
 	from Modules.signals import empty
 	results = dict()
 
-	for ctr, n_pop in enumerate(list(itertools.chain(*[network.merged_populations,
-					                                            network.populations]))):
+	for ctr, n_pop in enumerate(list(itertools.chain(*[network.merged_populations, network.populations]))):
+
 		results[n_pop.name] = []
 		states = []
 		if not empty(n_pop.state_matrix) and isinstance(n_pop.state_matrix[0], list):
