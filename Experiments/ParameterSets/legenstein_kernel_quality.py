@@ -90,8 +90,7 @@ import random
 __author__ = 'duarte'
 
 run 			= 'local'
-# data_label 		= 'Legenstein_Maass_Reconstruction.NoiseDrivenDynamics'
-data_label 		= 'Legenstein_Maass_Reconstruction.DiscreteStimulusSequence.unique.lambda=6.W_scale=6'
+data_label 		= 'Legenstein_kernel_queality_lambda=6.W_scale=6'
 project_label 	= 'Alzheimer'
 
 
@@ -296,7 +295,6 @@ def build_parameters():
 	input_synapses = dict(
 		target_population_names = ['EI'],
 		conn_specs	= [{'rule': 'fixed_outdegree', 'outdegree': int(N * 0.3)}],
-		# conn_specs	= [{'rule': 'all_to_all'}],
 		syn_specs	= [{}],
 		models		= ['static_synapse'],
 		model_pars	= [{}],
@@ -314,7 +312,6 @@ def build_parameters():
 	# Decoding / Readout Parameters
 	# ######################################################################################################################
 	state_sampling 	= None #1.(cannot start at 0)
-	n_readouts		= 1
 	readout_labels 	= ['class0']
 
 	decoders = dict(

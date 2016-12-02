@@ -203,46 +203,11 @@ for n_pop in list(itertools.chain(*[net.populations, net.merged_populations])):
 for n_enc in enc_layer.encoders:
 	if not empty(n_enc.state_matrix):
 		n_enc.flush_states()
-exit(0)
-#######################################################################################
-# Simulate (Train period)
-# =====================================================================================
-if not online:
-	print "\nTrain time = {0} ms".format(str(inputs.train_stimulation_time))
-iterate_input_sequence(net, inputs.train_set_signal, enc_layer,
-                       sampling_times=parameter_set.decoding_pars.global_sampling_times,
-                       stim_set=stim, input_set=inputs, set_name='train', store_responses=False,
-                       jitter=parameter_set.encoding_pars.generator.jitter)
-#######################################################################################
-# Train Readouts
-# =====================================================================================
-train_all_readouts(parameter_set, net, stim, inputs.train_set_signal, encoding_layer=enc_layer, flush=True, debug=debug,
-                   plot=plot, display=display, save=paths)
-
-#######################################################################################
-# Simulate (Test period)
-# =====================================================================================
-if not online:
-	print "\nTest time = {0} ms".format(str(inputs.test_stimulation_time))
-iterate_input_sequence(net, inputs.test_set_signal, enc_layer,
-                       sampling_times=parameter_set.decoding_pars.global_sampling_times,
-                       stim_set=stim, input_set=inputs, set_name='test', store_responses=False,#paths['activity'],
-                       jitter=parameter_set.encoding_pars.generator.jitter)
-
-#######################################################################################
-# Test Readouts
-# =====================================================================================
-test_all_readouts(parameter_set, net, stim, inputs.test_set_signal, encoding_layer=enc_layer, flush=False, debug=debug,
-                  plot=plot, display=display, save=paths)
-
-results['Performance'] = {}
-results['Performance'].update(analyse_performance_results(net, enc_layer, plot=plot, display=display,
-														  save=paths['figures']+paths['label']))
 
 # #######################################################################################
 # # Save data
 # # =====================================================================================
-if save:
-	with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
-		pickle.dump(results, f)
-	parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
+# if save:
+# 	with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
+# 		pickle.dump(results, f)
+# 	parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
