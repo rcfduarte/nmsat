@@ -11,6 +11,7 @@ from Experiments.Computations import iterate_input_sequence
 import Experiments.Computations
 import numpy as np
 import nest
+import random
 
 plot = True
 display = True
@@ -21,7 +22,7 @@ online = True
 # Extract parameters from file and build global ParameterSet
 # =================================================================================
 # params_file = '../ParameterSets/_originals/X_spike_pattern_input_sequence.py'
-params_file = '../ParameterSets/legenstein_maass_spike_template_classification.py'
+params_file = '../ParameterSets/legenstein_classification.py'
 set_global_rcParams('../../Defaults/matplotlib_rc')
 
 # parameter_set = ParameterSet(set_params_dict(params_file), label='global')
@@ -69,7 +70,7 @@ for n in list(iterate_obj_list(net.populations)):
 # =================================================================================
 # Create StimulusSet
 stim_set_time = time.time()
-stim = StimulusSet(parameter_set, unique_set=True)
+stim = StimulusSet(parameter_set)
 stim.create_set(parameter_set.stim_pars.full_set_length)
 stim.discard_from_set(parameter_set.stim_pars.transient_set_length)
 stim.divide_set(parameter_set.stim_pars.transient_set_length, parameter_set.stim_pars.train_set_length,
@@ -82,10 +83,39 @@ inputs = InputSignalSet(parameter_set, stim, online=online)
 if stim.transient_set_labels:
 	inputs.generate_transient_set(stim)
 	parameter_set.kernel_pars.transient_t = inputs.transient_stimulation_time
-inputs.generate_unique_set(stim)  # Question: this can remain commented out, right?
+# inputs.generate_unique_set(stim)
 inputs.generate_train_set(stim)
 inputs.generate_test_set(stim)
 print "- Elapsed Time: {0}".format(str(time.time() - input_set_time))
+
+#######################################################################################
+# Prepare training targets
+# =====================================================================================
+test_dim 		= 10
+target_template = np.array(([0] * (stim.dims / 2)) + ([1] * (stim.dims / 2)))  # divides half the templates into 2 (1,0)
+assert target_template.shape[0] == stim.dims, "Target template dimension inconsistent with #input stimuli"
+# test_dim X n_stimuli
+dichotomies 	= np.array([np.random.permutation(target_template) for _ in range(test_dim)])#.transpose()
+# n_train X test_dim
+train_target_matrix = []
+test_target_matrix 	= []
+
+for label in stim.train_set_labels:
+	stim_id = label[0] if isinstance(label, list) else label
+	assert isinstance(stim_id, int), "Wrong label type (should be int)"
+	train_target_matrix.append(list(dichotomies[:, stim_id]))
+
+for label in stim.test_set_labels:
+	stim_id = label[0] if isinstance(label, list) else label
+	assert isinstance(stim_id, int), "Wrong label type (should be int)"
+	test_target_matrix.append(list(dichotomies[:, stim_id]))
+
+# test_dim X n_train
+train_target_matrix = np.array(train_target_matrix).transpose()
+# test_dim X n_test
+test_target_matrix 	= np.array(test_target_matrix).transpose()
+
+# =====================================================================================
 
 # Plot example signal
 if plot and debug and not online:
@@ -184,6 +214,7 @@ if stim.transient_set_labels:
 	net.flush_records()
 	enc_layer.flush_records()
 
+
 #######################################################################################
 # Simulate (Train period)
 # =====================================================================================
@@ -196,8 +227,11 @@ iterate_input_sequence(net, inputs.train_set_signal, enc_layer,
 #######################################################################################
 # Train Readouts
 # =====================================================================================
-train_all_readouts(parameter_set, net, stim, inputs.train_set_signal, encoding_layer=enc_layer, flush=True, debug=debug,
-                   plot=plot, display=display, save=paths)
+
+train_all_readouts(parameter_set, net, stim, train_target_matrix, encoding_layer=enc_layer, flush=True, debug=debug,
+				   plot=plot, display=display, save=paths)
+# train_all_readouts(parameter_set, net, stim, inputs.train_set_signal, encoding_layer=enc_layer, flush=True, debug=debug,
+#                    plot=plot, display=display, save=paths)
 
 #######################################################################################
 # Simulate (Test period)
@@ -212,8 +246,8 @@ iterate_input_sequence(net, inputs.test_set_signal, enc_layer,
 #######################################################################################
 # Test Readouts
 # =====================================================================================
-test_all_readouts(parameter_set, net, stim, inputs.test_set_signal, encoding_layer=enc_layer, flush=False, debug=debug,
-                  plot=plot, display=display, save=paths)
+test_all_readouts(parameter_set, net, stim, test_target_matrix, encoding_layer=enc_layer, flush=False, debug=debug,
+				  plot=plot, display=display, save=paths)
 
 results['Performance'] = {}
 results['Performance'].update(analyse_performance_results(net, enc_layer, plot=plot, display=display,

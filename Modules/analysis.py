@@ -2056,12 +2056,16 @@ def train_all_readouts(parameters, net, stim, input_signal, encoding_layer, flus
 	from Modules.signals import empty
 	assert(isinstance(net, Network)), "Please provide Network object"
 	assert(isinstance(parameters, ParameterSet)), "parameters must be a ParameterSet object"
-	assert(isinstance(input_signal, InputSignal)), "input_signal must be an InputSignal object"
+	assert(isinstance(input_signal, InputSignal) or isinstance(input_signal, np.ndarray)), \
+		"input_signal must be an InputSignal object or numpy array / matrix"
 
 	sampling_rate = parameters.decoding_pars.global_sampling_times
-	if sampling_rate is None or isinstance(sampling_rate, list) or isinstance(sampling_rate, np.ndarray):
-		target = stim.train_set.todense()
-		set_labels = stim.train_set_labels
+	if isinstance(input_signal, np.ndarray):
+		target 		= input_signal
+		set_labels 	= stim.train_set_labels
+	elif sampling_rate is None or isinstance(sampling_rate, list) or isinstance(sampling_rate, np.ndarray):
+		target 		= stim.train_set.todense()
+		set_labels 	= stim.train_set_labels
 	else:
 		unfold_n = int(round(sampling_rate ** (-1)))
 		if input_signal.online:
@@ -2176,10 +2180,14 @@ def test_all_readouts(parameters, net, stim, input_signal, encoding_layer=None, 
 	from Modules.signals import empty
 	assert (isinstance(net, Network)), "Please provide Network object"
 	assert (isinstance(parameters, ParameterSet)), "parameters must be a ParameterSet object"
-	assert (isinstance(input_signal, InputSignal)), "input_signal must be an InputSignal object"
+	assert (isinstance(input_signal, InputSignal) or isinstance(input_signal, np.ndarray)), \
+		"input_signal must be an InputSignal object or numpy array / matrix"
 
 	sampling_rate = parameters.decoding_pars.global_sampling_times
-	if sampling_rate is None or isinstance(sampling_rate, list) or isinstance(sampling_rate, np.ndarray):
+	if isinstance(input_signal, np.ndarray):
+		target = input_signal
+		set_labels = stim.test_set_labels
+	elif sampling_rate is None or isinstance(sampling_rate, list) or isinstance(sampling_rate, np.ndarray):
 		target = stim.test_set.todense()
 		set_labels = stim.test_set_labels
 	else:

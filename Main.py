@@ -9,14 +9,14 @@ from optparse import OptionParser
 def run_experiment(params_file_full_path, computation_function="noise_driven_dynamics", **parameters):
 	"""
 
-	:param params_file_full_path:
-	:param computation_function:
-	:param parameters:
+	:param params_file_full_path: full path to parameter file
+	:param computation_function: which experiment to run
+	:param parameters: other CLI input parameters
 	:return:
 	"""
 	try:
 		experiment = importlib.import_module("Computation." + computation_function)
-	except Exception as error:
+	except:
 		print("Could not find experiment `%s`. Is it in ./Computation/ directory?" % computation_function)
 		exit(-1)
 
@@ -41,9 +41,12 @@ def run_emoo(params_file_full_path, computation_function="noise_driven_dynamics"
 			 objectives={'cv_isis': [0.8, 2.0], 'ccs': [-0.1, 0.1], 'mean_rate': 10.}, **parameters):
 	"""
 
-	:param params_file_full_path:
-	:param computation_function:
-	:param parameters:
+	:param params_file_full_path: full path to parameter file
+	:param computation_function: which experiment to run
+	:param results_subfields:
+	:param operation:
+	:param objectives:
+	:param parameters: other CLI input parameters
 	:return:
 	"""
 	try:
@@ -75,7 +78,19 @@ def create_parser():
 	return parser_
 
 
+def print_welcome_message():
+	print("""
+	  Welcome to Network Simulation Testbed!
+
+	  Version 0.1
+
+	  This program is provided AS IS and comes with
+	  NO WARRANTY. See the file LICENSE for details.
+	  """)
+
+
 if __name__ == "__main__":
+	print_welcome_message()
 	(options, args) = create_parser().parse_args()
 
 	# we need minimum 2 arguments (3 including the script)

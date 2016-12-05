@@ -1897,7 +1897,6 @@ class InputSignal(object):
 		if self.input_signal:
 			self.input_signal = self.compress_signals()
 		elif self.online:
-
 			self.input_signal = None
 		else:
 			self.apply_input_mask()

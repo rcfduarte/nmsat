@@ -1,34 +1,29 @@
+===============================
+
+
 #################################################
 #     Initial notes on parameter refactoring    #
 #################################################
 
 Talking points:
-- take out IntelliJ files from repo (.idea dir), as well as .pyc
-- 'data_prefix' and 'data_label' always part of 'kernel_pars'? if yes, we can access them directly after some error-checking
 - emoo / range > 3: not entirely sure...
-- set up email alert for commits?
-
-********************************************
-*** Functions that could be reconsidered ***
-********************************************
-
-
 
 
 ********************************************
 ***             Questions                ***
 ********************************************
-1.     t_start, t_stop, dt, int(round((t_stop-t_start) / float(dt))), len(signal)))
-Exception: Inconsistent arguments: t_start=1000, t_stop=2000, dt=0.1 implies 10000 elements, actually 9999
- === Renato already knows about this
+1. at one point it's trying to extract activity from the last 2 seconds (defined by 'lag') of a template: 2198 - 2200
 
-2.      specifics of a 3D topology with two populations, E and I. How are distances between the neurons of the two
-        layers calculated: are the layers actually in the same coordinate system (one on top of the other, so to say?)
+2. do we want edge_wrap? what if it's not defined, then default is..? or we make it compulsory?
+    - I actually added a padding, that changes the probabilities no? Also, in the paper the edges of the grid have unit
+    length, that again influences the connections eventually
 
+4. where to put the windowed jitter cutoff? right IN the jitter function? or pass a parameter to enable it?
 
-===============================
+6.  until now target parameters for training and testing were required to be of type InputSignal.. however, this is
+    quite limiting. Did some modification, but should we allow arbitrary target values in form of matrix / arrays?
+    if yes, more integration is needed.
 ********************************************
 ***                 TODO                 ***
 ********************************************
-1. Computations.py, create package instead, different module for each kind of computation function (simulation)
 
