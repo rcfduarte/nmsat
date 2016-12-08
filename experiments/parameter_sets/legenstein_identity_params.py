@@ -90,7 +90,7 @@ import random
 __author__ = 'duarte'
 
 run 			= 'local'
-data_label 		= 'legenstein_classification.lambda=2.W_scale=1'
+data_label 		= 'legenstein_identity.lambda=2.W_scale=1#4'
 project_label 	= 'Alzheimer'
 
 
@@ -243,7 +243,7 @@ def build_parameters():
 	# ######################################################################################################################
 	# Input Parameters
 	# ######################################################################################################################
-	n_trials 	= 500 # 2500
+	n_trials 	= 1000 # 2500
 	n_discard 	= 10
 
 	n_stim = 80
@@ -254,8 +254,8 @@ def build_parameters():
 		grammar 	= None,
 		full_set_length 	 = int(n_trials + n_discard),
 		transient_set_length = int(n_discard),
-		train_set_length 	 = 400, #2000,
-		test_set_length 	 = 100 #500
+		train_set_length 	 = 800, #2000,
+		test_set_length 	 = 200 #500
 	)
 
 	inp_resolution 		= 1.
@@ -302,7 +302,7 @@ def build_parameters():
 		delay_dist	= [1.],
 		preset_W	= [None],
 		gen_to_enc_W= None,
-		jitter		= 10.) # Gaussian jitter with 10ms SD, 0 mean
+		jitter		= None) # Gaussian jitter with 10ms SD, 0 mean
 
 	encoding_pars = set_encoding_defaults(default_set=4, input_dimensions=n_stim,
 										  n_encoding_neurons=n_afferents, **input_synapses)
