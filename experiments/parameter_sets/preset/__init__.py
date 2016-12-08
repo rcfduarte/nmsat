@@ -1,7 +1,7 @@
 __author__ = 'duarte'
 import numpy as np
 import sys
-from Modules.parameters import *
+from modules.parameters import *
 import scipy.stats as st
 
 
@@ -11,7 +11,7 @@ def set_kernel_defaults(default_set=0, run_type='local', data_label='', project_
 	:param default_set:
 	:return:
 	"""
-	from Experiments.ParameterSets.Preset.Paths import paths
+	from experiments.parameter_sets.preset.Paths import paths
 	if run_type == 'local':
 		run = True
 	else:

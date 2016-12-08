@@ -4,11 +4,11 @@ __author__ = 'duarte'
 import sys
 sys.path.append('../../')
 sys.path.append('../ParameterSets/')
-from Modules.input_architect import *
-from Modules.visualization import *
-from Modules.io import set_storage_locations
-from Experiments.Computations import iterate_input_sequence
-import Experiments.Computations
+from modules.input_architect import *
+from modules.visualization import *
+from modules.io import set_storage_locations
+from experiments.computations import iterate_input_sequence
+import experiments.computations
 import numpy as np
 import nest
 
@@ -38,7 +38,7 @@ if not isinstance(parameter_set, ParameterSet):
 # Setup extra variables and parameters
 # =================================================================================
 if plot:
-	import Modules.visualization as vis
+	import modules.visualization as vis
 	vis.set_global_rcParams(parameter_set.kernel_pars['mpl_path'])
 paths = set_storage_locations(parameter_set, save)
 

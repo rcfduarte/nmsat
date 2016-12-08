@@ -7,7 +7,7 @@ matplotlib.use('Agg')
 import pprint
 import subprocess
 
-from Modules.parameters import *
+from modules.parameters import *
 pp = pprint.PrettyPrinter(indent=2)
 
 def print_parameter_set(fn, ps):
