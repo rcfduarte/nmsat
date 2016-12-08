@@ -1,7 +1,7 @@
 import sys
 sys.path.append('../../')
-sys.path.append('../../Experiments/')
-sys.path.append('../../Experiments/ParameterSets/')
+sys.path.append('../../experiments/')
+sys.path.append('../../experiments/parameter_sets/')
 import matplotlib
 matplotlib.use('Agg')
 import pprint

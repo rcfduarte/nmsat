@@ -1,10 +1,10 @@
 __author__ = 'duarte'
 import sys
 sys.path.append('../../')
-from Modules.parameters import *
-from Modules.net_architect import *
-from Modules.input_architect import *
-from Modules.visualization import *
+from modules.parameters import *
+from modules.net_architect import *
+from modules.input_architect import *
+from modules.visualization import *
 import numpy as np
 import nest
 
@@ -38,7 +38,7 @@ if not isinstance(parameter_set, ParameterSet):
 		raise TypeError("parameter_set must be ParameterSet, string with full path to parameter file or dictionary")
 
 if plot:
-	import Modules.visualization as vis
+	import modules.visualization as vis
 	vis.set_global_rcParams(parameter_set.kernel_pars['mpl_path'])
 paths = set_storage_locations(parameter_set, save)
 

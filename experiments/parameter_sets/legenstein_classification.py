@@ -90,7 +90,7 @@ import random
 __author__ = 'duarte'
 
 run 			= 'local'
-data_label 		= 'Legenstein.Classification.unique.lambda=2.W_scale=1'
+data_label 		= 'tmp_Legenstein.Classification.lambda=2.W_scale=1'
 project_label 	= 'Alzheimer'
 
 

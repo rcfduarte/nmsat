@@ -1,7 +1,7 @@
 import numpy as np
 import sys
 
-sys.path.append('../Parameters_files/')
+sys.path.append('../parameter_sets/')
 from Defaults.Paths import paths
 
 run = 'local'
