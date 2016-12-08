@@ -65,68 +65,6 @@ def load_preset_grammar(pars_filename, grammar_name):
 	return d[grammar_name].copy()
 
 
-def shotnoise_fromspikes(spike_train, q, tau, dt=0.1, t_start=None, t_stop=None, array=False, eps=1.0e-8):
-	"""
-	Convolves the provided spike train with shot decaying exponentials yielding so called shot noise
-	if the spike train is Poisson-like. Returns an AnalogSignal if array=False, otherwise (shotnoise,t)
-	as numpy arrays.
-
-	:param spike_train: a SpikeTrain object
-	:param q: the shot jump for each spike
-	:param tau: the shot decay time constant in milliseconds
-	:param dt: the resolution of the resulting shotnoise in milliseconds
-	:param t_start: start time of the resulting AnalogSignal. If unspecified, t_start of spike_train is used
-	:param t_stop: stop time of the resulting AnalogSignal. If unspecified, t_stop of spike_train is used
-	:param array: if True, returns (shotnoise,t) as numpy arrays, otherwise an AnalogSignal.
-	:param eps: - a numerical parameter indicating at what value of the shot kernel the tail is cut.  The default is
-	usually fine.
-	Examples:
-	---------
-		>> stg = stgen.StGen()
-		>> st = stg.poisson_generator(10.0,0.0,1000.0)
-		>> g_e = shotnoise_fromspikes(st,2.0,10.0,dt=0.1)
-	"""
-	st = spike_train
-
-	if t_start is not None and t_stop is not None:
-		assert t_stop > t_start, "t_stop must be larger than t_start"
-
-	# time of vanishing significance
-	vs_t = -tau * np.log(eps / q)
-
-	if t_stop is None:
-		t_stop = st.t_stop
-
-	# need to be clever with start time because we want to take spikes into account which occurred in spikes_times
-	#  before t_start
-	if t_start is None:
-		t_start = st.t_start
-		window_start = st.t_start
-	else:
-		window_start = t_start
-		if t_start > st.t_start:
-			t_start = st.t_start
-
-	t = np.arange(t_start, t_stop, dt)
-	kern = q * np.exp(-np.arange(0.0, vs_t, dt) / tau)
-	idx = np.clip(np.searchsorted(t, st.spike_times, 'right') - 1,0,len(t) - 1)
-	a = np.zeros(np.shape(t),float)
-
-	a[idx] = 1.0
-	y = np.convolve(a, kern)[0:len(t)]
-
-	if array:
-		signal_t = np.arange(window_start, t_stop, dt)
-		signal_y = y[-len(t):]
-		return (signal_y, signal_t)
-	else:
-		result = AnalogSignal(y, dt, t_start=0.0, t_stop=t_stop - t_start)
-		result.time_offset(t_start)
-		if window_start > t_start:
-			result = result.time_slice(window_start, t_stop)
-		return result
-
-
 def stimulus_sequence_to_binary(seq):
 	"""
 	Convert a stimulus sequence to a binary time series
