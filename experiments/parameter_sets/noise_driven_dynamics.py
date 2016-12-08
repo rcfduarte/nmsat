@@ -2,7 +2,7 @@ import numpy as np
 import sys
 
 sys.path.append('../parameter_sets/')
-from Defaults.Paths import paths
+from defaults.paths import paths
 
 run = 'local'
 data_label = 'test0'

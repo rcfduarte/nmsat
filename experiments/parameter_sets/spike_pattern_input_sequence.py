@@ -1,6 +1,6 @@
 import sys
 from preset import *
-from preset.Paths import paths
+from preset.paths import paths
 import numpy as np
 
 """

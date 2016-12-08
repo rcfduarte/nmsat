@@ -11,7 +11,7 @@ def set_kernel_defaults(default_set=0, run_type='local', data_label='', project_
 	:param default_set:
 	:return:
 	"""
-	from experiments.parameter_sets.preset.Paths import paths
+	from experiments.parameter_sets.preset.paths import paths
 	if run_type == 'local':
 		run = True
 	else:

@@ -147,10 +147,6 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 						spks = input_set.spike_patterns[stimulus_id[0]].time_offset(t_int, True)
 					if jitter is not None:
 						spks.jitter(jitter)
-						# TODO @barni remove, only debug Question: here or where to put the cutoff?
-						for k, train in spks.spiketrains.iteritems():
-							train.spike_times[:] = [spike for spike in train.spike_times if
-													train.t_start <= spike <= train.t_stop]
 
 					enc_layer.update_state(spks)
 

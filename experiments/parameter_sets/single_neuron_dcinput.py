@@ -2,7 +2,7 @@ import numpy as np
 import sys
 
 sys.path.append('../../')
-from Defaults.Paths import paths
+from defaults.paths import paths
 
 run = 'local'
 md = paths[run]['modules_path']

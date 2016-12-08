@@ -5,13 +5,13 @@ NETWORK_HOME = os.path.dirname(os.path.realpath(__file__)) + "/../../../"
 
 paths = {
 	'local': {
-		'data_path': NETWORK_HOME + '/Data/',
-		'modules_path': NETWORK_HOME + '/Experiments/',
-		'jdf_template': NETWORK_HOME + '/Defaults/ClusterTemplates/bwUniCluster_jdf.sh',
-		'matplotlib_rc': NETWORK_HOME + '/Defaults/matplotlib_rc',
-		'remote_directory': NETWORK_HOME + '/Experiments/export/',
-		'report_templates_path': NETWORK_HOME + '/Defaults/ReportTemplates/',
-		'report_path': NETWORK_HOME + '/Data/'},
+		'data_path': NETWORK_HOME + '/data/',
+		'modules_path': NETWORK_HOME + '/experiments/',
+		'jdf_template': NETWORK_HOME + '/defaults/ClusterTemplates/bwUniCluster_jdf.sh',
+		'matplotlib_rc': NETWORK_HOME + '/defaults/matplotlib_rc',
+		'remote_directory': NETWORK_HOME + '/experiments/export/',
+		'report_templates_path': NETWORK_HOME + '/defaults/ReportTemplates/',
+		'report_path': NETWORK_HOME + '/data/'},
 
 	'bwUniCluster': {
 		'data_path': '/work/fr/fr_fr/fr_rd1000/',
