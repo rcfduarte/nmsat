@@ -484,7 +484,7 @@ class Population(object):
 
 	def compile_state_matrix(self, sampling_times=None):
 		"""
-		After garthering all state vectors, compile a standard state matrix
+		After gathering all state vectors, compile a standard state matrix
 		:return:
 		"""
 		assert self.state_matrix, "State matrix elements need to be stored before calling this function"

@@ -26,6 +26,9 @@ noise_driven_dynamics
 
 """
 import numpy as np
+
+from __builtin__ import complex
+
 np.seterr(all='ignore')
 from modules.parameters import *
 from modules.signals import *
@@ -2185,31 +2188,31 @@ def test_all_readouts(parameters, net, stim, input_signal, encoding_layer=None, 
 
 	sampling_rate = parameters.decoding_pars.global_sampling_times
 	if isinstance(input_signal, np.ndarray):
-		target = input_signal
-		set_labels = stim.test_set_labels
+		# if a custom training target was provided
+		target 		= input_signal
+		set_labels 	= stim.test_set_labels
 	elif sampling_rate is None or isinstance(sampling_rate, list) or isinstance(sampling_rate, np.ndarray):
-		target = stim.test_set.todense()
-		set_labels = stim.test_set_labels
+		target 		= stim.test_set.todense()
+		set_labels 	= stim.test_set_labels
 	else:
-		unfold_n = int(round(sampling_rate ** (-1)))
-		target = input_signal.generate_square_signal()[:, ::int(unfold_n)]
-		onset_idx = [[] for _ in range(target.shape[0])]
-		offset_idx = [[] for _ in range(target.shape[0])]
-		labels = []
-		set_labels = {}
+		unfold_n 	= int(round(sampling_rate ** (-1)))
+		target 		= input_signal.generate_square_signal()[:, ::int(unfold_n)]
+		onset_idx 	= [[] for _ in range(target.shape[0])]
+		offset_idx 	= [[] for _ in range(target.shape[0])]
+		labels 		= []
+		set_labels 	= {}
 		for k in range(target.shape[0]):
 			stim_idx = np.where(stim.test_set.todense()[k, :])[1]
 			if stim_idx.shape[1]:
 				labels.append(np.unique(np.array(stim.test_set_labels)[stim_idx])[0])
-				iddxs = np.where(target[k, :])[0]
-				idx_diff = np.diff(iddxs)
-				onset_idx[k] = [x for idd, x in enumerate(iddxs) if idx_diff[idd - 1] > 1 or x == 0]
+				iddxs 		  = np.where(target[k, :])[0]
+				idx_diff 	  = np.diff(iddxs)
+				onset_idx[k]  = [x for idd, x in enumerate(iddxs) if idx_diff[idd - 1] > 1 or x == 0]
 				offset_idx[k] = [x for idd, x in enumerate(iddxs) if
-				                 idd < len(iddxs) - 1 and (idx_diff[idd] > 1 or x == len(
-					                 target[k, :]))]
+				                 idd < len(iddxs) - 1 and (idx_diff[idd] > 1 or x == len(target[k, :]))]
 				offset_idx.append(iddxs[-1])
-		set_labels.update({'dimensions': target.shape[0], 'labels': labels, 'onset_idx': onset_idx, 'offset_idx':
-			offset_idx})
+		set_labels.update({'dimensions': target.shape[0], 'labels': labels, 'onset_idx': onset_idx,
+						   'offset_idx': offset_idx})
 
 	if isinstance(save, dict):
 		if save['label']:
@@ -2974,8 +2977,11 @@ class Readout(object):
 		if display:
 			print "\nTesting Readout {0}".format(str(self.name))
 		self.output = None
+		# Question: how comes we are not sure whether the shapes of weight and states matrices match?
 		if self.rule == 'pinv':
-			if np.shape(self.weights)[1] == np.shape(state_test)[0]:
+			# TODO remove False here, just debugging
+			if np.shape(self.weights)[1] == np.shape(state_test)[0] and \
+				np.shape(self.weights)[0] != np.shape(state_test)[0]:
 				self.output = np.dot(self.weights, state_test)
 			elif np.shape(self.weights)[0] == np.shape(state_test)[0]:
 				self.output = np.dot(np.transpose(self.weights), state_test)
@@ -2984,10 +2990,96 @@ class Readout(object):
 
 		return self.output
 
-	def measure_performance(self, target, output=None, labeled=False):
+	@staticmethod
+	def performance_identity(output, target, is_binary_output, is_binary_target):
+		k = target.shape[0]
+		T = target.shape[1]
+
+		if len(output.shape) > 1:
+			output_labels = np.argmax(output, np.where(np.array(output.shape) == k)[0][0])
+
+			if not is_binary_output:
+				binary_output = np.zeros((k, T))
+				for kk in range(T):
+					binary_output[np.argmax(output[:, kk]), kk] = 1.
+			else:
+				binary_output = output
+		else:
+			output_labels = output
+			binary_output = np.zeros((k, T))
+			for kk in range(T):
+				binary_output[output[kk], kk] = 1.
+
+		if len(target.shape) > 1:
+			target_labels = np.argmax(target, 0)
+			if not is_binary_target:
+				binary_target = np.zeros((k, T))
+				for kk in range(T):
+					binary_target[np.argmax(target[:, kk]), kk] = 1.
+			else:
+				binary_target = target
+		else:
+			target_labels = target
+			binary_target = np.zeros((k, T))
+			for kk in range(T):
+				binary_target[target[kk], kk] = 1.
+		return binary_output, binary_target, output_labels, target_labels
+
+	@staticmethod
+	def performance_custom(output, target, is_binary_output, is_binary_target):
 		"""
-		Compute readout performance according to different metrics
+		Function to process custom target
+		:param output:
+		:param target:
+		:param is_binary_output:
+		:param is_binary_target:
+		:return:
+		"""
+		k = target.shape[0]
+		T = target.shape[1]
+
+		if len(output.shape) > 1:
+			# we don't actually care about labels here, but whatever
+			output_labels = np.argmax(output, np.where(np.array(output.shape) == k)[0][0])
+
+			if not is_binary_output:
+				binary_output = np.zeros((k, T))
+				for kk in range(T):
+					# NOTE: this is the key point, we're doing replacing 0s with 1s IFF w.x >= 0
+					# binary_output[np.where(output[:, kk]), kk] = 1.
+					binary_output[np.where(output[:, kk] >= 0), kk] = 1.
+			else:
+				binary_output = output
+		else:
+			output_labels = output
+			binary_output = np.zeros((k, T))
+			for kk in range(T):
+				# NOTE: this is the key point, we're doing replacing 0s with 1s IFF w.x >= 0
+				# binary_output[output[kk], kk] = 1.
+				binary_output[np.where(output[kk] >= 0), kk] = 1.
+
+		if len(target.shape) > 1:
+			target_labels = np.argmax(target, 0)
+			if not is_binary_target:
+				binary_target = np.zeros((k, T))
+				for kk in range(T):
+					binary_target[np.argmax(target[:, kk]), kk] = 1.
+			else:
+				binary_target = target
+		else:
+			target_labels = target
+			binary_target = np.zeros((k, T))
+			for kk in range(T):
+				binary_target[target[kk], kk] = 1.
+		return binary_output, binary_target, output_labels, target_labels
+
+	def measure_performance(self, target, output=None, labeled=False, comparison_function="custom"):
+		"""
+		Compute readout performance according to different metrics.
 		:param target: target output [numpy.array (binary or real-valued) or list (labels)]
+		:param output:
+		:param labeled:
+		:return:
 		"""
 		assert(check_dependency('sklearn')), "Sci-kits learn not available"
 		import sklearn.metrics as met
@@ -2996,10 +3088,12 @@ class Readout(object):
 		if output is None:
 			output = self.output
 
+		# is_binary_target = all(np.unique([np.unique(target) == [0., 1.]]))
+		# is_binary_output = all(np.unique([np.unique(output) == [0., 1.]]))
 		is_binary_target = np.mean(np.unique(np.array(list(iterate_obj_list(target.tolist())))) == [0., 1.]).astype(
-			bool)
+			                       bool)
 		is_binary_output = np.mean(np.unique(np.array(list(iterate_obj_list(output.tolist())))) == [0., 1.]).astype(
-			bool)
+			                       bool)
 
 		if output.shape != target.shape and len(output.shape) > 1:
 			output = output.T
@@ -3013,37 +3107,15 @@ class Readout(object):
 		if labeled:
 			k = target.shape[0]
 			T = target.shape[1]
-			target_labels = []
-			output_labels = []
 
-			if len(output.shape) > 1:
-				output_labels = np.argmax(output, np.where(np.array(output.shape) == k)[0][0])
+			if comparison_function is None:
+				# this is the original function here in measure_performance
+				binary_output, binary_target, output_labels, target_labels = \
+					self.performance_identity(output, target, is_binary_output, is_binary_target)
+			elif comparison_function == "custom":
+				binary_output, binary_target, output_labels, target_labels = \
+					self.performance_custom(output, target, is_binary_output, is_binary_target)
 
-				if not is_binary_output:
-					binary_output = np.zeros((k, T))
-					for kk in range(T):
-						binary_output[np.argmax(output[:, kk]), kk] = 1.
-				else:
-					binary_output = output
-			else:
-				output_labels = output
-				binary_output = np.zeros((k, T))
-				for kk in range(T):
-					binary_output[output[kk], kk] = 1.
-
-			if len(target.shape) > 1:
-				target_labels = np.argmax(target, 0)
-				if not is_binary_target:
-					binary_target = np.zeros((k, T))
-					for kk in range(T):
-						binary_target[np.argmax(target[:, kk]), kk] = 1.
-				else:
-					binary_target = target
-			else:
-				target_labels = target
-				binary_target = np.zeros((k, T))
-				for kk in range(T):
-					binary_target[target[kk], kk] = 1.
 
 			# point-biserial CC
 			if is_binary_target and not is_binary_output and len(output.shape) > 1:
@@ -3072,17 +3144,18 @@ class Readout(object):
 				output_labels = np.array(output_labels)
 
 			performance['label']['performance'] = met.accuracy_score(target_labels, output_labels)
-			performance['label']['hamm_loss'] = met.hamming_loss(target_labels, output_labels)
-			performance['label']['precision'] = met.average_precision_score(binary_output, binary_target,
+			performance['label']['hamm_loss'] 	= met.hamming_loss(target_labels, output_labels)
+			performance['label']['precision'] 	= met.average_precision_score(binary_output, binary_target,
 			                                                                average='weighted')
-			performance['label']['f1_score'] = met.f1_score(binary_target, binary_output, average='weighted')
-			performance['label']['recall'] = met.recall_score(target_labels, output_labels, average='weighted')
-			performance['label']['confusion'] = met.confusion_matrix(target_labels, output_labels)
-			performance['label']['jaccard'] = met.jaccard_similarity_score(target_labels, output_labels)
+			performance['label']['f1_score'] 	= met.f1_score(binary_target, binary_output, average='weighted')
+			performance['label']['recall'] 		= met.recall_score(target_labels, output_labels, average='weighted')
+			performance['label']['confusion'] 	= met.confusion_matrix(target_labels, output_labels)
+			performance['label']['jaccard'] 	= met.jaccard_similarity_score(target_labels, output_labels)
 			performance['label']['class_support'] = met.precision_recall_fscore_support(target_labels, output_labels)
 
-			print "Readout {0}: \n  - Max MSE = {1} \n  - Accuracy = {2}".format(str(self.name), str(performance[
-				                                                                                         'max']['MSE']), str(performance['label']['performance']))
+			print "Readout {0}: \n  - Max MSE = {1} \n  - Accuracy = {2}".format(str(self.name),
+																				 str(performance['max']['MSE']),
+																				 str(performance['label']['performance']))
 			print met.classification_report(target_labels, output_labels)
 
 		self.performance = performance

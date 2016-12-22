@@ -22,7 +22,7 @@ online 	= True
 # =================================================================================
 # params_file = '../ParameterSets/_originals/X_spike_pattern_input_sequence.py'
 params_file = '../parameter_sets/legenstein_classification.py'
-set_global_rcParams('../../Defaults/matplotlib_rc')
+set_global_rcParams('../../defaults/matplotlib_rc')
 
 # parameter_set = ParameterSet(set_params_dict(params_file), label='global')
 parameter_set = ParameterSpace(params_file)[0]
@@ -68,8 +68,9 @@ for n in list(iterate_obj_list(net.populations)):
 # Build and connect input
 # =================================================================================
 # Create StimulusSet
-stim_set_time = time.time()
-stim = StimulusSet(parameter_set)
+stim_set_time 	= time.time()
+stim 		  	= StimulusSet(parameter_set)
+
 stim.create_set(parameter_set.stim_pars.full_set_length)
 stim.discard_from_set(parameter_set.stim_pars.transient_set_length)
 stim.divide_set(parameter_set.stim_pars.transient_set_length, parameter_set.stim_pars.train_set_length,
@@ -77,12 +78,13 @@ stim.divide_set(parameter_set.stim_pars.transient_set_length, parameter_set.stim
 print "- Elapsed Time: {0}".format(str(time.time()-stim_set_time))
 
 # Create InputSignalSet
-input_set_time = time.time()
-inputs = InputSignalSet(parameter_set, stim, online=online)
+input_set_time 	= time.time()
+inputs 			= InputSignalSet(parameter_set, stim, online=online)
+
 if stim.transient_set_labels:
 	inputs.generate_transient_set(stim)
 	parameter_set.kernel_pars.transient_t = inputs.transient_stimulation_time
-# inputs.generate_unique_set(stim)
+
 inputs.generate_train_set(stim)
 inputs.generate_test_set(stim)
 print "- Elapsed Time: {0}".format(str(time.time() - input_set_time))

@@ -30,8 +30,7 @@ Neuron parameters:
    tau_psc (tsodyks) == tau_syn_ex / tau_syn_in (iaf_psc_exp) ???
 
 ======================================================================
-[[GAVE IT A SHOT]]
-[[HALFWAY]]
+[[SOLVED]]
 	Ref. says: U (use), D (time constant for depression), F (time constant for facilitation):
 	all randomly chosen from Gaussian distributions
 
@@ -43,10 +42,10 @@ Neuron parameters:
             tau_rec   double - time constant for depression in ms       = D ?
 	===> values are actually in seconds, in NEST ms though.. adjust!!!!
 	Values from paper: U, D, F
-		.5, 	1.1, 	.05 (EE)
-		.05, 	.125, 	1.2 (EI)
-		.25, 	.7, 	.02 (IE)
-		.32, 	.144, 	.06 (II).
+		.5, 	1.1  = 1100, 	.05 = 50 	(EE)
+		.05, 	.125 = 125, 	1.2 = 1200 	(EI)
+		.25, 	.7   = 700, 	.02 = 20 	(IE)
+		.32, 	.144 = 144, 	.06 = 60	(II).
 
 	===> trunc_normal instead of normal distribution for tau_fac, tau_rec, etc.
 
@@ -90,7 +89,7 @@ import random
 __author__ = 'duarte'
 
 run 			= 'local'
-data_label 		= 'legenstein_classification.lambda=2.W_scale=1'
+data_label 		= 'classification_lambda=2.W_scale=1/size_2500'
 project_label 	= 'Alzheimer'
 
 
@@ -155,8 +154,8 @@ def build_parameters():
 	kernel_lambda = 2.  # definition corresponds exactly to the one in the paper
 	W_scale 	 = 1.
 	connect_C_EE = 0.3 # connectivity parameter C controlling exp. distribution (Maass 2002)
-	connect_C_EI = 0.2 # connectivity parameter C controlling exp. distribution (Maass 2002)
-	connect_C_IE = 0.4 # connectivity parameter C controlling exp. distribution (Maass 2002)
+	connect_C_EI = 0.4 # connectivity parameter C controlling exp. distribution (Maass 2002)
+	connect_C_IE = 0.2 # connectivity parameter C controlling exp. distribution (Maass 2002)
 	connect_C_II = 0.1 # connectivity parameter C controlling exp. distribution (Maass 2002)
 	kernel_sigma = kernel_lambda / np.sqrt(2)  #required because we use a Gaussian for the exponential distance
 
@@ -184,32 +183,32 @@ def build_parameters():
 							{
 								'model': 	'EE_synapse',
 								'tau_psc': 	3., # excitatory synapses
-								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 0.05, 'sigma': 0.025},
-								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 1.1, 'sigma': 0.55},
+								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 50., 'sigma': 25.},
+								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 1100., 'sigma': 550.},
 								'U':		{'distribution': 'normal_clipped', 'mu': 0.5, 'sigma': 0.25}},
 
 							# E<-I
 							{
 								'model': 	'EI_synapse',
 								'tau_psc': 	6., # inhibitory synapses
-								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 0.02, 'sigma': 0.01},
-								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 0.7, 'sigma': 0.35},
+								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 20. , 'sigma': 10.},
+								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 700., 'sigma': 350.},
 								'U': 		{'distribution': 'normal_clipped', 'mu': 0.25, 'sigma': 0.125}},
 
 							# IE
 							{
 								'model': 	'IE_synapse',
 								'tau_psc': 	3.,  # excitatory synapses
-								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 1.2, 'sigma': 0.6},
-								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 0.125, 'sigma': 0.0625},
-								'U':  		{'distribution': 'normal_clipped', 'mu': 0.05, 'sigma': 0.}},
+								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 1200, 'sigma': 600.},
+								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 125., 'sigma': 62.5},
+								'U':  		{'distribution': 'normal_clipped', 'mu': 0.05, 'sigma': 0.025}},
 
 							# II
 							{
 								'model': 	'II_synapse',
 								'tau_psc': 	6., # inhibitory synapses
-								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 0.06, 'sigma': 0.03},
-								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 0.144, 'sigma': 0.072},
+								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 60., 'sigma': 30.},
+								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 144., 'sigma': 72.},
 								'U': 		{'distribution': 'normal_clipped', 'mu': 0.32, 'sigma': 0.16} } ]
 	)
 
@@ -243,7 +242,7 @@ def build_parameters():
 	# ######################################################################################################################
 	# Input Parameters
 	# ######################################################################################################################
-	n_trials 	= 500 # 2500
+	n_trials 	= 2500 # 2500
 	n_discard 	= 10
 
 	n_stim = 80
@@ -254,8 +253,8 @@ def build_parameters():
 		grammar 	= None,
 		full_set_length 	 = int(n_trials + n_discard),
 		transient_set_length = int(n_discard),
-		train_set_length 	 = 400, #2000,
-		test_set_length 	 = 100 #500
+		train_set_length 	 = 2000, #2000,
+		test_set_length 	 = 500
 	)
 
 	inp_resolution 		= 1.
