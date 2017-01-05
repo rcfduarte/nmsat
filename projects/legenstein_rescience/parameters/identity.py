@@ -79,9 +79,10 @@ the reference says:
 """
 
 
-from preset import *
+from preset.defaults import *
 import numpy as np
 import random
+import sys
 
 """
 
@@ -89,7 +90,7 @@ import random
 __author__ = 'duarte'
 
 run 			= 'local'
-data_label 		= 'identity_lambda=2.W_scale=1/size=500/stim=4'
+data_label 		= 'identity_lambda2_W1'
 project_label 	= 'Alzheimer'
 
 
