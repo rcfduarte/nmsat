@@ -18,11 +18,11 @@ debug = False
 # Extract parameters from file and build global ParameterSet
 # =================================================================================
 #params_file = '../ParameterSets/noise_driven_dynamics.py'
-params_file = '../ParameterSets/DC_noiseinput'
+params_file = '../parameter_sets/DC_noiseinput'
 # params_file = '../ParameterSets/legenstein_maass_spike_template_classification.py'
 
 # set plotting defaults
-set_global_rcParams('../../Defaults/matplotlib_rc')
+set_global_rcParams('../../defaults/matplotlib_rc')
 
 # create parameter set
 # parameter_set = ParameterSet(set_params_dict(params_file), label='global')
