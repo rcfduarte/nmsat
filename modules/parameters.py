@@ -11,9 +11,9 @@ Module for dealing with model parameters
 
 Classes
 -------
-Parameter - simple, single parameter class
-ParameterRange - specify list or array of possible values for a given parameter
-ParameterSet - represent/manage hierarchical parameter sets
+Parameter 		 - simple, single parameter class
+ParameterRange 	 - specify list or array of possible values for a given parameter
+ParameterSet 	 - represent/manage hierarchical parameter sets
 ParameterDerived - specify a parameter derived from the value of another
 
 Functions
@@ -36,7 +36,6 @@ copy_dict - copies a dictionary and updates it with extra key-value pairs
 
 import numpy as np
 np.set_printoptions(threshold=np.nan)
-#from os import path
 import os
 import sys
 import types
@@ -56,10 +55,11 @@ import pprint
 def set_params_dict(source_file):
 	"""
 	Import multiple parameter dictionaries from a python script and gathers them all in
-	a single dictionary, which can then be used to create a ParameterSet object
+	a single dictionary, which can then be used to create a ParameterSet object.
+
 	:param source_file: [string] path+filename of source script or, if source script is in current directory,
-	it can be given as just the filename without extension
-	:return: Full dictionary
+						it can be given as just the filename without extension
+	:return: full dictionary
 	"""
 	d = dict()
 
@@ -79,9 +79,10 @@ def set_params_dict(source_file):
 def extract_nestvalid_dict(d, param_type='neuron'):
 	"""
 	Verify whether the parameters dictionary are in the correct format, with adequate keys, in agreement with the nest
-	parameters dictionaries so that they can later be passed as direct input to nest
+	parameters dictionaries so that they can later be passed as direct input to nest.
+
 	:param d: parameter dictionary
-	:param param_type: type of parameters - kernel, neuron, population, network, connections, topology,
+	:param param_type: type of parameters - kernel, neuron, population, network, connections, topology
 	:return: valid dictionary
 	"""
 	# QUESTION why import nest here? is it not already imported? and if not, it should be!
@@ -113,8 +114,8 @@ def extract_nestvalid_dict(d, param_type='neuron'):
 def isiterable(x):
 	"""
 	Verify if input is iterable (list, dictionary, array...)
-	:param x: input
-	:return: boolean
+	:param x: 	input
+	:return: 	boolean
 	"""
 	return hasattr(x, '__iter__') and not isinstance(x, basestring)
 
@@ -160,7 +161,11 @@ def import_mod_file(full_path_to_module):
 
 def contains_instance(search_instances, cls):
 	"""
-	Check whether any of the search instances is in cls
+	Check whether any of the search instances is in cls.
+
+	:param search_instances: the instance to search for
+	:param cls:
+	:return: boolean
 	"""
 	return any(isinstance(o, cls) for o in search_instances)
 
@@ -168,9 +173,9 @@ def contains_instance(search_instances, cls):
 def nesteddict_flatten(d, separator='.'):
 	"""
 	Return a flattened version of a nested dict structure.
-
 	Composite keys are created by joining each key to the key of the parent dict using `separator`.
-	:param d:
+
+	:param d: dictionary to flatten
 	:param separator:
 	:return: flattened dictionary (no nesting)
 	"""
@@ -183,7 +188,8 @@ def nesteddict_flatten(d, separator='.'):
 
 def load_parameters(parameters_url, **modifications):
 	"""
-	Load a ParameterSet from a url to a text file with parameter dictionaries
+	Load a ParameterSet from a url to a text file with parameter dictionaries.
+
 	:param parameters_url: [str] full path to file
 	:param modifications: [path=value], where path is a . (dot) delimited path to
 	a parameter in the  parameter tree rooted in this ParameterSet instance
@@ -238,7 +244,8 @@ def compare_dict(dict1, dict2):
 
 def remove_all_labels(parameter_set):
 	"""
-	Removes all the 'label' entries from the parameter set
+	Removes all the 'label' entries from the parameter set.
+
 	:param parameter_set:
 	:return:
 	"""
@@ -255,9 +262,12 @@ def remove_all_labels(parameter_set):
 
 def delete_keys_from_dict(dict_del, the_keys):
 	"""
-    Delete the keys present in the lst_keys from the dictionary.
-    Loops recursively over nested dictionaries.
-    """
+    Delete the keys present in the lst_keys from the dictionary. Loops recursively over nested dictionaries.
+
+	:param dict_del:
+	:param the_keys:
+	:return: dictionary without the deleted elements
+	"""
 	# make sure the_keys is a set to get O(1) lookups
 	if type(the_keys) is not set:
 		the_keys = set(the_keys)
@@ -291,7 +301,7 @@ class Parameter(object):
 #########################################################################################
 class ParameterSet(dict):
 	"""
-	Class to manage hierarchical parameter sets
+	Class to manage hierarchical parameter sets.
 
 	Usage example:
 
@@ -679,8 +689,7 @@ class ParameterSet(dict):
 
 	def as_dict(self):
 		"""
-		Return a copy of the `ParameterSet` tree structure
-		as a nested dictionary
+		Return a copy of the `ParameterSet` tree structure as a nested dictionary.
 		"""
 
 		tmp = {}
@@ -762,7 +771,7 @@ class ParameterSpace:
 
 
 		def validate_parameter_sets(param_sets):
-			# TODO @Q: how / what should we handle and check here?
+			# TODO Question how / what should we handle and check here?
 			"""
 
 			:param param_sets:
