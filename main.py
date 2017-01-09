@@ -2,10 +2,11 @@
 
 import matplotlib
 matplotlib.use('Agg')
-import pickle
 import importlib
 from modules.parameters import *
 from optparse import OptionParser
+from os import path
+import sys
 
 
 def run_experiment(params_file_full_path, computation_function="noise_driven_dynamics", **parameters):
@@ -17,9 +18,14 @@ def run_experiment(params_file_full_path, computation_function="noise_driven_dyn
 	:return:
 	"""
 	try:
-		experiment = importlib.import_module("Computation." + computation_function)
+		# experiment = importlib.import_module("Computation." + computation_function)
+		# changed this to account for the project folder..
+		project_dir, _ = path.split(path.split(params_file_full_path)[0])
+		sys.path.append(project_dir)
+		experiment = importlib.import_module("computations." + computation_function)
 	except:
-		print("Could not find experiment `%s`. Is it in ./Computation/ directory?" % computation_function)
+		print("Could not find experiment `%s`. Is it in the project's ./computations/ directory?" %
+		      computation_function)
 		exit(-1)
 
 	if 'keep_all' in parameters.keys():
@@ -29,47 +35,12 @@ def run_experiment(params_file_full_path, computation_function="noise_driven_dyn
 		pars = ParameterSpace(params_file_full_path)
 
 	pars.save(pars[0].kernel_pars.data_path+pars[0].kernel_pars.data_prefix+'_ParameterSpace.py')
-	# if hasattr(pars[0], "report_pars"):
-	# 	pars.compile_parameters_table()
+
 	if pars[0].kernel_pars.system['local']:
 		results = pars.run(experiment.run, **parameters)
 		return results
 	else:
 		pars.run(experiment.run, **parameters)
-
-
-def run_emoo(params_file_full_path, computation_function="noise_driven_dynamics",
-			 results_subfields=['spiking_activity', 'Global'], operation=np.mean,
-			 objectives={'cv_isis': [0.8, 2.0], 'ccs': [-0.1, 0.1], 'mean_rate': 10.}, **parameters):
-	"""
-
-	:param params_file_full_path: full path to parameter file
-	:param computation_function: which experiment to run
-	:param results_subfields:
-	:param operation:
-	:param objectives:
-	:param parameters: other CLI input parameters
-	:return:
-	"""
-	try:
-		experiment = importlib.import_module("Computation." + computation_function)
-	except Exception as error:
-		print("Could not find experiment `%s`. Is it in ./Computation/ directory?" % computation_function)
-		exit(-1)
-
-	pars = ParameterSpace(params_file_full_path, emoo=True)
-	pars.save(pars[0].kernel_pars.data_path+pars[0].kernel_pars.data_prefix+'_ParameterSpace.py')
-	optimization_parameters = {'n_generations': 20,
-	                           'n_individuals': 10,
-	                           'pop_capacity': 20,
-	                           'eta_m_0': 20,
-	                           'eta_c_0': 20,
-	                           'p_m': 0.5}
-	emoo_obj, results = pars.run_emoo(experiment.run, objectives, optimization_parameters,
-	                                  results_subfields=results_subfields, operation=operation, **parameters)
-
-	with open(pars[0].kernel_pars.data_path + pars[0].kernel_pars.data_prefix + '_EMOO_Results.pck', 'w') as fp:
-		pickle.dump(results, fp)
 
 
 def create_parser():
@@ -82,9 +53,9 @@ def create_parser():
 
 def print_welcome_message():
 	print("""
-	  Welcome to Network Simulation Testbed!
+	  *** Network Simulation Testbed ***
 
-	  Version 0.1
+	Version 0.1
 
 	  This program is provided AS IS and comes with
 	  NO WARRANTY. See the file LICENSE for details.

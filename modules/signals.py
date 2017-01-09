@@ -57,6 +57,22 @@ def empty(seq):
 	else:
 		return not seq
 
+
+def iterate_obj_list(obj_list):
+	"""
+	Build an iterator to iterate through any nested list
+	:obj_list: list of objects to iterate
+	:return:
+	"""
+	# TODO - remove from net_architect (check for errors)
+	for idx, n in enumerate(obj_list):
+		if isinstance(n, list):
+			for idxx, nn in enumerate(obj_list[idx]):
+				yield obj_list[idx][idxx]
+		else:
+			yield obj_list[idx]
+
+
 def reject_outliers(data, m=2.):
 	"""
 	Remove outliers from data

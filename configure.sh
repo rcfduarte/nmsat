@@ -5,3 +5,4 @@
 
 #export directory of this script
 export NETWORK_SIMULATION_HOME="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+export PYTHONPATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )":$PYTHONPATH

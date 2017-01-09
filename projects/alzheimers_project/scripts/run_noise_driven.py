@@ -1,0 +1,105 @@
+__author__ = 'duarte'
+from modules.input_architect import *
+from modules.net_architect import *
+import numpy as np
+import nest
+
+# ######################################################################################################################
+# Experiment options
+# ======================================================================================================================
+plot = True
+display = True
+save = False
+debug = False
+
+# ######################################################################################################################
+# Extract parameters from file and build global ParameterSet
+# ======================================================================================================================
+params_file = '../parameters/noise_driven.py'
+
+parameter_set = ParameterSpace(params_file)[0]
+parameter_set = parameter_set.clean(termination='pars')
+
+if not isinstance(parameter_set, ParameterSet):
+	if isinstance(parameter_set, basestring) or isinstance(parameter_set, dict):
+		parameter_set = ParameterSet(parameter_set)
+	else:
+		raise TypeError("parameter_set must be ParameterSet, string with full path to parameter file or dictionary")
+
+# ######################################################################################################################
+# Setup extra variables and parameters
+# ======================================================================================================================
+if plot:
+	import modules.visualization as vis
+	vis.set_global_rcParams(parameter_set.kernel_pars['mpl_path'])
+paths = set_storage_locations(parameter_set, save)
+
+np.random.seed(parameter_set.kernel_pars['np_seed'])
+results = dict()
+
+# ######################################################################################################################
+# Set kernel and simulation parameters
+# ======================================================================================================================
+print '\nRuning ParameterSet {0}'.format(parameter_set.label)
+nest.ResetKernel()
+nest.set_verbosity('M_WARNING')
+nest.SetKernelStatus(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(), param_type='kernel'))
+
+# ######################################################################################################################
+# Build network
+# ======================================================================================================================
+net = Network(parameter_set.net_pars)
+net.merge_subpopulations([net.populations[0], net.populations[1]], name='EI')
+
+# ######################################################################################################################
+# Randomize initial variable values
+# ======================================================================================================================
+for n in list(iterate_obj_list(net.populations)):
+	n.randomize_initial_states('V_m', randomization_function=np.random.uniform, low=0.0, high=15.)
+
+# ######################################################################################################################
+# Build and connect input
+# ======================================================================================================================
+enc_layer = EncodingLayer(parameter_set.encoding_pars)
+enc_layer.connect(parameter_set.encoding_pars, net)
+
+# ######################################################################################################################
+# Set-up Analysis
+# ======================================================================================================================
+net.connect_devices()
+
+# ######################################################################################################################
+# Connect Network
+# ======================================================================================================================
+net.connect_populations(parameter_set.connection_pars, progress=True)
+
+# ######################################################################################################################
+# Simulate
+# ======================================================================================================================
+if parameter_set.kernel_pars.transient_t:
+	net.simulate(parameter_set.kernel_pars.transient_t)
+	net.flush_records()
+
+net.simulate(parameter_set.kernel_pars.sim_time)  # +.1 to acquire last step...
+# ######################################################################################################################
+# Extract and store data
+# ======================================================================================================================
+net.extract_population_activity()
+net.extract_network_activity()
+net.flush_records()
+
+# ######################################################################################################################
+# Analyse / plot data
+# ======================================================================================================================
+analysis_interval = [parameter_set.kernel_pars.transient_t,
+	                     parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t]
+results.update(population_state(net, parameter_set, nPairs=500, time_bin=1., start=analysis_interval[0],
+                           stop=analysis_interval[1], plot=plot, display=display, save=paths['figures']+paths['label']))
+
+# ######################################################################################################################
+# Save data
+# ======================================================================================================================
+if save:
+	with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
+		pickle.dump(results, f)
+	parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
