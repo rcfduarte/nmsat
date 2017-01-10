@@ -951,7 +951,7 @@ class ParameterSpace:
 				os.mkdir(export_folder + '{0}'.format(self.label))
 			main_experiment_folder = export_folder + '{0}/'.format(self.label)
 			remote_run_folder = export_folder + self.label + '/'
-			py_file_common_header = "import sys\nsys.path.append(%s)\nimport matplotlib\nmatplotlib.use(" \
+			py_file_common_header = "import sys\nsys.path.append('%s')\nimport matplotlib\nmatplotlib.use(" \
 			                        "'Agg')\nfrom modules.parameters import *\nfrom " \
 			                        "modules.analysis import *\n\n" % project_dir
 
@@ -973,7 +973,7 @@ class ParameterSpace:
 				with open(computation_file, 'w') as fp:
 					fp.write(py_file_common_header)
 					fp.write(computation_function.__module__ + '.' +computation_function.__name__ +
-					         "({0}, **{1})".format("./" + par_set.label + ".txt'", str(parameters)))
+					         "({0}, **{1})".format("'./" + par_set.label + ".txt'", str(parameters)))
 
 				system2['jdf_fields'].update({'{{ computation_script }}': remote_computation_file,
 				                             '{{ script_folder }}': remote_run_folder})
