@@ -951,6 +951,7 @@ class ParameterSpace:
 				os.mkdir(export_folder + '{0}'.format(self.label))
 			main_experiment_folder = export_folder + '{0}/'.format(self.label)
 			remote_run_folder = export_folder + self.label + '/'
+			project_dir = os.path.abspath(project_dir)
 			py_file_common_header = "import sys\nsys.path.append('%s')\nimport matplotlib\nmatplotlib.use(" \
 			                        "'Agg')\nfrom modules.parameters import *\nfrom " \
 			                        "modules.analysis import *\nfrom computations import *\n\n" % project_dir
