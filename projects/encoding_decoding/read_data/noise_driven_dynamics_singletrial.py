@@ -1,7 +1,10 @@
-from modules.parameters import *
+from modules.parameters import ParameterSpace
 from modules.visualization import *
+from modules.io import process_template
 from defaults.paths import paths
 import matplotlib.pyplot as pl
+from os import environ, system
+import sys
 
 """
 noise_driven_dynamics_singletrial
@@ -9,17 +12,21 @@ noise_driven_dynamics_singletrial
 - one trial per condition
 """
 
-# set matplotlib parameters
+# data parameters
+project = 'encoding_decoding'
+data_path = '/home/neuro/Desktop/MANUSCRIPTS/in_preparation/Encoding_Decoding/data/noise_driven_dynamics/DCNoiseInput/'
+data_label = 'ED_DCNoiseInput_ParSpace_trial0'
+
+# set defaults and paths
+set_project_paths(project)
 set_global_rcParams(paths['local']['matplotlib_rc'])
 
 # re-create ParameterSpace
-generic_data_path = '/media/neuro/Data/EncodingDecoding/NoiseDrivenDynamics/DCNoiseInput/'
-data_label = 'ED_DCNoiseInput_ParSpace_trial0'
-pars_file = generic_data_path + data_label + '_ParameterSpace.py'
+pars_file = data_path + data_label + '_ParameterSpace.py'
 pars = ParameterSpace(pars_file)
 
 # harvest data
-results = pars.harvest(generic_data_path+data_label+'/')
+results = pars.harvest(data_path+data_label+'/')
 
 # initialize data arrays
 full_arrays = {'activity': {'mean_rates': np.zeros_like(results[0]), 'ffs': np.zeros_like(results[0])},
@@ -45,7 +52,7 @@ analog_arrays = {'EI_CC': np.zeros_like(results[0]),
                  'std_I_in': np.zeros_like(results[0]),
                  'IE_ratio': np.zeros_like(results[0])}
 
-
+keys2 = ['E']
 for x_value in pars.parameter_axes['xticks']:
 	for y_value in pars.parameter_axes['yticks']:
 		label = data_label + '_' + pars.parameter_axes['xlabel'] + '={0}_'.format(str(x_value)) + \

@@ -929,7 +929,7 @@ class ParameterSpace:
 						result = True
 		return result
 
-	def run(self, computation_function, **parameters):
+	def run(self, computation_function, project_dir=None, **parameters):
 		"""
 		Run a computation on all the parameters
 		:param computation_function: function to execute
@@ -947,18 +947,13 @@ class ParameterSpace:
 		else:
 			print "\nPreparing job description files..."
 			export_folder = system['remote_directory']
-			import os
 			if not os.path.exists(export_folder + '{0}'.format(self.label)):
 				os.mkdir(export_folder + '{0}'.format(self.label))
 			main_experiment_folder = export_folder + '{0}/'.format(self.label)
 			remote_run_folder = export_folder + self.label + '/'
-			if system['system_label'] == 'bwUniCluster':
-				py_file_common_header = "import sys\nsys.path.append('../')\nfrom Modules.parameters import *\nfrom " \
-				                        "Modules.analysis import *\nfrom Experiments.Computations import *\n\n"
-			else:
-				py_file_common_header = "import sys\nsys.path.append('../')\nimport matplotlib\nmatplotlib.use(" \
-				                        "'Agg')\nfrom Modules.parameters import *\nfrom " \
-				                        "Modules.analysis import *\nfrom Experiments.Computations import *\n\n"
+			py_file_common_header = "import sys\nsys.path.append(%s)\nimport matplotlib\nmatplotlib.use(" \
+			                        "'Agg')\nfrom modules.parameters import *\nfrom " \
+			                        "modules.analysis import *\n\n" % project_dir
 
 			write_to_submit = []
 			submit_jobs_file = main_experiment_folder + 'submit_jobs.py'
@@ -977,14 +972,13 @@ class ParameterSpace:
 				parameters_file = main_experiment_folder + par_set.label+'.txt'
 				with open(computation_file, 'w') as fp:
 					fp.write(py_file_common_header)
-					fp.write(computation_function.__name__ + "({0}, **{1})".format("'./" + par_set.label+".txt'",
-					                                                               str(parameters)))
+					fp.write(computation_function.__module__ + '.' +computation_function.__name__ +
+					         "({0}, **{1})".format("./" + par_set.label + ".txt'", str(parameters)))
 
 				system2['jdf_fields'].update({'{{ computation_script }}': remote_computation_file,
 				                             '{{ script_folder }}': remote_run_folder})
 
 				process_template(template_file, system2['jdf_fields'].as_dict(), save_to=local_exec_file)
-				#write_to_submit.append("\t\tos.system('msub {0}')\n".format(exec_file_name))
 				write_to_submit.append("{0}\n".format(exec_file_name))
 
 			with open(job_list, 'w') as fp:
@@ -994,33 +988,21 @@ class ParameterSpace:
 				fp.write("import os\n")
 				fp.write("import sys\n\n")
 				fp.write("def submit_jobs(start_idx=0, stop_idx=None):\n")
-				#fp.write("")
 				fp.write("\twith open('{0}') as fp:\n\t\tfor idx, line in enumerate(fp):\n".format('./job_list.txt'))
 				fp.write("\t\t\tif stop_idx is not None:\n")
 				fp.write("\t\t\t\tif (idx>=start_idx) and (idx<=stop_idx):\n")
-				if system['system_label'] == 'bwUniCluster':
-					fp.write("\t\t\t\t\tos.system('msub {0}'.format(line))\n")
-					fp.write("\t\t\telse:\n")
-					fp.write("\t\t\t\tos.system('msub {0}'.format(line))")
-				else:
-					fp.write("\t\t\t\t\tos.system('sbatch {0}'.format(line))\n")
-					fp.write("\t\t\telse:\n")
-					fp.write("\t\t\t\tos.system('sbatch {0}'.format(line))")
-				#fp.writelines(write_to_submit)
+				fp.write("\t\t\t\t\tos.system('sbatch {0}'.format(line))\n")
+				fp.write("\t\t\telse:\n")
+				fp.write("\t\t\t\tos.system('sbatch {0}'.format(line))")
 				fp.write("\n\n")
 				fp.write("if __name__=='__main__':\n\tif len(sys.argv)>1:\n\t\tsubmit_jobs(int(sys.argv[1]), "
 				         "int(sys.argv[2]))")
 
 			with open(cancel_jobs_file, 'w') as fp:
-				if system['system_label'] == 'bwUniCluster':
-					fp.write("import os\nimport numpy as np\nimport sys\ndef cancel_range(init, end):\n\trang = np.arange("
-					         "init, end)\n\tfor n in rang:\n\t\tos.system('canceljob '+ str(n))\n\nif "
-					         "__name__=='__main__':\n\tcancel_range(int(sys.argv[1]), int(sys.argv[2]))")
-				else:
-					fp.write(
-						"import os\nimport numpy as np\nimport sys\ndef cancel_range(init, end):\n\trang = np.arange("
-						"init, end)\n\tfor n in rang:\n\t\tos.system('scancel '+ str(n))\n\nif "
-						"__name__=='__main__':\n\tcancel_range(int(sys.argv[1]), int(sys.argv[2]))")
+				fp.write(
+					"import os\nimport numpy as np\nimport sys\ndef cancel_range(init, end):\n\trang = np.arange("
+					"init, end)\n\tfor n in rang:\n\t\tos.system('scancel '+ str(n))\n\nif "
+					"__name__=='__main__':\n\tcancel_range(int(sys.argv[1]), int(sys.argv[2]))")
 
 	def harvest(self, data_path, result=None, operation=None):
 		"""

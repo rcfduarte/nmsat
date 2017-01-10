@@ -40,7 +40,7 @@ def run_experiment(params_file_full_path, computation_function="noise_driven_dyn
 		results = pars.run(experiment.run, **parameters)
 		return results
 	else:
-		pars.run(experiment.run, **parameters)
+		pars.run(experiment.run, project_dir, **parameters)
 
 
 def create_parser():
