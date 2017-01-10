@@ -1,5 +1,3 @@
-from dill.source import indent
-
 __author__ = 'duarte'
 """
 ====================================================================================
@@ -1458,18 +1456,6 @@ class ParameterSpace:
 					results_out[iid] = results_array.astype(float)
 		#print results_out
 		return results_out
-
-	# def compile_parameters_table(self):
-	# 	"""
-	# 	Use the first parameter set to generate the standard table...
-	# 	:return:
-	# 	"""
-	# 	template_file = self[0].report_pars.report_templates_path + 'StandardTable.tex'
-	# 	out_file = self[0].report_pars.report_path + self[0].report_pars.report_filename
-	# 	fields = self[0].report_pars.table_fields.as_dict()
-	# 	tmp = process_template(template_file, fields, save_to=out_file)
-	#
-	# 	return tmp, out_file
 
 	@staticmethod
 	def extract_result_from_array(results_array, field, operation=None):
