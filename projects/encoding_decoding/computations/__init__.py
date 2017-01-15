@@ -1,4 +1,5 @@
 __author__ = 'duarte'
+__all__ = ['single_neuron_dcinput']
 import numpy as np
 from scipy.sparse import coo_matrix
 import itertools

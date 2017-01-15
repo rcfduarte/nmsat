@@ -5,6 +5,7 @@ import numpy as np
 from scipy import stats
 import nest
 
+
 def run(parameter_set, plot=False, display=False, save=True):
 	"""
 	Compute single neuron fI curves

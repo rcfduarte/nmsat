@@ -1,9 +1,9 @@
 # TODO check for input / simulation resolution match = error
 
 __author__ = 'duarte'
-import sys
-sys.path.append('../../')
-sys.path.append('../parameter_sets/')
+# import sys
+# sys.path.append('../../')
+# sys.path.append('../parameter_sets/')
 from modules.input_architect import *
 from modules.visualization import *
 from modules.io import set_storage_locations
@@ -20,11 +20,8 @@ online = True
 ###################################################################################
 # Extract parameters from file and build global ParameterSet
 # =================================================================================
-# params_file = '../ParameterSets/_originals/X_spike_pattern_input_sequence.py'
-params_file = '../ParameterSets/legenstein_maass_spike_template_classification.py'
-set_global_rcParams('../../Defaults/matplotlib_rc')
+params_file = '../parameters/kernel_quality.py'
 
-# parameter_set = ParameterSet(set_params_dict(params_file), label='global')
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
 

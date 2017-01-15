@@ -26,19 +26,16 @@ noise_driven_dynamics
 
 """
 import numpy as np
-
-from __builtin__ import complex
-
-np.seterr(all='ignore')
 from modules.parameters import *
 from modules.signals import *
 from modules.net_architect import *
 from modules import check_dependency
+from modules.visualization import *
 import itertools
 import nest
 import time
 import scipy.optimize as opt
-
+np.seterr(all='ignore')
 
 ############################################################################################
 def ccf(x, y, axis=None):
@@ -522,7 +519,8 @@ def check_signal_dimensions(input_signal, target_signal):
 	:return:
 	"""
 	if input_signal.shape != target_signal.shape:
-		raise RuntimeError("Input shape (%s) and target_signal shape (%s) should be the same."% (input_signal.shape, target_signal.shape))
+		raise RuntimeError("Input shape (%s) and target_signal shape (%s) should be the same." % (input_signal.shape,
+		                                                                                          target_signal.shape))
 
 
 def nrmse(input_signal, target_signal):
@@ -727,64 +725,47 @@ def compute_spike_stats(spike_list, time_bin=1., summary_only=False, display=Fal
 	return results
 
 
-def time_resolved_fano_factor(spike_list, time_points, **params):
-	"""
-	Regress the spike-count variance versus the mean and report the slope (FF).
-	Analysis is done at multiple time points.
-	The distribution of mean counts is matched (via downselection), so that all time points
-	have the same distribution of mean counts
-	:param spike_list: SpikeList object - binary spike count vectors will be extracted. The data analyzed takes
-	the form of a binary matrix with 1 row per trial / neuron and 1 column per ms.
-	:param time_points: time points to report
-	:param params: [dict] - if any of the fields is not provided, it will be replaced by the default value
-		- 'box_width' - width of sliding window
-		- 'match_reps' - number of random choices regarding which points to throw away when matching distributions
-		- 'bin_spacing' - bin width when computing distributions of mean counts
-		- 'align_time' - time of event that data are aligned to (output times are expressed relative to this)
-		- 'weighted_regression' - self-explanatory
-	:return results: [dict] -
-		- 'fano_factor' - FF for each time (after down-sampling to match distribution across times)
-		- 'fano_95CI' - 95% confidence intervals on the FF
-		- 'scatter_data' - data for variance VS mean scatter plot
-		- 'fano_factors' - FF for all data points (no down-sampling or matching)
-		- 'fano_all_95CI' - 95% confidence intervals for the above
-		- ''
-	Based on Churchland et al. (2010) Stimulus onset quenches neural variability: a widespread cortical phenomenon.
-	"""
-	#TODO - incomplete (attempt to adapt from Matlab code)
-	default_params = {'box_width': 50, 'match_reps': 10, 'bin_spacing': 0.25, 'align_time': 0, 'weighted_regression':
-		True}
-	parameter_fields = ['box_width', 'match_reps', 'bin_spacing', 'align_time', 'weighted_regression']
-	for k, v in default_params.items():
-		if params.has_key(k):
-			default_params[k] = params[k]
-
-	# Acquire binary count data
-	counts = spike_list.spike_counts(dt=1., normalized=False, binary=True)
-	weighting_epsilon = 1. * default_params['box_width'] / 1000.
-
-	# main
-	max_rate = 0   # keep track of max rate across all times / conditions
-	# trial_count =
-	t_start = time_points - np.floor(default_params['box_width']/2.) + 1
-	t_end = time_points - np.ceil(default_params['box_width']/2.) + 1
-
-
-def to_pyspike(spike_list):
-	"""
-	Convert the data in the spike_list to the format used by PySpike
-	:param spike_list: SpikeList object
-	:return: PySpike SpikeTrain object
-	"""
-	assert (check_dependency('pyspike')), "PySpike not found.."
-	import pyspike as spk
-	bounds = spike_list.time_parameters()
-	spike_trains = []
-	for n_train in spike_list.id_list:
-		sk_train = spike_list.spiketrains[n_train]
-		pyspk_sktrain = spk.SpikeTrain(spike_times=sk_train.spike_times, edges=bounds)
-		spike_trains.append(pyspk_sktrain)
-	return spike_trains
+# def time_resolved_fano_factor(spike_list, time_points, **params):
+# 	"""
+# 	Regress the spike-count variance versus the mean and report the slope (FF).
+# 	Analysis is done at multiple time points.
+# 	The distribution of mean counts is matched (via downselection), so that all time points
+# 	have the same distribution of mean counts
+# 	:param spike_list: SpikeList object - binary spike count vectors will be extracted. The data analyzed takes
+# 	the form of a binary matrix with 1 row per trial / neuron and 1 column per ms.
+# 	:param time_points: time points to report
+# 	:param params: [dict] - if any of the fields is not provided, it will be replaced by the default value
+# 		- 'box_width' - width of sliding window
+# 		- 'match_reps' - number of random choices regarding which points to throw away when matching distributions
+# 		- 'bin_spacing' - bin width when computing distributions of mean counts
+# 		- 'align_time' - time of event that data are aligned to (output times are expressed relative to this)
+# 		- 'weighted_regression' - self-explanatory
+# 	:return results: [dict] -
+# 		- 'fano_factor' - FF for each time (after down-sampling to match distribution across times)
+# 		- 'fano_95CI' - 95% confidence intervals on the FF
+# 		- 'scatter_data' - data for variance VS mean scatter plot
+# 		- 'fano_factors' - FF for all data points (no down-sampling or matching)
+# 		- 'fano_all_95CI' - 95% confidence intervals for the above
+# 		- ''
+# 	Based on Churchland et al. (2010) Stimulus onset quenches neural variability: a widespread cortical phenomenon.
+# 	"""
+# 	#TODO - incomplete (attempt to adapt from Matlab code)
+# 	default_params = {'box_width': 50, 'match_reps': 10, 'bin_spacing': 0.25, 'align_time': 0, 'weighted_regression':
+# 		True}
+# 	parameter_fields = ['box_width', 'match_reps', 'bin_spacing', 'align_time', 'weighted_regression']
+# 	for k, v in default_params.items():
+# 		if params.has_key(k):
+# 			default_params[k] = params[k]
+#
+# 	# Acquire binary count data
+# 	counts = spike_list.spike_counts(dt=1., normalized=False, binary=True)
+# 	weighting_epsilon = 1. * default_params['box_width'] / 1000.
+#
+# 	# main
+# 	max_rate = 0   # keep track of max rate across all times / conditions
+# 	# trial_count =
+# 	t_start = time_points - np.floor(default_params['box_width']/2.) + 1
+# 	t_end = time_points - np.ceil(default_params['box_width']/2.) + 1
 
 
 def compute_synchrony(spike_list, n_pairs=500, bin=1., tau=20., time_resolved=False, summary_only=False,
@@ -792,15 +773,21 @@ def compute_synchrony(spike_list, n_pairs=500, bin=1., tau=20., time_resolved=Fa
 	"""
 	Apply various metrics of spike train synchrony
 		Note: Has dependency on PySpike package.
-	:return:
+	:param spike_list: SpikeList object
+	:param n_pairs: number of neuronal pairs to consider in the pairwise correlation measures
+	:param bin: time_bin (for pairwise correlations)
+	:param tau: time constant (for the van Rossum distance)
+	:param time_resolved: bool - perform time-resolved synchrony analysis (PySpike)
+	:param summary_only: bool - retrieve only a summary of the results
+	:param complete: bool - use all metrics or only the ccs (due to computation time, memory)
+	:param display: bool - display elapsed time message
+	:return results: dict
 	"""
 	if display:
 		print "Analysing spike synchrony..."
 		t_start = time.time()
 	has_pyspike = check_dependency('pyspike')
-	if not has_pyspike:
-		print "PySpike not found, only simple metrics will be used.."
-	else:
+	if has_pyspike:
 		import pyspike as spk
 		spike_trains = to_pyspike(spike_list)
 	results = dict()
@@ -839,7 +826,12 @@ def compute_synchrony(spike_list, n_pairs=500, bin=1., tau=20., time_resolved=Fa
 def compute_analog_stats(population, parameter_set, variable_names, analysis_interval=None, plot=False):
 	"""
 	Extract, analyse and store analog data
-	:return:
+	:param population: Population object
+	:param parameter_set: full ParameterSet object
+	:param variable_names: names of the variables of interest ?
+	:param analysis_interval: time interval to analyse
+	:param plot: bool
+	:return results: dict
 	"""
 	results = dict()
 	pop_idx = parameter_set.net_pars.pop_names.index(population.name)
@@ -861,7 +853,6 @@ def compute_analog_stats(population, parameter_set, variable_names, analysis_int
 			reversals = []
 
 		# store the ids of the recorded neurons
-		print population.name
 		results['recorded_neurons'] = locals()[variable_names[0]].id_list()
 
 		for idx, nn in enumerate(variable_names):
@@ -957,6 +948,7 @@ def compute_timescale(activity_matrix, time_axis, max_lag=1000, method=0):
 	:param method: based on autocorrelation (0) or on power spectra (1)
 	:return:
 	"""
+	# TODO modify / review / extend
 	time_scales = []
 	final_acc = []
 	errors = []
@@ -994,6 +986,7 @@ def manifold_learning(activity_matrix, n_neighbors, standardize=True, plot=True,
 	import sklearn.manifold as man
 	import matplotlib.pyplot as pl
 
+	# TODO extend and test - and include in the analyse_activity_dynamics function
 	if display:
 		print "Testing manifold learning algorithms"
 	if plot:
@@ -1020,42 +1013,34 @@ def manifold_learning(activity_matrix, n_neighbors, standardize=True, plot=True,
 
 def characterize_population_activity(population_object, parameter_set, analysis_interval, epochs=None,
 									 time_bin=1., summary_only=False, complete=True, time_resolved=True,
-									 window_len=100, analyse_responses=False, color_map='jet', plot=True,
+									 window_len=100, color_map='jet', plot=True,
 									 display=True, save=False):
 	"""
-	Characterize the activity of a Population or Network object (very complete)
-	:param population_object:
-	:param parameter_set:
-	:return:
+	Compute all the relevant metrics of recorded activity (spiking and analog signals), providing
+	a thorough characterization and quantification of population dynamics
+	:param population_object: Population or Network object whose activity should be analyzed
+	:param parameter_set: complete ParameterSet
+	:param analysis_interval: list or tuple with [start_time, stop time] specifying the time interval to analyse
+
+	:return results: dict
 	"""
-	import modules.net_architect as netarch
-	import modules.signals as sig
-	import itertools
+	# TODO - reduce function parameters
 	if plot or display:
 		import modules.visualization as vis
 	has_pyspike = check_dependency('pyspike')
-	has_scikit = check_dependency('sklearn')
 
-	if isinstance(population_object, netarch.Population):
+	if isinstance(population_object, Population):
 		gids = None
 		base_population_object = None
-	elif isinstance(population_object, netarch.Network):
+	elif isinstance(population_object, Network):
 		new_population = population_object.merge_subpopulations(sub_populations=population_object.populations,
-																name='Global')
-		gids = []
+																name='Global', merge_activity=True, store=False)
+		gids = [n.id_list for n in list(iterate_obj_list(population_object.spiking_activity))]
 		subpop_names = population_object.population_names
-		new_SpkList = sig.SpikeList([], [], t_start=analysis_interval[0], t_stop=analysis_interval[1],
-									dims=np.sum(list(netarch.iterate_obj_list(population_object.n_neurons))))
-		for n in list(netarch.iterate_obj_list(population_object.spiking_activity)):
-			gids.append(n.id_list)
-			for idd in n.id_list:
-				new_SpkList.append(idd, n.spiketrains[idd])
-		new_population.spiking_activity = new_SpkList
-		for n in list(netarch.iterate_obj_list(population_object.analog_activity)):
-			new_population.analog_activity.append(n)
-		for n in list(netarch.iterate_obj_list(population_object.populations)):
-			if not gids:
-				gids.append(np.array(n.gids))
+
+		if not gids:
+			gids = [np.array(n.gids) for n in list(iterate_obj_list(population_object.populations))]
+
 		base_population_object = population_object
 		population_object = new_population
 	else:
@@ -1065,103 +1050,29 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 	results['metadata'] = {'population_name': population_object.name}
 
 	########################################################################################################
+	# Spiking activity analysis
+
 	if population_object.spiking_activity:
-		results['spiking_activity'].update({population_object.name: {}})
 		spike_list = population_object.spiking_activity
-		assert isinstance(spike_list, sig.SpikeList), "Spiking activity should be SpikeList object"
+		assert isinstance(spike_list, SpikeList), "Spiking activity should be SpikeList object"
 		spike_list = spike_list.time_slice(analysis_interval[0], analysis_interval[1])
 
-		# ISI statistics
-		results['spiking_activity'][population_object.name].update(compute_isi_stats(spike_list,
-																					 summary_only=summary_only))
-
-		# Firing activity statistics
-		results['spiking_activity'][population_object.name].update(compute_spike_stats(spike_list, time_bin=time_bin,
-																					   summary_only=summary_only))
-
-		# Synchrony measures
-		results['spiking_activity'][population_object.name].update(compute_synchrony(spike_list, n_pairs=500,
-																					 bin=time_bin, tau=20.,
-																					 time_resolved=time_resolved,
-																					 summary_only=summary_only,
-																					 complete=complete))
-
-		if analyse_responses and has_scikit:
-			import sklearn.decomposition as sk
-			responses = spike_list.compile_response_matrix(dt=time_bin, tau=20., N=population_object.size)
-			pca_obj = sk.PCA(n_components=responses.shape[0])
-			X = pca_obj.fit_transform(responses.T)
-			print "Explained Variance (first 3 components): %s" % str(pca_obj.explained_variance_ratio_[:3])
-			results['spiking_activity'][population_object.name].update({'dimensionality': compute_dimensionality(responses, pca_obj=pca_obj, display=True)})
-			if plot:
-				vis.plot_dimensionality(results['spiking_activity'][population_object.name], pca_obj, X,
-										data_label=population_object.name, display=display, save=save)
-			if epochs is not None:
-				for epoch_label, epoch_time in epochs.items():
-					print epoch_label
-					resp = responses[:, int(epoch_time[0]):int(epoch_time[1])]
-					pca_obj = sk.PCA(n_components=resp.shape[0])
-					X = pca_obj.fit_transform(resp.T)
-					print "Explained Variance (first 3 components): %s" % str(pca_obj.explained_variance_ratio_[:3])
-					results['spiking_activity'][population_object.name].update({epoch_label: {}})
-					results['spiking_activity'][population_object.name][epoch_label].update(
-						{'dimensionality': compute_dimensionality(responses, pca_obj=pca_obj, display=True)})
-					if plot:
-						vis.plot_dimensionality(results['spiking_activity'][population_object.name][epoch_label],
-												pca_obj, X,
-												data_label=epoch_label, display=display, save=save)
+		results['spiking_activity'].update(compute_spikelist_metrics(spike_list, population_object.name))
 
 		if plot and not summary_only:
-			vis.plot_isi_data(results['spiking_activity'][population_object.name], data_label=population_object.name,
+			plot_isi_data(results['spiking_activity'][population_object.name], data_label=population_object.name,
 							  color_map=color_map, location=0, display=display, save=save)
 			if has_pyspike:
-				vis.plot_synchrony_measures(results['spiking_activity'][population_object.name],
+				plot_synchrony_measures(results['spiking_activity'][population_object.name],
 											label=population_object.name, time_resolved=time_resolved,
 											epochs=epochs, display=display, save=save)
 
 		if time_resolved:
-			from modules.signals import moving_window
 			# *** Averaged time-resolved metrics
-			time_axis = spike_list.time_axis(time_bin=time_bin)
-			steps = len(list(moving_window(time_axis, window_len)))
-			mw = moving_window(time_axis, window_len)
-			print "Analysing activity in moving window.."
-			for n in range(steps):
-				if display:
-					vis.progress_bar(float(float(n) / steps))
-				time_window = mw.next()
-				local_list = spike_list.time_slice(t_start=min(time_window), t_stop=max(time_window))
-				local_isi = compute_isi_stats(local_list, summary_only=True, display=False)
-				local_spikes = compute_spike_stats(local_list, time_bin=1., summary_only=True, display=False)
-				if analyse_responses and has_scikit:
-					local_response = responses[:, time_window[0]:time_window[-1]]
-					pca_obj = sk.PCA(n_components=local_response.shape[0])
-					X = pca_obj.fit_transform(local_response.T)
-					local_dimensionality = {'dimensionality': compute_dimensionality(responses, pca_obj=pca_obj,
-																					 display=False)}
-				if n == 0:
-					#print local_isi.keys()
-					rr = {k + '_profile': [] for k in local_isi.keys()}
-					rr.update({k + '_profile': [] for k in local_spikes.keys()})
-					if analyse_responses and has_scikit:
-						rr.update({k + '_profile': [] for k in local_dimensionality.keys()})
-				for k in local_isi.keys():
-					rr[k + '_profile'].append(local_isi[k])
-					if n == steps - 1:
-						results['spiking_activity'][population_object.name].update({k + '_profile': rr[k + '_profile']})
-				for k in local_spikes.keys():
-					rr[k + '_profile'].append(local_spikes[k])
-					if n == steps - 1:
-						results['spiking_activity'][population_object.name].update({k + '_profile': rr[k + '_profile']})
-				if analyse_responses and has_scikit:
-					for k in local_dimensionality.keys():
-						rr[k + '_profile'].append(local_dimensionality[k])
-						if n == steps - 1:
-							results['spiking_activity'][population_object.name].update({k + '_profile': rr[k + '_profile']})
-			if plot:
-				vis.plot_averaged_time_resolved(results['spiking_activity'][population_object.name], spike_list,
-													  label=population_object.name, epochs=epochs, color_map=color_map,
-												  display=display, save=save)
+			results['spiking_activity'][population_object.name].update(compute_time_resolved_statistics(spike_list,
+			                        label=population_object.name, time_bin=time_bin, window_len=window_len,
+			                        epochs=epochs, color_map=color_map, display=display, plot=plot, save=save))
+
 		if gids:
 			results['metadata'].update({'sub_population_names': subpop_names, 'sub_population_gids': gids,
 										'spike_data_file': ''})
@@ -1176,66 +1087,42 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 				# ISI statistics
 				results['spiking_activity'][name].update(compute_isi_stats(act, summary_only=summary_only))
 				# Firing activity statistics
-				results['spiking_activity'][name].update(compute_spike_stats(act, time_bin=time_bin, summary_only=summary_only))
+				results['spiking_activity'][name].update(compute_spike_stats(act, time_bin=time_bin,
+				                                                             summary_only=summary_only))
 				# Synchrony measures
 				results['spiking_activity'][name].update(compute_synchrony(act, n_pairs=500, bin=time_bin, tau=20.,
-																			time_resolved=time_resolved,
-																			summary_only=summary_only))
+		                                                                    time_resolved=time_resolved,
+		                                                                    summary_only=summary_only,
+		                                                                   complete=complete))
 				if plot and not summary_only:
-					vis.plot_isi_data(results['spiking_activity'][name], data_label=name,
+					plot_isi_data(results['spiking_activity'][name], data_label=name,
 								 color_map=color_map, location=locations[indice], display=display, save=save)
 					if has_pyspike:
-						vis.plot_synchrony_measures(results['spiking_activity'][name], label=name, time_resolved=time_resolved,
-												display=display, save=save)
+						plot_synchrony_measures(results['spiking_activity'][name], label=name,
+						                        time_resolved=time_resolved, display=display, save=save)
 				# if time_resolved:
 				# 	# *** Averaged time-resolved metrics
-				# 	time_axis = act.time_axis(time_bin=time_bin)
-				# 	steps = len(list(moving_window(time_axis, window_len)))
-				# 	mw = moving_window(time_axis, window_len)
-				# 	print "Analysing activity in moving window.."
-				# 	for n in range(steps):
-				# 		if display:
-				# 			vis.progress_bar(float(float(n) / steps))
-				# 		time_window = mw.next()
-				# 		local_list = act.time_slice(t_start=min(time_window), t_stop=max(time_window))
-				# 		local_isi = compute_isi_stats(local_list, summary_only=True, display=False)
-				# 		local_spikes = compute_spike_stats(local_list, time_bin=1., summary_only=True, display=False)
-				# 		if n == 0:
-				# 			rr = {k + '_profile': [] for k in local_isi.keys()}
-				# 			rr.update({k + '_profile': [] for k in local_spikes.keys()})
-				# 		for k in local_isi.keys():
-				# 			rr[k + '_profile'].append(local_isi[k])
-				# 			if n == steps - 1:
-				# 				results.update({k + '_profile': rr[k + '_profile']})
-				# 		for k in local_spikes.keys():
-				# 			rr[k + '_profile'].append(local_spikes[k])
-				# 			if n == steps - 1:
-				# 				results['spiking_activity'][population_object.name].update({k + '_profile': rr[k + '_profile']})
-				# 	if plot:
-				# 		vis.plot_avereraged_time_resolved(results['spiking_activity'][name], act,
-				# 		                                  label=name, color_map=color_map, display=display, save=save)
+				#   results['spiking_activity'][name].update(compute_time_resolved_statistics())
+
 		if plot:
-			# Save spike list for plotting
-			results['metadata']['spike_data_file'] = parameter_set.kernel_pars.data_path + \
-													 parameter_set.kernel_pars.data_prefix + \
-													 parameter_set.label + '_SpikingActivity.dat'
-			# spike_list.save(results['metadata']['spike_data_file'])
 			results['metadata']['spike_list'] = spike_list
 
-	####################################################################################################################
+	########################################################################################################
+	# Analog activity analysis
 	if population_object.analog_activity and base_population_object is not None:
 		results['analog_activity'] = {}
 		for pop_n, pop in enumerate(base_population_object.populations):
-			results['analog_activity'].update({pop.name: {}})
-			pop_idx = parameter_set.net_pars.pop_names.index(pop.name)
-			if parameter_set.net_pars.analog_device_pars[pop_idx] is None:
-				break
-			variable_names = list(np.copy(parameter_set.net_pars.analog_device_pars[pop_idx]['record_from']))
+			if bool(pop.analog_activity):
+				results['analog_activity'].update({pop.name: {}})
+				pop_idx = parameter_set.net_pars.pop_names.index(pop.name)
+				if parameter_set.net_pars.analog_device_pars[pop_idx] is None:
+					break
+				variable_names = list(np.copy(parameter_set.net_pars.analog_device_pars[pop_idx]['record_from']))
 
-			results['analog_activity'][pop.name].update(compute_analog_stats(pop, parameter_set, variable_names,
-																			 analysis_interval, plot))
+				results['analog_activity'][pop.name].update(compute_analog_stats(pop, parameter_set, variable_names,
+				                                                                 analysis_interval, plot))
 	if plot:
-		vis.plot_state_analysis(parameter_set, results, analysis_interval[0], analysis_interval[1], display=display,
+		plot_state_analysis(parameter_set, results, analysis_interval[0], analysis_interval[1], display=display,
 								save=save)
 	return results
 
@@ -1252,196 +1139,304 @@ def epoch_based_analysis(population_object, epochs):
 	# 	full_data_set[lab].update({epoch_label: spike_list.time_slice(epoch_times[0], epoch_times[1])})
 
 
-def population_state(population_object, parameter_set=None, nPairs=500, time_bin=10., start=None, stop=None, plot=True,
-					 display=True, save=False):
+def analyse_activity_dynamics(activity_matrix, epochs=None, label='', plot=False, display=False, save=False):
 	"""
-	Determine the circuit's operating point and return all relevant stats
-	:param :
+	Perform standard analyses on population activity
+	:param activity_matrix: NxT continuous activity matrix
+	:return: results dictionary
+	"""
+	if isinstance(activity_matrix, AnalogSignalList):
+		activity_matrix = activity_matrix.as_array()
+	assert(isinstance(activity_matrix, np.ndarray)), "Activity matrix must be numpy array or AnalogSignalList"
+	assert(check_dependency('sklearn')), "Scikits-learn is necessary for this analysis"
+	import sklearn.decomposition as sk
+
+	results = {}
+
+	pca_obj = sk.PCA(n_components=activity_matrix.shape[0])
+	X = pca_obj.fit_transform(activity_matrix.T)
+	print "Explained Variance (first 3 components): %s" % str(pca_obj.explained_variance_ratio_[:3])
+	results.update({'dimensionality': compute_dimensionality(activity_matrix, pca_obj=pca_obj, display=True)})
+	if plot:
+		plot_dimensionality(results, pca_obj, X, data_label=label, display=display, save=save)
+	if epochs is not None:
+		for epoch_label, epoch_time in epochs.items():
+			print epoch_label
+			resp = activity_matrix[:, int(epoch_time[0]):int(epoch_time[1])]
+
+			results.update({epoch_label: {}})
+			results[epoch_label].update(analyse_activity_dynamics(resp, epochs=None, label=epoch_label, plot=False,
+			                                                     display=False, save=False))
+	# TODO extend to other standard measurements
+	return results
+
+
+def compute_time_resolved_statistics(spike_list, label='', time_bin=1., window_len=100, epochs=None,
+                                     color_map='jet', display=True, plot=False, save=False):
+	"""
+
 	:return:
 	"""
-	import modules.net_architect as netarch
-	import modules.signals as sig
-	import itertools
-	if start is None:
-		start = 0.
-	if stop is None:
-		stop = parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t
-	pop_idx = 0
-	if isinstance(population_object, netarch.Population):
-		gids = None
-		base_population_object = None
-	elif isinstance(population_object, netarch.Network):
-		assert parameter_set is not None, "Provide ParameterSet"
-		new_population = population_object.merge_subpopulations(sub_populations=population_object.populations,
-																name='Global')
-		gids = []
-		subpop_names = population_object.population_names
-		new_SpkList = sig.SpikeList([], [], t_start=start, t_stop=stop,
-								  dims=np.sum(list(netarch.iterate_obj_list(population_object.n_neurons))))
-		for n in list(netarch.iterate_obj_list(population_object.spiking_activity)):
-			gids.append(n.id_list)
-			for idd in n.id_list:
-				new_SpkList.append(idd, n.spiketrains[idd])
-		new_population.spiking_activity = new_SpkList
+	# TODO - separate activity
+	has_scikit = check_dependency('sklearn')
+	time_axis = spike_list.time_axis(time_bin=time_bin)
+	steps = len(list(moving_window(time_axis, window_len)))
+	mw = moving_window(time_axis, window_len)
+	results = dict()
+	print "\nAnalysing activity in moving window.."
 
-		for n in list(netarch.iterate_obj_list(population_object.analog_activity)):
-			new_population.analog_activity.append(n)
+	if has_scikit:
+		import sklearn.decomposition as sk
+		population_response = spike_list.compile_response_matrix()
+		pca_obj = sk.PCA(n_components=population_response.shape[0])
 
-		for n in list(netarch.iterate_obj_list(population_object.populations)):
-			if not gids:
-				gids.append(np.array(n.gids))
-
-		base_population_object = population_object
-		population_object = new_population
-	else:
-		raise TypeError("Incorrect population object. Must be Population or Network object")
-
-	results = {'spiking_activity': {}, 'analog_activity': {}, 'metadata': {}}
-	results['metadata'] = {'population_name': population_object.name}
-
-	if population_object.spiking_activity:
-		results['spiking_activity'].update({population_object.name: {}})
-		spiking_activity = population_object.spiking_activity
-		assert isinstance(spiking_activity, sig.SpikeList), "Spiking activity should be SpikeList object"
-		if (start is not None) and (stop is not None):
-			spiking_activity = spiking_activity.time_slice(start, stop)
-		results['spiking_activity'][population_object.name]['isi'] = np.array(list(itertools.chain(*spiking_activity.isi())))
-		cvs = spiking_activity.cv_isi(float_only=True)
-		results['spiking_activity'][population_object.name]['cvs'] = cvs[~np.isnan(cvs)]
-		rates = np.array(spiking_activity.mean_rates())
-		results['spiking_activity'][population_object.name]['mean_rates'] = rates[~np.isnan(rates)]
-		results['spiking_activity'][population_object.name]['std_rate'] = spiking_activity.mean_rate_std()
-		ccs = spiking_activity.pairwise_pearson_corrcoeff(nPairs, time_bin=time_bin,
-														  all_coef=True)
-		results['spiking_activity'][population_object.name]['ccs'] = ccs[~np.isnan(ccs)]
-		results['spiking_activity'][population_object.name]['ff'] = spiking_activity.fano_factor(time_bin)
-		ffs = np.array(spiking_activity.fano_factors(time_bin))
-		results['spiking_activity'][population_object.name]['ffs'] = ffs[~np.isnan(ffs)]
-		results['spiking_activity'][population_object.name]['spiking_neurons'] = spiking_activity.id_list
-
-		if gids:
-			results['metadata'].update({'sub_population_names': subpop_names, 'sub_population_gids': gids,
-								   'spike_data_file': ''})
-
-			for indice, name in enumerate(subpop_names):
-				results['spiking_activity'].update({name: {}})
-				act = spiking_activity.id_slice(gids[indice])
-				results['spiking_activity'][name]['isi'] = np.array(list(itertools.chain(*act.isi())))
-				cvs1 = act.cv_isi(True)
-				results['spiking_activity'][name]['cvs'] = cvs1[~np.isnan(cvs1)]
-				rates1 = np.array(act.mean_rates())
-				results['spiking_activity'][name]['mean_rates'] = rates1[~np.isnan(rates1)]
-				results['spiking_activity'][name]['std_rate'] = act.mean_rate_std()
-				ccs1 = spiking_activity.pairwise_pearson_corrcoeff(nPairs, time_bin=time_bin,
-																  all_coef=True)
-				results['spiking_activity'][name]['ccs'] = ccs1[~np.isnan(ccs1)]
-				results['spiking_activity'][name]['ff'] = act.fano_factor(time_bin)
-				ffs1 = np.array(act.fano_factors(time_bin))
-				results['spiking_activity'][name]['ffs'] = ffs1[~np.isnan(ffs1)]
-				results['spiking_activity'][name]['spiking_neurons'] = act.id_list
-
-		results['metadata']['spike_data_file'] = parameter_set.kernel_pars.data_path + \
-												 parameter_set.kernel_pars.data_prefix + \
-												 parameter_set.label + '_SpikingActivity.dat'
-		# spiking_activity.save(results['metadata']['spike_data_file'])
-		results['metadata']['spike_list'] = spiking_activity
-
-	if population_object.analog_activity and base_population_object is not None:
-		results['analog_activity'] = {}
-		for pop_n, pop in enumerate(base_population_object.populations):
-			results['analog_activity'].update({pop.name: {}})
-			pop_idx = parameter_set.net_pars.pop_names.index(pop.name)
-			if parameter_set.net_pars.analog_device_pars[pop_idx] is None:
-				break
-			variable_names = list(np.copy(parameter_set.net_pars.analog_device_pars[pop_idx]['record_from']))
-
-			if not pop.analog_activity:
-				results['analog_activity'][pop.name]['recorded_neurons'] = []
-				break
-			elif isinstance(pop.analog_activity, list):
-				for idx, nn in enumerate(variable_names):
-					locals()[nn] = pop.analog_activity[idx]
-					assert isinstance(locals()[nn], sig.AnalogSignalList), "Analog Activity should be AnalogSignalList"
-			else:
-				locals()[variable_names[0]] = pop.analog_activity
-
-			reversals = []
-			single_idx = np.random.permutation(locals()[variable_names[0]].id_list())[0]
-			results['analog_activity'][pop.name]['recorded_neurons'] = locals()[variable_names[0]].id_list()
-
-			for idx, nn in enumerate(variable_names):
-				if (start is not None) and (stop is not None):
-					locals()[nn] = locals()[nn].time_slice(start, stop)
-
-				time_axis = locals()[nn].time_axis()
-
-				if 'E_{0}'.format(nn[-2:]) in parameter_set.net_pars.neuron_pars[pop_idx]:
-					reversals.append(parameter_set.net_pars.neuron_pars[pop_idx]['E_{0}'.format(nn[-2:])])
-
-				if len(results['analog_activity'][pop.name]['recorded_neurons']) > 1:
-					results['analog_activity'][pop.name]['mean_{0}'.format(nn)] = locals()[nn].mean(axis=1)
-					results['analog_activity'][pop.name]['std_{0}'.format(nn)] = locals()[nn].std(axis=1)
-
-			if len(results['analog_activity'][pop.name]['recorded_neurons']) > 1:
-				results['analog_activity'][pop.name]['mean_I_ex'] = []
-				results['analog_activity'][pop.name]['mean_I_in'] = []
-				results['analog_activity'][pop.name]['EI_CC'] = []
-				for idxxx, nnnn in enumerate(results['analog_activity'][pop.name]['recorded_neurons']):
-					for idx, nn in enumerate(variable_names):
-						locals()['signal_' + nn] = locals()[nn].analog_signals[nnnn].signal
-					if ('signal_V_m' in locals()) and ('signal_g_ex' in locals()) and ('signal_g_in' in locals()):
-						E_ex = parameter_set.net_pars.neuron_pars[pop_idx]['E_ex']
-						E_in = parameter_set.net_pars.neuron_pars[pop_idx]['E_in']
-
-						E_current = locals()['signal_g_ex'] * (locals()['signal_V_m'] - E_ex)
-						E_current /= 1000.
-
-						I_current = locals()['signal_g_in'] * (locals()['signal_V_m'] - E_in)
-						I_current /= 1000.
-
-						results['analog_activity'][pop.name]['mean_I_ex'].append(np.mean(E_current))
-						results['analog_activity'][pop.name]['mean_I_in'].append(np.mean(I_current))
-						cc = np.corrcoef(E_current, I_current)
-						results['analog_activity'][pop.name]['EI_CC'].append(np.unique(cc[cc != 1.]))
-					elif ('signal_I_ex' in locals()) and ('signal_I_in' in locals()):
-						results['analog_activity'][pop.name]['mean_I_ex'].append(np.mean(locals()[
-							'signal_I_ex']))
-						results['analog_activity'][pop.name]['mean_I_in'].append(np.mean(locals()[
-							'signal_I_in']))
-						cc = np.corrcoef(locals()['signal_I_ex'], locals()['signal_I_in'])
-						results['analog_activity'][pop.name]['EI_CC'].append(np.unique(cc[cc != 1.]))
-
-				results['analog_activity'][pop.name]['EI_CC'] = np.array(list(itertools.chain(*results[
-					'analog_activity'][pop.name]['EI_CC'])))
-				results['analog_activity'][pop.name]['EI_CC'][np.isnan(results['analog_activity'][
-					pop.name]['EI_CC'])] = 0.
-				results['analog_activity'][pop.name]['EI_CC'][np.isinf(results['analog_activity'][
-					pop.name]['EI_CC'])] = 0.
-
-			if plot:
-				results['analog_activity'][pop.name]['single_Vm'] = locals()['V_m'].analog_signals[
-					single_idx].signal
-				results['analog_activity'][pop.name]['single_idx'] = single_idx
-				results['analog_activity'][pop.name]['time_axis'] = locals()['V_m'].analog_signals[single_idx].time_axis()
-
-			variable_names.remove('V_m')
-			for idxx, nnn in enumerate(variable_names):
-				cond = locals()[nnn].analog_signals[single_idx].signal
-
-				if 'I_ex' in variable_names:
-					results['analog_activity'][pop.name]['I_{0}'.format(nnn[-2:])] = cond
-					results['analog_activity'][pop.name]['I_{0}'.format(nnn[-2:])] /= 1000.
-				elif 'single_Vm' in results['analog_activity'][pop.name].keys():
-					rev = reversals[idxx]
-					results['analog_activity'][pop.name]['I_{0}'.format(nnn[-2:])] = cond * (results[
-										'analog_activity'][pop.name]['single_Vm'] - rev)
-					results['analog_activity'][pop.name]['I_{0}'.format(nnn[-2:])] /= 1000.
-
+	for n in range(steps):
+		if display:
+			progress_bar(float(float(n) / steps))
+		time_window = mw.next()
+		local_list = spike_list.time_slice(t_start=min(time_window), t_stop=max(time_window))
+		local_isi = compute_isi_stats(local_list, summary_only=True, display=False)
+		local_spikes = compute_spike_stats(local_list, time_bin=time_bin, summary_only=True, display=False)
+		if has_scikit:
+			local_response = local_list.compile_response_matrix()
+			X = pca_obj.fit_transform(local_response.T)
+			local_dimensionality = {'dimensionality': compute_dimensionality(local_response, pca_obj=pca_obj,
+			                                                                 display=False)}
+		if n == 0:
+			rr = {k + '_profile': [] for k in local_isi.keys()}
+			rr.update({k + '_profile': [] for k in local_spikes.keys()})
+			if has_scikit:
+				rr.update({k + '_profile': [] for k in local_dimensionality.keys()})
+		else:
+			for k in local_isi.keys():
+				rr[k + '_profile'].append(local_isi[k])
+				if n == steps - 1:
+					results.update({k + '_profile': rr[k + '_profile']})
+			for k in local_spikes.keys():
+				rr[k + '_profile'].append(local_spikes[k])
+				if n == steps - 1:
+					results.update({k + '_profile': rr[k + '_profile']})
+			if has_scikit:
+				for k in local_dimensionality.keys():
+					rr[k + '_profile'].append(local_dimensionality[k])
+					if n == steps - 1:
+						results.update({k + '_profile': rr[k + '_profile']})
 	if plot:
-		import modules.visualization as vis
-		vis.plot_state_analysis(parameter_set, results, start, stop, display=display, save=save)
+		plot_averaged_time_resolved(results, spike_list, label=label, epochs=epochs,
+		                            color_map=color_map, display=display, save=save)
+
+
+def compute_spikelist_metrics(spike_list, label, summary_only=True, time_bin=1., complete=False, time_resolved=False):
+	"""
+
+	:return:
+	"""
+	results = {label: {}}
+
+	# ISI statistics
+	results[label].update(compute_isi_stats(spike_list, summary_only=summary_only))
+
+	# Firing activity statistics
+	results[label].update(compute_spike_stats(spike_list, time_bin=time_bin, summary_only=summary_only))
+
+	# Synchrony measures
+	results[label].update(compute_synchrony(spike_list, n_pairs=500, bin=time_bin, tau=20., time_resolved=time_resolved,
+	                                        summary_only=summary_only, complete=complete))
 
 	return results
+
+
+# def population_state(population_object, parameter_set=None, nPairs=500, time_bin=10., start=None, stop=None, plot=True,
+# 					 display=True, save=False):
+# 	"""
+# 	Determine the circuit's operating point and return all relevant stats
+# 	:param :
+# 	:return:
+# 	"""
+# 	import modules.net_architect as netarch
+# 	import modules.signals as sig
+# 	import itertools
+# 	if start is None:
+# 		start = 0.
+# 	if stop is None:
+# 		stop = parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t
+# 	pop_idx = 0
+# 	if isinstance(population_object, netarch.Population):
+# 		gids = None
+# 		base_population_object = None
+# 	elif isinstance(population_object, netarch.Network):
+# 		assert parameter_set is not None, "Provide ParameterSet"
+# 		new_population = population_object.merge_subpopulations(sub_populations=population_object.populations,
+# 																name='Global')
+# 		gids = []
+# 		subpop_names = population_object.population_names
+# 		new_SpkList = sig.SpikeList([], [], t_start=start, t_stop=stop,
+# 								  dims=np.sum(list(netarch.iterate_obj_list(population_object.n_neurons))))
+# 		for n in list(netarch.iterate_obj_list(population_object.spiking_activity)):
+# 			gids.append(n.id_list)
+# 			for idd in n.id_list:
+# 				new_SpkList.append(idd, n.spiketrains[idd])
+# 		new_population.spiking_activity = new_SpkList
+#
+# 		for n in list(netarch.iterate_obj_list(population_object.analog_activity)):
+# 			new_population.analog_activity.append(n)
+#
+# 		for n in list(netarch.iterate_obj_list(population_object.populations)):
+# 			if not gids:
+# 				gids.append(np.array(n.gids))
+#
+# 		base_population_object = population_object
+# 		population_object = new_population
+# 	else:
+# 		raise TypeError("Incorrect population object. Must be Population or Network object")
+#
+# 	results = {'spiking_activity': {}, 'analog_activity': {}, 'metadata': {}}
+# 	results['metadata'] = {'population_name': population_object.name}
+#
+# 	if population_object.spiking_activity:
+# 		results['spiking_activity'].update({population_object.name: {}})
+# 		spiking_activity = population_object.spiking_activity
+# 		assert isinstance(spiking_activity, sig.SpikeList), "Spiking activity should be SpikeList object"
+# 		if (start is not None) and (stop is not None):
+# 			spiking_activity = spiking_activity.time_slice(start, stop)
+# 		results['spiking_activity'][population_object.name]['isi'] = np.array(list(itertools.chain(*spiking_activity.isi())))
+# 		cvs = spiking_activity.cv_isi(float_only=True)
+# 		results['spiking_activity'][population_object.name]['cvs'] = cvs[~np.isnan(cvs)]
+# 		rates = np.array(spiking_activity.mean_rates())
+# 		results['spiking_activity'][population_object.name]['mean_rates'] = rates[~np.isnan(rates)]
+# 		results['spiking_activity'][population_object.name]['std_rate'] = spiking_activity.mean_rate_std()
+# 		ccs = spiking_activity.pairwise_pearson_corrcoeff(nPairs, time_bin=time_bin,
+# 														  all_coef=True)
+# 		results['spiking_activity'][population_object.name]['ccs'] = ccs[~np.isnan(ccs)]
+# 		results['spiking_activity'][population_object.name]['ff'] = spiking_activity.fano_factor(time_bin)
+# 		ffs = np.array(spiking_activity.fano_factors(time_bin))
+# 		results['spiking_activity'][population_object.name]['ffs'] = ffs[~np.isnan(ffs)]
+# 		results['spiking_activity'][population_object.name]['spiking_neurons'] = spiking_activity.id_list
+#
+# 		if gids:
+# 			results['metadata'].update({'sub_population_names': subpop_names, 'sub_population_gids': gids,
+# 								   'spike_data_file': ''})
+#
+# 			for indice, name in enumerate(subpop_names):
+# 				results['spiking_activity'].update({name: {}})
+# 				act = spiking_activity.id_slice(gids[indice])
+# 				results['spiking_activity'][name]['isi'] = np.array(list(itertools.chain(*act.isi())))
+# 				cvs1 = act.cv_isi(True)
+# 				results['spiking_activity'][name]['cvs'] = cvs1[~np.isnan(cvs1)]
+# 				rates1 = np.array(act.mean_rates())
+# 				results['spiking_activity'][name]['mean_rates'] = rates1[~np.isnan(rates1)]
+# 				results['spiking_activity'][name]['std_rate'] = act.mean_rate_std()
+# 				ccs1 = spiking_activity.pairwise_pearson_corrcoeff(nPairs, time_bin=time_bin,
+# 																  all_coef=True)
+# 				results['spiking_activity'][name]['ccs'] = ccs1[~np.isnan(ccs1)]
+# 				results['spiking_activity'][name]['ff'] = act.fano_factor(time_bin)
+# 				ffs1 = np.array(act.fano_factors(time_bin))
+# 				results['spiking_activity'][name]['ffs'] = ffs1[~np.isnan(ffs1)]
+# 				results['spiking_activity'][name]['spiking_neurons'] = act.id_list
+#
+# 		results['metadata']['spike_data_file'] = parameter_set.kernel_pars.data_path + \
+# 												 parameter_set.kernel_pars.data_prefix + \
+# 												 parameter_set.label + '_SpikingActivity.dat'
+# 		# spiking_activity.save(results['metadata']['spike_data_file'])
+# 		results['metadata']['spike_list'] = spiking_activity
+#
+# 	if population_object.analog_activity and base_population_object is not None:
+# 		results['analog_activity'] = {}
+# 		for pop_n, pop in enumerate(base_population_object.populations):
+# 			if bool(pop.analog_activity):
+# 				results['analog_activity'].update({pop.name: {}})
+# 				pop_idx = parameter_set.net_pars.pop_names.index(pop.name)
+# 				if parameter_set.net_pars.analog_device_pars[pop_idx] is None:
+# 					break
+# 				variable_names = list(np.copy(parameter_set.net_pars.analog_device_pars[pop_idx]['record_from']))
+#
+# 				if not pop.analog_activity:
+# 					results['analog_activity'][pop.name]['recorded_neurons'] = []
+# 					break
+# 				elif isinstance(pop.analog_activity, list):
+# 					for idx, nn in enumerate(variable_names):
+# 						locals()[nn] = pop.analog_activity[idx]
+# 						assert isinstance(locals()[nn], sig.AnalogSignalList), "Analog Activity should be AnalogSignalList"
+# 				else:
+# 					locals()[variable_names[0]] = pop.analog_activity
+#
+# 				reversals = []
+# 				single_idx = np.random.permutation(locals()[variable_names[0]].id_list())[0]
+# 				results['analog_activity'][pop.name]['recorded_neurons'] = locals()[variable_names[0]].id_list()
+#
+# 				for idx, nn in enumerate(variable_names):
+# 					if (start is not None) and (stop is not None):
+# 						locals()[nn] = locals()[nn].time_slice(start, stop)
+#
+# 					time_axis = locals()[nn].time_axis()
+#
+# 					if 'E_{0}'.format(nn[-2:]) in parameter_set.net_pars.neuron_pars[pop_idx]:
+# 						reversals.append(parameter_set.net_pars.neuron_pars[pop_idx]['E_{0}'.format(nn[-2:])])
+#
+# 					if len(results['analog_activity'][pop.name]['recorded_neurons']) > 1:
+# 						results['analog_activity'][pop.name]['mean_{0}'.format(nn)] = locals()[nn].mean(axis=1)
+# 						results['analog_activity'][pop.name]['std_{0}'.format(nn)] = locals()[nn].std(axis=1)
+#
+# 				if len(results['analog_activity'][pop.name]['recorded_neurons']) > 1:
+# 					results['analog_activity'][pop.name]['mean_I_ex'] = []
+# 					results['analog_activity'][pop.name]['mean_I_in'] = []
+# 					results['analog_activity'][pop.name]['EI_CC'] = []
+# 					for idxxx, nnnn in enumerate(results['analog_activity'][pop.name]['recorded_neurons']):
+# 						for idx, nn in enumerate(variable_names):
+# 							locals()['signal_' + nn] = locals()[nn].analog_signals[nnnn].signal
+# 						if ('signal_V_m' in locals()) and ('signal_g_ex' in locals()) and ('signal_g_in' in locals()):
+# 							E_ex = parameter_set.net_pars.neuron_pars[pop_idx]['E_ex']
+# 							E_in = parameter_set.net_pars.neuron_pars[pop_idx]['E_in']
+#
+# 							E_current = locals()['signal_g_ex'] * (locals()['signal_V_m'] - E_ex)
+# 							E_current /= 1000.
+#
+# 							I_current = locals()['signal_g_in'] * (locals()['signal_V_m'] - E_in)
+# 							I_current /= 1000.
+#
+# 							results['analog_activity'][pop.name]['mean_I_ex'].append(np.mean(E_current))
+# 							results['analog_activity'][pop.name]['mean_I_in'].append(np.mean(I_current))
+# 							cc = np.corrcoef(E_current, I_current)
+# 							results['analog_activity'][pop.name]['EI_CC'].append(np.unique(cc[cc != 1.]))
+# 						elif ('signal_I_ex' in locals()) and ('signal_I_in' in locals()):
+# 							results['analog_activity'][pop.name]['mean_I_ex'].append(np.mean(locals()[
+# 								'signal_I_ex']))
+# 							results['analog_activity'][pop.name]['mean_I_in'].append(np.mean(locals()[
+# 								'signal_I_in']))
+# 							cc = np.corrcoef(locals()['signal_I_ex'], locals()['signal_I_in'])
+# 							results['analog_activity'][pop.name]['EI_CC'].append(np.unique(cc[cc != 1.]))
+#
+# 					results['analog_activity'][pop.name]['EI_CC'] = np.array(list(itertools.chain(*results[
+# 						'analog_activity'][pop.name]['EI_CC'])))
+# 					results['analog_activity'][pop.name]['EI_CC'][np.isnan(results['analog_activity'][
+# 						pop.name]['EI_CC'])] = 0.
+# 					results['analog_activity'][pop.name]['EI_CC'][np.isinf(results['analog_activity'][
+# 						pop.name]['EI_CC'])] = 0.
+#
+# 				if plot:
+# 					results['analog_activity'][pop.name]['single_Vm'] = locals()['V_m'].analog_signals[
+# 						single_idx].signal
+# 					results['analog_activity'][pop.name]['single_idx'] = single_idx
+# 					results['analog_activity'][pop.name]['time_axis'] = locals()['V_m'].analog_signals[single_idx].time_axis()
+#
+# 				variable_names.remove('V_m')
+# 				for idxx, nnn in enumerate(variable_names):
+# 					cond = locals()[nnn].analog_signals[single_idx].signal
+#
+# 					if 'I_ex' in variable_names:
+# 						results['analog_activity'][pop.name]['I_{0}'.format(nnn[-2:])] = cond
+# 						results['analog_activity'][pop.name]['I_{0}'.format(nnn[-2:])] /= 1000.
+# 					elif 'single_Vm' in results['analog_activity'][pop.name].keys():
+# 						rev = reversals[idxx]
+# 						results['analog_activity'][pop.name]['I_{0}'.format(nnn[-2:])] = cond * (results[
+# 							                'analog_activity'][pop.name]['single_Vm'] - rev)
+# 						results['analog_activity'][pop.name]['I_{0}'.format(nnn[-2:])] /= 1000.
+#
+# 	if plot:
+# 		import modules.visualization as vis
+# 		vis.plot_state_analysis(parameter_set, results, start, stop, display=display, save=save)
+#
+# 	return results
 
 
 def single_neuron_dcresponse(population_object, parameter_set, start=None, stop=None, plot=True, display=True,
@@ -1527,8 +1522,6 @@ def single_neuron_dcresponse(population_object, parameter_set, start=None, stop=
 			pl.show()
 		if save:
 			assert isinstance(save, str), "Please provide filename"
-			#import matplotlib as mpl
-			#if isinstance(fig, pl.figure.Figure):
 			fig.savefig(save + population_object.name + '_SingleNeuron_DCresponse.pdf')
 
 	return dict(input_amplitudes=input_amplitudes[:-1], input_times=input_times, output_rate=np.array(output_rate),
@@ -1566,7 +1559,7 @@ def single_neuron_responses(population_object, parameter_set, pop_idx=0, start=N
 		print "No spike recorder attached to {0}".format(population_object.name)
 
 	if parameter_set.net_pars.record_analogs[pop_idx]:
-		for idx, nn in enumerate(parameter_set.net_pars.analog_device_pars[pop_idx]['record_from']):
+		for idx, nn in enumerate(population_object.analog_activity_names): #parameter_set.net_pars.analog_device_pars[pop_idx]['record_from']):
 			globals()[nn] = population_object.analog_activity[idx]
 
 			if list(globals()[nn].raw_data()):

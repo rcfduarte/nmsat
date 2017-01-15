@@ -151,7 +151,7 @@ def set_neuron_defaults(default_set=0):
 	return neuron_pars
 
 
-def set_network_defaults(neuron_set=0, connection_set=0, N=1250, kernel_pars=None, **synapse_pars):
+def set_network_defaults(neuron_set=0, N=1250, **synapse_pars):
 	"""
 	Network default parameters
 	:param default_set:
@@ -194,8 +194,7 @@ def set_network_defaults(neuron_set=0, connection_set=0, N=1250, kernel_pars=Non
 	#############################################################################################################
 	# SYNAPSE Parameters
 	# ============================================================================================================
-	connection_pars, neuron_pars = set_connection_defaults(default_set=connection_set, syn_pars=syn_pars,
-	                                                       neuron_pars=neuron_pars)
+	connection_pars = set_connection_defaults(syn_pars=syn_pars)
 
 	return ParameterSet(neuron_pars), ParameterSet(net_pars), ParameterSet(connection_pars)
 
@@ -233,3 +232,336 @@ def set_connection_defaults(syn_pars=None):
 	}
 
 	return connection_pars
+
+
+def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=0, encoder_neuron_pars=None,
+                          **synapse_pars):
+	"""
+
+	:param default_set:
+	:return:
+	"""
+	if default_set == 0:
+		print("\nLoading Default Encoding Set 0 - Empty Settings (add background noise)")
+		encoding_pars = {
+			'encoder': {
+				'N': 0,
+				'labels': [],
+				'models': [],
+				'model_pars': [],
+				'n_neurons': [],
+				'neuron_pars': [],
+				'topology': [],
+				'topology_dict': [],
+				'record_spikes': [],
+				'spike_device_pars': [],
+				'record_analogs': [],
+				'analog_device_pars': []},
+			'generator': {
+				'N': 0,
+				'labels': [],
+				'models': [],
+				'model_pars': [],
+				'topology': [],
+				'topology_pars': []},
+			'connectivity': {
+				'synapse_name': [],
+				'connections': [],
+				'topology_dependent': [],
+				'conn_specs': [],
+				'syn_specs': [],
+				'models': [],
+				'model_pars': [],
+				'weight_dist': [],
+				'delay_dist': [],
+				'preset_W': []},
+			'input_decoder': None}
+
+	elif default_set == 1:
+		# ###################################################################
+		# Encoding Type 1 - DC injection to target populations
+		# ###################################################################
+		gen_label = 'DC_input'
+		keys = ['target_population_names', 'conn_specs', 'syn_specs', 'models', 'model_pars',
+		        'weight_dist', 'delay_dist', 'preset_W']
+		if not np.mean([n in synapse_pars.keys() for n in keys]).astype(bool):
+			raise TypeError("Incorrect Synapse Parameters")
+		syn_pars = ParameterSet(synapse_pars)
+		# n_connections = len(syn_pars.target_population_names)
+		connections = [(n, gen_label) for n in syn_pars.target_population_names]
+		synapse_names = [gen_label+'syn' for _ in syn_pars.target_population_names]
+		print("\nLoading Default Encoding Set 1 - DC input to {0}".format(str(syn_pars.target_population_names)))
+		encoding_pars = {
+			'encoder': {
+				'N': 0,
+				'labels': [],
+				'models': [],
+				'model_pars': [],
+				'n_neurons': [],
+				'neuron_pars': [],
+				'topology': [],
+				'topology_dict': [],
+				'record_spikes': [],
+				'spike_device_pars': [],
+				'record_analogs': [],
+				'analog_device_pars': []},
+			'generator': {
+				'N': input_dimensions,
+				'labels': [gen_label],
+				'models': ['step_current_generator'],
+				'model_pars': [{'start': 0., 'stop': sys.float_info.max, 'origin': 0.}],
+				'topology': [False for _ in range(input_dimensions)],
+				'topology_pars': [None for _ in range(input_dimensions)]},
+			'connectivity': {
+				'synapse_name': synapse_names,
+				'connections': connections,
+				'topology_dependent': [False, False],
+				'conn_specs': syn_pars.conn_specs,
+				'syn_specs': syn_pars.syn_specs,
+				'models': syn_pars.models,
+				'model_pars': syn_pars.model_pars,
+				'weight_dist': syn_pars.weight_dist,
+				'delay_dist': syn_pars.delay_dist,
+				'preset_W': syn_pars.preset_W},
+			'input_decoder': None
+		}
+
+	elif default_set == 2:
+		# ###################################################################
+		# Encoding Type 2 - Deterministic spike encoding layer
+		# ###################################################################
+		rec_devices = rec_device_defaults()
+		enc_label = 'NEF'
+		keys = ['target_population_names', 'conn_specs', 'syn_specs', 'models', 'model_pars',
+		        'weight_dist', 'delay_dist', 'preset_W']
+		if not np.mean([n in synapse_pars.keys() for n in keys]).astype(bool):
+			raise TypeError("Incorrect Synapse Parameters")
+		syn_pars = ParameterSet(synapse_pars)
+		# n_connections = len(syn_pars.target_population_names) + 1
+		labels = [enc_label + '{0}'.format(str(n)) for n in range(input_dimensions)]
+		connections = [(n, enc_label) for n in syn_pars.target_population_names]
+		conn_specs = syn_pars.conn_specs
+		conn_specs.insert(0, {'rule': 'all_to_all'})#None)
+		synapse_names = [enc_label+'_'+n for n in syn_pars.target_population_names]
+		connections.insert(0, ('NEF', 'StepGen'))
+		synapse_names.insert(0, 'Gen_Enc')
+		spike_device_pars = [copy_dict(rec_devices, {'model': 'spike_detector',
+		                                             'label': 'input_Spikes'}) for _ in range(input_dimensions)]
+		models = syn_pars.models
+		models.insert(0, 'static_synapse')
+		model_pars = syn_pars.model_pars
+		model_pars.insert(0, {})
+		weight_dist = syn_pars.weight_dist
+		weight_dist.insert(0, 1.)
+		delay_dist = syn_pars.delay_dist
+		delay_dist.insert(0, 0.1)
+		syn_specs = syn_pars.syn_specs
+		syn_specs.insert(0, {})
+		if hasattr(syn_pars, 'gen_to_enc_W'):
+			preset_W = syn_pars.preset_W
+			preset_W.insert(0, syn_pars.gen_to_enc_W)
+		else:
+			preset_W = syn_pars.preset_W
+
+		print("\nLoading Default Encoding Set 2 - Deterministic spike encoding, {0} input populations of {1} [{2} " \
+		      "neurons] connected to {3}".format(
+				str(input_dimensions), str(n_encoding_neurons), str(encoder_neuron_pars['model']), str(
+				syn_pars.target_population_names)))
+
+		encoding_pars = {
+			'encoder': {
+				'N': input_dimensions,
+				'labels': [enc_label for _ in range(input_dimensions)],
+				'models': [enc_label for _ in range(input_dimensions)],
+				'model_pars': [None for _ in range(input_dimensions)],
+				'n_neurons': [n_encoding_neurons for _ in range(input_dimensions)],
+				'neuron_pars': [encoder_neuron_pars for _ in range(input_dimensions)],
+				'topology': [False for _ in range(input_dimensions)],
+				'topology_dict': [None for _ in range(input_dimensions)],
+				'record_spikes': [True for _ in range(input_dimensions)],
+				'spike_device_pars': spike_device_pars,
+				'record_analogs': [False for _ in range(input_dimensions)],
+				'analog_device_pars': [None for _ in range(input_dimensions)]},
+			'generator': {
+				'N': 1,
+				'labels': ['StepGen'],
+				'models': ['step_current_generator'],
+				'model_pars': [{'start': 0., 'stop': sys.float_info.max, 'origin': 0.}],
+				'topology': [False],
+				'topology_pars': [None]},
+			'connectivity': {
+				'connections': connections,
+				'synapse_name': synapse_names,
+				'topology_dependent': [False for _ in range(len(synapse_names))],
+				'conn_specs': conn_specs,
+				'models': models,
+				'model_pars': model_pars,
+				'weight_dist': weight_dist,
+				'delay_dist': delay_dist,
+				'preset_W': preset_W,
+				'syn_specs': syn_specs},
+			'input_decoder': {'encoder_label': enc_label}
+		}
+	elif default_set == 3:
+		# ###################################################################
+		# Encoding Type 3 - Stochastic spike encoding layer
+		# ###################################################################
+		gen_label = 'inh_poisson'
+		keys = ['target_population_names', 'conn_specs', 'syn_specs', 'models', 'model_pars',
+		        'weight_dist', 'delay_dist', 'preset_W']
+		if not np.mean([n in synapse_pars.keys() for n in keys]).astype(bool):
+			raise TypeError("Incorrect Synapse Parameters")
+		syn_pars = ParameterSet(synapse_pars)
+		# n_connections = len(syn_pars.target_population_names)
+		connections = [(n, gen_label) for n in syn_pars.target_population_names]
+		synapse_names = [gen_label+'syn' for _ in syn_pars.target_population_names]
+		print("\nLoading Default Encoding Set 3 - Stochastic spike encoding, independent realizations of "
+		      "inhomogeneous Poisson processes connected to {0}".format(str(syn_pars.target_population_names)))
+
+		encoding_pars = {
+			'encoder': {
+				'N': 0,
+				'labels': [],
+				'models': [],
+				'model_pars': [],
+				'n_neurons': [],
+				'neuron_pars': [],
+				'topology': [],
+				'topology_dict': [],
+				'record_spikes': [],
+				'spike_device_pars': [],
+				'record_analogs': [],
+				'analog_device_pars': []},
+			'generator': {
+				'N': input_dimensions,
+				'labels': ['inh_poisson'],
+				'models': ['inh_poisson_generator'],
+				'model_pars': [{'start': 0., 'stop': sys.float_info.max, 'origin': 0.}],
+				'topology': [False],
+				'topology_pars': [None]},
+			'connectivity': {
+				'synapse_name': synapse_names,
+				'connections': connections,
+				'topology_dependent': [False, False],
+				'conn_specs': syn_pars.conn_specs,
+				'syn_specs': syn_pars.syn_specs,
+				'models': syn_pars.models,
+				'model_pars': syn_pars.model_pars,
+				'weight_dist': syn_pars.weight_dist,
+				'delay_dist': syn_pars.delay_dist,
+				'preset_W': syn_pars.preset_W}
+		}
+	elif default_set == 4:
+		# ###################################################################
+		# Encoding Type 3 - Precise Spatiotemporal spike encoding (Frozen noise)
+		# ###################################################################
+		gen_label = 'spike_pattern'
+		keys = ['target_population_names', 'conn_specs', 'syn_specs', 'models', 'model_pars',
+		        'weight_dist', 'delay_dist', 'preset_W']
+		if not np.mean([n in synapse_pars.keys() for n in keys]).astype(bool):
+			raise TypeError("Incorrect Synapse Parameters")
+		syn_pars = ParameterSet(synapse_pars)
+		connections = [(n, gen_label) for n in syn_pars.target_population_names]
+		synapse_names = [gen_label+'syn' for _ in syn_pars.target_population_names]
+		conn_tp = [False for _ in range(len(connections))]
+		if hasattr(syn_pars, 'jitter'):
+			jitter = syn_pars.jitter
+		else:
+			jitter = None
+
+		print("\nLoading Default Encoding Set 4 - Stochastic spike encoding, {0} fixed spike pattern templates "
+		      "composed of {1} independent spike trains connected to {2}".format(
+				str(input_dimensions), str(n_encoding_neurons), str(syn_pars.target_population_names)))
+
+		encoding_pars = {
+			'encoder': {
+				'N': 0,
+				'labels': [],
+				'models': [],
+				'model_pars': [],
+				'n_neurons': [],
+				'neuron_pars': [],
+				'topology': [],
+				'topology_dict': [],
+				'record_spikes': [],
+				'spike_device_pars': [],
+				'record_analogs': [],
+				'analog_device_pars': []},
+			'generator': {
+				'N': 1,
+				'labels': ['spike_pattern'],
+				'models': ['spike_generator'],
+				'model_pars': [{'start': 0., 'stop': sys.float_info.max, 'origin': 0.}],
+				'jitter': jitter,
+				'topology': [False],
+				'topology_pars': [None],
+				'gen_to_enc_W': syn_pars.gen_to_enc_W},
+			'connectivity': {
+				'synapse_name': synapse_names,
+				'connections': connections,
+				'topology_dependent': conn_tp,
+				'conn_specs': syn_pars.conn_specs,
+				'syn_specs': syn_pars.syn_specs,
+				'models': syn_pars.models,
+				'model_pars': syn_pars.model_pars,
+				'weight_dist': syn_pars.weight_dist,
+				'delay_dist': syn_pars.delay_dist,
+				'preset_W': syn_pars.preset_W},
+			'input_decoder': {}
+		}
+
+	else:
+		raise IOError("default_set not defined")
+
+	return ParameterSet(encoding_pars)
+
+
+def add_background_noise(encoding_pars, noise_pars):
+	"""
+	Adds a source of Poisson input to the specified populations (by modifying the encoding parameters)
+	:param encoding_pars: original encoding parameters
+	:param noise_pars: parameters of the noise process
+	:return: encoding ParameterSet
+	"""
+	extra_pars = noise_pars.pop('additional_parameters')
+	target_populations = noise_pars.pop('target_population_names')
+	if 'generator_label' in noise_pars.keys():
+		label = noise_pars['generator_label']
+	else:
+		label = 'X_noise'
+	encoding_pars.generator.N += 1
+	encoding_pars.generator.labels.append(label)
+	encoding_pars.generator.models.append('poisson_generator')
+	encoding_pars.generator.model_pars.append(noise_pars)
+	encoding_pars.generator.topology.append(False)
+	encoding_pars.generator.topology_pars.append(None)
+
+	connections = [(x, label) for x in target_populations]
+	encoding_pars.connectivity.synapse_name.extend([label for _ in range(len(connections))])
+	encoding_pars.connectivity.connections.extend(connections)
+	encoding_pars.connectivity.topology_dependent.extend([False for _ in range(len(connections))])
+	if 'conn_specs' in extra_pars.keys():
+		encoding_pars.connectivity.conn_specs.extend([extra_pars['conn_specs'] for _ in range(len(connections))])
+	else:
+		encoding_pars.connectivity.conn_specs.extend([{'rule': 'all_to_all'} for _ in range(len(connections))])
+	if 'syn_specs' in extra_pars.keys():
+		encoding_pars.connectivity.syn_specs.extend([extra_pars['syn_specs'] for _ in range(len(connections))])
+	else:
+		encoding_pars.connectivity.syn_specs.extend([{} for _ in range(len(connections))])
+	if 'models' in extra_pars.keys():
+		encoding_pars.connectivity.models.extend([extra_pars['models'] for _ in range(len(connections))])
+	else:
+		encoding_pars.connectivity.models.extend(['static_synapse' for _ in range(len(connections))])
+	if 'model_pars' in extra_pars.keys():
+		encoding_pars.connectivity.model_pars.extend([extra_pars['model_pars'] for _ in range(len(connections))])
+	else:
+		encoding_pars.connectivity.model_pars.extend([{} for _ in range(len(connections))])
+	if 'weight_dist' in extra_pars.keys():
+		encoding_pars.connectivity.weight_dist.extend([extra_pars['weight_dist'] for _ in range(len(connections))])
+	else:
+		encoding_pars.connectivity.weight_dist.extend([1.0 for _ in range(len(connections))])
+	if 'delay_dist' in extra_pars.keys():
+		encoding_pars.connectivity.delay_dist.extend([extra_pars['delay_dist'] for _ in range(len(connections))])
+	else:
+		encoding_pars.connectivity.delay_dist.extend([{} for _ in range(len(connections))])
+	encoding_pars.connectivity.preset_W.extend([None for _ in range(len(connections))])

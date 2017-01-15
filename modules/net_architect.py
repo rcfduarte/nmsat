@@ -24,7 +24,6 @@ from modules.analysis import *
 from modules.io import *
 import itertools
 import time
-import random
 
 
 def verify_pars_consistency(pars_set, not_allowed_keys, n=0):
@@ -36,7 +35,9 @@ def verify_pars_consistency(pars_set, not_allowed_keys, n=0):
 	:return: Bool - is consistent or not
 	"""
 	clean_dict = {k: v for k, v in pars_set.iteritems() if k not in not_allowed_keys}
-
+	# for k, v in clean_dict.items():
+	# 	print k, len(v)
+	# TODO: error handling (exception should inform which parameter is of incorrect length)
 	return np.mean([len(v) for v in clean_dict.itervalues()]) == n
 
 
@@ -47,22 +48,36 @@ def randomize_initial_var(var_name, obj_id, randomization_function, **function_p
 	:param randomization_dict:
 	:return:
 	"""
-	assert var_name in nest.GetStatus(obj_id), "Variable name not in object properties"
-	nest.SetStatus(obj_id, {var_name: randomization_function(**function_parameters)})
+	# assert var_name in nest.GetStatus(obj_id), "Variable name not in object properties"
+	# nest.SetStatus(obj_id, {var_name: randomization_function(**function_parameters)})
+	# randomization_function = v[0]
+	# function_parameters = v[1]
+	try:
+		nest.SetStatus(obj_id, var_name, randomization_function(size=len(obj_id), **function_parameters))
+	except:
+		#print(k)
+		for n_neuron in obj_id:
+			success = False
+			while not success:
+				try:
+					nest.SetStatus([n_neuron], var_name, randomization_function(size=1, **function_parameters))
+					success = True
+				except:
+					#print(n_neuron)
+					pass
 
-
-def iterate_obj_list(obj_list):
-	"""
-	Build an iterator to iterate through any nested list
-	:obj_list: list of objects to iterate
-	:return:
-	"""
-	for idx, n in enumerate(obj_list):
-		if isinstance(n, list):
-			for idxx, nn in enumerate(obj_list[idx]):
-				yield obj_list[idx][idxx]
-		else:
-			yield obj_list[idx]
+# def iterate_obj_list(obj_list):
+# 	"""
+# 	Build an iterator to iterate through any nested list
+# 	:obj_list: list of objects to iterate
+# 	:return:
+# 	"""
+# 	for idx, n in enumerate(obj_list):
+# 		if isinstance(n, list):
+# 			for idxx, nn in enumerate(obj_list[idx]):
+# 				yield obj_list[idx][idxx]
+# 		else:
+# 			yield obj_list[idx]
 
 
 def extract_weights_matrix(src_gids, tgets_gids, progress=True):
@@ -160,6 +175,7 @@ class Population(object):
 		self.attached_devices = []
 		self.attached_device_names = []
 		self.analog_activity_names = []
+		self.decoding_pars = []
 		self.state_extractors = []
 		self.readouts = []
 		self.state_matrix = []
@@ -192,11 +208,7 @@ class Population(object):
 						nest.SetStatus([n_neuron], var_name, randomization_function(size=1, **function_parameters))
 						success = True
 					except:
-						#print(n_neuron)
 						pass
-		# 	continue
-		# else:
-		# 	break
 
 	def record_spikes(self, rec_pars_dict, ids=None, label=None):
 		"""
@@ -338,7 +350,8 @@ class Population(object):
 
 		if hasattr(decoding_pars, "state_extractor"):
 			pars_st = decoding_pars.state_extractor
-			self.state_variables.append(pars_st.state_variable)
+			self.state_variables.append(pars_st.state_variable) # TODO - why doesn't it store all state variables?
+
 			if pars_st.state_variable == 'V_m':
 				mm_specs = extract_nestvalid_dict(pars_st.state_specs, param_type='device')
 				mm = nest.Create('multimeter', 1, mm_specs)
@@ -366,6 +379,13 @@ class Population(object):
 				self.state_extractors.append(rec_mm)
 				nest.Connect(rec_mm, rec_neurons)
 				nest.Connect(self.gids, rec_neurons, 'one_to_one', syn_spec={'weight': 1., 'delay': 0.1, 'model': 'static_synapse'})
+
+			elif pars_st.state_variable == 'raw_spikes':
+				sd_specs = extract_nestvalid_dict(pars_st.state_specs, type='device')
+				sd = nest.Create('spike_detector', 1, sd_specs)
+				self.state_extractors.append(sd)
+				nest.Connect(self.gids, sd)
+
 			else:
 				print "Acquisition from state variable {0} not implemented yet".format(pars_st.state_variable)
 
@@ -668,7 +688,7 @@ class Network(object):
 		self.readouts = []
 		self.merged_populations = []
 
-	def merge_subpopulations(self, sub_populations=[], name='', merge_activity=False):
+	def merge_subpopulations(self, sub_populations=[], name='', merge_activity=False, store=True):
 		"""
 		Combine sub-populations into a main Population object
 		:param sub_populations: [list] - of Population objects to merge
@@ -727,10 +747,10 @@ class Network(object):
 				# TODO - extend AnalogSignalList[0] with [1] ...
 				for n in analog_activity:
 					new_population.analog_activity.append(n)
-
-		self.merged_populations.append(new_population)
-		# QUESTION why do we return this here? not needed or is it?
-		return new_population
+		if store:
+			self.merged_populations.append(new_population)
+		else:
+			return new_population
 
 	def connect_devices(self):
 		"""
