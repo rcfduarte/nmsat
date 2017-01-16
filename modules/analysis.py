@@ -2,7 +2,7 @@
 =====================================================================================
 Analysis Module
 =====================================================================================
-(modified from NeuroTools.analysis)
+(partially modified from NeuroTools.analysis)
 
 Collection of analysis and utility functions that are used by other modules
 
@@ -26,25 +26,16 @@ noise_driven_dynamics
 
 """
 import numpy as np
-
-from __builtin__ import complex
-
-np.seterr(all='ignore')
 from modules.parameters import *
 from modules.signals import *
 from modules.net_architect import *
-#from Modules.input_architect import *
 from modules import check_dependency
+from modules.visualization import *
 import itertools
 import nest
 import time
 import scipy.optimize as opt
-try:
-    from mpi4py import MPI
-    mpi4py_loaded = True
-except:
-    mpi4py_loaded = False
-
+np.seterr(all='ignore')
 
 ############################################################################################
 def ccf(x, y, axis=None):
@@ -93,7 +84,7 @@ def ccf(x, y, axis=None):
 			xanom = (x - x.mean(axis=1)[:, None])
 			yanom = (y - y.mean(axis=1)[:, None])
 			varxy = np.sqrt((xanom * xanom).sum(1) *
-			                (yanom * yanom).sum(1))[:, None]
+							(yanom * yanom).sum(1))[:, None]
 		else:
 			if x.shape[1] != y.shape[1]:
 				raise ValueError("Arrays should have the same width!")
@@ -105,7 +96,7 @@ def ccf(x, y, axis=None):
 		iFxy = np.fft.ifft(Fx.conj() * Fy, n=npad, axis=axis).real
 	# We just turn the lags into correct positions:
 	iFxy = np.concatenate((iFxy[len(iFxy) / 2:len(iFxy)],
-	                       iFxy[0:len(iFxy) / 2]))
+						   iFxy[0:len(iFxy) / 2]))
 	return iFxy / varxy
 
 
@@ -143,6 +134,7 @@ def cross_correlogram(x, y, max_lag=100., dt=0.1, plot=True):
 		ax.set_xlim(lag[cutoff[0]], lag[cutoff[1]])
 		ax.axvline(x=lag[pos_ix], ymin=np.min(corr), ymax=np.max(corr), linewidth=1.5, color='c')
 		pl.show()
+
 
 def _dict_max(D):
 	"""
@@ -241,7 +233,7 @@ def make_kernel(form, sigma, time_stamp_resolution, direction=1):
 
 	"""
 	assert form.upper() in ('BOX', 'TRI', 'GAU', 'EPA', 'EXP', 'ALP'), "form must \
-    be one of either 'BOX','TRI','GAU','EPA','EXP' or 'ALP'!"
+	be one of either 'BOX','TRI','GAU','EPA','EXP' or 'ALP'!"
 
 	assert direction in (1, -1), "direction must be either 1 or -1"
 
@@ -395,9 +387,6 @@ def simple_frequency_spectrum(x):
 def distance(pos_1, pos_2, N=None):
 	"""
 	Function to calculate the euclidian distance between two positions
-	For the moment, we suppose the cells to be located in the same grid
-	of size NxN. Should then include a scaling parameter to allow
-	distances between distincts populations ?
 	:param pos_1:
 	:param pos_2:
 	:param N:
@@ -530,7 +519,8 @@ def check_signal_dimensions(input_signal, target_signal):
 	:return:
 	"""
 	if input_signal.shape != target_signal.shape:
-		raise RuntimeError("Input shape (%s) and target_signal shape (%s) should be the same."% (input_signal.shape, target_signal.shape))
+		raise RuntimeError("Input shape (%s) and target_signal shape (%s) should be the same." % (input_signal.shape,
+		                                                                                          target_signal.shape))
 
 
 def nrmse(input_signal, target_signal):
@@ -661,10 +651,11 @@ def ce(input_signal, target_signal):
 
 def compute_isi_stats(spike_list, summary_only=False, display=True):
 	"""
-	Compute all relevant isi metrics (all isis will only be stored if store_all is True)
-	:param spike_list:
-	:param store_all:
-	:return:
+	Compute all relevant isi metrics
+	:param spike_list: SpikeList object
+	:param summary_only: bool - store only the summary statistics or all the data (memory!)
+	:param display: bool - display progress / time
+	:return: dictionary with all the relevant data
 	"""
 	if display:
 		print "Analysing inter-spike intervals..."
@@ -707,6 +698,11 @@ def compute_isi_stats(spike_list, summary_only=False, display=True):
 def compute_spike_stats(spike_list, time_bin=1., summary_only=False, display=False):
 	"""
 	Compute relevant statistics on population firing activity (f. rates, spike counts)
+	:param spike_list: SpikeList object
+	:param time_bin: float - bin width to determine spike counts
+	:param summary_only: bool - store only the summary statistics or all the data (memory!)
+	:param display: bool - display progress / time
+	:return: dictionary with all the relevant data
 	"""
 	if display:
 		print "Analysing spiking activity..."
@@ -729,79 +725,69 @@ def compute_spike_stats(spike_list, time_bin=1., summary_only=False, display=Fal
 	return results
 
 
-def time_resolved_fano_factor(spike_list, time_points, **params):
-	"""
-	Regress the spike-count variance versus the mean and report the slope (FF).
-	Analysis is done at multiple time points.
-	The distribution of mean counts is matched (via downselection), so that all time points
-	have the same distribution of mean counts
-	:param spike_list: SpikeList object - binary spike count vectors will be extracted. The data analyzed takes
-	the form of a binary matrix with 1 row per trial / neuron and 1 column per ms.
-	:param time_points: time points to report
-	:param params: [dict] - if any of the fields is not provided, it will be replaced by the default value
-		- 'box_width' - width of sliding window
-		- 'match_reps' - number of random choices regarding which points to throw away when matching distributions
-		- 'bin_spacing' - bin width when computing distributions of mean counts
-		- 'align_time' - time of event that data are aligned to (output times are expressed relative to this)
-		- 'weighted_regression' - self-explanatory
-	:return results: [dict] -
-		- 'fano_factor' - FF for each time (after down-sampling to match distribution across times)
-		- 'fano_95CI' - 95% confidence intervals on the FF
-		- 'scatter_data' - data for variance VS mean scatter plot
-		- 'fano_factors' - FF for all data points (no down-sampling or matching)
-		- 'fano_all_95CI' - 95% confidence intervals for the above
-		- ''
-	Based on Churchland et al. (2010) Stimulus onset quenches neural variability: a widespread cortical phenomenon.
-	"""
-	default_params = {'box_width': 50, 'match_reps': 10, 'bin_spacing': 0.25, 'align_time': 0, 'weighted_regression':
-		True}
-	parameter_fields = ['box_width', 'match_reps', 'bin_spacing', 'align_time', 'weighted_regression']
-	for k, v in default_params.items():
-		if params.has_key(k):
-			default_params[k] = params[k]
-	# Acquire binary count data
-
-	counts = spike_list.spike_counts(dt=1., normalized=False, binary=True)
-	weighting_epsilon = 1. * default_params['box_width'] / 1000.
-
-	# main
-	max_rate = 0   # keep track of max rate across all times / conditions
-	# trial_count =
-	t_start = time_points - np.floor(default_params['box_width']/2.) + 1
-	t_end = time_points - np.ceil(default_params['box_width']/2.) + 1
-
-
-def to_pyspike(spike_list):
-	"""
-	Convert data to format usable by PySpike
-	:param spike_list:
-	:return:
-	"""
-	assert (check_dependency('pyspike')), "PySpike not found.."
-	import pyspike as spk
-	bounds = spike_list.time_parameters()
-	spike_trains = []
-	for n_train in spike_list.id_list:
-		sk_train = spike_list.spiketrains[n_train]
-		pyspk_sktrain = spk.SpikeTrain(spike_times=sk_train.spike_times, edges=bounds)
-		spike_trains.append(pyspk_sktrain)
-	return spike_trains
+# def time_resolved_fano_factor(spike_list, time_points, **params):
+# 	"""
+# 	Regress the spike-count variance versus the mean and report the slope (FF).
+# 	Analysis is done at multiple time points.
+# 	The distribution of mean counts is matched (via downselection), so that all time points
+# 	have the same distribution of mean counts
+# 	:param spike_list: SpikeList object - binary spike count vectors will be extracted. The data analyzed takes
+# 	the form of a binary matrix with 1 row per trial / neuron and 1 column per ms.
+# 	:param time_points: time points to report
+# 	:param params: [dict] - if any of the fields is not provided, it will be replaced by the default value
+# 		- 'box_width' - width of sliding window
+# 		- 'match_reps' - number of random choices regarding which points to throw away when matching distributions
+# 		- 'bin_spacing' - bin width when computing distributions of mean counts
+# 		- 'align_time' - time of event that data are aligned to (output times are expressed relative to this)
+# 		- 'weighted_regression' - self-explanatory
+# 	:return results: [dict] -
+# 		- 'fano_factor' - FF for each time (after down-sampling to match distribution across times)
+# 		- 'fano_95CI' - 95% confidence intervals on the FF
+# 		- 'scatter_data' - data for variance VS mean scatter plot
+# 		- 'fano_factors' - FF for all data points (no down-sampling or matching)
+# 		- 'fano_all_95CI' - 95% confidence intervals for the above
+# 		- ''
+# 	Based on Churchland et al. (2010) Stimulus onset quenches neural variability: a widespread cortical phenomenon.
+# 	"""
+# 	#TODO - incomplete (attempt to adapt from Matlab code)
+# 	default_params = {'box_width': 50, 'match_reps': 10, 'bin_spacing': 0.25, 'align_time': 0, 'weighted_regression':
+# 		True}
+# 	parameter_fields = ['box_width', 'match_reps', 'bin_spacing', 'align_time', 'weighted_regression']
+# 	for k, v in default_params.items():
+# 		if params.has_key(k):
+# 			default_params[k] = params[k]
+#
+# 	# Acquire binary count data
+# 	counts = spike_list.spike_counts(dt=1., normalized=False, binary=True)
+# 	weighting_epsilon = 1. * default_params['box_width'] / 1000.
+#
+# 	# main
+# 	max_rate = 0   # keep track of max rate across all times / conditions
+# 	# trial_count =
+# 	t_start = time_points - np.floor(default_params['box_width']/2.) + 1
+# 	t_end = time_points - np.ceil(default_params['box_width']/2.) + 1
 
 
 def compute_synchrony(spike_list, n_pairs=500, bin=1., tau=20., time_resolved=False, summary_only=False,
-                      display=True, complete=True):
+					  display=True, complete=True):
 	"""
 	Apply various metrics of spike train synchrony
 		Note: Has dependency on PySpike package.
-	:return:
+	:param spike_list: SpikeList object
+	:param n_pairs: number of neuronal pairs to consider in the pairwise correlation measures
+	:param bin: time_bin (for pairwise correlations)
+	:param tau: time constant (for the van Rossum distance)
+	:param time_resolved: bool - perform time-resolved synchrony analysis (PySpike)
+	:param summary_only: bool - retrieve only a summary of the results
+	:param complete: bool - use all metrics or only the ccs (due to computation time, memory)
+	:param display: bool - display elapsed time message
+	:return results: dict
 	"""
 	if display:
 		print "Analysing spike synchrony..."
 		t_start = time.time()
 	has_pyspike = check_dependency('pyspike')
-	if not has_pyspike:
-		print "PySpike not found, only simple metrics will be used.."
-	else:
+	if has_pyspike:
 		import pyspike as spk
 		spike_trains = to_pyspike(spike_list)
 	results = dict()
@@ -840,7 +826,12 @@ def compute_synchrony(spike_list, n_pairs=500, bin=1., tau=20., time_resolved=Fa
 def compute_analog_stats(population, parameter_set, variable_names, analysis_interval=None, plot=False):
 	"""
 	Extract, analyse and store analog data
-	:return:
+	:param population: Population object
+	:param parameter_set: full ParameterSet object
+	:param variable_names: names of the variables of interest ?
+	:param analysis_interval: time interval to analyse
+	:param plot: bool
+	:return results: dict
 	"""
 	results = dict()
 	pop_idx = parameter_set.net_pars.pop_names.index(population.name)
@@ -862,7 +853,6 @@ def compute_analog_stats(population, parameter_set, variable_names, analysis_int
 			reversals = []
 
 		# store the ids of the recorded neurons
-		print population.name
 		results['recorded_neurons'] = locals()[variable_names[0]].id_list()
 
 		for idx, nn in enumerate(variable_names):
@@ -958,6 +948,7 @@ def compute_timescale(activity_matrix, time_axis, max_lag=1000, method=0):
 	:param method: based on autocorrelation (0) or on power spectra (1)
 	:return:
 	"""
+	# TODO modify / review / extend
 	time_scales = []
 	final_acc = []
 	errors = []
@@ -976,7 +967,7 @@ def compute_timescale(activity_matrix, time_axis, max_lag=1000, method=0):
 	final_acc = np.array(final_acc)
 
 	mean_fit, _ = opt.leastsq(err_func, initial_guess, args=(time_axis, np.mean(final_acc, 0),
-	                                                         acc_function))
+															 acc_function))
 	error_rates = np.sum((np.mean(final_acc, 0) - acc_function(time_axis, *mean_fit)) ** 2)
 	print "Timescale = {0} ms / error = {1}".format(str(mean_fit[2]), str(error_rates))
 	print "Accepted dimensions = {0}".format(str(float(final_acc.shape[0]) / float(acc.shape[0])))
@@ -995,6 +986,7 @@ def manifold_learning(activity_matrix, n_neighbors, standardize=True, plot=True,
 	import sklearn.manifold as man
 	import matplotlib.pyplot as pl
 
+	# TODO extend and test - and include in the analyse_activity_dynamics function
 	if display:
 		print "Testing manifold learning algorithms"
 	if plot:
@@ -1009,7 +1001,7 @@ def manifold_learning(activity_matrix, n_neighbors, standardize=True, plot=True,
 			print "- Locally Linear Embedding: "
 			t_start = time.time()
 		fit_obj = man.LocallyLinearEmbedding(n_neighbors=n_neighbors, n_components=3, eigen_solver='auto',
-		                           method=method)
+								   method=method)
 		Y = fit_obj.fit_transform(activity_matrix.T)
 		if display:
 			print "\t{0} - {1} s / Reconstruction error = {2}".format(method, str(time.time()-t_start), str(
@@ -1020,43 +1012,35 @@ def manifold_learning(activity_matrix, n_neighbors, standardize=True, plot=True,
 
 
 def characterize_population_activity(population_object, parameter_set, analysis_interval, epochs=None,
-                                     time_bin=1., summary_only=False, complete=True, time_resolved=True,
-                                     window_len=100, analyse_responses=False, color_map='jet', plot=True,
-                                     display=True, save=False):
+									 time_bin=1., summary_only=False, complete=True, time_resolved=True,
+									 window_len=100, color_map='jet', plot=True,
+									 display=True, save=False):
 	"""
-	Characterize the activity of a Population or Network object (very complete)
-	:param population_object:
-	:param parameter_set:
-	:return:
+	Compute all the relevant metrics of recorded activity (spiking and analog signals), providing
+	a thorough characterization and quantification of population dynamics
+	:param population_object: Population or Network object whose activity should be analyzed
+	:param parameter_set: complete ParameterSet
+	:param analysis_interval: list or tuple with [start_time, stop time] specifying the time interval to analyse
+
+	:return results: dict
 	"""
-	import modules.net_architect as netarch
-	import modules.signals as sig
-	import itertools
+	# TODO - reduce function parameters
 	if plot or display:
 		import modules.visualization as vis
 	has_pyspike = check_dependency('pyspike')
-	has_scikit = check_dependency('sklearn')
 
-	if isinstance(population_object, netarch.Population):
+	if isinstance(population_object, Population):
 		gids = None
 		base_population_object = None
-	elif isinstance(population_object, netarch.Network):
+	elif isinstance(population_object, Network):
 		new_population = population_object.merge_subpopulations(sub_populations=population_object.populations,
-		                                                        name='Global')
-		gids = []
+																name='Global', merge_activity=True, store=False)
+		gids = [n.id_list for n in list(iterate_obj_list(population_object.spiking_activity))]
 		subpop_names = population_object.population_names
-		new_SpkList = sig.SpikeList([], [], t_start=analysis_interval[0], t_stop=analysis_interval[1],
-		                            dims=np.sum(list(netarch.iterate_obj_list(population_object.n_neurons))))
-		for n in list(netarch.iterate_obj_list(population_object.spiking_activity)):
-			gids.append(n.id_list)
-			for idd in n.id_list:
-				new_SpkList.append(idd, n.spiketrains[idd])
-		new_population.spiking_activity = new_SpkList
-		for n in list(netarch.iterate_obj_list(population_object.analog_activity)):
-			new_population.analog_activity.append(n)
-		for n in list(netarch.iterate_obj_list(population_object.populations)):
-			if not gids:
-				gids.append(np.array(n.gids))
+
+		if not gids:
+			gids = [np.array(n.gids) for n in list(iterate_obj_list(population_object.populations))]
+
 		base_population_object = population_object
 		population_object = new_population
 	else:
@@ -1066,106 +1050,32 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 	results['metadata'] = {'population_name': population_object.name}
 
 	########################################################################################################
+	# Spiking activity analysis
+
 	if population_object.spiking_activity:
-		results['spiking_activity'].update({population_object.name: {}})
 		spike_list = population_object.spiking_activity
-		assert isinstance(spike_list, sig.SpikeList), "Spiking activity should be SpikeList object"
+		assert isinstance(spike_list, SpikeList), "Spiking activity should be SpikeList object"
 		spike_list = spike_list.time_slice(analysis_interval[0], analysis_interval[1])
 
-		# ISI statistics
-		results['spiking_activity'][population_object.name].update(compute_isi_stats(spike_list,
-		                                                                             summary_only=summary_only))
-
-		# Firing activity statistics
-		results['spiking_activity'][population_object.name].update(compute_spike_stats(spike_list, time_bin=time_bin,
-		                                                                               summary_only=summary_only))
-
-		# Synchrony measures
-		results['spiking_activity'][population_object.name].update(compute_synchrony(spike_list, n_pairs=500,
-		                                                                             bin=time_bin, tau=20.,
-		                                                                             time_resolved=time_resolved,
-		                                                                             summary_only=summary_only,
-		                                                                             complete=complete))
-
-		if analyse_responses and has_scikit:
-			import sklearn.decomposition as sk
-			responses = spike_list.compile_response_matrix(dt=time_bin, tau=20., N=population_object.size)
-			pca_obj = sk.PCA(n_components=responses.shape[0])
-			X = pca_obj.fit_transform(responses.T)
-			print "Explained Variance (first 3 components): %s" % str(pca_obj.explained_variance_ratio_[:3])
-			results['spiking_activity'][population_object.name].update({'dimensionality': compute_dimensionality(responses, pca_obj=pca_obj, display=True)})
-			if plot:
-				vis.plot_dimensionality(results['spiking_activity'][population_object.name], pca_obj, X,
-				                        data_label=population_object.name, display=display, save=save)
-			if epochs is not None:
-				for epoch_label, epoch_time in epochs.items():
-					print epoch_label
-					resp = responses[:, int(epoch_time[0]):int(epoch_time[1])]
-					pca_obj = sk.PCA(n_components=resp.shape[0])
-					X = pca_obj.fit_transform(resp.T)
-					print "Explained Variance (first 3 components): %s" % str(pca_obj.explained_variance_ratio_[:3])
-					results['spiking_activity'][population_object.name].update({epoch_label: {}})
-					results['spiking_activity'][population_object.name][epoch_label].update(
-						{'dimensionality': compute_dimensionality(responses, pca_obj=pca_obj, display=True)})
-					if plot:
-						vis.plot_dimensionality(results['spiking_activity'][population_object.name][epoch_label],
-						                        pca_obj, X,
-						                        data_label=epoch_label, display=display, save=save)
+		results['spiking_activity'].update(compute_spikelist_metrics(spike_list, population_object.name))
 
 		if plot and not summary_only:
-			vis.plot_isi_data(results['spiking_activity'][population_object.name], data_label=population_object.name,
-			                  color_map=color_map, location=0, display=display, save=save)
+			plot_isi_data(results['spiking_activity'][population_object.name], data_label=population_object.name,
+							  color_map=color_map, location=0, display=display, save=save)
 			if has_pyspike:
-				vis.plot_synchrony_measures(results['spiking_activity'][population_object.name],
-				                            label=population_object.name, time_resolved=time_resolved,
-				                            epochs=epochs, display=display, save=save)
+				plot_synchrony_measures(results['spiking_activity'][population_object.name],
+											label=population_object.name, time_resolved=time_resolved,
+											epochs=epochs, display=display, save=save)
 
 		if time_resolved:
-			from modules.signals import moving_window
 			# *** Averaged time-resolved metrics
-			time_axis = spike_list.time_axis(time_bin=time_bin)
-			steps = len(list(moving_window(time_axis, window_len)))
-			mw = moving_window(time_axis, window_len)
-			print "Analysing activity in moving window.."
-			for n in range(steps):
-				if display:
-					vis.progress_bar(float(float(n) / steps))
-				time_window = mw.next()
-				local_list = spike_list.time_slice(t_start=min(time_window), t_stop=max(time_window))
-				local_isi = compute_isi_stats(local_list, summary_only=True, display=False)
-				local_spikes = compute_spike_stats(local_list, time_bin=1., summary_only=True, display=False)
-				if analyse_responses and has_scikit:
-					local_response = responses[:, time_window[0]:time_window[-1]]
-					pca_obj = sk.PCA(n_components=local_response.shape[0])
-					X = pca_obj.fit_transform(local_response.T)
-					local_dimensionality = {'dimensionality': compute_dimensionality(responses, pca_obj=pca_obj,
-					                                                                 display=False)}
-				if n == 0:
-					#print local_isi.keys()
-					rr = {k + '_profile': [] for k in local_isi.keys()}
-					rr.update({k + '_profile': [] for k in local_spikes.keys()})
-					if analyse_responses and has_scikit:
-						rr.update({k + '_profile': [] for k in local_dimensionality.keys()})
-				for k in local_isi.keys():
-					rr[k + '_profile'].append(local_isi[k])
-					if n == steps - 1:
-						results['spiking_activity'][population_object.name].update({k + '_profile': rr[k + '_profile']})
-				for k in local_spikes.keys():
-					rr[k + '_profile'].append(local_spikes[k])
-					if n == steps - 1:
-						results['spiking_activity'][population_object.name].update({k + '_profile': rr[k + '_profile']})
-				if analyse_responses and has_scikit:
-					for k in local_dimensionality.keys():
-						rr[k + '_profile'].append(local_dimensionality[k])
-						if n == steps - 1:
-							results['spiking_activity'][population_object.name].update({k + '_profile': rr[k + '_profile']})
-			if plot:
-				vis.plot_averaged_time_resolved(results['spiking_activity'][population_object.name], spike_list,
-					                                  label=population_object.name, epochs=epochs, color_map=color_map,
-					                              display=display, save=save)
+			results['spiking_activity'][population_object.name].update(compute_time_resolved_statistics(spike_list,
+			                        label=population_object.name, time_bin=time_bin, window_len=window_len,
+			                        epochs=epochs, color_map=color_map, display=display, plot=plot, save=save))
+
 		if gids:
 			results['metadata'].update({'sub_population_names': subpop_names, 'sub_population_gids': gids,
-			                            'spike_data_file': ''})
+										'spike_data_file': ''})
 			if len(gids) == 2:
 				locations = [-1, 1]
 			else:
@@ -1177,67 +1087,43 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 				# ISI statistics
 				results['spiking_activity'][name].update(compute_isi_stats(act, summary_only=summary_only))
 				# Firing activity statistics
-				results['spiking_activity'][name].update(compute_spike_stats(act, time_bin=time_bin, summary_only=summary_only))
+				results['spiking_activity'][name].update(compute_spike_stats(act, time_bin=time_bin,
+				                                                             summary_only=summary_only))
 				# Synchrony measures
 				results['spiking_activity'][name].update(compute_synchrony(act, n_pairs=500, bin=time_bin, tau=20.,
 		                                                                    time_resolved=time_resolved,
-		                                                                    summary_only=summary_only))
+		                                                                    summary_only=summary_only,
+		                                                                   complete=complete))
 				if plot and not summary_only:
-					vis.plot_isi_data(results['spiking_activity'][name], data_label=name,
-					             color_map=color_map, location=locations[indice], display=display, save=save)
+					plot_isi_data(results['spiking_activity'][name], data_label=name,
+								 color_map=color_map, location=locations[indice], display=display, save=save)
 					if has_pyspike:
-						vis.plot_synchrony_measures(results['spiking_activity'][name], label=name, time_resolved=time_resolved,
-			                                    display=display, save=save)
+						plot_synchrony_measures(results['spiking_activity'][name], label=name,
+						                        time_resolved=time_resolved, display=display, save=save)
 				# if time_resolved:
 				# 	# *** Averaged time-resolved metrics
-				# 	time_axis = act.time_axis(time_bin=time_bin)
-				# 	steps = len(list(moving_window(time_axis, window_len)))
-				# 	mw = moving_window(time_axis, window_len)
-				# 	print "Analysing activity in moving window.."
-				# 	for n in range(steps):
-				# 		if display:
-				# 			vis.progress_bar(float(float(n) / steps))
-				# 		time_window = mw.next()
-				# 		local_list = act.time_slice(t_start=min(time_window), t_stop=max(time_window))
-				# 		local_isi = compute_isi_stats(local_list, summary_only=True, display=False)
-				# 		local_spikes = compute_spike_stats(local_list, time_bin=1., summary_only=True, display=False)
-				# 		if n == 0:
-				# 			rr = {k + '_profile': [] for k in local_isi.keys()}
-				# 			rr.update({k + '_profile': [] for k in local_spikes.keys()})
-				# 		for k in local_isi.keys():
-				# 			rr[k + '_profile'].append(local_isi[k])
-				# 			if n == steps - 1:
-				# 				results.update({k + '_profile': rr[k + '_profile']})
-				# 		for k in local_spikes.keys():
-				# 			rr[k + '_profile'].append(local_spikes[k])
-				# 			if n == steps - 1:
-				# 				results['spiking_activity'][population_object.name].update({k + '_profile': rr[k + '_profile']})
-				# 	if plot:
-				# 		vis.plot_avereraged_time_resolved(results['spiking_activity'][name], act,
-				# 		                                  label=name, color_map=color_map, display=display, save=save)
+				#   results['spiking_activity'][name].update(compute_time_resolved_statistics())
+
 		if plot:
-			# Save spike list for plotting
-			results['metadata']['spike_data_file'] = parameter_set.kernel_pars.data_path + \
-			                                         parameter_set.kernel_pars.data_prefix + \
-			                                         parameter_set.label + '_SpikingActivity.dat'
-			# spike_list.save(results['metadata']['spike_data_file'])
 			results['metadata']['spike_list'] = spike_list
 
-	####################################################################################################################
+	########################################################################################################
+	# Analog activity analysis
 	if population_object.analog_activity and base_population_object is not None:
 		results['analog_activity'] = {}
 		for pop_n, pop in enumerate(base_population_object.populations):
-			results['analog_activity'].update({pop.name: {}})
-			pop_idx = parameter_set.net_pars.pop_names.index(pop.name)
-			if parameter_set.net_pars.analog_device_pars[pop_idx] is None:
-				break
-			variable_names = list(np.copy(parameter_set.net_pars.analog_device_pars[pop_idx]['record_from']))
+			if bool(pop.analog_activity):
+				results['analog_activity'].update({pop.name: {}})
+				pop_idx = parameter_set.net_pars.pop_names.index(pop.name)
+				if parameter_set.net_pars.analog_device_pars[pop_idx] is None:
+					break
+				variable_names = list(np.copy(parameter_set.net_pars.analog_device_pars[pop_idx]['record_from']))
 
-			results['analog_activity'][pop.name].update(compute_analog_stats(pop, parameter_set, variable_names,
-			                                                                 analysis_interval, plot))
+				results['analog_activity'][pop.name].update(compute_analog_stats(pop, parameter_set, variable_names,
+				                                                                 analysis_interval, plot))
 	if plot:
-		vis.plot_state_analysis(parameter_set, results, analysis_interval[0], analysis_interval[1], display=display,
-		                        save=save)
+		plot_state_analysis(parameter_set, results, analysis_interval[0], analysis_interval[1], display=display,
+								save=save)
 	return results
 
 
@@ -1253,200 +1139,308 @@ def epoch_based_analysis(population_object, epochs):
 	# 	full_data_set[lab].update({epoch_label: spike_list.time_slice(epoch_times[0], epoch_times[1])})
 
 
-def population_state(population_object, parameter_set=None, nPairs=500, time_bin=10., start=None, stop=None, plot=True,
-                     display=True, save=False):
+def analyse_activity_dynamics(activity_matrix, epochs=None, label='', plot=False, display=False, save=False):
 	"""
-	Determine the circuit's operating point and return all relevant stats
-	:param :
+	Perform standard analyses on population activity
+	:param activity_matrix: NxT continuous activity matrix
+	:return: results dictionary
+	"""
+	if isinstance(activity_matrix, AnalogSignalList):
+		activity_matrix = activity_matrix.as_array()
+	assert(isinstance(activity_matrix, np.ndarray)), "Activity matrix must be numpy array or AnalogSignalList"
+	assert(check_dependency('sklearn')), "Scikits-learn is necessary for this analysis"
+	import sklearn.decomposition as sk
+
+	results = {}
+
+	pca_obj = sk.PCA(n_components=activity_matrix.shape[0])
+	X = pca_obj.fit_transform(activity_matrix.T)
+	print "Explained Variance (first 3 components): %s" % str(pca_obj.explained_variance_ratio_[:3])
+	results.update({'dimensionality': compute_dimensionality(activity_matrix, pca_obj=pca_obj, display=True)})
+	if plot:
+		plot_dimensionality(results, pca_obj, X, data_label=label, display=display, save=save)
+	if epochs is not None:
+		for epoch_label, epoch_time in epochs.items():
+			print epoch_label
+			resp = activity_matrix[:, int(epoch_time[0]):int(epoch_time[1])]
+
+			results.update({epoch_label: {}})
+			results[epoch_label].update(analyse_activity_dynamics(resp, epochs=None, label=epoch_label, plot=False,
+			                                                     display=False, save=False))
+	# TODO extend to other standard measurements
+	return results
+
+
+def compute_time_resolved_statistics(spike_list, label='', time_bin=1., window_len=100, epochs=None,
+                                     color_map='jet', display=True, plot=False, save=False):
+	"""
+
 	:return:
 	"""
-	import modules.net_architect as netarch
-	import modules.signals as sig
-	import itertools
-	if start is None:
-		start = 0.
-	if stop is None:
-		stop = parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t
-	pop_idx = 0
-	if isinstance(population_object, netarch.Population):
-		gids = None
-		base_population_object = None
-	elif isinstance(population_object, netarch.Network):
-		assert parameter_set is not None, "Provide ParameterSet"
-		new_population = population_object.merge_subpopulations(sub_populations=population_object.populations,
-		                                                        name='Global')
-		gids = []
-		subpop_names = population_object.population_names
-		new_SpkList = sig.SpikeList([], [], t_start=start, t_stop=stop,
-		                          dims=np.sum(list(netarch.iterate_obj_list(population_object.n_neurons))))
-		for n in list(netarch.iterate_obj_list(population_object.spiking_activity)):
-			gids.append(n.id_list)
-			for idd in n.id_list:
-				new_SpkList.append(idd, n.spiketrains[idd])
-		new_population.spiking_activity = new_SpkList
+	# TODO - separate activity
+	has_scikit = check_dependency('sklearn')
+	time_axis = spike_list.time_axis(time_bin=time_bin)
+	steps = len(list(moving_window(time_axis, window_len)))
+	mw = moving_window(time_axis, window_len)
+	results = dict()
+	print "\nAnalysing activity in moving window.."
 
-		for n in list(netarch.iterate_obj_list(population_object.analog_activity)):
-			new_population.analog_activity.append(n)
+	if has_scikit:
+		import sklearn.decomposition as sk
+		population_response = spike_list.compile_response_matrix()
+		pca_obj = sk.PCA(n_components=population_response.shape[0])
 
-		for n in list(netarch.iterate_obj_list(population_object.populations)):
-			if not gids:
-				gids.append(np.array(n.gids))
-
-		base_population_object = population_object
-		population_object = new_population
-	else:
-		raise TypeError("Incorrect population object. Must be Population or Network object")
-
-	results = {'spiking_activity': {}, 'analog_activity': {}, 'metadata': {}}
-	results['metadata'] = {'population_name': population_object.name}
-
-	if population_object.spiking_activity:
-		results['spiking_activity'].update({population_object.name: {}})
-		spiking_activity = population_object.spiking_activity
-		assert isinstance(spiking_activity, sig.SpikeList), "Spiking activity should be SpikeList object"
-		if (start is not None) and (stop is not None):
-			spiking_activity = spiking_activity.time_slice(start, stop)
-		results['spiking_activity'][population_object.name]['isi'] = np.array(list(itertools.chain(*spiking_activity.isi())))
-		cvs = spiking_activity.cv_isi(float_only=True)
-		results['spiking_activity'][population_object.name]['cvs'] = cvs[~np.isnan(cvs)]
-		rates = np.array(spiking_activity.mean_rates())
-		results['spiking_activity'][population_object.name]['mean_rates'] = rates[~np.isnan(rates)]
-		results['spiking_activity'][population_object.name]['std_rate'] = spiking_activity.mean_rate_std()
-		ccs = spiking_activity.pairwise_pearson_corrcoeff(nPairs, time_bin=time_bin,
-		                                                  all_coef=True)
-		results['spiking_activity'][population_object.name]['ccs'] = ccs[~np.isnan(ccs)]
-		results['spiking_activity'][population_object.name]['ff'] = spiking_activity.fano_factor(time_bin)
-		ffs = np.array(spiking_activity.fano_factors(time_bin))
-		results['spiking_activity'][population_object.name]['ffs'] = ffs[~np.isnan(ffs)]
-		results['spiking_activity'][population_object.name]['spiking_neurons'] = spiking_activity.id_list
-
-		if gids:
-			results['metadata'].update({'sub_population_names': subpop_names, 'sub_population_gids': gids,
-			                       'spike_data_file': ''})
-
-			for indice, name in enumerate(subpop_names):
-				results['spiking_activity'].update({name: {}})
-				act = spiking_activity.id_slice(gids[indice])
-				results['spiking_activity'][name]['isi'] = np.array(list(itertools.chain(*act.isi())))
-				cvs1 = act.cv_isi(True)
-				results['spiking_activity'][name]['cvs'] = cvs1[~np.isnan(cvs1)]
-				rates1 = np.array(act.mean_rates())
-				results['spiking_activity'][name]['mean_rates'] = rates1[~np.isnan(rates1)]
-				results['spiking_activity'][name]['std_rate'] = act.mean_rate_std()
-				ccs1 = spiking_activity.pairwise_pearson_corrcoeff(nPairs, time_bin=time_bin,
-				                                                  all_coef=True)
-				results['spiking_activity'][name]['ccs'] = ccs1[~np.isnan(ccs1)]
-				results['spiking_activity'][name]['ff'] = act.fano_factor(time_bin)
-				ffs1 = np.array(act.fano_factors(time_bin))
-				results['spiking_activity'][name]['ffs'] = ffs1[~np.isnan(ffs1)]
-				results['spiking_activity'][name]['spiking_neurons'] = act.id_list
-
-		results['metadata']['spike_data_file'] = parameter_set.kernel_pars.data_path + \
-		                                         parameter_set.kernel_pars.data_prefix + \
-		                                         parameter_set.label + '_SpikingActivity.dat'
-		# spiking_activity.save(results['metadata']['spike_data_file'])
-		results['metadata']['spike_list'] = spiking_activity
-
-	if population_object.analog_activity and base_population_object is not None:
-		results['analog_activity'] = {}
-		for pop_n, pop in enumerate(base_population_object.populations):
-			results['analog_activity'].update({pop.name: {}})
-			pop_idx = parameter_set.net_pars.pop_names.index(pop.name)
-			if parameter_set.net_pars.analog_device_pars[pop_idx] is None:
-				break
-			variable_names = list(np.copy(parameter_set.net_pars.analog_device_pars[pop_idx]['record_from']))
-
-			if not pop.analog_activity:
-				results['analog_activity'][pop.name]['recorded_neurons'] = []
-				break
-			elif isinstance(pop.analog_activity, list):
-				for idx, nn in enumerate(variable_names):
-					locals()[nn] = pop.analog_activity[idx]
-					assert isinstance(locals()[nn], sig.AnalogSignalList), "Analog Activity should be AnalogSignalList"
-			else:
-				locals()[variable_names[0]] = pop.analog_activity
-
-			reversals = []
-			single_idx = np.random.permutation(locals()[variable_names[0]].id_list())[0]
-			results['analog_activity'][pop.name]['recorded_neurons'] = locals()[variable_names[0]].id_list()
-
-			for idx, nn in enumerate(variable_names):
-				if (start is not None) and (stop is not None):
-					locals()[nn] = locals()[nn].time_slice(start, stop)
-
-				time_axis = locals()[nn].time_axis()
-
-				if 'E_{0}'.format(nn[-2:]) in parameter_set.net_pars.neuron_pars[pop_idx]:
-					reversals.append(parameter_set.net_pars.neuron_pars[pop_idx]['E_{0}'.format(nn[-2:])])
-
-				if len(results['analog_activity'][pop.name]['recorded_neurons']) > 1:
-					results['analog_activity'][pop.name]['mean_{0}'.format(nn)] = locals()[nn].mean(axis=1)
-					results['analog_activity'][pop.name]['std_{0}'.format(nn)] = locals()[nn].std(axis=1)
-
-			if len(results['analog_activity'][pop.name]['recorded_neurons']) > 1:
-				results['analog_activity'][pop.name]['mean_I_ex'] = []
-				results['analog_activity'][pop.name]['mean_I_in'] = []
-				results['analog_activity'][pop.name]['EI_CC'] = []
-				for idxxx, nnnn in enumerate(results['analog_activity'][pop.name]['recorded_neurons']):
-					for idx, nn in enumerate(variable_names):
-						locals()['signal_' + nn] = locals()[nn].analog_signals[nnnn].signal
-					if ('signal_V_m' in locals()) and ('signal_g_ex' in locals()) and ('signal_g_in' in locals()):
-						E_ex = parameter_set.net_pars.neuron_pars[pop_idx]['E_ex']
-						E_in = parameter_set.net_pars.neuron_pars[pop_idx]['E_in']
-
-						E_current = locals()['signal_g_ex'] * (locals()['signal_V_m'] - E_ex)
-						E_current /= 1000.
-
-						I_current = locals()['signal_g_in'] * (locals()['signal_V_m'] - E_in)
-						I_current /= 1000.
-
-						results['analog_activity'][pop.name]['mean_I_ex'].append(np.mean(E_current))
-						results['analog_activity'][pop.name]['mean_I_in'].append(np.mean(I_current))
-						cc = np.corrcoef(E_current, I_current)
-						results['analog_activity'][pop.name]['EI_CC'].append(np.unique(cc[cc != 1.]))
-					elif ('signal_I_ex' in locals()) and ('signal_I_in' in locals()):
-						results['analog_activity'][pop.name]['mean_I_ex'].append(np.mean(locals()[
-							'signal_I_ex']))
-						results['analog_activity'][pop.name]['mean_I_in'].append(np.mean(locals()[
-							'signal_I_in']))
-						cc = np.corrcoef(locals()['signal_I_ex'], locals()['signal_I_in'])
-						results['analog_activity'][pop.name]['EI_CC'].append(np.unique(cc[cc != 1.]))
-
-				results['analog_activity'][pop.name]['EI_CC'] = np.array(list(itertools.chain(*results[
-					'analog_activity'][pop.name]['EI_CC'])))
-				results['analog_activity'][pop.name]['EI_CC'][np.isnan(results['analog_activity'][
-					pop.name]['EI_CC'])] = 0.
-				results['analog_activity'][pop.name]['EI_CC'][np.isinf(results['analog_activity'][
-					pop.name]['EI_CC'])] = 0.
-
-			if plot:
-				results['analog_activity'][pop.name]['single_Vm'] = locals()['V_m'].analog_signals[
-					single_idx].signal
-				results['analog_activity'][pop.name]['single_idx'] = single_idx
-				results['analog_activity'][pop.name]['time_axis'] = locals()['V_m'].analog_signals[single_idx].time_axis()
-
-			variable_names.remove('V_m')
-			for idxx, nnn in enumerate(variable_names):
-				cond = locals()[nnn].analog_signals[single_idx].signal
-
-				if 'I_ex' in variable_names:
-					results['analog_activity'][pop.name]['I_{0}'.format(nnn[-2:])] = cond
-					results['analog_activity'][pop.name]['I_{0}'.format(nnn[-2:])] /= 1000.
-				elif 'single_Vm' in results['analog_activity'][pop.name].keys():
-					rev = reversals[idxx]
-					results['analog_activity'][pop.name]['I_{0}'.format(nnn[-2:])] = cond * (results[
-						                'analog_activity'][pop.name]['single_Vm'] - rev)
-					results['analog_activity'][pop.name]['I_{0}'.format(nnn[-2:])] /= 1000.
-
+	for n in range(steps):
+		if display:
+			progress_bar(float(float(n) / steps))
+		time_window = mw.next()
+		local_list = spike_list.time_slice(t_start=min(time_window), t_stop=max(time_window))
+		local_isi = compute_isi_stats(local_list, summary_only=True, display=False)
+		local_spikes = compute_spike_stats(local_list, time_bin=time_bin, summary_only=True, display=False)
+		if has_scikit:
+			local_response = local_list.compile_response_matrix()
+			X = pca_obj.fit_transform(local_response.T)
+			local_dimensionality = {'dimensionality': compute_dimensionality(local_response, pca_obj=pca_obj,
+			                                                                 display=False)}
+		if n == 0:
+			rr = {k + '_profile': [] for k in local_isi.keys()}
+			rr.update({k + '_profile': [] for k in local_spikes.keys()})
+			if has_scikit:
+				rr.update({k + '_profile': [] for k in local_dimensionality.keys()})
+		else:
+			for k in local_isi.keys():
+				rr[k + '_profile'].append(local_isi[k])
+				if n == steps - 1:
+					results.update({k + '_profile': rr[k + '_profile']})
+			for k in local_spikes.keys():
+				rr[k + '_profile'].append(local_spikes[k])
+				if n == steps - 1:
+					results.update({k + '_profile': rr[k + '_profile']})
+			if has_scikit:
+				for k in local_dimensionality.keys():
+					rr[k + '_profile'].append(local_dimensionality[k])
+					if n == steps - 1:
+						results.update({k + '_profile': rr[k + '_profile']})
 	if plot:
-		import modules.visualization as vis
-		vis.plot_state_analysis(parameter_set, results, start, stop, display=display, save=save)
+		plot_averaged_time_resolved(results, spike_list, label=label, epochs=epochs,
+		                            color_map=color_map, display=display, save=save)
+
+
+def compute_spikelist_metrics(spike_list, label, summary_only=True, time_bin=1., complete=False, time_resolved=False):
+	"""
+
+	:return:
+	"""
+	results = {label: {}}
+
+	# ISI statistics
+	results[label].update(compute_isi_stats(spike_list, summary_only=summary_only))
+
+	# Firing activity statistics
+	results[label].update(compute_spike_stats(spike_list, time_bin=time_bin, summary_only=summary_only))
+
+	# Synchrony measures
+	results[label].update(compute_synchrony(spike_list, n_pairs=500, bin=time_bin, tau=20., time_resolved=time_resolved,
+	                                        summary_only=summary_only, complete=complete))
 
 	return results
 
 
+# def population_state(population_object, parameter_set=None, nPairs=500, time_bin=10., start=None, stop=None, plot=True,
+# 					 display=True, save=False):
+# 	"""
+# 	Determine the circuit's operating point and return all relevant stats
+# 	:param :
+# 	:return:
+# 	"""
+# 	import modules.net_architect as netarch
+# 	import modules.signals as sig
+# 	import itertools
+# 	if start is None:
+# 		start = 0.
+# 	if stop is None:
+# 		stop = parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t
+# 	pop_idx = 0
+# 	if isinstance(population_object, netarch.Population):
+# 		gids = None
+# 		base_population_object = None
+# 	elif isinstance(population_object, netarch.Network):
+# 		assert parameter_set is not None, "Provide ParameterSet"
+# 		new_population = population_object.merge_subpopulations(sub_populations=population_object.populations,
+# 																name='Global')
+# 		gids = []
+# 		subpop_names = population_object.population_names
+# 		new_SpkList = sig.SpikeList([], [], t_start=start, t_stop=stop,
+# 								  dims=np.sum(list(netarch.iterate_obj_list(population_object.n_neurons))))
+# 		for n in list(netarch.iterate_obj_list(population_object.spiking_activity)):
+# 			gids.append(n.id_list)
+# 			for idd in n.id_list:
+# 				new_SpkList.append(idd, n.spiketrains[idd])
+# 		new_population.spiking_activity = new_SpkList
+#
+# 		for n in list(netarch.iterate_obj_list(population_object.analog_activity)):
+# 			new_population.analog_activity.append(n)
+#
+# 		for n in list(netarch.iterate_obj_list(population_object.populations)):
+# 			if not gids:
+# 				gids.append(np.array(n.gids))
+#
+# 		base_population_object = population_object
+# 		population_object = new_population
+# 	else:
+# 		raise TypeError("Incorrect population object. Must be Population or Network object")
+#
+# 	results = {'spiking_activity': {}, 'analog_activity': {}, 'metadata': {}}
+# 	results['metadata'] = {'population_name': population_object.name}
+#
+# 	if population_object.spiking_activity:
+# 		results['spiking_activity'].update({population_object.name: {}})
+# 		spiking_activity = population_object.spiking_activity
+# 		assert isinstance(spiking_activity, sig.SpikeList), "Spiking activity should be SpikeList object"
+# 		if (start is not None) and (stop is not None):
+# 			spiking_activity = spiking_activity.time_slice(start, stop)
+# 		results['spiking_activity'][population_object.name]['isi'] = np.array(list(itertools.chain(*spiking_activity.isi())))
+# 		cvs = spiking_activity.cv_isi(float_only=True)
+# 		results['spiking_activity'][population_object.name]['cvs'] = cvs[~np.isnan(cvs)]
+# 		rates = np.array(spiking_activity.mean_rates())
+# 		results['spiking_activity'][population_object.name]['mean_rates'] = rates[~np.isnan(rates)]
+# 		results['spiking_activity'][population_object.name]['std_rate'] = spiking_activity.mean_rate_std()
+# 		ccs = spiking_activity.pairwise_pearson_corrcoeff(nPairs, time_bin=time_bin,
+# 														  all_coef=True)
+# 		results['spiking_activity'][population_object.name]['ccs'] = ccs[~np.isnan(ccs)]
+# 		results['spiking_activity'][population_object.name]['ff'] = spiking_activity.fano_factor(time_bin)
+# 		ffs = np.array(spiking_activity.fano_factors(time_bin))
+# 		results['spiking_activity'][population_object.name]['ffs'] = ffs[~np.isnan(ffs)]
+# 		results['spiking_activity'][population_object.name]['spiking_neurons'] = spiking_activity.id_list
+#
+# 		if gids:
+# 			results['metadata'].update({'sub_population_names': subpop_names, 'sub_population_gids': gids,
+# 								   'spike_data_file': ''})
+#
+# 			for indice, name in enumerate(subpop_names):
+# 				results['spiking_activity'].update({name: {}})
+# 				act = spiking_activity.id_slice(gids[indice])
+# 				results['spiking_activity'][name]['isi'] = np.array(list(itertools.chain(*act.isi())))
+# 				cvs1 = act.cv_isi(True)
+# 				results['spiking_activity'][name]['cvs'] = cvs1[~np.isnan(cvs1)]
+# 				rates1 = np.array(act.mean_rates())
+# 				results['spiking_activity'][name]['mean_rates'] = rates1[~np.isnan(rates1)]
+# 				results['spiking_activity'][name]['std_rate'] = act.mean_rate_std()
+# 				ccs1 = spiking_activity.pairwise_pearson_corrcoeff(nPairs, time_bin=time_bin,
+# 																  all_coef=True)
+# 				results['spiking_activity'][name]['ccs'] = ccs1[~np.isnan(ccs1)]
+# 				results['spiking_activity'][name]['ff'] = act.fano_factor(time_bin)
+# 				ffs1 = np.array(act.fano_factors(time_bin))
+# 				results['spiking_activity'][name]['ffs'] = ffs1[~np.isnan(ffs1)]
+# 				results['spiking_activity'][name]['spiking_neurons'] = act.id_list
+#
+# 		results['metadata']['spike_data_file'] = parameter_set.kernel_pars.data_path + \
+# 												 parameter_set.kernel_pars.data_prefix + \
+# 												 parameter_set.label + '_SpikingActivity.dat'
+# 		# spiking_activity.save(results['metadata']['spike_data_file'])
+# 		results['metadata']['spike_list'] = spiking_activity
+#
+# 	if population_object.analog_activity and base_population_object is not None:
+# 		results['analog_activity'] = {}
+# 		for pop_n, pop in enumerate(base_population_object.populations):
+# 			if bool(pop.analog_activity):
+# 				results['analog_activity'].update({pop.name: {}})
+# 				pop_idx = parameter_set.net_pars.pop_names.index(pop.name)
+# 				if parameter_set.net_pars.analog_device_pars[pop_idx] is None:
+# 					break
+# 				variable_names = list(np.copy(parameter_set.net_pars.analog_device_pars[pop_idx]['record_from']))
+#
+# 				if not pop.analog_activity:
+# 					results['analog_activity'][pop.name]['recorded_neurons'] = []
+# 					break
+# 				elif isinstance(pop.analog_activity, list):
+# 					for idx, nn in enumerate(variable_names):
+# 						locals()[nn] = pop.analog_activity[idx]
+# 						assert isinstance(locals()[nn], sig.AnalogSignalList), "Analog Activity should be AnalogSignalList"
+# 				else:
+# 					locals()[variable_names[0]] = pop.analog_activity
+#
+# 				reversals = []
+# 				single_idx = np.random.permutation(locals()[variable_names[0]].id_list())[0]
+# 				results['analog_activity'][pop.name]['recorded_neurons'] = locals()[variable_names[0]].id_list()
+#
+# 				for idx, nn in enumerate(variable_names):
+# 					if (start is not None) and (stop is not None):
+# 						locals()[nn] = locals()[nn].time_slice(start, stop)
+#
+# 					time_axis = locals()[nn].time_axis()
+#
+# 					if 'E_{0}'.format(nn[-2:]) in parameter_set.net_pars.neuron_pars[pop_idx]:
+# 						reversals.append(parameter_set.net_pars.neuron_pars[pop_idx]['E_{0}'.format(nn[-2:])])
+#
+# 					if len(results['analog_activity'][pop.name]['recorded_neurons']) > 1:
+# 						results['analog_activity'][pop.name]['mean_{0}'.format(nn)] = locals()[nn].mean(axis=1)
+# 						results['analog_activity'][pop.name]['std_{0}'.format(nn)] = locals()[nn].std(axis=1)
+#
+# 				if len(results['analog_activity'][pop.name]['recorded_neurons']) > 1:
+# 					results['analog_activity'][pop.name]['mean_I_ex'] = []
+# 					results['analog_activity'][pop.name]['mean_I_in'] = []
+# 					results['analog_activity'][pop.name]['EI_CC'] = []
+# 					for idxxx, nnnn in enumerate(results['analog_activity'][pop.name]['recorded_neurons']):
+# 						for idx, nn in enumerate(variable_names):
+# 							locals()['signal_' + nn] = locals()[nn].analog_signals[nnnn].signal
+# 						if ('signal_V_m' in locals()) and ('signal_g_ex' in locals()) and ('signal_g_in' in locals()):
+# 							E_ex = parameter_set.net_pars.neuron_pars[pop_idx]['E_ex']
+# 							E_in = parameter_set.net_pars.neuron_pars[pop_idx]['E_in']
+#
+# 							E_current = locals()['signal_g_ex'] * (locals()['signal_V_m'] - E_ex)
+# 							E_current /= 1000.
+#
+# 							I_current = locals()['signal_g_in'] * (locals()['signal_V_m'] - E_in)
+# 							I_current /= 1000.
+#
+# 							results['analog_activity'][pop.name]['mean_I_ex'].append(np.mean(E_current))
+# 							results['analog_activity'][pop.name]['mean_I_in'].append(np.mean(I_current))
+# 							cc = np.corrcoef(E_current, I_current)
+# 							results['analog_activity'][pop.name]['EI_CC'].append(np.unique(cc[cc != 1.]))
+# 						elif ('signal_I_ex' in locals()) and ('signal_I_in' in locals()):
+# 							results['analog_activity'][pop.name]['mean_I_ex'].append(np.mean(locals()[
+# 								'signal_I_ex']))
+# 							results['analog_activity'][pop.name]['mean_I_in'].append(np.mean(locals()[
+# 								'signal_I_in']))
+# 							cc = np.corrcoef(locals()['signal_I_ex'], locals()['signal_I_in'])
+# 							results['analog_activity'][pop.name]['EI_CC'].append(np.unique(cc[cc != 1.]))
+#
+# 					results['analog_activity'][pop.name]['EI_CC'] = np.array(list(itertools.chain(*results[
+# 						'analog_activity'][pop.name]['EI_CC'])))
+# 					results['analog_activity'][pop.name]['EI_CC'][np.isnan(results['analog_activity'][
+# 						pop.name]['EI_CC'])] = 0.
+# 					results['analog_activity'][pop.name]['EI_CC'][np.isinf(results['analog_activity'][
+# 						pop.name]['EI_CC'])] = 0.
+#
+# 				if plot:
+# 					results['analog_activity'][pop.name]['single_Vm'] = locals()['V_m'].analog_signals[
+# 						single_idx].signal
+# 					results['analog_activity'][pop.name]['single_idx'] = single_idx
+# 					results['analog_activity'][pop.name]['time_axis'] = locals()['V_m'].analog_signals[single_idx].time_axis()
+#
+# 				variable_names.remove('V_m')
+# 				for idxx, nnn in enumerate(variable_names):
+# 					cond = locals()[nnn].analog_signals[single_idx].signal
+#
+# 					if 'I_ex' in variable_names:
+# 						results['analog_activity'][pop.name]['I_{0}'.format(nnn[-2:])] = cond
+# 						results['analog_activity'][pop.name]['I_{0}'.format(nnn[-2:])] /= 1000.
+# 					elif 'single_Vm' in results['analog_activity'][pop.name].keys():
+# 						rev = reversals[idxx]
+# 						results['analog_activity'][pop.name]['I_{0}'.format(nnn[-2:])] = cond * (results[
+# 							                'analog_activity'][pop.name]['single_Vm'] - rev)
+# 						results['analog_activity'][pop.name]['I_{0}'.format(nnn[-2:])] /= 1000.
+#
+# 	if plot:
+# 		import modules.visualization as vis
+# 		vis.plot_state_analysis(parameter_set, results, start, stop, display=display, save=save)
+#
+# 	return results
+
+
 def single_neuron_dcresponse(population_object, parameter_set, start=None, stop=None, plot=True, display=True,
-                             save=False):
+							 save=False):
 	"""
 	extract relevant data and analyse single neuron fI curves and other measures
 	:param population_object:
@@ -1504,41 +1498,39 @@ def single_neuron_dcresponse(population_object, parameter_set, start=None, stop=
 		vis.plot_fI_curve(input_amplitudes[:-1], output_rate, ax=ax1, display=False, save=False, **props)
 
 		props.update({'xlabel': r'$\mathrm{ISI} #$', 'ylabel': r'$\mathrm{ISI} [\mathrm{ms}]$',
-		                       'title': r'$AI = {0}$'.format(str(A2))})
+							   'title': r'$AI = {0}$'.format(str(A2))})
 		pr2 = props.copy()
 		pr2.update({'inset': {'isi': isiis}})
 		vis.plot_singleneuron_isis(spike_list.isi()[0], ax=ax2, display=False, save=False, **pr2)
 
 		props.update({'xlabel': r'$\mathrm{ISI}_{n} [\mathrm{ms}]$', 'ylabel': r'$\mathrm{ISI}_{n+1} [\mathrm{ms}]$',
-		              'title': r'$AI = {0}$'.format(str(A))})
+					  'title': r'$AI = {0}$'.format(str(A))})
 		vis.recurrence_plot(isiis, ax=ax3, display=False, save=False, **props)
 
 		vm_plot = vis.AnalogSignalPlots(single_vm, start=interval[0], stop=interval[0]+1000)
 		props = {'xlabel': r'Time [ms]', 'ylabel': '$V_{m} [\mathrm{mV}]$'}
 		if 'V_reset' in parameter_set.net_pars.neuron_pars[0].keys() and 'V_th' in parameter_set.net_pars.neuron_pars[0].keys():
 			ax4 = vm_plot.plot_Vm(ax=ax4, with_spikes=True, v_reset=parameter_set.net_pars.neuron_pars[0]['V_reset'],
-			                 v_th=parameter_set.net_pars.neuron_pars[0]['V_th'], display=False, save=False, **props)
+							 v_th=parameter_set.net_pars.neuron_pars[0]['V_th'], display=False, save=False, **props)
 		else:
 			if 'single_spk' in locals():
 				spikes = single_spk.spiketrains[single_spk.id_list[0]].spike_times
 				ax4.vlines(spikes, ymin=np.min(single_vm.raw_data()[:, 0]), ymax=np.max(single_vm.raw_data()[:, 0]))
 			ax4 = vm_plot.plot_Vm(ax=ax4, with_spikes=False, v_reset=None,
-			                 v_th=None, display=False, save=False, **props)
+							 v_th=None, display=False, save=False, **props)
 		if display:
 			pl.show()
 		if save:
 			assert isinstance(save, str), "Please provide filename"
-			#import matplotlib as mpl
-			#if isinstance(fig, pl.figure.Figure):
 			fig.savefig(save + population_object.name + '_SingleNeuron_DCresponse.pdf')
 
 	return dict(input_amplitudes=input_amplitudes[:-1], input_times=input_times, output_rate=np.array(output_rate),
-	               isi=spike_list.isi()[0], vm=vm_list.analog_signals[vm_list.analog_signals.keys()[0]].signal,
-	            time_axis=vm_list.analog_signals[vm_list.analog_signals.keys()[0]].time_axis(), AI=A)
+				   isi=spike_list.isi()[0], vm=vm_list.analog_signals[vm_list.analog_signals.keys()[0]].signal,
+				time_axis=vm_list.analog_signals[vm_list.analog_signals.keys()[0]].time_axis(), AI=A)
 
 
 def single_neuron_responses(population_object, parameter_set, pop_idx=0, start=None, stop=None, plot=True, display=True,
-                            save=False):
+							save=False):
 	"""
 	Responses of a single neuron (population_object.populations[pop_idx] should be the single neuron)
 	:return:
@@ -1567,7 +1559,7 @@ def single_neuron_responses(population_object, parameter_set, pop_idx=0, start=N
 		print "No spike recorder attached to {0}".format(population_object.name)
 
 	if parameter_set.net_pars.record_analogs[pop_idx]:
-		for idx, nn in enumerate(parameter_set.net_pars.analog_device_pars[pop_idx]['record_from']):
+		for idx, nn in enumerate(population_object.analog_activity_names): #parameter_set.net_pars.analog_device_pars[pop_idx]['record_from']):
 			globals()[nn] = population_object.analog_activity[idx]
 
 			if list(globals()[nn].raw_data()):
@@ -1611,23 +1603,23 @@ def single_neuron_responses(population_object, parameter_set, pop_idx=0, start=N
 		ax3 = pl.subplot2grid((10, 10), (5, 0), rowspan=2, colspan=10)
 		ax4 = pl.subplot2grid((10, 10), (8, 0), rowspan=2, colspan=10, sharex=ax3)
 		fig.suptitle(r'Population ${0}$ - Single Neuron Activity [${1}, {2}$]'.format(population_object.name,
-		                                                                              str(start),
-		                                                                            str(stop)))
+																					  str(start),
+																					str(stop)))
 		props = {'xlabel': '', 'ylabel': '', 'xticks': [], 'yticks': [], 'yticklabels': '', 'xticklabels': ''}
 		ax2.set(**props)
 		if parameter_set.net_pars.record_spikes[pop_idx] and list(spike_list.raw_data()):
 			ax2.text(0.5, 0.9, r'ACTIVITY REPORT', color='k', fontsize=16, va='center', ha='center')
 			ax2.text(0.2, 0.6, r'- Firing Rate = ${0}$ spikes/s'.format(str(results['rate'])), color='k', fontsize=12,
-			         va='center', ha='center')
+					 va='center', ha='center')
 			ax2.text(0.2, 0.4, r'- $CV_{0} = {1}$'.format('{ISI}', str(results['cv_isi'])), color='k', fontsize=12,
-			         va='center', ha='center')
+					 va='center', ha='center')
 			ax2.text(0.2, 0.2, r'- Fano Factor = ${0}$'.format(str(results['ff'])), color='k', fontsize=12,
-			         va='center', ha='center')
+					 va='center', ha='center')
 
 			props = {'xlabel': r'ISI', 'ylabel': r'Frequency', 'histtype': 'stepfilled', 'alpha': 1.}
 			ax1.set_yscale('log')
 			vis.plot_histogram(results['isi'], nbins=10, norm=True, mark_mean=True, ax=ax1, color='b', display=False,
-			                   save=False, **props)
+							   save=False, **props)
 			spikes = spike_list.spiketrains[spike_list.id_list[0]].spike_times
 
 		if parameter_set.net_pars.record_analogs[pop_idx]:
@@ -1635,13 +1627,13 @@ def single_neuron_responses(population_object, parameter_set, pop_idx=0, start=N
 			ap = vis.AnalogSignalPlots(globals()['V_m'], start, stop)
 			if 'V_reset' in single_neuron_params.keys() and 'V_th' in single_neuron_params.keys():
 				ax4 = ap.plot_Vm(ax=ax4, with_spikes=True, v_reset=single_neuron_params['V_reset'],
-				                v_th=single_neuron_params['V_th'], display=False, save=False, **props2)
+								v_th=single_neuron_params['V_th'], display=False, save=False, **props2)
 			else:
 				if 'spikes' in locals():
 					ax4.vlines(spikes, ymin=np.min(globals()['V_m'].raw_data()[:, 0]), ymax=np.max(globals()[
-						                                                                               'V_m'].raw_data()[:, 0]))
+																									   'V_m'].raw_data()[:, 0]))
 				ax4 = ap.plot_Vm(ax=ax4, with_spikes=False, v_reset=None,
-				                 v_th=None, display=False, save=False, **props2)
+								 v_th=None, display=False, save=False, **props2)
 
 			ax4.set_xticks(np.linspace(start, stop, 5))
 			ax4.set_xticklabels([str(x) for x in np.linspace(start, stop, 5)])
@@ -1681,9 +1673,9 @@ def ssa_lifetime(pop_obj, parameter_set, input_off=1000., display=True):
 		gids = []
 
 		new_SpkList = SpikeList([], [], parameter_set.kernel_pars.transient_t,
-		                          parameter_set.kernel_pars.sim_time + \
-		                          parameter_set.kernel_pars.transient_t,
-		                          np.sum(list(iterate_obj_list(
+								  parameter_set.kernel_pars.sim_time + \
+								  parameter_set.kernel_pars.transient_t,
+								  np.sum(list(iterate_obj_list(
 								  pop_obj.n_neurons))))
 		for ii, n in enumerate(pop_obj.spiking_activity):
 			gids.append(n.id_list)
@@ -1691,14 +1683,14 @@ def ssa_lifetime(pop_obj, parameter_set, input_off=1000., display=True):
 				new_SpkList.append(idd, n.spiketrains[idd])
 
 			results['ssa'].update({str(pop_obj.population_names[ii]+'_ssa'): {'last_spike': n.last_spike_time(),
-			                                                                  'tau': n.last_spike_time() -
-			                                                                         input_off}})
+																			  'tau': n.last_spike_time() -
+																					 input_off}})
 			if display:
 				print "- {0} Survival = {1} ms".format(str(pop_obj.population_names[ii]), str(results['ssa'][str(
 					pop_obj.population_names[ii]+'_ssa')]['tau']))
 
 		results['ssa'].update({'Global_ssa': {'last_spike': new_SpkList.last_spike_time(),
-		                                  'tau': new_SpkList.last_spike_time() - input_off}})
+										  'tau': new_SpkList.last_spike_time() - input_off}})
 		if display:
 			print "- {0} Survival = {1} ms".format('Global', str(results['ssa']['Global_ssa']['tau']))
 
@@ -1706,7 +1698,7 @@ def ssa_lifetime(pop_obj, parameter_set, input_off=1000., display=True):
 		name = pop_obj.name
 		spike_list = pop_obj.spiking_activity.spiking_activity
 		results['ssa'].update({name+'_ssa': {'last_spike': spike_list.last_spike_time(),
-		                 'tau': spike_list.last_spike_time() - input_off}})
+						 'tau': spike_list.last_spike_time() - input_off}})
 		if display:
 			print "- {0} Survival = {1} ms".format(str(name), str(results['ssa'][name+'_ssa']['tau']))
 	else:
@@ -1771,11 +1763,11 @@ def fmf_readout(response, target, readout, index, label='', plot=False, display=
 		plot_target_out(target, output, label, display, save)
 
 	return output, {'MAE': MAE, 'MSE': MSE, 'NMSE': NMSE, 'RMSE': RMSE, 'NRMSE': NRMSE, 'norm_wOut': norm_wout,
-	                'fmf': fmf}
+					'fmf': fmf}
 
 
 def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True,
-                           debug=False, plot=True, display=True, save=False):
+						   debug=False, plot=True, display=True, save=False):
 	"""
 
 	:return:
@@ -1794,12 +1786,12 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 
 	# Set baseline random output (for comparison)
 	input_noise_r2 = InputNoise(parameter_set.input_pars.noise,
-	                            stop_time=total_time)
+								stop_time=total_time)
 	input_noise_r2.generate()
 	input.re_seed(parameter_set.kernel_pars.np_seed)
 
 	baseline_out = input_noise_r2.noise_signal.time_slice(t_start=cut_off_time,
-	                                                      t_stop=total_time).as_array()
+														  t_stop=total_time).as_array()
 
 	if normalize:
 		global_target /= parameter_set.input_pars.noise.noise_pars.amplitude
@@ -1808,7 +1800,7 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 		baseline_out -= np.mean(baseline_out)  # parameter_set.input_pars.noise.noise_pars.mean
 
 	print "\n*******************************\nFading Memory Evaluation\n*******************************\nBaseline (" \
-	      "random): "
+		  "random): "
 
 	# Error
 	MAE = np.mean(np.abs(baseline_out[0] - global_target[0]))
@@ -1828,11 +1820,11 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 	FMF = COV / VARS
 	print "\t- M[0] = {0}".format(str(FMF[0, 1]))
 	results['Baseline'] = {'MAE': MAE,
-	                       'MSE': MSE,
-	                       'NMSE': NMSE,
-	                       'RMSE': RMSE,
-	                       'NRMSE': NRMSE,
-	                       'M[0]': FMF[0, 1]}
+						   'MSE': MSE,
+						   'NMSE': NMSE,
+						   'RMSE': RMSE,
+						   'NRMSE': NRMSE,
+						   'M[0]': FMF[0, 1]}
 
 	#################################
 	# Train Readouts
@@ -1851,7 +1843,7 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 				print "\nPopulation {0}".format(n_pop.name)
 				read_pops.append(n_pop)
 				internal_indices = [int(readout.name[len(readout.name.rstrip('0123456789')):])+1 for readout in
-				                    n_pop.readouts]
+									n_pop.readouts]
 
 				for index, readout in enumerate(n_pop.readouts):
 					internal_idx = internal_indices[index]
@@ -1859,11 +1851,11 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 						response_matrix = n_pop.response_matrix[0].as_array()
 						if internal_idx == 1:
 							output, results_1 = fmf_readout(response_matrix, global_target, readout, internal_idx,
-							                                label=n_pop.name, plot=plot, display=display,
-							                                save=save_path)
+															label=n_pop.name, plot=plot, display=display,
+															save=save_path)
 						else:
 							output, results_1 = fmf_readout(response_matrix, global_target, readout, internal_idx,
-							                                label=n_pop.name, plot=False, display=False, save=False)
+															label=n_pop.name, plot=False, display=False, save=False)
 
 						results['{0}'.format(n_pop.name)].update(
 								{'Readout_{1}'.format(n_pop.name, str(index)): results_1})
@@ -1873,12 +1865,12 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 							response_matrix = n_response.as_array()
 							if internal_idx == 1:
 								output, results_1 = fmf_readout(response_matrix, global_target, readout, internal_idx,
-								                                label=n_pop.name, plot=plot, display=display,
-								                                save=save_path)
+																label=n_pop.name, plot=plot, display=display,
+																save=save_path)
 							else:
 								output, results_1 = fmf_readout(response_matrix, global_target, readout, internal_idx,
-								                                label=n_pop.name, plot=plot, display=display,
-								                                save=save_path)
+																label=n_pop.name, plot=plot, display=display,
+																save=save_path)
 
 							results['{0}'.format(n_pop.name)].update(
 									{'Readout_{0}_R{1}'.format(str(resp_idx), str(index)): results_1})
@@ -1894,7 +1886,7 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 				print "\nPopulation {0}".format(n_pop.name)
 				read_pops.append(n_pop)
 				internal_indices = [int(readout.name[len(readout.name.rstrip('0123456789')):])+1 for readout in
-				                    n_pop.readouts]
+									n_pop.readouts]
 
 				if len(n_pop.response_matrix) == 1:
 					for index, readout in enumerate(n_pop.readouts):
@@ -1903,11 +1895,11 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 
 						if internal_idx == 1:
 							output, results_1 = fmf_readout(response_matrix, global_target, readout, internal_idx,
-							                                label=n_pop.name, plot=True,
-							                                display=display, save=save_path)
+															label=n_pop.name, plot=True,
+															display=display, save=save_path)
 						else:
 							output, results_1 = fmf_readout(response_matrix, global_target, readout, internal_idx,
-							                                label=n_pop.name, plot=False, display=False, save=False)
+															label=n_pop.name, plot=False, display=False, save=False)
 
 						results['{0}'.format(n_pop.name)].update(
 								{'Readout_{1}'.format(n_pop.name, str(index)): results_1})
@@ -1929,11 +1921,11 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 
 							if internal_idx == 1:
 								output, results_1 = fmf_readout(response_matrix, global_target, readout, internal_idx,
-								                                label=n_pop.name, plot=plot, display=display,
-								                                save=save_path)
+																label=n_pop.name, plot=plot, display=display,
+																save=save_path)
 							else:
 								output, results_1 = fmf_readout(response_matrix, global_target, readout, internal_idx,
-								                                label=n_pop.name, plot=False, display=False, save=False)
+																label=n_pop.name, plot=False, display=False, save=False)
 
 							results['{0}'.format(n_pop.name)].update(
 									{'Readout_{0}_R{1}'.format(str(resp_idx), str(index)): results_1})
@@ -1964,7 +1956,7 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 				ax_2 = globals()['fig_{0}1'.format(pop.name)].add_subplot(111)
 				plot_fmf(t_axis, fmf, ax_1, label=pop.name, display=display, save=save_path)
 				plot_acc(steps, np.array(fmf), fit_params, acc_function, title=r'Fading Memory Fit',
-				         ax=ax_2, display=display, save=str(save_path) + 'fmf')
+						 ax=ax_2, display=display, save=str(save_path) + 'fmf')
 		else:
 			ax_ctr = 0
 			remove_keys = []
@@ -1990,9 +1982,9 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 
 				if plot:
 					globals()['ax1_{0}'.format(resp_idx)] = globals()['fig_{0}'.format(pop.name)].add_subplot(1,
-					                len(pop.response_matrix), ax_ctr)
+									len(pop.response_matrix), ax_ctr)
 					globals()['ax1_{0}1'.format(resp_idx)] = globals()['fig_{0}1'.format(pop.name)].add_subplot(1,
-					                len(pop.response_matrix), ax_ctr)
+									len(pop.response_matrix), ax_ctr)
 
 					if save:
 						save_pth = save_path + str(resp_idx)
@@ -2000,9 +1992,9 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 						save_pth = False
 
 					plot_fmf(t_axis, fmf, globals()['ax1_{0}'.format(resp_idx)],
-					         label=pop.name + 'State_{0}'.format(str(resp_idx)), display=display, save=save_pth)
+							 label=pop.name + 'State_{0}'.format(str(resp_idx)), display=display, save=save_pth)
 					plot_acc(steps, np.array([fmf]), fit_params, acc_function, title=r'Fading Memory Fit',
-					         ax=globals()['ax1_{0}1'.format(resp_idx)], display=display, save=save_path)
+							 ax=globals()['ax1_{0}1'.format(resp_idx)], display=display, save=save_path)
 
 		return results
 
@@ -2048,7 +2040,7 @@ def discrete_readout_test(state, target, readout, index):
 
 
 def train_all_readouts(parameters, net, stim, input_signal, encoding_layer, flush=False, debug=False, plot=True,
-                       display=True, save=False):
+					   display=True, save=False):
 	"""
 		Train all readouts attached to network object
 	:param parameters:
@@ -2116,7 +2108,7 @@ def train_all_readouts(parameters, net, stim, input_signal, encoding_layer, flus
 
 	# read from all state matrices
 	for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations, net.populations,
-	                                                   encoding_layer.encoders]))):
+													   encoding_layer.encoders]))):
 		if not empty(n_pop.state_matrix):
 			state_dimensions = np.array(n_pop.state_matrix).shape
 			population_readouts = n_pop.readouts
@@ -2131,7 +2123,7 @@ def train_all_readouts(parameters, net, stim, input_signal, encoding_layer, flus
 			for idx_state, n_state in enumerate(n_pop.state_matrix):
 				if not isinstance(n_state, list):
 					print("\nTraining {0} readouts from Population {1}".format(str(n_pop.decoding_pars['readout'][
-						                                                               'N']), str(n_pop.name)))
+																					   'N']), str(n_pop.name)))
 					label = n_pop.name + '-Train-StateVar{0}'.format(str(idx_state))
 					if save:
 						np.save(paths['activity'] + label, n_state)
@@ -2141,7 +2133,7 @@ def train_all_readouts(parameters, net, stim, input_signal, encoding_layer, flus
 						else:
 							save_path = False
 						analyse_state_matrix(n_state, set_labels, label=label, plot=plot, display=display,
-						                     save=save_path)
+											 save=save_path)
 					for readout in n_pop.readouts[idx_state]:
 						readout.set_index()
 						discrete_readout_train(n_state, target, readout, readout.index)
@@ -2151,7 +2143,7 @@ def train_all_readouts(parameters, net, stim, input_signal, encoding_layer, flus
 						print("\nTraining {0} readouts from Population {1} [t = {2}]".format(
 							str(n_pop.decoding_pars['readout']['N']), str(n_pop.name), str(n_pop.state_sample_times[iddx_state])))
 						label = n_pop.name + '-Train-StateVar{0}-sample{1}'.format(str(idx_state),
-						                                                           str(iddx_state))
+																				   str(iddx_state))
 						if save:
 							np.save(paths['activity'] + label, n_state)
 						if debug:
@@ -2160,8 +2152,8 @@ def train_all_readouts(parameters, net, stim, input_signal, encoding_layer, flus
 							else:
 								save_path = False
 							analyse_state_matrix(nn_state, stim.train_set_labels, label=label, plot=plot,
-							                     display=display,
-							                     save=save_path)
+												 display=display,
+												 save=save_path)
 						for readout in readout_set[idx_state]:
 							readout.set_index()
 							discrete_readout_train(nn_state, target, readout, readout.index)
@@ -2170,7 +2162,7 @@ def train_all_readouts(parameters, net, stim, input_signal, encoding_layer, flus
 
 
 def test_all_readouts(parameters, net, stim, input_signal, encoding_layer=None, flush=False, debug=False, plot=True,
-                      display=True, save=False):
+					  display=True, save=False):
 	"""
 	Test and measure performance of all readouts attached to Network object
 	:param net:
@@ -2209,7 +2201,7 @@ def test_all_readouts(parameters, net, stim, input_signal, encoding_layer=None, 
 				idx_diff 	  = np.diff(iddxs)
 				onset_idx[k]  = [x for idd, x in enumerate(iddxs) if idx_diff[idd - 1] > 1 or x == 0]
 				offset_idx[k] = [x for idd, x in enumerate(iddxs) if
-				                 idd < len(iddxs) - 1 and (idx_diff[idd] > 1 or x == len(target[k, :]))]
+								 idd < len(iddxs) - 1 and (idx_diff[idd] > 1 or x == len(target[k, :]))]
 				offset_idx.append(iddxs[-1])
 		set_labels.update({'dimensions': target.shape[0], 'labels': labels, 'onset_idx': onset_idx,
 						   'offset_idx': offset_idx})
@@ -2232,7 +2224,7 @@ def test_all_readouts(parameters, net, stim, input_signal, encoding_layer=None, 
 			for idx_state, n_state in enumerate(n_pop.state_matrix):
 				if not isinstance(n_state, list):
 					print("\nTesting {0} readouts from Population {1} [{2}]".format(str(n_pop.decoding_pars['readout'][
-						                        'N']), str(n_pop.name), str(n_pop.state_variables[idx_state])))
+												'N']), str(n_pop.name), str(n_pop.state_variables[idx_state])))
 					label = n_pop.name + '-Test-StateVar{0}'.format(str(idx_state))
 					if save:
 						np.save(paths['activity'] + label, n_state)
@@ -2242,7 +2234,7 @@ def test_all_readouts(parameters, net, stim, input_signal, encoding_layer=None, 
 						else:
 							save_path = False
 						analyse_state_matrix(n_state, set_labels, label=label, plot=plot, display=display,
-						                     save=save_path)
+											 save=save_path)
 					for readout in n_pop.readouts[idx_state]:
 						discrete_readout_test(n_state, target, readout, readout.index)
 				else:
@@ -2250,9 +2242,9 @@ def test_all_readouts(parameters, net, stim, input_signal, encoding_layer=None, 
 						readout_set = n_pop.readouts[iddx_state]
 						print("\nTesting {0} readouts from Population {1} [t = {2}]".format(
 							str(n_pop.decoding_pars['readout'][
-								    'N']), str(n_pop.name), str(n_pop.state_sample_times[iddx_state])))
+									'N']), str(n_pop.name), str(n_pop.state_sample_times[iddx_state])))
 						label = n_pop.name + '-Test-StateVar{0}-sample{1}'.format(str(idx_state),
-						                                                          str(iddx_state))
+																				  str(iddx_state))
 						if save:
 							np.save(paths['activity'] + label, n_state)
 						if debug:
@@ -2261,8 +2253,8 @@ def test_all_readouts(parameters, net, stim, input_signal, encoding_layer=None, 
 							else:
 								save_path = False
 							analyse_state_matrix(nn_state, set_labels, label=label, plot=plot,
-							                     display=display,
-							                     save=save_path)
+												 display=display,
+												 save=save_path)
 						for readout in readout_set[idx_state]:
 							discrete_readout_test(nn_state, target, readout, readout.index)
 			if flush:
@@ -2300,7 +2292,7 @@ def analyse_state_matrix(state, stim_labels, label='', plot=True, display=True, 
 			fig2.clf()
 			exp_var = [round(n, 2) for n in pca_obj.explained_variance_ratio_]
 			fig2.suptitle(r'${0} - PCA (var = {1})$'.format(str(label), str(exp_var)),
-			              fontsize=20)
+						  fontsize=20)
 
 			ax2 = fig2.add_subplot(111, projection='3d')
 			colors_map = get_cmap(N=len(n_elements), cmap='Paired')
@@ -2313,7 +2305,7 @@ def analyse_state_matrix(state, stim_labels, label='', plot=True, display=True, 
 				locals()['sc_{0}'.format(str(index))] = ax2.scatter(X_r[np.where(np.array(list(itertools.chain(
 					label_seq))) == index)[0], 0], X_r[np.where(np.array(list(itertools.chain(label_seq))) == index)[
 								0],  1], X_r[np.where(np.array(list(itertools.chain(label_seq))) == index)[0], 2],
-				                                                    s=150, c=color, label=lab)
+																	s=150, c=color, label=lab)
 			scatters = [locals()['sc_{0}'.format(str(ind))] for ind in n_elements]
 			#pl.legend(tuple(scatters), tuple(n_elements))
 			pl.legend(loc=0, handles=scatters)
@@ -2333,7 +2325,7 @@ def analyse_state_matrix(state, stim_labels, label='', plot=True, display=True, 
 			ax = fig1.add_subplot(111, projection='3d')
 			ax.plot(X_r[:, 0], X_r[:, 1], X_r[:, 2], color='r', lw=2)
 			ax.set_title(label + r'$ - (3PCs) $= {0}$'.format(str(round(np.sum(pca_obj.explained_variance_ratio_[:3]),
-		                                                            1))))
+																	1))))
 			ax.grid()
 			if display:
 				pl.show(False)
@@ -2371,12 +2363,12 @@ def evaluate_encoding(enc_layer, parameter_set, analysis_interval, input_signal,
 			tau = parameter_set.decoding_pars.state_extractor.filter_tau
 			n_input_neurons = np.sum(parameter_set.encoding_pars.encoder.n_neurons)
 			inp_responses = inp_spikes.compile_response_matrix(dt=input_signal.dt,
-			                                                   tau=tau, start=analysis_interval[0],
-			                                                   stop=analysis_interval[1], N=n_input_neurons)
+															   tau=tau, start=analysis_interval[0],
+															   stop=analysis_interval[1], N=n_input_neurons)
 			inp_readout_pars = copy_dict(parameter_set.decoding_pars.readout[0], {'label': 'InputNeurons',
-			                                                                      'algorithm':
-				                                                                      parameter_set.decoding_pars.readout[
-					                                                                      0]['algorithm'][0]})
+																				  'algorithm':
+																					  parameter_set.decoding_pars.readout[
+																						  0]['algorithm'][0]})
 			inp_readout = Readout(ParameterSet(inp_readout_pars))
 			analysis_signal = input_signal.time_slice(analysis_interval[0], analysis_interval[1])
 			inp_readout.train(inp_responses, analysis_signal.as_array())
@@ -2460,7 +2452,7 @@ def analyse_performance_results(net, enc_layer=None, plot=True, display=True, sa
 							n_sample_time): {}})
 						results[n_pop.name]['ReadoutSet{0}'.format(str(n_state))]['sample_{0}'.format(
 							n_sample_time)] = compile_performance_results(readout_set,
-						                                                  state_variable=pop_state_variables[n_state])
+																		  state_variable=pop_state_variables[n_state])
 
 	# if not empty(net.merged_populations):
 	# 	for n_pop in net.merged_populations:
@@ -2620,8 +2612,8 @@ def analyse_state_divergence(parameter_set, net, clone, plot=True, display=True,
 	start = parameter_set.kernel_pars.transient_t
 	stop = parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t
 	activity_time_vector = np.arange(parameter_set.kernel_pars.transient_t,
-	                                 parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t,
-	                                 parameter_set.kernel_pars.resolution)
+									 parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t,
+									 parameter_set.kernel_pars.resolution)
 	perturbation_time = parameter_set.kernel_pars.perturbation_time + parameter_set.kernel_pars.transient_t
 	observation_time = max(activity_time_vector) - perturbation_time
 	#perturbation_time = parameter_set.kernel_pars.perturbation_time + parameter_set.kernel_pars.transient_t
@@ -2646,7 +2638,7 @@ def analyse_state_divergence(parameter_set, net, clone, plot=True, display=True,
 		hamming = []
 		for idx, t in enumerate(time_vec):
 			if not empty(np.corrcoef(rate_native[:idx], rate_clone[:idx])) and np.corrcoef(rate_native[:idx],
-			                    rate_clone[:idx])[0, 1] != np.nan:
+								rate_clone[:idx])[0, 1] != np.nan:
 				r_cor.append(np.corrcoef(rate_native[:idx], rate_clone[:idx])[0, 1])
 			else:
 				r_cor.append(0.)
@@ -2708,9 +2700,9 @@ def analyse_state_divergence(parameter_set, net, clone, plot=True, display=True,
 			rp2 = vis.SpikePlots(clone.populations[pop_idx].spiking_activity, start, stop)
 
 			plot_props1 = {'xlabel': 'Time [ms]', 'ylabel': 'Neuron', 'color': 'r', 'linewidth': 1.0,
-			              'linestyle': '-'}
+						  'linestyle': '-'}
 			plot_props2 = {'xlabel': 'Time [ms]', 'ylabel': 'Neuron', 'color': 'k', 'linewidth': 1.0,
-			              'linestyle': '-'}
+						  'linestyle': '-'}
 			rp1.dot_display(ax=[ax1a, ax2a], with_rate=True, colors='r', display=False, save=False, **plot_props1)
 			rp2.dot_display(ax=[ax1b, ax2b], with_rate=True, colors='k', display=False, save=False, **plot_props2)
 
@@ -2805,7 +2797,7 @@ class StateExtractor(object):
 		if isinstance(initializer, dict):
 			initializer = ParameterSet(initializer)
 		assert isinstance(initializer, ParameterSet), "StateExtractor must be initialized with ParameterSet of " \
-		                                              "dictionary"
+													  "dictionary"
 		print("- State acquisition from Population {0} [{1}]".format(src_obj.name, initializer.state_variable))
 		self.parameters = initializer
 		if initializer.state_variable == 'V_m':
@@ -2819,7 +2811,7 @@ class StateExtractor(object):
 			neuron_specs = extract_nestvalid_dict(initializer.state_specs, param_type='neuron')
 			state_rec_neuron = nest.Create(initializer.state_specs.model, len(gids), neuron_specs)
 			nest.Connect(gids, state_rec_neuron, 'one_to_one', syn_spec={'weight': 1., 'delay': 0.1,
-			                                                             'model': 'static_synapse'})
+																		 'model': 'static_synapse'})
 			# src_obj.attached_devices.append(state_rec_neuron)
 			device_specs = extract_nestvalid_dict(copy_dict(initializer.device_specs, {}), param_type='device')
 			# device_specs = {'record_from': ['V_m'], 'record_to': ['memory'],
@@ -2899,7 +2891,7 @@ class Readout(object):
 			import sklearn.linear_model
 			C = 10.0 ** np.arange(-5, 5)
 			reg = sklearn.linear_model.LogisticRegressionCV(C, cv=5, penalty='l2', dual=False,
-			                                                fit_intercept=False, n_jobs=-1)
+															fit_intercept=False, n_jobs=-1)
 			reg.fit(state_train.T, np.argmax(np.array(target_train), 0))
 			self.weights = reg.coef_
 			self.fit_obj = reg
@@ -3091,9 +3083,9 @@ class Readout(object):
 		# is_binary_target = all(np.unique([np.unique(target) == [0., 1.]]))
 		# is_binary_output = all(np.unique([np.unique(output) == [0., 1.]]))
 		is_binary_target = np.mean(np.unique(np.array(list(iterate_obj_list(target.tolist())))) == [0., 1.]).astype(
-			                       bool)
+								   bool)
 		is_binary_output = np.mean(np.unique(np.array(list(iterate_obj_list(output.tolist())))) == [0., 1.]).astype(
-			                       bool)
+								   bool)
 
 		if output.shape != target.shape and len(output.shape) > 1:
 			output = output.T
@@ -3146,7 +3138,7 @@ class Readout(object):
 			performance['label']['performance'] = met.accuracy_score(target_labels, output_labels)
 			performance['label']['hamm_loss'] 	= met.hamming_loss(target_labels, output_labels)
 			performance['label']['precision'] 	= met.average_precision_score(binary_output, binary_target,
-			                                                                average='weighted')
+																			average='weighted')
 			performance['label']['f1_score'] 	= met.f1_score(binary_target, binary_output, average='weighted')
 			performance['label']['recall'] 		= met.recall_score(target_labels, output_labels, average='weighted')
 			performance['label']['confusion'] 	= met.confusion_matrix(target_labels, output_labels)
@@ -3210,7 +3202,7 @@ class DecodingLayer(object):
 		if isinstance(initializer, dict):
 			initializer = ParameterSet(initializer)
 		assert isinstance(initializer, ParameterSet), "StateExtractor must be initialized with ParameterSet or " \
-		                                              "dictionary"
+													  "dictionary"
 		from modules.net_architect import iterate_obj_list
 		populations = list(iterate_obj_list(net_obj.population_names))
 		pop_objs = list(iterate_obj_list(net_obj.populations))
@@ -3245,9 +3237,9 @@ class DecodingLayer(object):
 					samp = pars_st.sampling_times
 
 				state_ext_pars = {'state_variable': pars_st.state_variable[nn],
-				                  'state_specs': pars_st.state_specs[nn],
-				                  'sampling_times': samp,
-				                  'device_specs': pars_st.device_specs[nn]}
+								  'state_specs': pars_st.state_specs[nn],
+								  'sampling_times': samp,
+								  'device_specs': pars_st.device_specs[nn]}
 				self.extractors.append(StateExtractor(state_ext_pars, src_obj, src_gids))
 
 		# initialize readouts
@@ -3255,7 +3247,7 @@ class DecodingLayer(object):
 			pars_readout = initializer.readout
 			self.readouts = []
 			implemented_algorithms = ['pinv', 'ridge', 'logistic', 'svm-linear', 'svm-rbf', 'perceptron', 'elastic',
-			                          'bayesian_ridge']
+									  'bayesian_ridge']
 			for nn in range(pars_readout.N):
 				if len(pars_readout.algorithm) == pars_readout.N:
 					alg = pars_readout.algorithm[nn]
@@ -3263,548 +3255,10 @@ class DecodingLayer(object):
 					alg = pars_readout.algorithm[0]
 				else:
 					raise TypeError("Please provide readout algorithm for each readout or a single string, common to all "
-					                "readouts")
+									"readouts")
 
 				assert(alg in implemented_algorithms), "Algorithm {0} not implemented".format(alg)
 				readout_pars = {'label': pars_readout.labels[nn],
-				                'rule': alg}
+								'rule': alg}
 
 				self.readouts.append(Readout(ParameterSet(readout_pars)))
-
-
-########################################################################################################################
-class Emoo:
-	"""
-	Evolutionary Multi-Objective Optimization Algorithm
-	(C) Armin Bahl 16.01.2009, UCL, London, UK
-	modified on ACCN 2011 Bedlewo, Poland 20.08.2011
-	further modification: 23.04.2012 (Munich)
-	(modified...)
-
-	If you use this algorithm for your research please cite:
-
-	Bahl A, Stemmler MB, Herz AVM, Roth A. (2012). Automated
-	optimization of a reduced layer 5 pyramidal cell model based on
-	experimental data. J Neurosci Methods; in press
-	"""
-	def __init__(self, N, C, variables, objectives, infos=[]):
-		"""
-		initialize EMOO
-		:param N: size of population, must be even and a multiple of processors - 1
-		:param C: when new children are born, we have this amount of individuals
-		:param variables: variables to optimize
-		:param objectives: optimization objectives
-		:param infos: ?
-		"""
-		try:
-			from mpi4py import MPI
-			mpi4py_loaded = True
-		except:
-			mpi4py_loaded = False
-
-		self.version = 1.0
-		self.size = N
-		self.capacity = C
-		self.variables = variables
-		self.obj = len(objectives)
-		self.infos = len(infos)
-		self.objectives_names = objectives
-		self.infos_names = infos
-
-		self.para = len(self.variables)
-
-		self.no_properties = np.ones(3)*(-1.0)
-		self.no_objectives = np.ones(self.obj+self.infos)*(-1)
-
-		self.columns = dict({})
-		self.column_names = []
-
-		self.objpos = self.para
-		self.infopos = self.objpos + self.obj
-		self.rankpos = self.infopos + self.infos
-		self.distpos = self.rankpos + 1
-		self.fitnesspos = self.distpos + 1
-
-		i = 0
-		for variable in variables:
-			self.column_names.append(variable[0])
-			self.columns[variable[0]] = i
-			i += 1
-
-		for objective in objectives:
-			self.column_names.append(objective)
-			self.columns[objective] = i
-			i += 1
-
-		for info in infos:
-			self.column_names.append(info)
-			self.columns[info] = i
-			i += 1
-
-		self.column_names.append('emoo_rank')
-		self.columns['emoo_rank'] = self.rankpos
-		self.column_names.append('emoo_dist')
-		self.columns['emoo_dist'] = self.distpos
-		self.column_names.append('emoo_fitness')
-		self.columns['emoo_fitness'] = self.fitnesspos
-
-		self.checkfullpopulation = None
-		self.checkpopulation = None
-		self.setuped = False
-		self.get_objectives_error = None
-
-		if mpi4py_loaded == True:
-			self.comm = MPI.COMM_WORLD
-			self.master_mode = self.comm.rank == 0
-			self.mpi = self.comm.size > 1
-		else:
-			self.master_mode = True
-			self.mpi = False
-
-	def setup(self, eta_m_0=20, eta_c_0=20, p_m=0.5, finishgen=-1, d_eta_m=0, d_eta_c=0, mutate_parents=False):
-		"""
-		Setup the analysis
-		:param eta_m_0: initial strength of mutation parameter (20)
-		:param eta_c_0: initial strength of crossover parameter (20)
-		:param p_m: probability of mutation of a parameter, for each parameter independently (0.5)
-		:param finishgen:
-		:param d_eta_m:
-		:param d_eta_c:
-		:param mutate_parents:
-		"""
-		self.eta_m_0 = eta_m_0
-		self.eta_c_0 = eta_c_0
-		self.p_m = p_m
-		self.finishgen = finishgen
-		self.d_eta_m = d_eta_m
-		self.d_eta_c = d_eta_c
-		self.mutate_parents = mutate_parents
-		self.setuped = True
-
-	def normit(self, p):
-		p_norm = np.zeros(len(p), dtype=float)
-
-		for i in range(len(p)):
-			p_norm[i] = (p[i]-self.variables[i][1])/(self.variables[i][2] - self.variables[i][1])
-
-		return p_norm
-
-	def unnormit(self, p_norm):
-		p = np.zeros(len(p_norm), dtype=float)
-
-		for i in range(len(p_norm)):
-			p[i] = p_norm[i]*(self.variables[i][2] - self.variables[i][1]) + self.variables[i][1]
-
-		return p
-
-	def getpopulation_unnormed(self):
-		unnormed_population = []
-		for individual in self.population:
-			individual_unnormed = individual.copy()
-			individual_unnormed[:self.para] = self.unnormit(individual[:self.para])
-			unnormed_population.append(individual_unnormed)
-
-		return np.array(unnormed_population)
-
-	def initpopulation(self):
-		init_parameters = np.random.rand(self.size, self.para)
-		init_properties = np.ones((self.size, self.obj+self.infos+3))*(-1.0)
-
-		self.population = np.c_[init_parameters, init_properties]
-
-	def evolution(self, generations, save_to=None, save_path=None):
-		if self.setuped is False:
-			print "Please run setup"
-			return
-
-		if self.master_mode is True:
-			self.eta_c = self.eta_c_0
-			self.eta_m = self.eta_m_0
-
-			self.initpopulation()
-
-			print "Evolutionary Multiobjective Optimization (Emoo), Version %.1f." % self.version
-			print "www.g-node.org/emoo"
-			if self.mpi:
-				print "\nRunning Emoo on %d processors"%self.comm.size
-				print " ... let the nodes startup. Starting Optimization in 5 seconds..."
-				time.sleep(5) # let all the slaves load
-
-			print "=============================================================="
-			print "Starting Evolution..."
-			print "=============================================================="
-
-			print "\nGENERATION {0}".format(str(0))
-
-			if save_to is not None:
-				for n_gen in range(generations):
-					for k in save_to.keys():
-						if k == 'smallest_errors':
-							save_to[k]['Gen{0}'.format(str(n_gen))] = {}
-						else:
-							save_to[k]['Gen{0}'.format(str(n_gen))] = []
-
-				self.evaluate(save_pars=save_to['parameters_evolution']['Gen0'],
-				              save_error=save_to['error_evolution']['Gen0'],
-				              save_objectives=save_to['objectives_evolution']['Gen0'])
-			else:
-				self.evaluate()
-
-			self.assign_fitness()
-
-			if self.checkpopulation is not None:
-				if save_to is not None:
-					self.checkpopulation(self.getpopulation_unnormed(), self.columns, 0, save_to=save_to)
-				else:
-					err = self.checkpopulation(self.getpopulation_unnormed(), self.columns, 0)
-					print "Error: {0}".format(str(err))
-
-			if save_path is not None:
-				import cPickle as pickle
-				with open(save_path, 'w') as fp:
-					pickle.dump(save_to, fp)
-
-			for gen in range(1, generations):
-				# Change the Crossover and Mutation Parameters
-				if (gen > self.finishgen) and (self.finishgen != -1):
-					self.eta_c += self.d_eta_c
-					self.eta_m += self.d_eta_m
-				print "\nGENERATION {0}".format(str(gen))
-
-				self.selection()
-				self.crossover()
-				self.mutation()
-				if save_to is not None:
-					self.evaluate(save_pars=save_to['parameters_evolution']['Gen{0}'.format(str(gen))],
-					              save_error=save_to['error_evolution']['Gen{0}'.format(str(gen))],
-					              save_objectives=save_to['objectives_evolution']['Gen{0}'.format(str(gen))])
-				else:
-					self.evaluate()
-
-				self.assign_fitness()
-
-				if self.checkfullpopulation is not None:
-					self.checkfullpopulation(self.getpopulation_unnormed(), self.columns, gen)
-
-				self.new_generation()
-
-				if self.checkpopulation is not None:
-					if save_to is not None:
-						self.checkpopulation(self.getpopulation_unnormed(), self.columns, gen, save_to=save_to)
-					else:
-						err = self.checkpopulation(self.getpopulation_unnormed(), self.columns, gen)
-						print "Error: {0}".format(str(err))
-				if save_path is not None:
-					with open(save_path, 'w') as fp:
-						pickle.dump(save_to, fp)
-			# tell the slaves (if any) to terminate
-			if self.mpi is True:
-				for i in range(1, self.comm.size):
-					self.comm.send(None, dest=i)
-
-				time.sleep(5) # let all the slaves finish
-
-			print "Evolution done!!!"
-		else:
-			self.evaluate_slave()
-
-	def selection(self):
-		"""
-		In this step the mating pool is formed by selection
-		The population is shuffelded and then each individal is compared with the next and only
-		the better will be tranfered into the mating pool
-		then the population is shuffelded again and the same happens again
-		"""
-
-		# the population has the size N now
-		# and all fitnesses are assigned!
-
-		mating_pool = []
-
-		for k in [0, 1]:
-			population_permutation = self.population[np.random.permutation(len(self.population))]
-			# -1 because in the cases off odd population size!
-			for i in np.arange(0, len(self.population)-1, 2):
-				fitness1 = population_permutation[i][-1]
-				fitness2 = population_permutation[i+1][-1]
-
-				if fitness1 < fitness2:
-					mating_pool.append(population_permutation[i])
-				else:
-					mating_pool.append(population_permutation[i+1])
-
-		# now we have a mating pool
-        # this is our new population
-		self.population = np.array(mating_pool)
-
-	def crossover(self):
-		children = []
-
-		while (len(children) + len(self.population) < self.capacity):
-			# choose two random parents
-			p = int(np.random.random()*len(self.population))
-			q = int(np.random.random()*len(self.population))
-
-			parent1 = self.population[p][:self.para]
-			parent2 = self.population[q][:self.para]
-
-			parameters1 = np.empty(self.para)
-			parameters2 = np.empty(self.para)
-
-			# determine the crossover parameters
-			for i in range(self.para):
-				u_i = np.random.random()
-
-				if u_i <= 0.5:
-					beta_q_i = pow(2.*u_i, 1./(self.eta_c+1))
-				else:
-					beta_q_i = pow(1./(2*(1-u_i)), 1./(self.eta_c+1))
-
-				parameters1[i] = 0.5 * ((1+beta_q_i) * parent1[i] + (1-beta_q_i) * parent2[i])
-				parameters2[i] = 0.5 * ((1-beta_q_i) * parent1[i] + (1+beta_q_i) * parent2[i])
-
-				# did we leave the boundary?
-				if parameters1[i] > 1:
-					parameters1[i] = 1
-
-				if parameters1[i] < 0:
-					parameters1[i] = 0
-
-				if parameters2[i] > 1:
-					parameters2[i] = 1
-
-				if parameters2[i] < 0:
-					parameters2[i] = 0
-
-			offspring1 = np.r_[parameters1, self.no_objectives, self.no_properties]
-			offspring2 = np.r_[parameters2, self.no_objectives, self.no_properties]
-
-			children.append(offspring1)
-			children.append(offspring2)
-
-		children = np.array(children)
-		self.population = np.r_[self.population, children]
-
-	def mutation(self):
-		"""
-		Polynomial mutation (Deb, 124)
-		"""
-		for k in range(len(self.population)):
-			individual = self.population[k]
-
-			if not self.mutate_parents and individual[self.fitnesspos] != -1:
-				continue # this is a parent, do not mutate it
-
-			for i in range(self.para):
-				# each gene only mutates with a certain probability
-				m = np.random.random()
-
-				if m < self.p_m:
-					r_i = np.random.random()
-
-					if r_i < 0.5:
-						delta_i = pow(2*r_i, 1./(self.eta_m+1)) - 1
-					else:
-						delta_i = 1-pow(2*(1-r_i), 1./(self.eta_m+1))
-					individual[i] += delta_i
-					# did we leave the boundary?
-					if individual[i] > 1:
-						individual[i] = 1
-
-					if individual[i] < 0:
-						individual[i] = 0
-
-			individual[self.para:] = np.r_[self.no_objectives, self.no_properties]
-
-	def evaluate(self, save_pars=None, save_error=None, save_objectives=None):
-		new_population = []
-
-		# is the master alone?
-		if self.mpi == False:
-			for individual in self.population:
-				if individual[self.fitnesspos] == -1:
-					parameters = individual[:self.para]
-					if save_objectives is not None:
-						objectives_error = self.evaluate_individual(parameters, save_to=save_objectives)
-					else:
-						objectives_error = self.evaluate_individual(parameters)
-					if save_pars is not None:
-						parameters_unnormed = self.unnormit(parameters)
-						dict_parameters_normed = dict({})
-						for i in range(len(self.variables)):
-							dict_parameters_normed[self.variables[i][0]] = parameters_unnormed[i]
-						save_pars.append(dict_parameters_normed)
-					if save_error is not None:
-						save_error.append(objectives_error)
-					#print objectives_error
-					if objectives_error is not None:
-						new_population.append(np.r_[parameters, objectives_error, self.no_properties])
-				else:
-					new_population.append(individual)
-
-		else:
-			# distribute the individuals among the slaves
-			i = 0
-			for individual in self.population:
-				if individual[self.fitnesspos] == -1:
-					parameters = individual[:self.para]
-					if save_pars is not None:
-						save_pars.append(parameters)
-
-					dest = i % (self.comm.size-1) + 1
-					self.comm.send(parameters, dest=dest)
-					i += 1
-				else:
-					new_population.append(individual)
-
-			# Receive the results from the slaves
-			for i in range(i):
-				result = self.comm.recv(source=MPI.ANY_SOURCE)
-
-				if result != None:
-					new_population.append(np.r_[result[0], result[1], self.no_properties])
-		self.population = np.array(new_population)
-
-	def evaluate_individual(self, parameters, save_to=None):
-		parameters_unnormed = self.unnormit(parameters)
-
-		# make a dictionary with the unormed parameters and send them to the evaluation function
-		dict_parameters_normed = dict({})
-		for i in range(len(self.variables)):
-			dict_parameters_normed[self.variables[i][0]] = parameters_unnormed[i]
-
-		if save_to is not None:
-			dict_results = self.get_objectives_error(dict_parameters_normed, save_to=save_to)
-		else:
-			dict_results = self.get_objectives_error(dict_parameters_normed)
-
-		list_results = []
-		for objective_name in self.objectives_names:
-			list_results.append(dict_results[objective_name])
-
-		for info_name in self.infos_names:
-			list_results.append(dict_results[info_name])
-
-		return np.array(list_results)
-
-	def evaluate_slave(self):
-		# We wait for parameters
-        # we do not see the whole population!
-		while(True):
-			parameters = self.comm.recv(source=0) # wait....
-
-			# Does the master want the slave to shutdown?
-			if parameters is None:
-				# Slave finishing...
-				break
-
-			objectives_error = self.evaluate_individual(parameters)
-			#objectives_error = self.get_objectives_error(self.unnormit(parameters))
-
-			if objectives_error is None:
-				self.comm.send(None, dest=0)
-			else:
-				self.comm.send([parameters, objectives_error], dest=0)
-
-	def assign_fitness(self):
-		"""
-		are we in a multiobjective regime, then the selection of the best individual is not trival
-		and must be based on dominance, thus we determine all non dominated fronts and only use the best
-		to transfer into the new generation
-		"""
-		if self.obj > 1:
-			self.assign_rank()
-			new_population = np.array([])
-			maxrank = self.population[:,self.rankpos].max()
-
-			for rank in range(0, int(maxrank)+1):
-				new_front = self.population[np.where(self.population[:,self.rankpos] == rank)]
-				new_sorted_front = self.crowding_distance_sort(new_front)
-
-				if len(new_population) == 0:
-					new_population = new_sorted_front
-				else:
-					new_population = np.r_[new_population, new_sorted_front]
-			self.population = new_population
-		else:
-			# simply sort the objective value
-			ind = np.argsort(self.population[:,self.objpos])
-			self.population = self.population[ind]
-
-		# now set the fitness, indiviauls are sorted, thus fitnes is easy to set
-		fitness = range(0, len(self.population[:, 0]))
-		self.population[:, -1] = fitness
-
-	def new_generation(self):
-		# the worst are at the end, let them die, if there are too many
-		if len(self.population) > self.size:
-			self.population = self.population[:self.size]
-
-	def dominates(self, p, q):
-		objectives_error1 = self.population[p][self.objpos:self.objpos+self.obj]
-		objectives_error2 = self.population[q][self.objpos:self.objpos+self.obj]
-
-		diff12 = objectives_error1 - objectives_error2
-		# is individuum 1 equal or better then individuum 2?
-		# and at least in one objective better
-		# then it dominates individuum2
-		# if not it does not dominate two (which does not mean that 2 may not dominate 1)
-		return ( ((diff12<= 0).all()) and ((diff12 < 0).any()) )
-
-	def assign_rank(self):
-		F = dict()
-		P = self.population
-		S = dict()
-		n = dict()
-		F[0] = []
-		# determine how many solutions are dominated or dominate
-		for p in range(len(P)):
-			S[p] = []  # this is the list of solutions dominated by p
-			n[p] = 0  # how many solutions are dominating p
-			for q in range(len(P)):
-				if self.dominates(p, q):
-					S[p].append(q)  # add q to the list of solutions dominated by p
-				elif self.dominates(q, p):
-					n[p] += 1  # q dominates p, thus increase number of solutions that dominate p
-			if n[p] == 0:  # no other solution dominates p
-				# this is the rank column
-				P[p][self.rankpos] = 0
-				F[0].append(p)  # add p to the list of the first front
-		# find the other non dominated fronts
-		i = 0
-		while len(F[i]) > 0:
-			Q = []  # this will be the next front
-			# take the elements from the last front
-			for p in F[i]:
-				# and take the elements that are dominated by p
-				for q in S[p]:
-					# decrease domination number of all elements that are dominated by p
-					n[q] -= 1
-					# if the new domination number is zero, than we have found the next front
-					if n[q] == 0:
-						P[q][self.rankpos] = i + 1
-						Q.append(q)
-			i += 1
-			F[i] = Q  # this is the next front
-
-	def crowding_distance_sort(self, front):
-		sorted_front = front.copy()
-		l = len(sorted_front[:, 0])
-		sorted_front[:, self.distpos] = np.zeros_like(sorted_front[:, 0])
-		for m in range(self.obj):
-			ind = np.argsort(sorted_front[:, self.objpos + m])
-			sorted_front = sorted_front[ind]
-			# definitely keep the borders
-			sorted_front[0, self.distpos] += 1000000000000000.
-			sorted_front[-1, self.distpos] += 1000000000000000.
-			fm_min = sorted_front[0, self.objpos + m]
-			fm_max = sorted_front[-1, self.objpos + m]
-			if fm_min != fm_max:
-				for i in range(1, l - 1):
-					sorted_front[i, self.distpos] += (sorted_front[i + 1, self.objpos + m] - sorted_front[
-						i - 1, self.objpos + m]) / (fm_max - fm_min)
-		ind = np.argsort(sorted_front[:, self.distpos])
-		sorted_front = sorted_front[ind]
-		sorted_front = sorted_front[-1 - np.arange(len(sorted_front))]
-
-		return sorted_front

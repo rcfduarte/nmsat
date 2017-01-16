@@ -38,6 +38,7 @@ import math
 import scipy.signal as sp
 import scipy.stats as st
 from analysis import *
+from modules import check_dependency
 from io import *
 import itertools
 
@@ -56,6 +57,22 @@ def empty(seq):
 			return not result.astype(bool)
 	else:
 		return not seq
+
+
+def iterate_obj_list(obj_list):
+	"""
+	Build an iterator to iterate through any nested list
+	:obj_list: list of objects to iterate
+	:return:
+	"""
+	# TODO - remove from net_architect (check for errors)
+	for idx, n in enumerate(obj_list):
+		if isinstance(n, list):
+			for idxx, nn in enumerate(obj_list[idx]):
+				yield obj_list[idx][idxx]
+		else:
+			yield obj_list[idx]
+
 
 def reject_outliers(data, m=2.):
 	"""
@@ -120,6 +137,23 @@ def convert_activity(initializer):
 			return analog_activity
 	else:
 		print "Incorrect initializer..."
+
+
+def to_pyspike(spike_list):
+	"""
+	Convert the data in the spike_list to the format used by PySpike
+	:param spike_list: SpikeList object
+	:return: PySpike SpikeTrain object
+	"""
+	assert (check_dependency('pyspike')), "PySpike not found.."
+	import pyspike as spk
+	bounds = spike_list.time_parameters()
+	spike_trains = []
+	for n_train in spike_list.id_list:
+		sk_train = spike_list.spiketrains[n_train]
+		pyspk_sktrain = spk.SpikeTrain(spike_times=sk_train.spike_times, edges=bounds)
+		spike_trains.append(pyspk_sktrain)
+	return spike_trains
 
 
 def shotnoise_fromspikes(spike_train, q, tau, dt=0.1, t_start=None, t_stop=None, array=False, eps=1.0e-8):
@@ -998,7 +1032,7 @@ class SpikeTrain(object):
 
 		return np.sum(l) / (n - k - 1)
 
-	def spikes_to_states_exp(self, dt, tau, start=None, stop=None):
+	def exponential_filter(self, dt, tau, start=None, stop=None):
 		"""
 		Converts a spike train into an analogue variable (low-pass filters the spike train),
 		by convolving it with an exponential function.
@@ -1014,7 +1048,7 @@ class SpikeTrain(object):
 		SpkTimes = np.round(self.spike_times, 1)
 
 		if not empty(SpkTimes):
-			(States, TimeVec) = shotnoise_fromspikes(self, 1., tau, dt, array=True)
+			(States, TimeVec) = shotnoise_fromspikes(self, 1., tau, dt, t_start=start, t_stop=stop, array=True)
 			return States
 
 	def spikes_to_states_binary(self, dt, start=None, stop=None):
@@ -1039,7 +1073,6 @@ class SpikeTrain(object):
 				if not empty(np.where(round(x, 1) == np.round(TimeVec, 1))):
 					Spk_idxs.append(np.where(round(x, 1) == np.round(TimeVec, 1))[0][0])
 			States = np.zeros_like(TimeVec)
-			state = 0.
 			for i, t in enumerate(TimeVec):
 				state = 0
 				if i in Spk_idxs:
@@ -1078,6 +1111,7 @@ class SpikeList(object):
 	#######################################################################
 	def __init__(self, spikes, id_list, t_start=None, t_stop=None, dims=None):
 		#TODO is it not better if there are 2, corresponding lists, [spk_time] and [ids]? seems more efficient
+		# yes, this is a legacy issue.. But modifying this now would be too complex, as this is used throughout the code
 		"""
 		Constructor of the SpikeList object
 
@@ -1109,7 +1143,8 @@ class SpikeList(object):
 				if id in id_list:
 					self.spiketrains[id] = SpikeTrain(spikes[break_points[idx]:break_points[idx+1], 1], self.t_start, self.t_stop)
 
-		self.complete(id_list)
+		# self.complete(id_list)
+		# TODO - test complete with range(N)
 
 		if len(self) > 0 and (self.t_start is None or self.t_stop is None):
 			self.__calc_startstop()
@@ -1143,8 +1178,6 @@ class SpikeList(object):
 	def __calc_startstop(self):
 		"""
 		t_start and t_stop are shared for all neurons, so we take min and max values respectively.
-		TO DO : check the t_start and t_stop parameters for a SpikeList. Is it common to
-		all the spikeTrains within the spikelist or each spikelist do need its own.
 		"""
 		if len(self) > 0:
 			if self.t_start is None:
@@ -1255,7 +1288,7 @@ class SpikeList(object):
 		"""
 		return (self.t_start, self.t_stop)
 
-	def jitter(self,jitter):
+	def jitter(self, jitter):
 		"""
 		Returns a new SpikeList with spiketimes jittered by a normal distribution.
 
@@ -1343,7 +1376,7 @@ class SpikeList(object):
 
 	def complete(self, id_list):
 		"""
-		Complete the SpikeList by adding Sempty SpikeTrain for all the ids present in
+		Complete the SpikeList by adding empty SpikeTrain for all the ids present in
         ids that will not already be in the SpikeList
 
          Inputs:
@@ -1976,6 +2009,7 @@ class SpikeList(object):
 
 	@staticmethod
 	def _summed_dist_matrix(spiketrains, tau):
+		# TODO: check source
 		# The algorithm underlying this implementation is described in
 		# Houghton, C., & Kreuz, T. (2012). On the efficient calculation of van
 		# Rossum distances. Network: Computation in Neural Systems, 23(1-2),
@@ -2537,9 +2571,6 @@ class SpikeList(object):
 		import matplotlib as mpl
 		import matplotlib.pyplot as pl
 
-		# if (ax is not None) and (not isinstance(ax, mpl.axes.Axes)):
-		# 	raise ValueError('ax must be matplotlib.axes.Axes instance.')
-
 		if ax is None:
 			fig = pl.figure()
 			if with_rate:
@@ -2575,7 +2606,7 @@ class SpikeList(object):
 
 	def extract_state_vector(self, dt=0.1, tau=20., time_point=200., lag=100., N=None):
 		"""
-		Extract the population state at time_point from the SpikeList object
+		Extract the population state at the specified time_point from the SpikeList object
 		:param time_point: time to sample activity
 		:param lag: time before the sampling time to consider the responses
 		:return: N-dimensional state vector
@@ -2601,7 +2632,7 @@ class SpikeList(object):
 		t = np.arange(start, stop, dt)
 		if display:
 			from modules.visualization import progress_bar
-			print "\nCompiling Response Matrix from SpikeList"
+			print("\nCompiling activity matrix from SpikeList")
 		state_mat = np.zeros((N, len(t)))
 		if N is not None:
 			id_list = np.sort(self.id_list - min(self.id_list))
@@ -2610,7 +2641,7 @@ class SpikeList(object):
 
 		for idx, nn in enumerate(id_list):
 			sk_train = self.spiketrains[int(self.id_list[idx])]
-			state_mat[int(nn), :] = sk_train.spikes_to_states_exp(dt, tau, start, stop)
+			state_mat[int(nn), :] = sk_train.exponential_filter(dt, tau, start, stop)
 			if display:
 				progress_bar(float(idx)/float(len(id_list)))
 
@@ -2630,7 +2661,7 @@ class SpikeList(object):
 		t = np.arange(start, stop, dt)
 
 		if display:
-			print "\nCompiling Response Matrix from SpikeList"
+			print("\nCompiling binary activity from SpikeList")
 		state_mat = np.zeros((N, len(t)))
 		if N is not None:
 			id_list = np.sort(self.id_list - min(self.id_list))

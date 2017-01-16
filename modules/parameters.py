@@ -1,5 +1,3 @@
-from dill.source import indent
-
 __author__ = 'duarte'
 """
 ====================================================================================
@@ -127,7 +125,7 @@ def nesteddict_walk(d, separator='.'):
 	Nested dictionary entries will be created by joining to the parent dict entry
 	separated by separator
 
-	:param d: dictionary
+	:param d: dictionarypars = ParameterSpace(params_file_full_path)
 	:param separator:
 	:return: generator object (iterator)
 	"""
@@ -736,13 +734,16 @@ class ParameterSpace:
 	a `ParameterSet`.
 	"""
 
-	def __init__(self, initializer, emoo=False, keep_all=False):
+	def __init__(self, initializer, keep_all=False):
 		"""
 		Generate ParameterSpace containing a list of all ParameterSets
 		:param initializer: file url
+		:param keep_all: store all original parameters (??)
 		:return:
 		"""
 		assert isinstance(initializer, str), "Filename must be provided"
+		with open(initializer, 'r') as fp:
+			self.parameter_file = fp.readlines()
 
 		def validate_parameters_file(module):
 			"""
@@ -769,7 +770,6 @@ class ParameterSpace:
 				if not isiterable(module.parameter_range[arg]):
 					raise ValueError('ParameterRange variable `%s` is not iterable! Should be list!' % arg)
 
-
 		def validate_parameter_sets(param_sets):
 			# TODO Question how / what should we handle and check here?
 			"""
@@ -786,7 +786,6 @@ class ParameterSpace:
 				# `data_prefix` required
 				if "data_prefix" not in p_set["kernel_pars"]:
 					raise ValueError("`data_prefix` missing from `kernel_pars`!")
-
 
 		def parse_parameters_file(url):
 			"""
@@ -814,10 +813,10 @@ class ParameterSpace:
 			# call build_parameters for each range combination, and pack returned values into a list (set)
 			# contains a single dictionary if no range parameters
 			param_ranges = [module_obj.build_parameters( *elem ) for elem in range_combinations]
-			print param_ranges
+			# print param_ranges
 			global_label = param_ranges[0]['kernel_pars']['data_prefix']
 
-			if n_ranges <= 3 and not emoo:
+			if n_ranges <= 3:# and not emoo:
 				# verify parameter integrity / completeness
 				try:
 					validate_parameter_sets(param_ranges)
@@ -835,27 +834,13 @@ class ParameterSpace:
 						params_label += '_' + range_args[axe_index]
 						params_label += '=' + str(range_combinations[range_index][axe_index])
 
-
 					p_set = ParameterSet(param_ranges[range_index], label=params_label)
 					if not keep_all:
 						p_set = p_set.clean(termination='pars')
 					p_set.update({'label': params_label})
 					param_sets.append(p_set)
-
-			elif (n_ranges > 3) or (emoo is True):
-				# TODO @Q: what should exactly happen here?
-				print ("Preparing ParameterSpace for EMOO...")
-				params_label = global_label
-
-				for nn_rang in range(n_ranges):
-					param_axes.update({range_args[nn_rang]: module_obj.parameter_range[range_args[nn_rang]]})
-					params_label += '_' + range_args[nn_rang] + '=' + str(module_obj.parameter_range[range_args[nn_rang]][0])
-
-				p_set = ParameterSet(param_ranges[0], label=params_label)
-				if not keep_all:
-					p_set = p_set.clean(termination='pars')
-				p_set.update({'label': params_label})
-				param_sets.append(p_set)
+			else:
+				raise ValueError("Parameter spaces of >3 dimensions are currently not supported")
 
 			return param_sets, param_axes, global_label, n_ranges
 
@@ -877,16 +862,10 @@ class ParameterSpace:
 			dim			= 1
 			return param_set, param_axes, label, dim
 
-
 		if initializer.endswith(".py"):
 			self.parameter_sets, self.parameter_axes, self.label, self.dimensions = parse_parameters_file(initializer)
 		else:
 			self.parameter_sets, self.parameter_axes, self.label, self.dimensions = parse_parameters_dict(initializer)
-
-		if emoo:
-			self.additional_parameters = dict()
-			from modules.analysis import Emoo
-
 
 	def iter_sets(self):
 		"""
@@ -894,7 +873,6 @@ class ParameterSpace:
 		"""
 		for val in self.parameter_sets:
 			yield val
-
 
 	def __eq__(self, other):
 		"""
@@ -919,7 +897,6 @@ class ParameterSpace:
 			return False
 
 		return self.parameter_sets == other.parameter_sets
-
 
 	def __getitem__(self, item):
 		return self.parameter_sets[item]
@@ -952,7 +929,7 @@ class ParameterSpace:
 						result = True
 		return result
 
-	def run(self, computation_function, **parameters):
+	def run(self, computation_function, project_dir=None, **parameters):
 		"""
 		Run a computation on all the parameters
 		:param computation_function: function to execute
@@ -970,18 +947,14 @@ class ParameterSpace:
 		else:
 			print "\nPreparing job description files..."
 			export_folder = system['remote_directory']
-			import os
 			if not os.path.exists(export_folder + '{0}'.format(self.label)):
 				os.mkdir(export_folder + '{0}'.format(self.label))
 			main_experiment_folder = export_folder + '{0}/'.format(self.label)
 			remote_run_folder = export_folder + self.label + '/'
-			if system['system_label'] == 'bwUniCluster':
-				py_file_common_header = "import sys\nsys.path.append('../')\nfrom Modules.parameters import *\nfrom " \
-				                        "Modules.analysis import *\nfrom Experiments.Computations import *\n\n"
-			else:
-				py_file_common_header = "import sys\nsys.path.append('../')\nimport matplotlib\nmatplotlib.use(" \
-				                        "'Agg')\nfrom Modules.parameters import *\nfrom " \
-				                        "Modules.analysis import *\nfrom Experiments.Computations import *\n\n"
+			project_dir = os.path.abspath(project_dir)
+			py_file_common_header = "import sys\nsys.path.append('%s')\nimport matplotlib\nmatplotlib.use(" \
+			                        "'Agg')\nfrom modules.parameters import *\nfrom " \
+			                        "modules.analysis import *\nfrom computations import *\n\n" % project_dir
 
 			write_to_submit = []
 			submit_jobs_file = main_experiment_folder + 'submit_jobs.py'
@@ -1000,14 +973,13 @@ class ParameterSpace:
 				parameters_file = main_experiment_folder + par_set.label+'.txt'
 				with open(computation_file, 'w') as fp:
 					fp.write(py_file_common_header)
-					fp.write(computation_function.__name__ + "({0}, **{1})".format("'./" + par_set.label+".txt'",
-					                                                               str(parameters)))
+					fp.write(computation_function.__module__.split('.')[1] + '.' +computation_function.__name__ +
+					         "({0}, **{1})".format("'./" + par_set.label + ".txt'", str(parameters)))
 
 				system2['jdf_fields'].update({'{{ computation_script }}': remote_computation_file,
 				                             '{{ script_folder }}': remote_run_folder})
 
 				process_template(template_file, system2['jdf_fields'].as_dict(), save_to=local_exec_file)
-				#write_to_submit.append("\t\tos.system('msub {0}')\n".format(exec_file_name))
 				write_to_submit.append("{0}\n".format(exec_file_name))
 
 			with open(job_list, 'w') as fp:
@@ -1017,198 +989,21 @@ class ParameterSpace:
 				fp.write("import os\n")
 				fp.write("import sys\n\n")
 				fp.write("def submit_jobs(start_idx=0, stop_idx=None):\n")
-				#fp.write("")
 				fp.write("\twith open('{0}') as fp:\n\t\tfor idx, line in enumerate(fp):\n".format('./job_list.txt'))
 				fp.write("\t\t\tif stop_idx is not None:\n")
 				fp.write("\t\t\t\tif (idx>=start_idx) and (idx<=stop_idx):\n")
-				if system['system_label'] == 'bwUniCluster':
-					fp.write("\t\t\t\t\tos.system('msub {0}'.format(line))\n")
-					fp.write("\t\t\telse:\n")
-					fp.write("\t\t\t\tos.system('msub {0}'.format(line))")
-				else:
-					fp.write("\t\t\t\t\tos.system('sbatch {0}'.format(line))\n")
-					fp.write("\t\t\telse:\n")
-					fp.write("\t\t\t\tos.system('sbatch {0}'.format(line))")
-				#fp.writelines(write_to_submit)
+				fp.write("\t\t\t\t\tos.system('sbatch {0}'.format(line))\n")
+				fp.write("\t\t\telse:\n")
+				fp.write("\t\t\t\tos.system('sbatch {0}'.format(line))")
 				fp.write("\n\n")
 				fp.write("if __name__=='__main__':\n\tif len(sys.argv)>1:\n\t\tsubmit_jobs(int(sys.argv[1]), "
 				         "int(sys.argv[2]))")
 
 			with open(cancel_jobs_file, 'w') as fp:
-				if system['system_label'] == 'bwUniCluster':
-					fp.write("import os\nimport numpy as np\nimport sys\ndef cancel_range(init, end):\n\trang = np.arange("
-					         "init, end)\n\tfor n in rang:\n\t\tos.system('canceljob '+ str(n))\n\nif "
-					         "__name__=='__main__':\n\tcancel_range(int(sys.argv[1]), int(sys.argv[2]))")
-				else:
-					fp.write(
-						"import os\nimport numpy as np\nimport sys\ndef cancel_range(init, end):\n\trang = np.arange("
-						"init, end)\n\tfor n in rang:\n\t\tos.system('scancel '+ str(n))\n\nif "
-						"__name__=='__main__':\n\tcancel_range(int(sys.argv[1]), int(sys.argv[2]))")
-
-	def reset_parameters(self, variables):
-		"""
-		Prepare a new ParameterSet with the new combination of parameters (for emoo)
-		"""
-		var = variables
-		par_ranges = []
-		par_ranges_index = []
-		for idx, nn in enumerate(self.parameter_file):
-			if nn.find('ParameterRange') != -1:
-				par_ranges.append(nn)
-				par_ranges_index.append(idx)
-		new_data = list(np.copy(self.parameter_file))
-		n_ranges = len(par_ranges)
-
-		par_names1 = [n_par[n_par.find('name=') + 5:] for n_par in par_ranges]
-		par_names = [n_par[1:n_par.find(',') - 1] for n_par in par_names1]
-		idxs = [var.keys().index(n_par) for n_par in par_names]
-
-		params_label = self.label.split('_')[0]
-		for nn_rang in range(n_ranges):
-			new_data[par_ranges_index[nn_rang]] = par_names[nn_rang] + ' = ' + str(var.values()[idxs[nn_rang]]) + '\n'
-			params_label += '_' + par_names[nn_rang] + '=' + str(var.values()[idxs[nn_rang]])
-
-		time_stamp = time.time() # to avoid redundant filenames (were causing problems)
-		params_file = "tmp_{0}.py".format(str(int(time_stamp)))
-		with open(params_file, 'w') as fp:
-			fp.writelines(new_data)
-		par_set = ParameterSet(set_params_dict(params_file), label=params_label)
-		par_set = par_set.clean(termination='pars')
-		par_set.update({'label': params_label})
-		os.remove(params_file)
-		if os.path.isfile(params_file + 'c'):
-			os.remove(params_file + 'c')
-
-		return par_set
-
-	def optimization_run(self, variables, save_to=None):
-		"""
-		Function to optimize
-		:param variables:
-		:return:
-		"""
-		print variables
-		parameter_set = self.reset_parameters(variables)
-		computation_function = self.additional_parameters['computation_function']
-		# TODO try:
-		results = computation_function(parameter_set, **self.additional_parameters['parameters'])
-		objective_error = dict()
-
-		# Extract the relevant data from the results dictionaries (experiment-specific,
-		# specified by results_subfields and operation...)
-		if self.additional_parameters['results_subfields'] is None:
-			operation = self.additional_parameters['operation']
-			if save_to is not None:
-				save_to.append({})
-			for n in self.additional_parameters['objectives']:
-				targets = n.values()[0]
-
-				if operation is not None:
-					obtained = operation(results[str(n.keys()[0])])
-				else:
-					obtained = results[str(n.keys()[0])]
-				if len(targets) > 1:
-					target = np.mean(targets)
-					precision = np.std(targets)
-				else:
-					target = targets
-					precision = 1
-				objective_error.update({str(n.keys()[0]): (target - obtained) ** 2})
-				if save_to is not None:
-					save_to[-1].update({n.keys()[0]: obtained})
-		else:
-			r = "results"
-			for n in self.additional_parameters['results_subfields']:
-				r += "['{0}']".format(n)
-			results_to_mine = eval(r)
-
-			targets = []
-			if save_to is not None:
-				save_to.append({})
-			#print self.additional_parameters['objectives'].items()
-			for nn in self.additional_parameters['objectives'].items():
-				operation = self.additional_parameters['operation']
-				targets = nn[1]
-
-				if operation is not None:
-					obtained = operation(results_to_mine[str(nn[0])])
-				else:
-					obtained = results_to_mine[str(nn[0])]
-
-				if isinstance(targets, list):
-					target = np.mean(targets)
-					precision = np.std(targets)
-				else:
-					target = targets
-					precision = 1
-				objective_error.update({str(nn[0]): (target - obtained) ** 2})
-				if save_to is not None:
-					save_to[-1].update({nn[0]: obtained})
-
-		return objective_error
-
-	def checkpopulation(self, population, columns, gen, save_to=None):
-		"""
-		Check the fitness of the population
-		:param population:
-		:param columns:
-		:param gen:
-		:return:
-		"""
-		objectives = self.additional_parameters['objectives']
-		errors = np.zeros_like(population[:, 0])
-		for n in objectives.items():
-			errors += (population[:, columns[str(n[0])]] ** 2)
-		i = np.argmin(errors)
-
-		print "***************************************"
-		print "Generation %d: " % gen,
-		for n in objectives.items():
-			print "Smallest Error for {0} = {1}".format(str(n[0]), str(population[i, columns[str(n[0])]]))
-			if save_to is not None:
-				save_to['smallest_errors']['Gen{0}'.format(str(gen))].update({str(n[0]): population[i, columns[str(n[0])]]})
-		return i
-
-	def run_emoo(self, computation_function, objectives, optimization_options, results_subfields=None,
-	             operation=None, **parameters):
-		"""
-		Run a evolutionary multi-objective parameter optimization using the provided ranges of the free parameters and
-		the objectives
-		:param computation_function: function to execute
-		:param objectives: dictionary with {target_variable_name: target_value} (these have to be keys or
-		sub-dictionaries in the
-		results dictionary provided by the computation function)
-		:param parameters: kwarg arguments for the function
-		"""
-		self.additional_parameters.update({'objectives': objectives, 'results_subfields': results_subfields,
-		                                  'operation': operation, 'parameters': parameters,
-		                                  'computation_function': computation_function})
-
-		# ParametersRanges are used to set the parameters to search...
-		# Define the variables and their lower and upper search bounds
-		params_to_optimize = {k: [min(v), max(v)] for k, v in self.parameter_axes.items()}
-		variables = [[k, v[0], v[1]] for k, v in params_to_optimize.items()]
-
-		# Store the results...
-		results = {'parameters_evolution': {},
-		           'objectives_evolution': {},
-		           'error_evolution': {},
-		           'smallest_errors': {}}
-
-		# Initiate the Evlutionary Multiobjective Optimization
-		from modules.analysis import Emoo
-		emoo = Emoo(N=optimization_options['n_individuals'], C=optimization_options['pop_capacity'],
-		            variables=variables, objectives=objectives)
-		emoo.setup(eta_m_0=optimization_options['eta_m_0'], eta_c_0=optimization_options['eta_c_0'],
-		           p_m=optimization_options['p_m'])
-		emoo.master_mode = True
-		emoo.get_objectives_error = self.optimization_run
-		emoo.checkpopulation = self.checkpopulation
-		emoo.evolution(optimization_options['n_generations'], save_to=results, save_path=self[0].kernel_pars.data_path +
-		                                                                                 self[0].kernel_pars.data_prefix
-		                                                                                 + '_EMOO_Results.pck')
-
-		return emoo, results
+				fp.write(
+					"import os\nimport numpy as np\nimport sys\ndef cancel_range(init, end):\n\trang = np.arange("
+					"init, end)\n\tfor n in rang:\n\t\tos.system('scancel '+ str(n))\n\nif "
+					"__name__=='__main__':\n\tcancel_range(int(sys.argv[1]), int(sys.argv[2]))")
 
 	def harvest(self, data_path, result=None, operation=None):
 		"""
@@ -1312,7 +1107,7 @@ class ParameterSpace:
 												results_array = v
 				else:
 					results_array = results
-			except:
+			except IOError:
 				print "Dataset {0} Not Found, skipping".format(self.label)
 
 		return parameters_array, results_array
@@ -1644,18 +1439,6 @@ class ParameterSpace:
 					results_out[iid] = results_array.astype(float)
 		#print results_out
 		return results_out
-
-	def compile_parameters_table(self):
-		"""
-		Use the first parameter set to generate the standard table...
-		:return:
-		"""
-		template_file = self[0].report_pars.report_templates_path + 'StandardTable.tex'
-		out_file = self[0].report_pars.report_path + self[0].report_pars.report_filename
-		fields = self[0].report_pars.table_fields.as_dict()
-		tmp = process_template(template_file, fields, save_to=out_file)
-
-		return tmp, out_file
 
 	@staticmethod
 	def extract_result_from_array(results_array, field, operation=None):
