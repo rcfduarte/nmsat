@@ -815,6 +815,8 @@ class StochasticGenerator:
 		"""
 
 		t = np.arange(t_start, t_stop, dt)
+		if isinstance(function, basestring):
+			function = eval(function)
 		s = function(size=len(t), **kwargs)
 		s *= amplitude
 
@@ -1315,9 +1317,12 @@ class StimulusSet(object):
 		else:
 			seq = []
 			for n in range(n_strings):
-				length 	= np.random.randint(string_length[0], string_length[1]) if string_length else 1
-				idxs 	= np.random.randint(0, len(self.elements), length)
-				str_ 	= []
+				if string_length:
+					length = np.random.randint(string_length[0], string_length[1])
+				else:
+					length = 1
+				idxs = np.random.randint(0, len(self.elements), length)
+				str = []
 				for nn in idxs:
 					str_.append(self.elements[nn])
 
@@ -1441,8 +1446,8 @@ class StimulusSet(object):
 		else:
 			self.train_set = train_set
 			self.test_set = test_set
-		print "\t- Dividing set [train={0} / test={1}]".format(str(len(self.train_set_labels)),
-															   str(len(self.test_set_labels)))
+		print("\t- Dividing set [train={0} / test={1}]".format(str(len(self.train_set_labels)),
+															   str(len(self.test_set_labels))))
 
 	def discard_from_set(self, n_discard=0):
 		"""
@@ -2113,6 +2118,14 @@ class InputNoise(StochasticGenerator):
 				                                                      t_stop=self.global_stop, dt=self.dt,
 				                                                      rectify=self.rectify, array=False,
 				                                                      **self.parameters))
+			elif isinstance(self.source[ii], basestring) and self.source[ii] not in ['GWN', 'OU']:
+					amplitude = self.parameters.pop('amplitude')
+					self.parameters.pop('label')
+					self.noise_signal.append(self.continuous_rv_generator(self.source[ii], amplitude=amplitude,
+					                                                      t_start=self.global_start,
+					                                                      t_stop=self.global_stop, dt=self.dt,
+					                                                      rectify=self.rectify, array=False,
+					                                                      **self.parameters))
 			elif self.source[ii] == 'GWN':
 				self.noise_signal.append(self.GWN_generator(amplitude=self.parameters['amplitude'],
 				                                            mean=self.parameters['mean'],
@@ -2183,10 +2196,10 @@ class InputSignalSet(object):
 			self.full_set_signal_iterator = None
 		if 'spike_pattern' in parameter_set.encoding_pars.generator.labels and stim_obj is not None:
 			self.spike_patterns = []
-			n_input_neurons 	= parameter_set.encoding_pars.encoder.n_neurons[0]
-			pattern_duration 	= parameter_set.input_pars.signal.durations
-			rate 				= parameter_set.input_pars.signal.max_amplitude
-			resolution 			= parameter_set.input_pars.signal.resolution
+			n_input_neurons = parameter_set.encoding_pars.encoder.n_neurons[0]
+			pattern_duration = parameter_set.input_pars.signal.durations
+			rate = parameter_set.input_pars.signal.max_amplitude
+			resolution = parameter_set.input_pars.signal.resolution
 
 			if parameter_set.encoding_pars.generator.gen_to_enc_W is None:
 				for n in range(stim_obj.dims):
@@ -2194,6 +2207,10 @@ class InputSignalSet(object):
 						duration = pattern_duration[n]
 					else:
 						duration = pattern_duration[0]
+
+					# if parameter_set.decoding_pars.jitter is not None:
+					# duration *= (2* parameter_set.decoding_pars.jitter)
+
 					if len(rate) == stim_obj.dims:
 						rt = rate[n]
 					else:
@@ -2978,13 +2995,16 @@ class EncodingLayer:
 			if hasattr(initializer, 'generator') and signal is not None:
 				self.generators, self.generator_names = create_generators(initializer,
 				                                                signal=None, input_dim=signal.dimensions)
+			elif hasattr(initializer, 'generator') and signal is None:
+				self.generators, self.generator_names = create_generators(initializer)
+			# print self.encoders, self.generators
 		else:
 			if hasattr(initializer, 'encoder'):
 				self.encoders, self.encoder_names = create_encoders(initializer.encoder, signal)
 			if hasattr(initializer, 'generator'):
 				self.generators, self.generator_names = create_generators(initializer, signal)
 
-	def connect(self, encoding_pars, net_obj=None):
+	def connect(self, encoding_pars, net_obj=None, progress=True):
 		"""
 		Connect the generators to their target populations according to specifications
 		:param encoding_pars: ParameterSet or dictionary
@@ -3080,24 +3100,49 @@ class EncodingLayer:
 				nest.CopyModel(conn_pars.models[idx], synapse_name)
 				nest.SetDefaults(synapse_name, conn_pars.model_pars[idx])
 
-			## Set up connections
-			# a) special case - signal is weighted and stochastic spike trains are generated...
-			if src_name == 'Bridge' and tget_type == 'encoder':
-				if conn_pars.preset_W[idx] is None:
-					raise TypeError("For Bridge connectors, preset_W have to be specified")
-				else:
-					if isinstance(conn_pars.preset_W[idx], np.ndarray):
-						w = conn_pars.preset_W[idx]
-					elif isinstance(conn_pars.preset_W[idx], tuple):
-						args = copy_dict(conn_pars.preset_W[idx][1], {'size': (int(src_dims), int(tget_dims))})
-						w = conn_pars.preset_W[idx][0](**args)
-					else:
-						raise ValueError("Incorrect W specifications")
+			if synapse_name.find('copy') > 0:  # re-connect the same neurons...
+				import time
+				start = time.time()
+				print "    - Connecting {0} (*)".format(synapse_name)
 
-					self.encoders[tget_id].generate_stochastic_spikes(encoding_pars.encoder, w, self.signal)  # !!!
-					self.connection_weights.append({synapse_name: w})
-				print "- Connecting {0} to {1}".format(src_name, tget_name)
+				device_models = ['spike_detector', 'spike_generator', 'multimeter']
+				target_synapse_name = synapse_name[:synapse_name.find('copy')-1]
+				conns = nest.GetConnections(synapse_model=target_synapse_name)
+
+				iterate_steps = 100
+				its = np.arange(0, len(conns)+1, iterate_steps).astype(int)
+
+				for nnn, it in enumerate(its):
+					if nnn < len(its)-1:
+						con = conns[it:its[nnn+1]]
+						st = nest.GetStatus(con)
+						source_gids = [x['source'] for x in st if
+						               nest.GetStatus([x['target']])[0]['model'] not in device_models]
+						target_gids = [x['target'] for x in st if
+						               nest.GetStatus([x['target']])[0]['model'] not in device_models]
+						weights = [x['weight'] for x in st if nest.GetStatus([x['target']])[0]['model'] not in device_models]
+						delays = [x['delay'] for x in st if nest.GetStatus([x['target']])[0]['model'] not in device_models]
+						models = [x['synapse_model'] for x in st if
+						          nest.GetStatus([x['target']])[0]['model'] not in device_models]
+						receptors = [x['receptor'] for x in st if
+						             nest.GetStatus([x['target']])[0]['model'] not in device_models]
+						syn_dict = copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
+							conn_pars.weight_dist[idx], 'delay': conn_pars.delay_dist[idx]})
+						conn_dict = conn_pars.conn_specs[idx]
+
+						syn_dicts = [{'synapsemodel': list(np.repeat(synapse_name, len(source_gids)))[iddx],
+						              'source': source_gids[iddx],
+						              'target': target_gids[iddx],
+						              'weight': syn_dict['weight'],		              # TODO distributions??
+						              'delay': syn_dict['delay'],
+						              'receptor_type': syn_dict['receptor_type']} for iddx in range(len(target_gids))]
+						nest.DataConnect(syn_dicts)
+					if progress:
+						from Modules.visualization import progress_bar
+						progress_bar(float(nnn) / float(len(its)))
+				print "\tElapsed time: {0} s".format(str(time.time()-start))
 			else:
+				## Set up connections
 				# 1) pre-computed weight matrix, or function to specify w
 				if conn_pars.preset_W[idx] is not None:
 					if isinstance(conn_pars.preset_W[idx], np.ndarray):
@@ -3408,6 +3453,79 @@ class EncodingLayer:
 		self.connect(native_encoding_pars, network)
 		self.connect(clone_encoding_pars, clone)
 
+	def replicate_connections(self, net, clone, progress=True):
+		"""
+		Replicate the connectivity from the encoding layer to the clone network
+		:param clone:
+		:return:
+		"""
+		import time
+		start = time.time()
+		target_population_names = clone.population_names
+		target_population_gids = [n.gids for n in clone.populations]
+		source_population_names = [n.split('_')[0] for n in target_population_names]
+		source_population_gids = [net.populations[net.population_names.index(n)].gids for n in source_population_names]
+		# target_synapse_name = synapse_name[:synapse_name.find('copy') - 1]
+		device_models = ['spike_detector', 'multimeter'] # 'spike_generator',
+		for idx, n_pop in enumerate(source_population_gids):
+			print "\n Replicating Encoding Layer connections to {0}".format(clone.population_names[idx])
+			conns = nest.GetConnections(target=n_pop)
+			iterate_steps = 100
+			its = np.arange(0, len(conns) + 1, iterate_steps).astype(int)
+			if len(its) > 1:
+				for nnn, it in enumerate(its):
+					if nnn < len(its) - 1:
+						con = conns[it:its[nnn + 1]]
+						st = nest.GetStatus(con)
+						#print [nest.GetStatus([x['source']])[0]['model'] for x in st]
+						source_gids = [x['source'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in
+						               device_models]
+						# print source_gids
+						target_gids = [target_population_gids[idx][0] for x in st if nest.GetStatus([x['source']])[0][
+							'model'] not in device_models]
+						weights = [x['weight'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
+						delays = [x['delay'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
+						models = [str(x['synapse_model']) for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
+						receptors = [x['receptor'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
+						# print receptors
+						#synapse_model = [x['synapse_model']]
+						syn_dicts = [{'synapsemodel': models[iddx],
+						              'source': source_gids[iddx],
+						              'target': target_gids[iddx],
+						              'weight': weights[iddx],
+						              'delay': delays[iddx],
+						              'receptor_type': receptors[iddx]} for iddx in range(len(target_gids))]
+						nest.DataConnect(syn_dicts)
+					if progress:
+						from Modules.visualization import progress_bar
+						progress_bar(float(nnn) / float(len(its)))
+
+				print "\tElapsed time: {0} s".format(str(time.time() - start))
+			else:
+				st = nest.GetStatus(conns)
+				print [nest.GetStatus([x['source']])[0]['model'] for x in st]
+				source_gids = [x['source'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in
+				               device_models]
+				# print source_gids
+				target_gids = [target_population_gids[idx][0] for x in st if nest.GetStatus([x['source']])[0][
+					'model'] not in device_models]
+				weights = [x['weight'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
+				delays = [x['delay'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
+				models = [str(x['synapse_model']) for x in st if
+				          nest.GetStatus([x['source']])[0]['model'] not in device_models]
+				receptors = [x['receptor'] for x in st if
+				             nest.GetStatus([x['source']])[0]['model'] not in device_models]
+				# print receptors
+				# synapse_model = [x['synapse_model']]
+				syn_dicts = [{'synapsemodel': models[iddx],
+				              'source': source_gids[iddx],
+				              'target': target_gids[iddx],
+				              'weight': weights[iddx],
+				              'delay': delays[iddx],
+				              'receptor_type': receptors[iddx]} for iddx in range(len(target_gids))]
+				nest.DataConnect(syn_dicts)
+				print "\tElapsed time: {0} s".format(str(time.time() - start))
+
 	def connect_decoders(self, decoding_pars):
 		"""
 		Connect decoders to encoding population
@@ -3460,13 +3578,14 @@ class EncodingLayer:
 			# 		src_idx = self.generators[0].gids
 			# 		tget_idx = net.populations[]
 			for con in list(np.unique(self.connection_types)):
-				status_dict = nest.GetStatus(nest.GetConnections(synapse_model=con))
-				src_gids = [status_dict[n]['source'] for n in range(len(status_dict))]
-				tget_gids = [status_dict[n]['target'] for n in range(len(status_dict))]
-				#self.connection_weights.append({con: np.array([status_dict[n]['weight'] for n in range(len(
-				#	status_dict))])})
-				self.connection_weights.update({con: extract_weights_matrix(list(np.unique(src_gids)),
-				                                                           list(np.unique(tget_gids)))})
+				if con[-4:] != 'copy':
+					status_dict = nest.GetStatus(nest.GetConnections(synapse_model=con))
+					src_gids = [status_dict[n]['source'] for n in range(len(status_dict))]
+					tget_gids = [status_dict[n]['target'] for n in range(len(status_dict))]
+					#self.connection_weights.append({con: np.array([status_dict[n]['weight'] for n in range(len(
+					#	status_dict))])})
+					self.connection_weights.update({con: extract_weights_matrix(list(np.unique(src_gids)),
+					                                                           list(np.unique(tget_gids)))})
 
 		elif src_gids and tget_gids:
 			if syn_name is None:

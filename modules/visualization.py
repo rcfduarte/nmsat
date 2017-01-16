@@ -37,6 +37,7 @@ from modules import check_dependency
 from modules.io import *
 from modules.analysis import *
 
+
 def set_axes_properties(ax, **kwargs):
 	"""
 	Set axes properties...
@@ -424,12 +425,6 @@ def plot_state_analysis(parameter_set, results, start=None, stop=None, display=T
 
 	if bool(results['spiking_activity']):
 		pop_names = results['spiking_activity'].keys()
-		
-		# loader = DataHandler(results['metadata']['spike_data_file'])
-		# # gids = list(itertools.chain(results['metadata']['sub_population_gids']))
-		# spike_params = {'t_start': start, 't_stop': stop}
-		# spiking_activity = loader.load_spikes(**spike_params)
-		# os.remove(results['metadata']['spike_data_file'])
 
 		spiking_activity = results['metadata']['spike_list']
 		rp = SpikePlots(spiking_activity, start, stop)
@@ -636,6 +631,32 @@ def plot_singleneuron_isis(isis, ax=None, save=False, display=False, **kwargs):
 		pl.show(False)
 
 
+def test_offline_filtering(spike_list, N, dt, tau):
+	"""
+
+	:param spike_list:
+	:param N:
+	:param dt:
+	:return:
+	"""
+	start = spike_list.t_start
+	stop = spike_list.t_stop
+
+	idx = np.random.permutation(spike_list.id_list)[0]
+	mat_idx = idx - min(spike_list.id_list)
+	activity_matrix = spike_list.compile_response_matrix(dt, tau, start=start, stop=stop, N=N, display=True)
+	spk_train = spike_list.spiketrains[idx]
+	t = np.arange(spike_list.t_start, spike_list.t_stop, dt)
+	resp = spk_train.exponential_filter(dt, tau, start, stop)
+
+	fig, ax = pl.subplots()
+	ax.plot(spk_train.spike_times, np.ones_like(spk_train.spike_times), 'ro')
+	ax.plot(t, resp, 'b')
+	ax.plot(t, activity_matrix[mat_idx, :], 'g')
+
+	pl.show()
+
+
 def plot_acc(t, accs, fit_params, acc_function, title='', ax=None, display=True, save=False):
 
 	from scipy.stats import sem
@@ -728,7 +749,7 @@ def plot_2d_parscans(image_arrays=[], axis=[], fig_handle=None, labels=[], cmap=
 	pl.show(block=False)
 
 
-def plot_3d_volume(X, ax):
+def plot_3d_volume(X):
 	"""
 
 	:return:
@@ -740,7 +761,7 @@ def plot_3d_volume(X, ax):
 	mlab.axes()
 
 	arr = mlab.screenshot()
-	ax.imshow(arr)
+	pl.imshow(arr)
 
 
 def plot_3d_parscans(image_arrays=[], axis=[], dimensions=[10, 10, 10], fig_handle=None, labels=[], cmap='jet',
@@ -757,8 +778,6 @@ def plot_3d_parscans(image_arrays=[], axis=[], dimensions=[10, 10, 10], fig_hand
 	z = np.linspace(0, dimensions[2], 1)
 
 	X1, Y1, Z1 = np.meshgrid(x, y, z)
-
-
 
 	origin = 'upper'
 	for idx, ax in enumerate(axis):
@@ -819,69 +838,6 @@ def recurrence_plot(time_series, dt=1, ax=None, color='k', type='.', display=Tru
 		pl.show(False)
 
 
-def analyse_emoo(results_file, parameters, generations, individuals, objectives):
-	"""
-
-	:return:
-	"""
-	from matplotlib.pyplot import cm
-	from mpl_toolkits.mplot3d import Axes3D
-	import cPickle as pickle
-
-	with open(results_file, 'r') as fp:
-		data = pickle.load(fp)
-
-	for k, v in data.items():
-		globals()[k] = v
-
-	fig = pl.figure()
-	ax1 = pl.subplot2grid((3, 6), (0, 0), rowspan=2, colspan=2)
-	ax2 = pl.subplot2grid((3, 6), (0, 2), rowspan=2, colspan=2, projection='3d')
-	ax3 = pl.subplot2grid((3, 6), (0, 4), rowspan=2, colspan=2, projection='3d')
-	ax4 = pl.subplot2grid((3, 6), (2, 1), rowspan=1, colspan=4)
-
-	colors = cm.jet(np.linspace(0, 1, generations))
-
-	min_err = []
-	err = []
-	parameters_xy = []
-	objective_xyz = []
-	error_xyz = []
-	for GEN in range(generations):
-		for n_obj in objectives:
-			err.append(smallest_errors['Gen{0}'.format(GEN)][n_obj])
-
-		for n_ind in range(individuals):
-			pars = []
-			obj = []
-			ind_err = []
-
-			for n_par in parameters:
-				pars.append(parameters_evolution['Gen{0}'.format(GEN)][n_ind][n_par])
-			ax1.scatter(pars[0], pars[1], c=colors[GEN])
-			parameters_xy.append(pars)
-
-			for obj_idx, n_obj in enumerate(objectives):
-				obj.append(objectives_evolution['Gen{0}'.format(GEN)][n_ind][n_obj])
-				ind_err.append(error_evolution['Gen{0}'.format(GEN)][n_ind][obj_idx])
-			objective_xyz.append(obj)
-			error_xyz.append(ind_err)
-			ax2.scatter3D(obj[0], obj[1], obj[2], 'o', c=colors[GEN])
-			ax3.scatter3D(ind_err[0], ind_err[1], ind_err[2], 'o', c=colors[GEN])
-			#pl.draw()
-		min_err.append(err)
-
-	min_err = np.array(min_err)
-	ax4.plot(xrange(generations), min_err[:, 0], '-')
-	ax4.plot(xrange(generations), min_err[:, 0], 'o')
-
-	ax4.plot(xrange(generations), min_err[:, 1], '-')
-	ax4.plot(xrange(generations), min_err[:, 1], 'o')
-
-	ax4.plot(xrange(generations), min_err[:, 2], '-')
-	ax4.plot(xrange(generations), min_err[:, 2], 'o')
-
-
 def plot_w_out(w_out, label, display=True, save=False):
 	"""
 	Creates a histogram of the readout weights
@@ -909,6 +865,8 @@ def plot_w_out(w_out, label, display=True, save=False):
 	for n in range(n_clusters):
 		locals()['ax_{0}'.format(str(n))] = fig.add_subplot(1, n_clusters, n+1)
 		locals()['ax_{0}'.format(str(n))].barh(range(n_bars), w_out[:, n], height=1.0, linewidth=0, alpha=0.8)
+		locals()['ax_{0}'.format(str(n))].set_ylim([0, w_out.shape[0]])
+		# locals()['ax_{0}'.format(str(n))].set_xlim([0, w_out.shape[0]])
 	if save:
 		assert isinstance(save, str), "Please provide filename"
 		fig1.savefig(save+'W_out_Biclustering.pdf')
@@ -989,31 +947,6 @@ def mark_epochs(ax, epochs, cmap='jet'):
 		label_index = np.where(k == labels)[0][0]
 		ax.fill_betweenx(np.arange(ax.get_ylim()[0], ax.get_ylim()[1], 1.), v[0], v[1],
 		                 facecolor=cm(label_index), alpha=0.2)
-
-
-def scatter_variability(variable, ax):
-	"""
-	scatter the variance vs mean of the individual neuron's isis
-	:param spike_list:
-	:return:
-	"""
-	variable = np.array(variable)
-	vars = []
-	means = []
-	if len(np.shape(variable)) == 2:
-		for n in range(np.shape(variable)[0]):
-			vars.append(np.var(variable[n, :]))
-			means.append(np.mean(variable[n, :]))
-	else:
-		for n in range(len(variable)):
-			vars.append(np.var(variable[n]))
-			means.append(np.mean(variable[n]))
-
-	ax.scatter(means, vars, color='k', lw=0.5, alpha=0.3)
-	x_range = np.linspace(min(means), max(means), 100)
-	ax.plot(x_range, x_range, '--r', lw=2)
-	ax.set_xlabel('Means')
-	ax.set_ylabel('Variance')
 
 
 ########################################################################################################################
@@ -2100,6 +2033,52 @@ class InputPlots(object):
 			pl.savefig(save+'SNR.pdf')
 
 
+########################################################################################################################
+class ActivityIllustrator(object):
+	"""
+	Makes nice, detailed illustrators of activity objects
+	"""
+	def __init__(self, spike_list, vm_list, populations, ids):
+		self.spike_list = spike_list
+		self.vm_list = vm_list
+		self.populations = populations
+		self.ids = ids
+
+	def plot_raster(self, ax=None, time_interval=None):
+		"""
+		Display the contents of the spike list for the chosen neurons as a raster plot
+		:param ax:
+		:return:
+		"""
+		pass
+
+	def plot_vm(self, ax=None, time_interval=None, with_spikes=True):
+		pass
+
+	def plot_mean_rate(self, ax=None, time_interval=None, dt=1.):
+		pass
+
+	def plot_trace(self, ax=None, time_interval=None, dt=1.):
+		pass
+
+	def plot_trajectory(self, variable=None):
+		pass
+
+	def animate_activity(self, time_interval=None, time_window=None, dt=1., save=False):
+		# multi-activity plot + trajectory in PC space
+		pass
+
+
+def plot_vm(vm, times, ax, color, lw=1, v_reset=-70., v_th=-50.):
+	ax.plot(times, vm, c=color)
+	#ax.set_xlabel('Time [ms]')
+	ax.set_ylabel(r'$V_{m}$')
+	idxs = vm.argsort()
+	possible_spike_times = [t for t in idxs if (t < len(vm) - 1) and (vm[t + 1] == v_reset) and (vm[t] != v_reset)]
+	ax.vlines(times[possible_spike_times], v_th, 50., color='k')
+	ax.set_ylim(min(vm) - 5., 10.)
+
+
 def animate_raster(spike_list, gids, window_size, display=False, save=False):
 	"""
 
@@ -2151,13 +2130,17 @@ def animate_raster(spike_list, gids, window_size, display=False, save=False):
 # 	ax.plot(spike_list.raw_data()[:, 0], spike_list.raw_data()[:, 1], '.')
 
 
-def plot_trajectory(response_matrix, pca_fit_obj, label='', color='r', ax=None, display=True, save=False):
-
+def plot_trajectory(response_matrix, pca_fit_obj=None, label='', color='r', ax=None, display=True, save=False):
+	assert(check_dependency('sklearn')), "PCA analysis requires scikit learn"
+	import sklearn.decomposition as sk
 	if ax is None:
 		fig = pl.figure()
 		ax = fig.add_subplot(111, projection='3d')
-
-	X = pca_fit_obj.transform(response_matrix.as_array().transpose())
+	if pca_fit_obj is None:
+		pca_fit_obj = sk.PCA(n_components=np.shape(response_matrix)[0])
+	if not hasattr(pca_fit_obj, "explained_variance_ratio_"):
+		pca_fit_obj.fit(response_matrix.T)
+	X = pca_fit_obj.transform(response_matrix.transpose())
 	print "Explained Variance (first 3 components): %s" % str(pca_fit_obj.explained_variance_ratio_)
 
 	ax.clear()
@@ -2200,7 +2183,7 @@ def animate_trajectory(response_matrix, pca_fit_obj, interval=100, label='', ax=
 		ani.save('{0}_animation.gif'.format(save), fps=1000)
 
 
-def plot_response(responses, time_data, population, display=True, save=False):
+def plot_response(responses, time_data, population, idx=None, spiking_activity=None, display=True, save=False):
 	"""
 	"""
 
@@ -2214,18 +2197,27 @@ def plot_response(responses, time_data, population, display=True, save=False):
 	ax1.set_ylabel("Neuron")
 	fig1.suptitle(r"Population ${0}$ State".format(population.name))
 
-	if not empty(population.spiking_activity):
+	if not empty(population.spiking_activity) or spiking_activity is not None:
+		if spiking_activity is not None:
+			sl = spiking_activity
+		else:
+			sl = population.spiking_activity
 		fig2 = pl.figure()
-		ax21 = fig2.add_subplot(211)
+		ax21 = fig2.add_subplot(111)
 		fig2.suptitle(r"$" + str(population.name) + " Responses$")
-		neuron_idx = np.random.permutation(population.spiking_activity.id_list)[0]
-		list_idx = np.where(np.sort(population.gids) == neuron_idx)[0][0]
-		spk = population.spiking_activity.spiketrains[int(neuron_idx)]
+		if idx is None:
+			neuron_idx = np.random.permutation(sl.id_list)[0]
+			list_idx = np.where(np.sort(population.gids) == neuron_idx)[0][0]
+		else:
+			list_idx = idx
+			neuron_idx = sl.id_list[idx]
+		spk = sl.spiketrains[int(neuron_idx)]
 		ax21.plot(time_data, responses.as_array()[list_idx, :])
-		ax22 = fig2.add_subplot(212, sharex=ax21)
-		new_spk_ids, _ = simple_raster(spk.spike_times, neuron_idx*np.ones_like(spk.spike_times), [neuron_idx], 'k',
-		                               ax22, 2)
-		ax22.set_title(r"gid {0} [${1}$]".format(str(neuron_idx), population.name))
+		# ax22 = fig2.add_subplot(212, sharex=ax21)
+		# new_spk_ids, _ = simple_raster(spk.spike_times, neuron_idx*np.ones_like(spk.spike_times), [neuron_idx], 'k',
+		#                                ax22, 2)
+		ax21.plot(spk.spike_times, np.ones_like(spk.spike_times), 'o')
+		ax21.set_title(r"gid {0} [${1}$]".format(str(neuron_idx), population.name))
 		#ax21.set_xlim([min(responses.as_array()[list_idx, :]), max(responses.as_array()[list_idx, :])])
 		#ax22.set_xlim([min(responses.as_array()[list_idx, :]), max(responses.as_array()[list_idx, :])])
 		if save:
@@ -2235,26 +2227,6 @@ def plot_response(responses, time_data, population, display=True, save=False):
 		pl.show(block=False)
 	if save:
 		fig1.savefig(save+population.name+'_ResponseMatrix.pdf')
-
-	# def plot_weighted_input(self, signal, w_in, signal_plot_function=plot_input_signal, save=False, display=True):
-	# 	"""
-	# 	"""
-	# 	fig = pl.figure()
-	# 	ax1 = pl.subplot2grid((3, 8), (1, 0), rowspan=1, colspan=4)
-	# 	ax2 = pl.subplot2grid((3, 8), (1, 4), rowspan=1, colspan=1)
-	# 	ax3 = pl.subplot2grid((3, 8), (0, 6), rowspan=3, colspan=2)
-	#
-	# 	H, edges = np.histogram(signal, bins=100)
-	# 	ax2.hist(signal, bins=edges, facecolor='blue', alpha=0.6, edgecolor='None', orientation='horizontal')
-	#
-	# 	self.signal_plot_function(ax=ax1)
-	#
-	# 	ax3.imshow(w_in, interpolation='nearest')
-	# 	plt1 = ax3.imshow(w_in, interpolation='nearest', aspect='auto', extent=None, cmap='jet')
-	# 	divider = make_axes_locatable(ax3)
-	# 	cax = divider.append_axes("right", "5%", pad="3%")
-	# 	pl.colorbar(plt1, cax=cax)
-	# 	ax3.set_title(r'$W^{\mathrm{in}}$')
 
 
 def plot_fmf(t_axis, fmf, ax, label='', display=True, save=False):
@@ -2453,13 +2425,6 @@ def plot_readout_performance(results_dict, display=True, save=False):
 
 	if display:
 		pl.show(block=False)
-
-	# if save:
-	# 	import matplotlib._pylab_helpers
-	# 	save_path = save + pop_name + rset_name
-	# 	figures = [manager.canvas.figure for manager in mpl._pylab_helpers.Gcf.get_all_fig_managers()]
-	# 	for i, figure_handle in enumerate(figures):
-	# 		figure_handle.savefig(save_path + 'ReadoutPerformance_{0}.pdf'.format(str(i)))
 
 
 def extract_encoder_connectivity(enc_layer, net, display=True, save=False):
@@ -2724,6 +2689,7 @@ def progress_bar(progress):
 	sys.stdout.flush()
 
 
+'''
 def write_movie(metadata, fig_handle):
 	"""
 
@@ -2743,8 +2709,6 @@ def write_movie(metadata, fig_handle):
 			l.set_data(x0, y0)
 			writer.grab_frame()
 
-
-'''
 # This example uses a MovieWriter directly to grab individual frames and
 # write them to a file. This avoids any event loop integration, but has
 # the advantage of working with even the Agg backend. This is not recommended

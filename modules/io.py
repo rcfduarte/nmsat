@@ -30,6 +30,7 @@ import cPickle
 import numpy as np
 from modules.parameters import *
 from modules import check_dependency
+import sys
 
 
 def extract_data_fromfile(fname):
@@ -175,6 +176,21 @@ def set_storage_locations(parameter_set, save=True):
 	else:
 		print "No data will be saved!"
 		return {'label': False, 'figures': False, 'activity': False}
+
+
+def set_project_paths(project):
+	"""
+	Adds the project folders to the python path
+	:param project: name given to the main project folder
+	:return:
+	"""
+	NETWORK_HOME = os.environ.get("NETWORK_SIMULATION_HOME")
+	if NETWORK_HOME is None:
+		print("Please set the project root directory environment variable! (source configure.sh)\nExiting.")
+		exit(0)
+	project_home = NETWORK_HOME + "/projects/%s/" % project
+	for add_path in os.walk(project_home):
+		sys.path.append(add_path[0])
 
 
 # ########################################################################################
