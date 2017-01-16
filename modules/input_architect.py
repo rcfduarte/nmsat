@@ -141,16 +141,19 @@ def merge_signal_lists(sl1, sl2, operation=np.add):
 	return AnalogSignalList(tmp, np.unique(ids).tolist(), times=time_data)
 
 
-def generate_template(n_neurons, rate, duration, resolution=0.01, store=False):
+def generate_template(n_neurons, rate, duration, resolution=0.01, rng=None, store=False):
 	"""
 	Generates a spatio-temporal spike template
 	:param n_neurons: Number of neurons that compose the pattern
 	:param rate: spike rate in the template
 	:param duration: [ms] total duration of template
+	:param resolution:
+	:param rng: random number generator state object (optional). Either None or a numpy.random.RandomState object,
+		or an object with the same interface
 	:param store: save the template in the provided path
 	:return: SpikeList object
 	"""
-	gen 	= StochasticGenerator()
+	gen 	= StochasticGenerator(rng=rng)
 	times 	= []
 	ids 	= []
 	for n in range(n_neurons):
@@ -233,7 +236,7 @@ def make_simple_kernel(shape, width=3, height=1., resolution=1., normalize=False
 
 
 ########################################################################################################################
-class StochasticGenerator():
+class StochasticGenerator:
 	"""
 	Stochastic process generator
 	============================
@@ -2156,7 +2159,7 @@ class InputSignalSet(object):
 
 	"""
 
-	def __init__(self, parameter_set, stim_obj=None, online=False):
+	def __init__(self, parameter_set, stim_obj=None, rng=None, online=False):
 		print "\n Generating Input Signals: "
 		self.online = online
 		self.parameters = parameter_set.input_pars
@@ -2197,7 +2200,7 @@ class InputSignalSet(object):
 						rt = rate[0]
 					self.spike_patterns.append(generate_template(n_neurons=n_input_neurons,
 					                                             rate=rt, duration=duration,
-					                                             resolution=resolution))
+					                                             resolution=resolution, rng=rng))
 			else:
 				w = parameter_set.encoding_pars.generator.gen_to_enc_W
 				for n in range(stim_obj.dims):
@@ -2212,7 +2215,8 @@ class InputSignalSet(object):
 					pattern = SpikeList([], [], t_start=0., t_stop=duration)
 					for n_neuron in range(n_input_neurons):
 						rrt = (w[n, n_neuron] * rt) + 0.00000001
-						spk_pattern = generate_template(n_neurons=1, rate=rrt, duration=duration, resolution=resolution)
+						spk_pattern = generate_template(n_neurons=1, rate=rrt, duration=duration,
+														resolution=resolution, rng=rng)
 						if empty(spk_pattern.spiketrains):
 							spk_train = SpikeTrain([], t_start=0., t_stop=duration)
 						else:
@@ -2825,6 +2829,7 @@ class EncodingLayer:
 
 			encoder_labels = []
 			encoders = []
+			# TODO this is not reproducible any more!
 			st_gen = StochasticGenerator()
 			for nn in range(encoder_pars.N):
 				encoder_labels.append(encoder_pars.labels[nn])
