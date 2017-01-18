@@ -26,11 +26,15 @@ is_not_empty_file         - simple function to verify if the file is empty (sub-
 
 """
 import os
-import cPickle
 import numpy as np
-from modules.parameters import *
+import parameters
+import cPickle as pickle
 from modules import check_dependency
 import sys
+
+has_h5 = check_dependency('h5py')
+if has_h5:
+	import h5py
 
 
 def extract_data_fromfile(fname):
@@ -38,8 +42,7 @@ def extract_data_fromfile(fname):
 	Extract raw data from a nest.device recording stored in file
 	:param fname: filename or list of filenames
 	"""
-	from parameters import isiterable
-	if isiterable(fname):
+	if parameters.isiterable(fname):
 		data = None
 		for f in fname:
 			print "Reading data from file {0}".format(f)
@@ -105,8 +108,7 @@ def remove_files(fname):
 	:param fname:
 	:return:
 	"""
-	from parameters import isiterable
-	if isiterable(fname):
+	if parameters.isiterable(fname):
 		for ff in fname:
 			if os.path.isfile(ff) and os.path.getsize(ff) > 0:
 				os.remove(ff)
@@ -228,35 +230,6 @@ class FileHandler(object):
 		"""
 		return _abstract_method(self)
 
-	def read_spikes(self, params):
-		"""
-		Read a SpikeList object from a file and return the SpikeList object, created from the File and
-		from the additional params that may have been provided
-		Examples:
-			>> params = {'id_list' : range(100), 't_stop' : 1000}
-			>> handler.read_spikes(params)
-				SpikeList Object (with params taken into account)
-		"""
-		return _abstract_method(self)
-
-	def read_analogs(self, type, params):
-		"""
-		Read an AnalogSignalList object from a file and return the AnalogSignalList object of type
-		`type`, created from the File and from the additional params that may have been provided
-
-		`type` can be in ["vm", "current", "conductance"]
-
-		Examples:
-            >> params = {'id_list' : range(100), 't_stop' : 1000}
-            >> handler.read_analogs("vm", params)
-                VmList Object (with params taken into account)
-            >> handler.read_analogs("current", params)
-				CurrentList Object (with params taken into account)
-		"""
-		if not type in ["vm", "current", "conductance"]:
-			raise Exception("The type %s is not available for the Analogs Signals" % type)
-		return _abstract_method(self)
-
 
 # ################################################################################################
 class DataHandler(object):
@@ -283,54 +256,6 @@ class DataHandler(object):
 			raise Exception("The user_file object should be a string or herits from FileHandler !")
 		self.user_file = user_file
 		self.object = object
-
-	def load_spikes(self, **params):
-		"""
-		Function to load a SpikeList object from a file. The data type is automatically
-		inferred. Return a SpikeList object
-
-		Inputs:
-			params - a dictionary with all the parameters used by the SpikeList constructor
-
-		Examples:
-			>> params = {'id_list' : range(100), 't_stop' : 1000}
-			>> handler.load_spikes(params)
-				SpikeList object
-
-		See also
-			SpikeList, load_analogs
-		"""
-
-		### Here we should have an automatic selection of the correct manager
-		### according to the file format.
-		### For the moment, we try the pickle format, and if not working
-		### we assume this is a text file
-		#print("Loading spikes from %s, with parameters %s" % (self.user_file, params))
-		return self.user_file.read_spikes(params)
-
-	def load_analogs(self, type, **params):
-		"""
-		Read an AnalogSignalList object from a file and return the AnalogSignalList object of type
-		`type`, created from the File and from the additional params that may have been provided
-
-		`type` can be in ["vm", "current", "conductance"]
-
-		Examples:
-			>> params = {'id_list' : range(100), 't_stop' : 1000}
-			>> handler.load_analogs("vm", params)
-				VmList Object (with params taken into account)
-			>> handler.load_analogs("current", params)
-				CurrentList Object (with params taken into account)
-
-		See also
-			AnalogSignalList, load_spikes
-		"""
-		### Here we should have an automatic selection of the correct manager
-		### according to the file format.
-		### For the moment, we try the pickle format, and if not working
-		### we assume this is a text file
-		#print("Loading analog signal of type '%s' from %s, with parameters %s" % (type, self.user_file, params))
-		return self.user_file.read_analogs(type, params)
 
 	def save(self):
 		"""
@@ -386,16 +311,7 @@ class StandardPickleFile(FileHandler):
 
 	def write(self, object):
 		fileobj = file(self.filename, "w")
-		return cPickle.dump(object, fileobj)
-
-	def read_spikes(self, params):
-		fileobj = file(self.filename, "r")
-		object = cPickle.load(fileobj)
-		object = self.__reformat(params, object)
-		return object
-
-	def read_analogs(self, type, params):
-		return self.read_spikes(params)
+		return pickle.dump(object, fileobj)
 
 
 #################################################################################################
@@ -502,36 +418,6 @@ class StandardTextFile(FileHandler):
 		np.savetxt(fileobj, object.raw_data(), fmt='%g', delimiter='\t')
 		fileobj.close()
 
-	def read_spikes(self, params):
-		self.__read_metadata()
-		p = self.__check_params(params)
-		import signals
-
-		data = self.get_data()
-		result = signals.SpikeList(data, p['id_list'], p['t_start'], p['t_stop'], p['dims'])
-		del data
-		return result
-
-	def read_analogs(self, type, params):
-		self.__read_metadata()
-		p = self.__check_params(params)
-		import signals
-
-		if type == "vm":
-			return signals.VmList(self.get_data(), p['id_list'], p['dt'], p['t_start'], p['t_stop'], p['dims'])
-		elif type == "current":
-			return signals.CurrentList(self.get_data(), p['id_list'], p['dt'], p['t_start'], p['t_stop'], p['dims'])
-		elif type == "conductance":
-			data = np.array(self.get_data())
-			if len(data[0, :]) > 2:
-				g_exc = signals.ConductanceList(data[:, [0, 1]], p['id_list'], p['dt'], p['t_start'], p['t_stop'],
-				                                p['dims'])
-				g_inh = signals.ConductanceList(data[:, [0, 2]], p['id_list'], p['dt'], p['t_start'], p['t_stop'],
-				                                p['dims'])
-				return [g_exc, g_inh]
-			else:
-				return signals.ConductanceList(data, p['id_list'], p['dt'], p['t_start'], p['t_stop'], p['dims'])
-
 
 ########################################################################################################################
 class Standardh5File(object):
@@ -540,10 +426,8 @@ class Standardh5File(object):
 	"""
 
 	def __init__(self, filename):
-		assert(check_dependency('h5py')), "h5py not found"
-		import h5py
-		import os
 		self.filename = filename
+		assert(has_h5), "h5py required!"
 		assert(os.path.isfile(filename)), 'File %s not found' % filename
 		assert(os.access(filename, os.R_OK)), 'File %s not readable, change permissions' % filename
 		assert(os.access(filename, os.W_OK)), 'File %s not writable, change permissions' % filename
@@ -559,8 +443,6 @@ class Standardh5File(object):
 		  dict - dictionary, one or several pairs of string and any type of variable,
 		         e.g dict = {'name1': var1,'name2': var2}
 		"""
-		assert(check_dependency('h5py')), "h5py not found"
-		import h5py
 		print("Loading %s" % self.filename)
 		with h5py.File(self.filename, 'r') as f:
 			dict = {}
@@ -576,8 +458,6 @@ class Standardh5File(object):
 		  dict     - a dictionary, one or several pairs of string and any type of variable,
 		             e.g. dict = {'name1': var1,'name2': var2}
 		"""
-		assert(check_dependency('h5py')), "h5py not found"
-		import h5py
 		f = h5py.File(self.filename, 'w')
 		for k in dictionary:
 			f[k] = dictionary[k]

@@ -18,25 +18,37 @@ shotnoise_fromspikes- yields shot noise for Poisson-like spike trains
 stimulus_sequence_to_binary
 merge_signals       - sums 2 AnalogSignals
 """
-from parameters import *
-from signals import *
-from analysis import make_kernel
-from net_architect import *
+import parameters
+import signals
+import io
+import net_architect
+from modules import check_dependency
+import visualization
 import os
 import cPickle as pickle
 import gzip
 import numpy as np
 import bisect
 import itertools
-from modules import check_dependency
-from scipy.sparse import coo_matrix
-#import pylab as pl
+import time
+import collections
+from scipy.sparse import coo_matrix, lil_matrix
+from scipy.signal import fftconvolve
 import copy
+import decimal
+import nest
+import nest.topology as tp
+has_rpy = check_dependency('rpy')
+has_rpy2 = check_dependency('rpy2')
+if has_rpy:
+	from rpy import r
+elif has_rpy2:
+	from rpy2.objects import r
 
 
 def pad_array(input_array, add=10):
 	"""
-	Pads an array with zero along the time dimension
+	Pads an array with zeros along the time dimension
 
 	:param input_array:
 	:return:
@@ -49,20 +61,20 @@ def pad_array(input_array, add=10):
 	zero_array[:input_array.shape[0], :input_array.shape[1]] = input_array
 	return zero_array
 
-
-def load_preset_grammar(pars_filename, grammar_name):
-	"""
-	Load all the relevant parameters corresponding to preset grammars
-	:param pars_filename [str]: Name of python file containing the parameter dictionaries, named
-	as the corresponding grammar
-	:param grammar_name [str]: Name of the grammar (must correspond to name of stored dictionary)
-	:return:
-	"""
-
-	d = set_params_dict(pars_filename)
-	assert grammar_name in d.keys(), "Parameters for %s not found on %s" % (str(grammar_name), str(pars_filename))
-
-	return d[grammar_name].copy()
+#
+# def load_preset_grammar(pars_filename, grammar_name):
+# 	"""
+# 	Load all the relevant parameters corresponding to preset grammars
+# 	:param pars_filename [str]: Name of python file containing the parameter dictionaries, named
+# 	as the corresponding grammar
+# 	:param grammar_name [str]: Name of the grammar (must correspond to name of stored dictionary)
+# 	:return:
+# 	"""
+#
+# 	d = set_params_dict(pars_filename)
+# 	assert grammar_name in d.keys(), "Parameters for %s not found on %s" % (str(grammar_name), str(pars_filename))
+#
+# 	return d[grammar_name].copy()
 
 
 def stimulus_sequence_to_binary(seq):
@@ -72,34 +84,18 @@ def stimulus_sequence_to_binary(seq):
 	elements = list(np.unique(seq))
 	dims = len(elements)
 
-	if check_dependency('scipy.sparse'):
-		import scipy.sparse as sparse
+	tmp = lil_matrix(np.zeros((dims, len(seq))))
 
-		tmp = sparse.lil_matrix(np.zeros((dims, len(seq))))
-
-		if isinstance(seq[0], basestring) or isinstance(seq[0], int):
+	if isinstance(seq[0], basestring) or isinstance(seq[0], int):
+		for i, x in enumerate(elements):
+			idx = np.where(seq == x)
+			tmp[i, idx] = 1.
+	elif isinstance(seq[0], list):
+		for ii, xx in enumerate(seq):
 			for i, x in enumerate(elements):
-				idx = np.where(seq == x)
-				tmp[i, idx] = 1.
-		elif isinstance(seq[0], list):
-			for ii, xx in enumerate(seq):
-				for i, x in enumerate(elements):
-					if x in xx:
-						tmp[i, ii] = 1.
-		return sparse.coo_matrix(tmp)
-	else:
-		tmp = np.zeros((dims, len(seq)))
-
-		if isinstance(seq[0], basestring) or isinstance(seq[0], int):
-			for i, x in enumerate(elements):
-				idx = np.where(seq == x)
-				tmp[i, idx] = 1.
-		elif isinstance(seq[0], list):
-			for i, x in enumerate(elements):
-				for ii, xx in enumerate(seq):
-					if x in xx:
-						tmp[i, ii] = 1.
-		return tmp
+				if x in xx:
+					tmp[i, ii] = 1.
+	return coo_matrix(tmp)
 
 
 def merge_signals(signal1, signal2, operation=np.add):
@@ -110,14 +106,15 @@ def merge_signals(signal1, signal2, operation=np.add):
 	:param operation: How to combine the signals (numpy function, e.g., np.add, np.multiply, np.append)
 	:return: AnalogSignal
 	"""
-	assert isinstance(signal1, AnalogSignal) and isinstance(signal2, AnalogSignal), "Signals must be AnalogSignal"
+	assert isinstance(signal1, signals.AnalogSignal) and isinstance(signal2, signals.AnalogSignal), "Signals must be " \
+	                                                                                       "AnalogSignal"
 	assert signal1.dt == signal2.dt, "Inconsistent signal resolution"
 	assert signal1.t_start == signal2.t_start, "Inconsistent t_start"
 	assert signal1.t_stop == signal2.t_stop, "Inconsistent t_stop"
 
 	signal = operation(signal1.signal, signal2.signal)
 
-	return AnalogSignal(signal, dt=signal1.dt, t_start=signal1.t_start, t_stop=signal1.t_stop)
+	return signals.AnalogSignal(signal, dt=signal1.dt, t_start=signal1.t_start, t_stop=signal1.t_stop)
 
 
 def merge_signal_lists(sl1, sl2, operation=np.add):
@@ -128,7 +125,7 @@ def merge_signal_lists(sl1, sl2, operation=np.add):
 	:param operation:
 	:return:
 	"""
-	assert isinstance(sl1, AnalogSignalList) and isinstance(sl2, AnalogSignalList), "Signals must be AnalogSignalList"
+	assert isinstance(sl1, signals.AnalogSignalList) and isinstance(sl2, signals.AnalogSignalList), "Signals must be AnalogSignalList"
 	assert sl1.dt == sl2.dt, "Inconsistent signal resolution"
 	assert sl1.t_start == sl2.t_start, "Inconsistent t_start"
 	assert sl1.t_stop == sl2.t_stop, "Inconsistent t_stop"
@@ -138,7 +135,7 @@ def merge_signal_lists(sl1, sl2, operation=np.add):
 	time_data = sl1.time_axis()
 	tmp = [(ids[n], new_values[n]) for n in range(len(new_values))]
 
-	return AnalogSignalList(tmp, np.unique(ids).tolist(), times=time_data)
+	return signals.AnalogSignalList(tmp, np.unique(ids).tolist(), times=time_data)
 
 
 def generate_template(n_neurons, rate, duration, resolution=0.01, store=False):
@@ -157,10 +154,10 @@ def generate_template(n_neurons, rate, duration, resolution=0.01, store=False):
 		spk_times = gen.poisson_generator(rate, t_start=0., t_stop=duration, array=True)
 		times.append(list(spk_times))
 		ids.append(list(n * np.ones_like(times[-1])))
-	ids = list(iterate_obj_list(ids))
-	tmp = [(ids[idx], round(n, 2)) for idx, n in enumerate(list(iterate_obj_list(times)))]
+	ids = list(signals.iterate_obj_list(ids))
+	tmp = [(ids[idx], round(n, 2)) for idx, n in enumerate(list(signals.iterate_obj_list(times)))]
 
-	sl = SpikeList(tmp, list(np.unique(ids)), t_start=0., t_stop=duration)
+	sl = signals.SpikeList(tmp, list(np.unique(ids)), t_start=0., t_stop=duration)
 	sl.round_times(resolution)
 
 	if store:
@@ -329,7 +326,7 @@ class StochasticGenerator():
 			spikes = np.resize(spikes, (i,))
 
 		if not array:
-			spikes = SpikeTrain(spikes, t_start=t_start, t_stop=t_stop)
+			spikes = signals.SpikeTrain(spikes, t_start=t_start, t_stop=t_stop)
 
 		if debug:
 			return spikes, extra_spikes
@@ -378,7 +375,7 @@ class StochasticGenerator():
 			if array:
 				return np.array([])
 			else:
-				return SpikeTrain(np.array([]), t_start=t[0], t_stop=t_stop)
+				return signals.SpikeTrain(np.array([]), t_start=t[0], t_stop=t_stop)
 
 		# gen uniform rand on 0,1 for each spike
 		rn = np.array(self.rng.uniform(0, 1, len(ps)))
@@ -393,7 +390,7 @@ class StochasticGenerator():
 		if array:
 			return spike_train
 
-		return SpikeTrain(spike_train, t_start=t[0], t_stop=t_stop)
+		return signals.SpikeTrain(spike_train, t_start=t[0], t_stop=t_stop)
 
 	def gamma_generator(self, a, b, t_start=0.0, t_stop=1000.0, array=False, debug=False):
 		"""
@@ -448,7 +445,7 @@ class StochasticGenerator():
 			spikes = np.resize(spikes, (i,))
 
 		if not array:
-			spikes = SpikeTrain(spikes, t_start=t_start, t_stop=t_stop)
+			spikes = signals.SpikeTrain(spikes, t_start=t_start, t_stop=t_stop)
 
 		if debug:
 			return spikes, extra_spikes
@@ -467,16 +464,12 @@ class StochasticGenerator():
 		:param b: in units of seconds
 		"""
 		# current implementation relies on RPy...
-		if check_dependency('rpy'):
-			from rpy import r
-
+		if has_rpy:
 			Hpre = -r.pgamma(x - dt, shape=a, scale=b, lower=False, log=True)
 			Hpost = -r.pgamma(x + dt, shape=a, scale=b, lower=False, log=True)
 			val = 0.5 * (Hpost - Hpre) / dt
 			return val
-		elif check_dependency('rpy2'):
-			from rpy2.robjects import r
-
+		elif has_rpy2:
 			Hpre = -r.pgamma(x - dt, shape=a, scale=b, lower=False, log=True)[0]
 			Hpost = -r.pgamma(x + dt, shape=a, scale=b, lower=False, log=True)[0]
 			val = 0.5 * (Hpost - Hpre) / dt
@@ -521,7 +514,7 @@ class StochasticGenerator():
 			if array:
 				return np.array([])
 			else:
-				return SpikeTrain(np.array([]), t_start=t[0], t_stop=t_stop)
+				return signals.SpikeTrain(np.array([]), t_start=t[0], t_stop=t_stop)
 		# gen uniform rand on 0,1 for each spike
 		rn = np.array(self.rng.uniform(0, 1, len(ps)))
 
@@ -550,7 +543,7 @@ class StochasticGenerator():
 		if array:
 			return spike_train
 
-		return SpikeTrain(spike_train, t_start=t[0], t_stop=t_stop)
+		return signals.SpikeTrain(spike_train, t_start=t[0], t_stop=t_stop)
 
 	def inh_adaptingmarkov_generator(self, a, bq, tau, t, t_stop, array=False):
 		"""
@@ -603,7 +596,7 @@ class StochasticGenerator():
 
 		# return empty if no spikes
 		if len(ps) == 0:
-			return SpikeTrain(np.array([]), t_start=t[0], t_stop=t_stop)
+			return signals.SpikeTrain(np.array([]), t_start=t[0], t_stop=t_stop)
 
 		# gen uniform rand on 0,1 for each spike
 		rn = np.array(self.rng.uniform(0, 1, len(ps)))
@@ -641,7 +634,7 @@ class StochasticGenerator():
 		if array:
 			return spike_train
 
-		return SpikeTrain(spike_train, t_start=t[0], t_stop=t_stop)
+		return signals.SpikeTrain(spike_train, t_start=t[0], t_stop=t_stop)
 
 	def inh_2Dadaptingmarkov_generator(self, a, bq, tau_s, tau_r, qrqs, t, t_stop, array=False):
 		"""
@@ -697,7 +690,7 @@ class StochasticGenerator():
 
 		# return empty if no spikes
 		if len(ps) == 0:
-			return SpikeTrain(np.array([]), t_start=t[0], t_stop=t_stop)
+			return signals.SpikeTrain(np.array([]), t_start=t[0], t_stop=t_stop)
 
 		# gen uniform rand on 0,1 for each spike
 		rn = np.array(self.rng.uniform(0, 1, len(ps)))
@@ -739,7 +732,7 @@ class StochasticGenerator():
 		if array:
 			return spike_train
 
-		return SpikeTrain(spike_train, t_start=t[0], t_stop=t_stop)
+		return signals.SpikeTrain(spike_train, t_start=t[0], t_stop=t_stop)
 
 	def OU_generator(self, dt, tau, sigma, y0, t_start=0.0, t_stop=1000.0, rectify=False, array=False, time_it=False):
 		"""
@@ -757,7 +750,6 @@ class StochasticGenerator():
 					  and are both numpy arrays.
 		"""
 		if time_it:
-			import time
 			t1 = time.time()
 
 		t = np.arange(t_start, t_stop, dt)
@@ -781,7 +773,7 @@ class StochasticGenerator():
 		if array:
 			return (y, t)
 		else:
-			return AnalogSignal(y, dt, t_start, t_stop)
+			return signals.AnalogSignal(y, dt, t_start, t_stop)
 
 	def GWN_generator(self, amplitude=1., mean=0., std=1., t_start=0.0, t_stop=1000.0, dt=1.0, rectify=True,
 	                  array=False):
@@ -800,7 +792,7 @@ class StochasticGenerator():
 		if array:
 			return (wn, t)
 		else:
-			return AnalogSignal(wn, dt, t_start, t_stop)
+			return signals.AnalogSignal(wn, dt, t_start, t_stop)
 
 	def continuous_rv_generator(self, function, amplitude=1., t_start=0.0, t_stop=1000.0, dt=1.0, rectify=True,
 	                            array=False, **kwargs):
@@ -822,7 +814,7 @@ class StochasticGenerator():
 		if array:
 			return (s, t)
 		else:
-			return AnalogSignal(s, dt, t_start, t_stop)
+			return signals.AnalogSignal(s, dt, t_start, t_stop)
 
 
 ########################################################################################################################
@@ -857,15 +849,15 @@ class Grammar:
 		- pre_set: if specified will use predefined grammars, whose parameters are already specified
 		"""
 		if isinstance(grammar_pars_set, dict):
-			grammar_pars_set = ParameterSet(grammar_pars_set)
-		if not (isinstance(grammar_pars_set, ParameterSet)):
+			grammar_pars_set = parameters.ParameterSet(grammar_pars_set)
+		if not (isinstance(grammar_pars_set, parameters.ParameterSet)):
 			raise TypeError("grammar_pars_set should be ParameterSet object or dictionary")
 
-		if pre_set is not None:
-			assert pre_set_full_path is not None, "Path to parameters file must be provided"
-			self.name = pre_set
-			grammar_pars_set = ParameterSet(load_preset_grammar(pre_set_full_path, pre_set))
-			print "\n Loading {0} grammar".format(self.name)
+		# if pre_set is not None:
+		# 	assert pre_set_full_path is not None, "Path to parameters file must be provided"
+		# 	self.name = pre_set
+		# 	grammar_pars_set = ParameterSet(load_preset_grammar(pre_set_full_path, pre_set))
+		# 	print "\n Loading {0} grammar".format(self.name)
 
 		self.name = pre_set
 		self.states = list(np.sort(grammar_pars_set.states))
@@ -1224,13 +1216,13 @@ class StimulusSet(object):
 			self.unique_set = None
 			self.unique_set_labels = None
 
-		if isinstance(initializer, dict) and not isinstance(initializer, ParameterSet):
-			initializer = ParameterSet(initializer)
-			full_parameters = ParameterSet(initializer.copy())
+		if isinstance(initializer, dict) and not isinstance(initializer, parameters.ParameterSet):
+			initializer = parameters.ParameterSet(initializer)
+			full_parameters = parameters.ParameterSet(initializer.copy())
 			initializer = full_parameters.stim_pars
 
-		if isinstance(initializer, ParameterSet):
-			full_parameters = ParameterSet(initializer.copy())
+		if isinstance(initializer, parameters.ParameterSet):
+			full_parameters = parameters.ParameterSet(initializer.copy())
 			initializer = full_parameters.stim_pars
 
 			self.dims = initializer.n_stim
@@ -1275,7 +1267,6 @@ class StimulusSet(object):
 		:param data_mat: data matrix (np.ndarray or list), [N x T]!!
 		:param type: data type, has to be consistent with StimulusSet attributes
 		"""
-		from scipy.sparse import coo_matrix
 		print "\t- Loading external data [{0}]".format(str(type))
 		assert isinstance(data_mat, list) or isinstance(data_mat, np.ndarray), "Provided signal must be a list or " \
 		                                                                       "numpy array"
@@ -1319,7 +1310,7 @@ class StimulusSet(object):
 				else:
 					length = 1
 				idxs = np.random.randint(0, len(self.elements), length)
-				str = []
+				str_ = []
 				for nn in idxs:
 					str_.append(self.elements[nn])
 
@@ -1331,33 +1322,18 @@ class StimulusSet(object):
 		Convert a stimulus sequence to a binary time series
 		:param seq: symbolic sequence
 		"""
-		if check_dependency('scipy.sparse'):
-			import scipy.sparse as sparse
-			tmp = sparse.lil_matrix(np.zeros((self.dims, len(seq))))
+		tmp = lil_matrix(np.zeros((self.dims, len(seq))))
 
-			if isinstance(seq[0], basestring) or isinstance(seq[0], int):
-				for i, x in enumerate(self.elements):
-					idx = np.where(np.array(seq) == x)
-					tmp[i, idx] = 1.
-			elif isinstance(seq[0], list):
-				for i, x in enumerate(self.elements):
-					for ii, xx in enumerate(np.array(seq)):
-						if x == xx:
-							tmp[i, ii] = 1.
-			return sparse.coo_matrix(tmp)
-		else:
-			tmp = np.zeros((self.dims, len(seq)))
-
-			if isinstance(seq[0], basestring) or isinstance(seq[0], int):
-				for i, x in enumerate(self.elements):
-					idx = np.where(seq == x)
-					tmp[i, idx] = 1.
-			elif isinstance(seq[0], list):
-				for i, x in enumerate(self.elements):
-					for ii, xx in enumerate(seq):
-						if x in xx:
-							tmp[i, ii] = 1.
-			return tmp
+		if isinstance(seq[0], basestring) or isinstance(seq[0], int):
+			for i, x in enumerate(self.elements):
+				idx = np.where(np.array(seq) == x)
+				tmp[i, idx] = 1.
+		elif isinstance(seq[0], list):
+			for i, x in enumerate(self.elements):
+				for ii, xx in enumerate(np.array(seq)):
+					if x == xx:
+						tmp[i, ii] = 1.
+		return coo_matrix(tmp)
 
 	def create_set(self, set_length, string_length=[], separator=''):
 		"""
@@ -1436,13 +1412,8 @@ class StimulusSet(object):
 							+ train_set_length]
 			test_set = set_[:, transient_set_length + unique_set_length + train_set_length:]
 
-		if check_dependency('scipy.sparse'):
-			import scipy.sparse as sparse
-			self.train_set = sparse.coo_matrix(train_set)
-			self.test_set = sparse.coo_matrix(test_set)
-		else:
-			self.train_set = train_set
-			self.test_set = test_set
+		self.train_set = coo_matrix(train_set)
+		self.test_set = coo_matrix(test_set)
 		print("\t- Dividing set [train={0} / test={1}]".format(str(len(self.train_set_labels)),
 															   str(len(self.test_set_labels))))
 
@@ -1461,12 +1432,7 @@ class StimulusSet(object):
 
 		transient_set = self.full_set.todense()[:, :n_discard]
 		self.transient_set_labels = self.full_set_labels[:n_discard]
-
-		if check_dependency('scipy.sparse'):
-			import scipy.sparse as sparse
-			self.transient_set = sparse.coo_matrix(transient_set)
-		else:
-			self.transient_set = transient_set
+		self.transient_set = coo_matrix(transient_set)
 
 		if hasattr(self, "unique_set"):
 			self.create_unique_set()
@@ -1511,9 +1477,9 @@ class InputSignal(object):
 
 		else:
 			if isinstance(initializer, dict):
-				initializer = ParameterSet(initializer)
+				initializer = parameters.ParameterSet(initializer)
 
-			if isinstance(initializer, ParameterSet):
+			if isinstance(initializer, parameters.ParameterSet):
 				self.dimensions = initializer.N
 				self.dt = initializer.resolution
 				self.kernel = initializer.kernel
@@ -1539,7 +1505,7 @@ class InputSignal(object):
 		:param onset: global signal onset time [ms]
 		:return:
 		"""
-		assert isinstance(signal, list) or isinstance(signal, np.ndarray) or isinstance(signal, AnalogSignalList), \
+		assert isinstance(signal, list) or isinstance(signal, np.ndarray) or isinstance(signal, signals.AnalogSignalList), \
 			"Provided signal must be a list or numpy array or AnalogSignalList"
 
 		if isinstance(signal, list):
@@ -1568,14 +1534,14 @@ class InputSignal(object):
 
 			if self.dimensions > 1:
 				for nn in range(self.dimensions):
-					self.input_signal.append(AnalogSignal(signal[nn, :], self.dt, t_start=self.global_start,
+					self.input_signal.append(signals.AnalogSignal(signal[nn, :], self.dt, t_start=self.global_start,
 					                                      t_stop=self.global_stop))
 			else:
-				self.input_signal.append(AnalogSignal(signal, self.dt, t_start=self.global_start,
+				self.input_signal.append(signals.AnalogSignal(signal, self.dt, t_start=self.global_start,
 				                                      t_stop=self.global_stop))
 			self.generate()
 
-		elif isinstance(signal, AnalogSignalList):
+		elif isinstance(signal, signals.AnalogSignalList):
 			self.dt = dt
 			self.dimensions = np.shape(signal)[0]
 			self.kernel = None
@@ -1749,7 +1715,7 @@ class InputSignal(object):
 			                       height=tmp_amplitudes[0], resolution=self.dt, normalize=False, **self.kernel[1])
 
 			for nn in range(self.dimensions):
-				s[nn, :] = sp.fftconvolve(signal[nn, :], k, 'same')
+				s[nn, :] = fftconvolve(signal[nn, :], k, 'same')
 
 				# dirty hack to solve the 0-isi problem...
 				idx = np.where(s[nn, :] > np.unique(list(itertools.chain(*self.amplitudes))))[0] # durations
@@ -1766,7 +1732,7 @@ class InputSignal(object):
 				idx = np.where(s[nn, :] > tmp_amplitudes[0])[0]
 				if idx.size:
 					s[nn, idx] = tmp_amplitudes[0]
-				self.input_signal.append(AnalogSignal(s[nn, :], self.dt, t_start=self.global_start, t_stop=self.global_stop))
+				self.input_signal.append(signals.AnalogSignal(s[nn, :], self.dt, t_start=self.global_start, t_stop=self.global_stop))
 		else:
 			# case when stimuli different durations and/or amplitudes
 			for nn in range(self.dimensions):
@@ -1790,7 +1756,7 @@ class InputSignal(object):
 						time_window = [ii, self.global_stop]
 
 					local_signal = signal[nn, int(time_window[0] / self.dt):int(time_window[1] / self.dt)]
-					s[nn, int(time_window[0] / self.dt):int(time_window[1] / self.dt)] = sp.fftconvolve(local_signal,
+					s[nn, int(time_window[0] / self.dt):int(time_window[1] / self.dt)] = fftconvolve(local_signal,
 					                                                                                    k, 'same')
 					tmp = np.round(s[nn, int(time_window[0] / self.dt):int(time_window[1] / self.dt)])
 
@@ -1801,7 +1767,7 @@ class InputSignal(object):
 
 					s[nn, int(time_window[0] / self.dt):int(time_window[1] / self.dt)] += self.base
 
-				self.input_signal.append(AnalogSignal(s[nn, :], self.dt, t_start=self.global_start,
+				self.input_signal.append(signals.AnalogSignal(s[nn, :], self.dt, t_start=self.global_start,
 				                                      t_stop=self.global_stop))
 
 	def compress_signals(self, signal=None):
@@ -1828,7 +1794,7 @@ class InputSignal(object):
 
 		# generate AnalogSignalList
 		tmp = [(channel_ids[n], signals[n]) for n in range(len(channel_ids))]
-		sig = AnalogSignalList(tmp, np.unique(channel_ids).tolist(), times=t, dt=self.dt, t_start=min(t), t_stop=max(
+		sig = signals.AnalogSignalList(tmp, np.unique(channel_ids).tolist(), times=t, dt=self.dt, t_start=min(t), t_stop=max(
 			t) + 1)
 
 		return sig
@@ -1877,7 +1843,7 @@ class InputSignal(object):
 			idx2 = np.where(np.array(n_signal) >= start)[0]
 			idx = np.intersect1d(idx1, idx2)
 			new_signal.offset_times[signal_idx] = list(np.array(n_signal)[idx])
-		new_signal.intervals = new_signal.intervals[:len(list(iterate_obj_list(new_signal.amplitudes)))-1]
+		new_signal.intervals = new_signal.intervals[:len(list(signals.iterate_obj_list(new_signal.amplitudes)))-1]
 
 		return new_signal
 
@@ -1905,7 +1871,6 @@ class InputSignal(object):
 		Sets amplitudes and times online
 		:return:
 		"""
-		from scipy.sparse import coo_matrix
 		if isinstance(stim_seq, list):
 			if isinstance(stim_seq[0], basestring) or isinstance(stim_seq[0], list):
 				seq = stimulus_sequence_to_binary(stim_seq)
@@ -1934,7 +1899,7 @@ class InputSignal(object):
 		N = len(amplitudes)
 
 		#print onsets
-		if empty(onsets):
+		if signals.empty(onsets):
 			item_index = np.where(offsets)[0][0]
 			onsets[item_index] = [offsets[item_index][0] - durations[item_index][0]]
 		# print onsets
@@ -1960,7 +1925,7 @@ class InputSignal(object):
 			                          **self.kernel[1])
 			input_signal = []
 			for k in range(N):
-				s[k, :] = sp.fftconvolve(signal[k, :], kern, mode='same')
+				s[k, :] = fftconvolve(signal[k, :], kern, mode='same')
 				idxx = np.where(s[k, :] <= 0.0001)[0]
 				if idxx.size:
 					s[k, idxx] = 0.
@@ -1972,9 +1937,9 @@ class InputSignal(object):
 					isi = self.intervals[nn]
 					new_time = np.arange(off, off + isi, self.dt)
 					new_signal = pad_array(np.array([s[k, :]]), len(new_time))
-					input_signal.append(AnalogSignal(new_signal[0], self.dt, t_start=on, t_stop=off + isi))
+					input_signal.append(signals.AnalogSignal(new_signal[0], self.dt, t_start=on, t_stop=off + isi))
 				else:
-					input_signal.append(AnalogSignal(s[k, :], self.dt, t_start=on, t_stop=off))
+					input_signal.append(signals.AnalogSignal(s[k, :], self.dt, t_start=on, t_stop=off))
 			return self.compress_signals(input_signal)
 
 	def generate_iterative(self, stim_seq):
@@ -1982,7 +1947,7 @@ class InputSignal(object):
 		work-around for very large input signals
 		"""
 
-		if self.amplitudes is None or (not list(iterate_obj_list(self.amplitudes))):
+		if self.amplitudes is None or (not list(signals.iterate_obj_list(self.amplitudes))):
 			self.set_stimulus_amplitudes(stim_seq)
 			self.set_stimulus_times(stim_seq)
 
@@ -2000,7 +1965,7 @@ class InputSignal(object):
 		# print offsets
 		N = len(amplitudes)
 
-		if empty(onsets):
+		if signals.empty(onsets):
 			item_index = np.where(offsets)[0][0]
 			onsets[item_index] = [offsets[item_index][0]-durations[item_index][0]]
 		# print onsets
@@ -2026,7 +1991,7 @@ class InputSignal(object):
 			                          **self.kernel[1])
 			input_signal = []
 			for k in range(N):
-				s[k, :] = sp.fftconvolve(signal[k, :], kern, mode='same')
+				s[k, :] = fftconvolve(signal[k, :], kern, mode='same')
 				idxx = np.where(s[k, :] <= 0.0001)[0]
 				if idxx.size:
 					s[k, idxx] = 0.
@@ -2038,9 +2003,9 @@ class InputSignal(object):
 					isi = self.intervals[nn]
 					new_time = np.arange(off, off + isi, self.dt)
 					new_signal = pad_array(np.array([s[k, :]]), len(new_time))
-					input_signal.append(AnalogSignal(new_signal[0], self.dt, t_start=on, t_stop=off+isi))
+					input_signal.append(signals.AnalogSignal(new_signal[0], self.dt, t_start=on, t_stop=off+isi))
 				else:
-					input_signal.append(AnalogSignal(s[k, :], self.dt, t_start=on, t_stop=off))
+					input_signal.append(signals.AnalogSignal(s[k, :], self.dt, t_start=on, t_stop=off))
 			yield self.compress_signals(input_signal)
 
 	def generate_square_signal(self):
@@ -2073,9 +2038,9 @@ class InputNoise(StochasticGenerator):
 		StochasticGenerator.__init__(self, rng, seed)
 
 		if isinstance(initializer, dict):
-			initializer = ParameterSet(initializer)
+			initializer = parameters.ParameterSet(initializer)
 
-		assert isinstance(initializer, ParameterSet), "Initializer must be a parameter dictionary or ParameterSet"
+		assert isinstance(initializer, parameters.ParameterSet), "Initializer must be a parameter dictionary or ParameterSet"
 
 		# TODO generate iterative...
 		self.N = initializer.N
@@ -2140,17 +2105,17 @@ class InputNoise(StochasticGenerator):
 				print "{0} Not currently implemented".format(self.source[ii])
 
 		channel_ids = []
-		signals = []
+		sigs = []
 		for idx, nn in enumerate(self.noise_signal):
 			channel_ids.append(idx * np.ones_like(nn.signal))
-			signals.append(nn.signal)
-		signals = list(itertools.chain(*signals))
+			sigs.append(nn.signal)
+		sigs = list(itertools.chain(*sigs))
 		channel_ids = list(itertools.chain(*channel_ids))
 
 		# generate AnalogSignalList
 		if self.N:
-			tmp = [(channel_ids[n], signals[n]) for n in range(len(channel_ids))]
-			self.noise_signal = AnalogSignalList(tmp, np.unique(channel_ids).tolist(), times=self.time_data)
+			tmp = [(channel_ids[n], sigs[n]) for n in range(len(channel_ids))]
+			self.noise_signal = signals.AnalogSignalList(tmp, np.unique(channel_ids).tolist(), times=self.time_data)
 		else:
 			self.noise_signal = []
 
@@ -2226,12 +2191,12 @@ class InputSignalSet(object):
 						rt = rate[n]
 					else:
 						rt = rate[0]
-					pattern = SpikeList([], [], t_start=0., t_stop=duration)
+					pattern = signals.SpikeList([], [], t_start=0., t_stop=duration)
 					for n_neuron in range(n_input_neurons):
 						rrt = (w[n, n_neuron] * rt) + 0.00000001
 						spk_pattern = generate_template(n_neurons=1, rate=rrt, duration=duration, resolution=resolution)
-						if empty(spk_pattern.spiketrains):
-							spk_train = SpikeTrain([], t_start=0., t_stop=duration)
+						if signals.empty(spk_pattern.spiketrains):
+							spk_train = signals.SpikeTrain([], t_start=0., t_stop=duration)
 						else:
 							spk_train = spk_pattern.spiketrains[0]
 						#print spk_train
@@ -2267,7 +2232,7 @@ class InputSignalSet(object):
 			self.full_set_noise = InputNoise(self.parameters.noise, stop_time=self.full_stimulation_time)
 			self.full_set_noise.generate()
 			# self.full_set_noise.re_seed(parameter_set.kernel_pars.np_seed)
-			if not isinstance(self.full_set_noise.noise_signal, AnalogSignalList):
+			if not isinstance(self.full_set_noise.noise_signal, signals.AnalogSignalList):
 				self.full_set_noise = None
 				self.full_set = self.full_set_signal
 			else:
@@ -2303,7 +2268,7 @@ class InputSignalSet(object):
 			self.transient_set_noise = InputNoise(self.parameters.noise)
 			self.transient_set_noise.generate()
 			# self.full_set_noise.re_seed(parameter_set.kernel_pars.np_seed)
-			if not isinstance(self.transient_set_noise.noise_signal, AnalogSignalList):
+			if not isinstance(self.transient_set_noise.noise_signal, signals.AnalogSignalList):
 				self.transient_set_noise = None
 				self.transient_set = self.transient_set_signal
 			else:
@@ -2342,7 +2307,7 @@ class InputSignalSet(object):
 			self.unique_set_noise = InputNoise(self.parameters.noise)
 			self.unique_set_noise.generate()
 			# self.full_set_noise.re_seed(parameter_set.kernel_pars.np_seed)
-			if not isinstance(self.unique_set_noise.noise_signal, AnalogSignalList):
+			if not isinstance(self.unique_set_noise.noise_signal, signals.AnalogSignalList):
 				self.unique_set_noise = None
 				self.unique_set = self.unique_set_signal
 			else:
@@ -2391,7 +2356,7 @@ class InputSignalSet(object):
 				self.train_set_noise = InputNoise(self.parameters.noise)
 				self.train_set_noise.generate()
 				#self.full_set_noise.re_seed(parameter_set.kernel_pars.np_seed)
-				if not isinstance(self.train_set_noise.noise_signal, AnalogSignalList):
+				if not isinstance(self.train_set_noise.noise_signal, signals.AnalogSignalList):
 					self.train_set_noise = None
 					self.train_set = self.train_set_signal
 				else:
@@ -2440,7 +2405,7 @@ class InputSignalSet(object):
 				self.test_set_noise = InputNoise(self.parameters.noise)
 				self.test_set_noise.generate()
 				# self.full_set_noise.re_seed(parameter_set.kernel_pars.np_seed)
-				if not isinstance(self.test_set_noise.noise_signal, AnalogSignalList):
+				if not isinstance(self.test_set_noise.noise_signal, signals.AnalogSignalList):
 					self.test_set_noise = None
 					self.test_set = self.test_set_signal
 				else:
@@ -2517,7 +2482,6 @@ class SyntheticTimeSeries(InputSignalSet):
 		:param n_samples: number of samples to generate
 		:return: time_series
 		"""
-		import collections
 		history_len = tau * dt
 
 		# Initial conditions for the history of the system
@@ -2544,11 +2508,12 @@ class SyntheticTimeSeries(InputSignalSet):
 			# squash time series...
 			samples.append(inp.T)
 
-		if not empty(amplitudes):
+		if not signals.empty(amplitudes):
 			assert(len(amplitudes) == 2), "Please provide min and max amplitude values"
 			rescaled_signal = []
 			for n_sample in samples:
-				rescaled_signal.append(np.array(rescale_list(list(n_sample[0, :]), amplitudes[0], amplitudes[1])))
+				rescaled_signal.append(np.array(signals.rescale_list(list(n_sample[0, :]), amplitudes[0], amplitudes[
+					1])))
 			samples = rescaled_signal
 		return samples
 
@@ -2594,60 +2559,60 @@ class SyntheticTimeSeries(InputSignalSet):
 
 
 ########################################################################################################################
-class Encoder(Population):
+class Encoder(net_architect.Population):
 	"""
 	Convert Continuous signal into SpikeList objects, or create a population of spiking neurons...
 	"""
 
 	def __init__(self, par_set):
-		Population.__init__(self, pop_set=par_set)
-		print "\n Creating Input Encoder {0}".format(str(par_set.pop_names))
+		net_architect.Population.__init__(self, pop_set=par_set)
+		print "\nCreating Input Encoder {0}".format(str(par_set.pop_names))
 
-	def generate_stochastic_spikes(self, encoder_pars, weights, sign):
-		"""
-		"""
-		if isinstance(encoder_pars, dict):
-			encoder_pars = ParameterSet(encoder_pars)
-		if not isinstance(encoder_pars, ParameterSet):
-			raise TypeError("Parameters must be dict or ParameterSet")
-
-		pars_idx = encoder_pars.labels.index(self.name)
-
-		signals = sign.input_signal.analog_signals
-		signal_array = np.zeros((len(signals), int(signals[0].duration())))
-		st_gen = StochasticGenerator()
-		globals()['time_data'] = sign.input_signal.time_axis()
-		x = getattr(st_gen, encoder_pars.models[pars_idx])
-		globals()['t_stop'] = sign.global_stop
-
-		for n in range(len(signals)):
-			signal_array[n, :] = signals[n].signal
-
-		weighted_input = np.dot(weights.T, signal_array)
-
-		spk_t = []
-		spk_i = []
-		dt = nest.GetKernelStatus()['resolution']
-		import decimal
-		d = decimal.Decimal(str(dt))
-		decimal_place = d.as_tuple()[1][0]
-
-		for nn in range(self.size):
-			globals()['signal'] = weighted_input[nn, :]
-			args = {k: eval(v) for k, v in encoder_pars.model_pars[pars_idx].items()}
-			spk_train = x(**args)
-
-			# round to simulation resolution
-			times_tmp = [round(decimal.Decimal(str(xx)), decimal_place) for xx in np.copy(spk_train.spike_times)]
-			# times_tmp2 = round(times_tmp, decimal_place)
-			spk_t.append(times_tmp)
-			spk_i.append(nn * np.ones_like(spk_train.spike_times))
-
-		times = list(itertools.chain(*spk_t))
-		ids = list(itertools.chain(*spk_i))
-		tmp = [(ids[n], tt) for n, tt in enumerate(times)]
-		self.spiking_activity = SpikeList(spikes=tmp, id_list=list(np.unique(ids)), t_start=min(time_data),
-		                                  t_stop=t_stop)
+	# def generate_stochastic_spikes(self, encoder_pars, weights, sign):
+	# 	"""
+	# 	"""
+	# 	if isinstance(encoder_pars, dict):
+	# 		encoder_pars = ParameterSet(encoder_pars)
+	# 	if not isinstance(encoder_pars, ParameterSet):
+	# 		raise TypeError("Parameters must be dict or ParameterSet")
+	#
+	# 	pars_idx = encoder_pars.labels.index(self.name)
+	#
+	# 	signals = sign.input_signal.analog_signals
+	# 	signal_array = np.zeros((len(signals), int(signals[0].duration())))
+	# 	st_gen = StochasticGenerator()
+	# 	globals()['time_data'] = sign.input_signal.time_axis()
+	# 	x = getattr(st_gen, encoder_pars.models[pars_idx])
+	# 	globals()['t_stop'] = sign.global_stop
+	#
+	# 	for n in range(len(signals)):
+	# 		signal_array[n, :] = signals[n].signal
+	#
+	# 	weighted_input = np.dot(weights.T, signal_array)
+	#
+	# 	spk_t = []
+	# 	spk_i = []
+	# 	dt = nest.GetKernelStatus()['resolution']
+	# 	import decimal
+	# 	d = decimal.Decimal(str(dt))
+	# 	decimal_place = d.as_tuple()[1][0]
+	#
+	# 	for nn in range(self.size):
+	# 		globals()['signal'] = weighted_input[nn, :]
+	# 		args = {k: eval(v) for k, v in encoder_pars.model_pars[pars_idx].items()}
+	# 		spk_train = x(**args)
+	#
+	# 		# round to simulation resolution
+	# 		times_tmp = [round(decimal.Decimal(str(xx)), decimal_place) for xx in np.copy(spk_train.spike_times)]
+	# 		# times_tmp2 = round(times_tmp, decimal_place)
+	# 		spk_t.append(times_tmp)
+	# 		spk_i.append(nn * np.ones_like(spk_train.spike_times))
+	#
+	# 	times = list(itertools.chain(*spk_t))
+	# 	ids = list(itertools.chain(*spk_i))
+	# 	tmp = [(ids[n], tt) for n, tt in enumerate(times)]
+	# 	self.spiking_activity = SpikeList(spikes=tmp, id_list=list(np.unique(ids)), t_start=min(time_data),
+	# 	                                  t_stop=t_stop)
 
 
 ########################################################################################################################
@@ -2666,9 +2631,8 @@ class Generator:
 		dimensionality of the input to the generator
 		:param dims: if the generator input is an encoder, dimensionality needs to be specified
 		"""
-		import nest
 		if isinstance(initializer, dict):
-			initializer = ParameterSet(initializer)
+			initializer = parameters.ParameterSet(initializer)
 		if input_signal is not None:
 			if isinstance(input_signal, InputSignal):
 				# 1 generator per input channel
@@ -2680,7 +2644,7 @@ class Generator:
 				self.input_dimension = input_signal.N
 				self.time_data = input_signal.time_data
 				signal = input_signal.noise_signal
-			elif isinstance(input_signal, AnalogSignalList) or isinstance(input_signal, SpikeList):
+			elif isinstance(input_signal, signals.AnalogSignalList) or isinstance(input_signal, signals.SpikeList):
 				self.input_dimension = len(input_signal)
 				self.time_data = input_signal.time_axis()
 				signal = input_signal
@@ -2714,11 +2678,10 @@ class Generator:
 				model_dict = initializer.model_pars
 				model_dict['model'] = initializer.model
 				nest.CopyModel(initializer.model, self.name[nn])
-				nest.SetDefaults(self.name[nn], extract_nestvalid_dict(model_dict, param_type='device'))
+				nest.SetDefaults(self.name[nn], parameters.extract_nestvalid_dict(model_dict, param_type='device'))
 
 				# TODO: Test
 				if initializer.topology:
-					import nest.topology as tp
 					tp_dict = initializer.topology_dict[nn]
 					gen_layer = tp.CreateLayer(tp_dict)
 					self.layer_gid = gen_layer
@@ -2742,7 +2705,7 @@ class Generator:
 		For online generation, the input signal is given iteratively and the state of the generator objects needs to
 		be updated
 		"""
-		if isinstance(signal, SpikeList):
+		if isinstance(signal, signals.SpikeList):
 			for nn in signal.id_list:
 				spk_times = [round(n, 2) for n in signal[nn].spike_times]  # to make sure
 				nest.SetStatus(self.gids[nn], {'spike_times': spk_times})
@@ -2751,7 +2714,7 @@ class Generator:
 			if isinstance(signal, InputSignal):
 				signal = signal.input_signal
 			else:
-				assert(isinstance(signal, AnalogSignalList)), "Incorrect signal format!"
+				assert(isinstance(signal, signals.AnalogSignalList)), "Incorrect signal format!"
 
 			if self.input_dimension != len(signal):
 				self.input_dimension = len(signal)
@@ -2780,11 +2743,10 @@ class EncodingLayer:
 		:param stim: [list of str] - stimulus sequence to be converted (only if input is a fixed spatiotemporal spike
 		sequence)
 		"""
-		import nest
 		if initializer is not None:
 			if isinstance(initializer, dict):
-				initializer = ParameterSet(initializer)
-			if not isinstance(initializer, ParameterSet):
+				initializer = parameters.ParameterSet(initializer)
+			if not isinstance(initializer, parameters.ParameterSet):
 				print "Please provide the encoding parameters as dict or ParameterSet"
 			if hasattr(initializer, 'encoder'):
 				# if encoder exists, it is a population object
@@ -2801,7 +2763,7 @@ class EncodingLayer:
 				self.n_generators.append(signal.dimensions)
 			elif isinstance(signal, InputNoise):
 				self.n_generators.append(signal.N)
-			elif isinstance(signal, AnalogSignalList) or isinstance(signal, SpikeList):
+			elif isinstance(signal, signals.AnalogSignalList) or isinstance(signal, signals.SpikeList):
 				self.n_generators.append(len(signal))
 			else:
 				raise TypeError("signal must be InputSignal, AnalogSignalList or SpikeList")
@@ -2809,7 +2771,7 @@ class EncodingLayer:
 			self.n_generators.append(signal.dimensions)
 			#signal = None
 		elif stim_seq is not None:
-			seq = list(iterate_obj_list(stim_seq))
+			seq = list(signals.iterate_obj_list(stim_seq))
 			assert isinstance(seq[0], str), "Provided stim_seq must be string sequence"
 			self.n_generators.append(len(np.unique(seq)))
 		else:
@@ -2835,8 +2797,8 @@ class EncodingLayer:
 			:return encoders, encoder_labels:
 			"""
 			if isinstance(encoder_pars, dict):
-				encoder_pars = ParameterSet(encoder_pars)
-			assert isinstance(encoder_pars, ParameterSet), "Parameters must be provided as dictionary or ParameterSet"
+				encoder_pars = parameters.ParameterSet(encoder_pars)
+			assert isinstance(encoder_pars, parameters.ParameterSet), "Parameters must be provided as dictionary or ParameterSet"
 			if signal is not None:
 				assert (isinstance(signal, InputSignal) or isinstance(signal, InputNoise)), "Encoder Input must be InputSignal"
 
@@ -2853,27 +2815,26 @@ class EncodingLayer:
 				                'layer_gid': None,
 				                'is_subpop': False}
 				if hasattr(st_gen, encoder_pars.models[nn]):
-					enc_dict = copy_dict(enc_pop_dict, {})
-					encoders.append(Encoder(ParameterSet(enc_dict)))
+					enc_dict = parameters.copy_dict(enc_pop_dict, {})
+					encoders.append(Encoder(parameters.ParameterSet(enc_dict)))
 					print "- {0} []".format(encoder_pars.models[nn])
 
 				elif encoder_pars.models[nn] == 'NEF':
 					neuron_dict = encoder_pars.neuron_pars[nn]
 					nest.CopyModel(neuron_dict['model'], encoder_pars.labels[nn])
-					nest.SetDefaults(encoder_pars.labels[nn], extract_nestvalid_dict(neuron_dict, param_type='neuron'))
+					nest.SetDefaults(encoder_pars.labels[nn], parameters.extract_nestvalid_dict(neuron_dict, param_type='neuron'))
 
 					if encoder_pars.topology[nn]:
-						import nest.topology as tp
 						tp_dict = encoder_pars.topology_dict[nn]
 						tp_dict.update({'elements': encoder_pars.labels[nn]})
 						layer = tp.CreateLayer(tp_dict)
 						gids = nest.GetLeaves(layer)[0]
-						enc_dict = copy_dict(enc_pop_dict, {'gids': gids, 'layer_gid': layer})
-						encoders.append(Encoder(ParameterSet(enc_dict)))
+						enc_dict = parameters.copy_dict(enc_pop_dict, {'gids': gids, 'layer_gid': layer})
+						encoders.append(Encoder(parameters.ParameterSet(enc_dict)))
 					else:
 						gids = nest.Create(encoder_pars.labels[nn], n=int(encoder_pars.n_neurons[nn]))
-						enc_dict = copy_dict(enc_pop_dict, {'gids': gids})
-						encoders.append(Encoder(ParameterSet(enc_dict)))
+						enc_dict = parameters.copy_dict(enc_pop_dict, {'gids': gids})
+						encoders.append(Encoder(parameters.ParameterSet(enc_dict)))
 
 					print "- {0} Population of {1} neurons [{2}-{3}]".format(encoder_pars.models[nn],
 					                                                         str(encoder_pars.n_neurons), str(min(gids)),
@@ -2883,7 +2844,7 @@ class EncodingLayer:
 							label = encoder_pars.spike_device_pars[nn]['label']
 						else:
 							label = 'encoder_spikes'
-						dev_gid = encoders[-1].record_spikes(extract_nestvalid_dict(encoder_pars.spike_device_pars[nn],
+						dev_gid = encoders[-1].record_spikes(parameters.extract_nestvalid_dict(encoder_pars.spike_device_pars[nn],
 																					param_type='device'), label=label)
 						print "- Connecting %s to %s, with label %s and id %s" % (
 							encoder_pars.spike_device_pars[nn]['model'], 
@@ -2894,7 +2855,7 @@ class EncodingLayer:
 							label = encoder_pars.analogue_device_pars[nn]['label']
 						else:
 							label = 'encoder_analogs'
-						dev_gid = encoders[-1].record_analog(extract_nestvalid_dict(encoder_pars.analogue_device_pars[nn],
+						dev_gid = encoders[-1].record_analog(parameters.extract_nestvalid_dict(encoder_pars.analogue_device_pars[nn],
 																					param_type='device'), label=label)
 						print "- Connecting %s to %s, with label %s and id %s" % (
 							encoder_pars.analogue_device_pars[nn]['model'],
@@ -2903,19 +2864,18 @@ class EncodingLayer:
 				elif encoder_pars.models[nn] == 'parrot_neuron':
 					neuron_dict = encoder_pars.neuron_pars[nn]
 					nest.CopyModel(neuron_dict['model'], encoder_pars.labels[nn])
-					nest.SetDefaults(encoder_pars.labels[nn], extract_nestvalid_dict(neuron_dict, param_type='neuron'))
+					nest.SetDefaults(encoder_pars.labels[nn], parameters.extract_nestvalid_dict(neuron_dict, param_type='neuron'))
 					if encoder_pars.topology[nn]:
-						import nest.topology as tp
 						tp_dict = encoder_pars.topology_dict[nn]
 						tp_dict.update({'elements': encoder_pars.labels[nn]})
 						layer = tp.CreateLayer(tp_dict)
 						gids = nest.GetLeaves(layer)[0]
-						enc_dict = copy_dict(enc_pop_dict, {'gids': gids, 'layer_gid': layer})
-						encoders.append(Encoder(ParameterSet(enc_dict)))
+						enc_dict = parameters.copy_dict(enc_pop_dict, {'gids': gids, 'layer_gid': layer})
+						encoders.append(Encoder(parameters.ParameterSet(enc_dict)))
 					else:
 						gids = nest.Create(encoder_pars.labels[nn], n=int(encoder_pars.n_neurons[nn]))
-						enc_dict = copy_dict(enc_pop_dict, {'gids': gids})
-						encoders.append(Encoder(ParameterSet(enc_dict)))
+						enc_dict = parameters.copy_dict(enc_pop_dict, {'gids': gids})
+						encoders.append(Encoder(parameters.ParameterSet(enc_dict)))
 
 					print "- {0} Population of {1} neurons [{2}-{3}]".format(encoder_pars.models[nn],
 					                                                         str(encoder_pars.n_neurons),
@@ -2926,7 +2886,7 @@ class EncodingLayer:
 							label = encoder_pars.spike_device_pars[nn]['label']
 						else:
 							label = 'encoder_spikes'
-						dev_gid = encoders[-1].record_spikes(extract_nestvalid_dict(encoder_pars.spike_device_pars[nn],
+						dev_gid = encoders[-1].record_spikes(parameters.extract_nestvalid_dict(encoder_pars.spike_device_pars[nn],
 																					param_type='device'), label=label)
 						print "- Connecting %s to %s, with label %s and id %s" % (
 							encoder_pars.spike_device_pars[nn]['model'],
@@ -2945,13 +2905,13 @@ class EncodingLayer:
 			:param encoding_pars: global encoding parameters
 			:return:
 			"""
-			print "\n Creating Generators: "
+			print "\nCreating Generators: "
 			pars = encoding_pars.generator
 			generator_labels = []
 			generators = []
 			for n in range(pars.N):
 				# assess where the input to this generator comes from
-				tmp = list(iterate_obj_list(encoding_pars.connectivity.connections))
+				tmp = list(signals.iterate_obj_list(encoding_pars.connectivity.connections))
 				targets = [x[0] for x in tmp]
 				if pars.labels[n] in targets:
 					idx = targets.index(pars.labels[n])
@@ -3005,21 +2965,21 @@ class EncodingLayer:
 		:param encoding_pars: ParameterSet or dictionary
 		:param net_obj: Network object containing the populations to connect to
 		"""
-		print "\n Connecting Encoding Layer: "
+		print "\nConnecting Encoding Layer: "
 
 		if isinstance(encoding_pars, dict):
-			encoding_pars = ParameterSet(encoding_pars)
-		assert isinstance(encoding_pars, ParameterSet), "Parameters must be dictionary or ParameterSet"
+			encoding_pars = parameters.ParameterSet(encoding_pars)
+		assert isinstance(encoding_pars, parameters.ParameterSet), "Parameters must be dictionary or ParameterSet"
 		if net_obj is not None:
-			assert isinstance(net_obj, Network), "Please provide the network object to connect to"
+			assert isinstance(net_obj, net_architect.Network), "Please provide the network object to connect to"
 		else:
 			print "No network object provided, cannot connect input to network"
 
 		conn_pars = encoding_pars.connectivity
-		populations = list(iterate_obj_list(net_obj.population_names))
-		pop_objs = list(iterate_obj_list(net_obj.populations))
+		populations = list(signals.iterate_obj_list(net_obj.population_names))
+		pop_objs = list(signals.iterate_obj_list(net_obj.populations))
 
-		if not empty(net_obj.merged_populations):
+		if not signals.empty(net_obj.merged_populations):
 			merg_pop_names = [x.name for x in net_obj.merged_populations]
 			merg_pops = [x for x in net_obj.merged_populations]
 			populations.extend(merg_pop_names)
@@ -3096,7 +3056,6 @@ class EncodingLayer:
 				nest.SetDefaults(synapse_name, conn_pars.model_pars[idx])
 
 			if synapse_name.find('copy') > 0:  # re-connect the same neurons...
-				import time
 				start = time.time()
 				print "    - Connecting {0} (*)".format(synapse_name)
 
@@ -3121,7 +3080,7 @@ class EncodingLayer:
 						          nest.GetStatus([x['target']])[0]['model'] not in device_models]
 						receptors = [x['receptor'] for x in st if
 						             nest.GetStatus([x['target']])[0]['model'] not in device_models]
-						syn_dict = copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
+						syn_dict = parameters.copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
 							conn_pars.weight_dist[idx], 'delay': conn_pars.delay_dist[idx]})
 						conn_dict = conn_pars.conn_specs[idx]
 
@@ -3133,8 +3092,7 @@ class EncodingLayer:
 						              'receptor_type': syn_dict['receptor_type']} for iddx in range(len(target_gids))]
 						nest.DataConnect(syn_dicts)
 					if progress:
-						from Modules.visualization import progress_bar
-						progress_bar(float(nnn) / float(len(its)))
+						visualization.progress_bar(float(nnn) / float(len(its)))
 				print "\tElapsed time: {0} s".format(str(time.time()-start))
 			else:
 				## Set up connections
@@ -3144,7 +3102,7 @@ class EncodingLayer:
 						w = conn_pars.preset_W[idx]
 
 					elif isinstance(conn_pars.preset_W[idx], tuple):
-						args = copy_dict(conn_pars.preset_W[idx][1], {'size': (int(src_dims), int(tget_dims))})
+						args = parameters.copy_dict(conn_pars.preset_W[idx][1], {'size': (int(src_dims), int(tget_dims))})
 						w = conn_pars.preset_W[idx][0](**args)
 					elif isinstance(conn_pars.preset_W[idx], str):
 						w = np.load(conn_pars.preset_W[idx])
@@ -3161,12 +3119,11 @@ class EncodingLayer:
 								isinstance(conn_pars.delay_dist[idx], int):
 							delay = np.repeat(conn_pars.delay_dist[idx], len(weights))
 						elif isinstance(conn_pars.delay_dist[idx], tuple):
-							args = copy_dict(conn_pars.delay_dist[idx][1], {'size': len(weights)})
+							args = parameters.copy_dict(conn_pars.delay_dist[idx][1], {'size': len(weights)})
 							delay = conn_pars.delay_dist[idx][0](**args)
 						else:
 							raise TypeError("Delays not provided in correct format")
-						import modules.visualization as vis
-						vis.progress_bar(float(preSyn_matidx)/len(src_gids))
+						visualization.progress_bar(float(preSyn_matidx)/len(src_gids))
 						conn_dict = conn_pars.conn_specs[idx]
 						#print conn_pars.syn_specs[idx]
 						#print conn_pars.conn_specs[idx]
@@ -3177,7 +3134,7 @@ class EncodingLayer:
 							else:
 								d = delay[idxx]
 
-							syn_dict = copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight': weights[
+							syn_dict = parameters.copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight': weights[
 								idxx], 'delay': d})
 							#print conn_pars.syn_specs[idx]
 							#print syn_dict
@@ -3191,11 +3148,10 @@ class EncodingLayer:
 
 				# topology connections only allowed between generator (with specified topology) and population
 				elif conn_pars.topology_dependent[idx]:
-					import nest.topology as tp
 					assert (src_tp and tget_tp), "Topological connections are only possible if both pre- and post- " \
 					                             "population are topologically defined"
 
-					tp_dict = copy_dict(conn_pars.conn_specs[idx], {'synapse_model': synapse_name})
+					tp_dict = parameters.copy_dict(conn_pars.conn_specs[idx], {'synapse_model': synapse_name})
 					tp.ConnectLayers(src_gids, tget_gids, tp_dict)
 
 					print "- Connecting Layer {0} to Layer {1}".format(src_name, tget_name)
@@ -3209,7 +3165,7 @@ class EncodingLayer:
 						else:
 							synapse_name = src_name + '_' + tget_name
 						nest.SetDefaults(conn_pars.models[idx], conn_pars.model_pars[idx])
-						syn_dict = copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
+						syn_dict = parameters.copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
 							conn_pars.weight_dist[idx], 'delay': conn_pars.delay_dist[idx]})
 						conn_dict = conn_pars.conn_specs[idx]
 						if isinstance(src_gids, list):
@@ -3224,7 +3180,7 @@ class EncodingLayer:
 						else:
 							synapse_name = src_name + '_' + tget_name
 						nest.SetDefaults(conn_pars.models[idx], conn_pars.model_pars[idx])
-						syn_dict = copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
+						syn_dict = parameters.copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
 							conn_pars.weight_dist[idx], 'delay': conn_pars.delay_dist[idx]})
 						conn_dict = conn_pars.conn_specs[idx]
 						if isinstance(src_gids, list):
@@ -3241,7 +3197,7 @@ class EncodingLayer:
 						else:
 							synapse_name = src_name + '_' + tget_name
 						nest.SetDefaults(conn_pars.models[idx], conn_pars.model_pars[idx])
-						syn_dict = copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
+						syn_dict = parameters.copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
 							conn_pars.weight_dist[idx], 'delay': conn_pars.delay_dist[idx]})
 						conn_dict = conn_pars.conn_specs[idx]
 						if isinstance(src_gids, list):
@@ -3257,7 +3213,7 @@ class EncodingLayer:
 						else:
 							synapse_name = src_name + '_' + tget_name
 						nest.SetDefaults(conn_pars.models[idx], conn_pars.model_pars[idx])
-						syn_dict = copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
+						syn_dict = parameters.copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
 							conn_pars.weight_dist[idx], 'delay': conn_pars.delay_dist[idx]})
 						conn_dict = conn_pars.conn_specs[idx]
 						if isinstance(src_gids, list):
@@ -3274,7 +3230,6 @@ class EncodingLayer:
 								tget_gids = tuple(x[0] for x in tget_gids)
 
 							dt = nest.GetKernelStatus()['resolution']
-							import decimal
 							d = decimal.Decimal(str(dt)).as_tuple()[1][0]
 							for idxx, nnn in enumerate(act_list.id_list):
 								spk_times = act_list.spiketrains[nnn].spike_times
@@ -3290,7 +3245,7 @@ class EncodingLayer:
 							else:
 								synapse_name = src_name + '_' + tget_name
 							nest.SetDefaults(conn_pars.models[idx], conn_pars.model_pars[idx])
-							syn_dict = copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
+							syn_dict = parameters.copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
 								conn_pars.weight_dist[idx], 'delay': conn_pars.delay_dist[idx]})
 							conn_dict = conn_pars.conn_specs[idx]
 							if isinstance(src_gids, list):
@@ -3307,8 +3262,8 @@ class EncodingLayer:
 		:param clone_obj:
 		:return:
 		"""
-		native_population_names = list(iterate_obj_list(network.population_names))
-		native_populations = list(iterate_obj_list(network.populations))
+		native_population_names = list(signals.iterate_obj_list(network.population_names))
+		native_populations = list(signals.iterate_obj_list(network.populations))
 		target_populations = [n[0] for n in encoding_pars.connectivity.connections if n[0] in native_population_names]
 		target_populations.extend([n+'_clone' for n in target_populations])
 
@@ -3440,9 +3395,9 @@ class EncodingLayer:
 				'weight_dist': weights_clone,
 				'delay_dist': delays_clone,
 				'preset_W': pre_w_clone}
-		native_encoding_pars = ParameterSet({'encoder': extra_encoder, 'generator': encoding_pars.generator.as_dict(),
+		native_encoding_pars = parameters.ParameterSet({'encoder': extra_encoder, 'generator': encoding_pars.generator.as_dict(),
 		                                     'connectivity': extra_connectivity_native})
-		clone_encoding_pars = ParameterSet({'encoder': extra_encoder, 'generator': encoding_pars.generator.as_dict(),
+		clone_encoding_pars = parameters.ParameterSet({'encoder': extra_encoder, 'generator': encoding_pars.generator.as_dict(),
 		                                     'connectivity': extra_connectivity_clone})
 		self.__init__(native_encoding_pars)
 		self.connect(native_encoding_pars, network)
@@ -3454,7 +3409,6 @@ class EncodingLayer:
 		:param clone:
 		:return:
 		"""
-		import time
 		start = time.time()
 		target_population_names = clone.population_names
 		target_population_gids = [n.gids for n in clone.populations]
@@ -3492,8 +3446,7 @@ class EncodingLayer:
 						              'receptor_type': receptors[iddx]} for iddx in range(len(target_gids))]
 						nest.DataConnect(syn_dicts)
 					if progress:
-						from Modules.visualization import progress_bar
-						progress_bar(float(nnn) / float(len(its)))
+						visualization.progress_bar(float(nnn) / float(len(its)))
 
 				print "\tElapsed time: {0} s".format(str(time.time() - start))
 			else:
@@ -3528,8 +3481,8 @@ class EncodingLayer:
 		:return:
 		"""
 		if isinstance(decoding_pars, dict):
-			decoding_pars = ParameterSet(decoding_pars)
-		assert isinstance(decoding_pars, ParameterSet), "DecodingLayer must be initialized with ParameterSet or " \
+			decoding_pars = parameters.ParameterSet(decoding_pars)
+		assert isinstance(decoding_pars, parameters.ParameterSet), "DecodingLayer must be initialized with ParameterSet or " \
 		                                                "dictionary"
 		decoder_params = {}
 		# initialize state extractors:
@@ -3537,7 +3490,7 @@ class EncodingLayer:
 			pars_st = decoding_pars.state_extractor
 			self.state_extractors = []
 			self.readouts = []
-			print "\n Connecting Decoders: "
+			print "\nConnecting Decoders: "
 			for ext_idx, n_src in enumerate(pars_st.source_population):
 				assert(n_src in self.encoder_names), "State extractor must connect to encoder population"
 				if n_src in self.encoder_names:
@@ -3579,13 +3532,13 @@ class EncodingLayer:
 					tget_gids = [status_dict[n]['target'] for n in range(len(status_dict))]
 					#self.connection_weights.append({con: np.array([status_dict[n]['weight'] for n in range(len(
 					#	status_dict))])})
-					self.connection_weights.update({con: extract_weights_matrix(list(np.unique(src_gids)),
+					self.connection_weights.update({con: net_architect.extract_weights_matrix(list(np.unique(src_gids)),
 					                                                           list(np.unique(tget_gids)))})
 
 		elif src_gids and tget_gids:
 			if syn_name is None:
 				syn_name = str(nest.GetStatus(nest.GetConnections([src_gids[0]], [tget_gids[0]]))[0]['synapse_model'])
-			self.connection_weights.update({syn_name: extract_weights_matrix(list(np.unique(src_gids)),
+			self.connection_weights.update({syn_name: net_architect.extract_weights_matrix(list(np.unique(src_gids)),
 			                                                                 list(np.unique(tget_gids)))})
 
 		else:
@@ -3605,12 +3558,12 @@ class EncodingLayer:
 				tget_gids = [status_dict[n]['target'] for n in range(len(status_dict))]
 				# self.connection_weights.append({con: np.array([status_dict[n]['delay'] for n in range(len(
 				# 	status_dict))])})
-				self.connection_delays.update({con: extract_delays_matrix(list(np.unique(src_gids)),
+				self.connection_delays.update({con: net_architect.extract_delays_matrix(list(np.unique(src_gids)),
 				                                                            list(np.unique(tget_gids)))})
 		elif src_gids and tget_gids:
 			if syn_name is None:
 				syn_name = str(nest.GetStatus(nest.GetConnections([src_gids[0]], [tget_gids[0]]))[0]['synapse_model'])
-			self.connection_delays.update({syn_name: extract_delays_matrix(list(np.unique(src_gids)), list(np.unique(
+			self.connection_delays.update({syn_name: net_architect.extract_delays_matrix(list(np.unique(src_gids)), list(np.unique(
 					tget_gids)))})
 		else:
 			print "Provide gids!!"
@@ -3620,7 +3573,7 @@ class EncodingLayer:
 		Read the spiking activity of the encoders present in the EncodingLayer
 		:return:
 		"""
-		if not empty(self.encoders):
+		if not signals.empty(self.encoders):
 			print "\nExtracting and storing recorded activity from encoders: "
 		for n_enc in self.encoders:
 			if n_enc.attached_devices:
@@ -3638,7 +3591,7 @@ class EncodingLayer:
 		Delete all data from all devices connected to the encoders
 		:return:
 		"""
-		if not empty(self.encoders) or not empty(self.state_extractors):
+		if not signals.empty(self.encoders) or not signals.empty(self.state_extractors):
 			print "\nClearing device data: "
 		for n_enc in self.encoders:
 			if n_enc.attached_devices:
@@ -3647,12 +3600,12 @@ class EncodingLayer:
 					print "- {0}".format(devices[idx])
 					nest.SetStatus(n_dev, {'n_events': 0})
 					if nest.GetStatus(n_dev)[0]['to_file']:
-						remove_files(nest.GetStatus(n_dev)[0]['filenames'])
+						io.remove_files(nest.GetStatus(n_dev)[0]['filenames'])
 
 		if decoders:
 			decoder_ids = []
 			decoder_names = []
-			if not empty(self.state_extractors):
+			if not signals.empty(self.state_extractors):
 				dec_ids = []
 				for idx, n in enumerate(self.encoders):
 					dec_ids.append(n.state_extractors)
@@ -3660,12 +3613,12 @@ class EncodingLayer:
 
 				decoder_ids.append([self.encoders[n].state_extractors for n in range(len(self.encoders))])
 
-			decoder_names = list(iterate_obj_list(decoder_names))
-			decoder_ids = list(iterate_obj_list(decoder_ids))
+			decoder_names = list(signals.iterate_obj_list(decoder_names))
+			decoder_ids = list(signals.iterate_obj_list(decoder_ids))
 			if len(decoder_ids) != len(decoder_names):
-				decoder_ids = list(iterate_obj_list(decoder_ids))
+				decoder_ids = list(signals.iterate_obj_list(decoder_ids))
 
-			if not empty(decoder_ids) and isinstance(decoder_ids[0], list):
+			if not signals.empty(decoder_ids) and isinstance(decoder_ids[0], list):
 				dec_ids = list(itertools.chain(*decoder_ids))
 			else:
 				dec_ids = decoder_ids
@@ -3673,7 +3626,7 @@ class EncodingLayer:
 				print " - {0}".format('StateExtractor_' + decoder_names[idx])
 				nest.SetStatus(n, {'n_events': 0})
 				if nest.GetStatus(n)[0]['to_file']:
-					remove_files(nest.GetStatus(n)[0]['filenames'])
+					io.remove_files(nest.GetStatus(n)[0]['filenames'])
 
 	def update_state(self, signal):
 		"""

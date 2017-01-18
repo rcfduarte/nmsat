@@ -14,16 +14,18 @@ iterate_obj_list          - build an iterator to go through the elements of a li
 extract_weights_matrix    - extract synaptic weights matrix
 """
 import sys
-sys.path.append('../')
-from parameters import *
-from analysis import *
-import nest
-from nest import topology as tp
-from modules.signals import *
-from modules.analysis import *
-from modules.io import *
+import visualization
+import parameters
+import analysis
+import signals
+import io
 import itertools
 import time
+import copy
+import numpy as np
+from scipy.sparse import lil_matrix
+import nest
+from nest import topology as tp
 
 
 def verify_pars_consistency(pars_set, not_allowed_keys, n=0):
@@ -66,19 +68,6 @@ def randomize_initial_var(var_name, obj_id, randomization_function, **function_p
 					#print(n_neuron)
 					pass
 
-# def iterate_obj_list(obj_list):
-# 	"""
-# 	Build an iterator to iterate through any nested list
-# 	:obj_list: list of objects to iterate
-# 	:return:
-# 	"""
-# 	for idx, n in enumerate(obj_list):
-# 		if isinstance(n, list):
-# 			for idxx, nn in enumerate(obj_list[idx]):
-# 				yield obj_list[idx][idxx]
-# 		else:
-# 			yield obj_list[idx]
-
 
 def extract_weights_matrix(src_gids, tgets_gids, progress=True):
 	"""
@@ -89,10 +78,7 @@ def extract_weights_matrix(src_gids, tgets_gids, progress=True):
 	"""
 	print "\n Extracting connectivity (weights) matrix..."
 	t_start = time.time()
-	if progress:
-		from modules.visualization import progress_bar
-	import scipy.sparse as sparse
-	w = sparse.lil_matrix((len(tgets_gids), len(src_gids)))
+	w = lil_matrix((len(tgets_gids), len(src_gids)))
 	a = nest.GetConnections(list(np.unique(src_gids)), list(np.unique(tgets_gids)))
 
 	iterations = 100
@@ -105,7 +91,7 @@ def extract_weights_matrix(src_gids, tgets_gids, progress=True):
 			for idx, n in enumerate(con):
 				w[n[1] - min(tgets_gids), n[0] - min(src_gids)] += st[idx]
 		if progress:
-			progress_bar(float(nnn+1) / float(len(its)))
+			visualization.progress_bar(float(nnn+1) / float(len(its)))
 	t_stop = time.time()
 
 	print "Elapsed time: %s" % (str(t_stop - t_start))
@@ -122,10 +108,7 @@ def extract_delays_matrix(src_gids, tgets_gids, progress=True):
  	"""
 	print "\n Extracting connectivity (delays) matrix..."
 	t_start = time.time()
-	if progress:
-		from modules.visualization import progress_bar
-	import scipy.sparse as sparse
-	d = sparse.lil_matrix((len(tgets_gids), len(src_gids)))
+	d = lil_matrix((len(tgets_gids), len(src_gids)))
 	a = nest.GetConnections(list(np.unique(src_gids)), list(np.unique(tgets_gids)))
 
 	iterations = 100
@@ -138,7 +121,7 @@ def extract_delays_matrix(src_gids, tgets_gids, progress=True):
 			for idx, n in enumerate(con):
 				d[n[1] - min(tgets_gids), n[0] - min(src_gids)] += st[idx]
 		if progress:
-			progress_bar(float(nnn+1) / float(len(its)))
+			visualization.progress_bar(float(nnn+1) / float(len(its)))
 	t_stop = time.time()
 	print "Elapsed time: %s" % (str(t_stop - t_start))
 	return d
@@ -264,7 +247,7 @@ class Population(object):
 		"""
 		nest.SetStatus(device, {'n_events': 0})
 		if nest.GetStatus(device)[0]['to_file']:
-			remove_files(nest.GetStatus(device)[0]['filenames'])
+			io.remove_files(nest.GetStatus(device)[0]['filenames'])
 
 	def activity_set(self, initializer, t_start=None, t_stop=None):
 		"""
@@ -274,11 +257,9 @@ class Population(object):
 		raw data was recorded or be a gID for the recording device, if the data is still in memory
 		"""
 		# TODO: save option!
-		from modules.signals import SpikeList, AnalogSignalList
-
 		# if object is a string, it must be a file name; if it is a list of strings, it must be a list of filenames
 		if isinstance(initializer, basestring) or isinstance(initializer, list):
-			data = extract_data_fromfile(initializer)
+			data = io.extract_data_fromfile(initializer)
 			if data is not None:
 				if len(data.shape) != 2:
 					data = np.reshape(data, (int(len(data) / 2), 2))
@@ -286,7 +267,7 @@ class Population(object):
 					spk_times = data[:, 1]
 					neuron_ids = data[:, 0]
 					tmp = [(neuron_ids[n], spk_times[n]) for n in range(len(spk_times))]
-					self.spiking_activity = SpikeList(tmp, np.unique(neuron_ids).tolist())
+					self.spiking_activity = signals.SpikeList(tmp, np.unique(neuron_ids).tolist())
 				else:
 					neuron_ids = data[:, 0]
 					times = data[:, 1]
@@ -296,9 +277,9 @@ class Population(object):
 					# 	times = times[times <= t_stop]
 					for nn in range(data.shape[1]):
 						if nn > 1:
-							signals = data[:, nn]
-							tmp = [(neuron_ids[n], signals[n]) for n in range(len(neuron_ids))]
-							self.analog_activity.append(AnalogSignalList(tmp, np.unique(neuron_ids).tolist(),
+							sigs = data[:, nn]
+							tmp = [(neuron_ids[n], sigs[n]) for n in range(len(neuron_ids))]
+							self.analog_activity.append(signals.AnalogSignalList(tmp, np.unique(neuron_ids).tolist(),
 							                                             times=times, t_start=t_start, t_stop=t_stop))
 
 		elif isinstance(initializer, tuple) or isinstance(initializer, int):
@@ -311,9 +292,9 @@ class Population(object):
 				neuron_ids = status['senders']
 				tmp = [(neuron_ids[n], spk_times[n]) for n in range(len(spk_times))]
 				if t_start is None and t_stop is None:
-					self.spiking_activity = SpikeList(tmp, np.unique(neuron_ids).tolist())
+					self.spiking_activity = signals.SpikeList(tmp, np.unique(neuron_ids).tolist())
 				else:
-					self.spiking_activity = SpikeList(tmp, np.unique(neuron_ids).tolist(), t_start=t_start,
+					self.spiking_activity = signals.SpikeList(tmp, np.unique(neuron_ids).tolist(), t_start=t_start,
 					                                  t_stop=t_stop)
 			elif len(status) > 2:
 				times = status['times']
@@ -330,7 +311,8 @@ class Population(object):
 				self.analog_activity = []
 				for k, v in new_dict.iteritems():
 					tmp = [(neuron_ids[n], v[n]) for n in range(len(neuron_ids))]
-					self.analog_activity.append(AnalogSignalList(tmp, np.unique(neuron_ids).tolist(), times=times,
+					self.analog_activity.append(signals.AnalogSignalList(tmp, np.unique(neuron_ids).tolist(),
+					                                                    times=times,
 					                                             t_start=t_start, t_stop=t_stop))
 					self.analog_activity_names.append(k)
 		else:
@@ -341,10 +323,9 @@ class Population(object):
 
 		:return:
 		"""
-		from modules.analysis import Readout
 		if isinstance(decoding_pars, dict):
-			decoding_pars = ParameterSet(decoding_pars)
-		assert isinstance(decoding_pars, ParameterSet), "must be initialized with ParameterSet or " \
+			decoding_pars = parameters.ParameterSet(decoding_pars)
+		assert isinstance(decoding_pars, parameters.ParameterSet), "must be initialized with ParameterSet or " \
 		                                              "dictionary"
 		self.decoding_pars = decoding_pars
 
@@ -353,7 +334,7 @@ class Population(object):
 			self.state_variables.append(pars_st.state_variable) # TODO - why doesn't it store all state variables?
 
 			if pars_st.state_variable == 'V_m':
-				mm_specs = extract_nestvalid_dict(pars_st.state_specs, param_type='device')
+				mm_specs = parameters.extract_nestvalid_dict(pars_st.state_specs, param_type='device')
 				mm = nest.Create('multimeter', 1, mm_specs)
 				self.state_extractors.append(mm)
 				nest.Connect(mm, self.gids)
@@ -364,7 +345,7 @@ class Population(object):
 								   'V_th': sys.float_info.max, 'V_reset': 0.,
 								   'V_min': 0.}
 				rec_neuron_pars.update(pars_st.state_specs)
-				filter_neuron_specs = extract_nestvalid_dict(rec_neuron_pars, param_type='neuron')
+				filter_neuron_specs = parameters.extract_nestvalid_dict(rec_neuron_pars, param_type='neuron')
 
 				rec_neurons = nest.Create(rec_neuron_pars['model'], len(self.gids), filter_neuron_specs)
 				if pars_st.state_specs.has_key('start'):
@@ -381,7 +362,7 @@ class Population(object):
 				nest.Connect(self.gids, rec_neurons, 'one_to_one', syn_spec={'weight': 1., 'delay': 0.1, 'model': 'static_synapse'})
 
 			elif pars_st.state_variable == 'raw_spikes':
-				sd_specs = extract_nestvalid_dict(pars_st.state_specs, type='device')
+				sd_specs = parameters.extract_nestvalid_dict(pars_st.state_specs, type='device')
 				sd = nest.Create('spike_detector', 1, sd_specs)
 				self.state_extractors.append(sd)
 				nest.Connect(self.gids, sd)
@@ -411,7 +392,7 @@ class Population(object):
 
 				readout_dict = {'label': decoding_pars.readout.labels[n_readout],
 				                'algorithm': alg}
-				self.readouts.append(Readout(ParameterSet(readout_dict)))
+				self.readouts.append(analysis.Readout(parameters.ParameterSet(readout_dict)))
 
 	def extract_response_matrix(self, start=None, stop=None, save=False):
 		"""
@@ -420,7 +401,6 @@ class Population(object):
 		:param stop:
 		:return:
 		"""
-		from modules.signals import AnalogSignalList
 		all_responses = []
 		print("\nExtracting Responses from {0}: ".format(str(self.name)))
 		for idx, n_state in enumerate(self.state_extractors):
@@ -432,7 +412,7 @@ class Population(object):
 				initializer = nest.GetStatus(n_state)[0]['filenames']
 
 			if isinstance(initializer, basestring) or isinstance(initializer, list):
-				data = extract_data_fromfile(initializer)
+				data = io.extract_data_fromfile(initializer)
 				if data is not None:
 					if len(data.shape) != 2:
 						data = np.reshape(data, (int(len(data)/2), 2))
@@ -450,9 +430,9 @@ class Population(object):
 							data = data[idxx, :]
 						for nn in range(data.shape[1]):
 							if nn > 1:
-								signals = data[:, nn]
-								tmp = [(neuron_ids[n], signals[n]) for n in range(len(neuron_ids))]
-								responses = AnalogSignalList(tmp, np.unique(neuron_ids).tolist(), times=times)
+								sigs = data[:, nn]
+								tmp = [(neuron_ids[n], sigs[n]) for n in range(len(neuron_ids))]
+								responses = signals.AnalogSignalList(tmp, np.unique(neuron_ids).tolist(), times=times)
 
 			elif isinstance(initializer, tuple) or isinstance(initializer, int):
 				status_dict = nest.GetStatus(initializer)[0]['events']
@@ -465,7 +445,7 @@ class Population(object):
 					status_dict['V_m'] = status_dict['V_m'][idxx]
 					status_dict['senders'] = status_dict['senders'][idxx]
 				tmp = [(status_dict['senders'][n], status_dict['V_m'][n]) for n in range(len(status_dict['senders']))]
-				responses = AnalogSignalList(tmp, np.unique(status_dict['senders']).tolist(), times=times)
+				responses = signals.AnalogSignalList(tmp, np.unique(status_dict['senders']).tolist(), times=times)
 			else:
 				raise TypeError("Incorrect Decoder ID")
 
@@ -612,23 +592,22 @@ class Network(object):
 							and (not isinstance(v[n], list))})
 						neuron_dict = subpop_dict['neuron_pars']
 						nest.CopyModel(subpop_dict['neuron_pars']['model'], net_pars_set.pop_names[n][nn])
-						nest.SetDefaults(net_pars_set.pop_names[n][nn], extract_nestvalid_dict(neuron_dict,
+						nest.SetDefaults(net_pars_set.pop_names[n][nn], parameters.extract_nestvalid_dict(neuron_dict,
 																							   param_type='neuron'))
 						if net_pars_set.topology[n][nn]:
-							import nest.topology as tp
 							tp_dict = subpop_dict['topology_dict']
 							tp_dict.update({'elements': net_pars_set.pop_names[n][nn]})
 							layer = tp.CreateLayer(tp_dict)
 							gids = nest.GetLeaves(layer)[0]
 							subpop_dict.update({'topology_dict': tp_dict, 'layer_gid': layer,
 							                    'is_subpop': True, 'gids': gids})
-							populations[n].append(Population(ParameterSet(subpop_dict)))
+							populations[n].append(Population(parameters.ParameterSet(subpop_dict)))
 						else:
 							gids = nest.Create(net_pars_set.pop_names[n][nn], n=int(net_pars_set.n_neurons[n][nn]))
 							subpop_dict.update({'is_subpop': False, 'gids': gids})
-							populations[n].append(Population(ParameterSet(subpop_dict)))
+							populations[n].append(Population(parameters.ParameterSet(subpop_dict)))
 
-						print ("\n Creating population {0!s}, with ids [{1!s}-{2!s}]".format(net_pars_set.pop_names[n][nn],
+						print ("\nCreating population {0!s}, with ids [{1!s}-{2!s}]".format(net_pars_set.pop_names[n][nn],
 																							 min(gids), max(gids)))
 
 				else:
@@ -639,25 +618,25 @@ class Network(object):
 					# create neuron model named after the population
 					nest.CopyModel(net_pars_set.neuron_pars[n]['model'], net_pars_set.pop_names[n])
 					# set default parameters
-					nest.SetDefaults(net_pars_set.pop_names[n], extract_nestvalid_dict(neuron_dict, param_type='neuron'))
+					nest.SetDefaults(net_pars_set.pop_names[n], parameters.extract_nestvalid_dict(neuron_dict,
+					                                                                    param_type='neuron'))
 
 					# QUESTION can this do 3D topology? I don't really see how...
 					if net_pars_set.topology[n]:
-						import nest.topology as tp
 						tp_dict = pop_dict['topology_dict']
 						tp_dict.update({'elements': net_pars_set.pop_names[n]})
 						layer = tp.CreateLayer(tp_dict)
 						gids = nest.GetLeaves(layer)[0]
 						pop_dict.update({'topology_dict': tp_dict, 'layer_gid': layer,
 						                 'is_subpop': False, 'gids': gids})
-						populations[n] = Population(ParameterSet(pop_dict))
+						populations[n] = Population(parameters.ParameterSet(pop_dict))
 					else:
 						# create population
 						gids = nest.Create(net_pars_set.pop_names[n], n=int(net_pars_set.n_neurons[n]))
 						# set up population objects
 						pop_dict.update({'gids': gids, 'is_subpop': False})
-						populations[n] = Population(ParameterSet(pop_dict))
-					print ("\n Creating population {0!s}, with ids [{1!s}-{2!s}]".format(net_pars_set.pop_names[n],
+						populations[n] = Population(parameters.ParameterSet(pop_dict))
+					print ("\nCreating population {0!s}, with ids [{1!s}-{2!s}]".format(net_pars_set.pop_names[n],
 																						 min(gids), max(gids)))
 
 			return populations
@@ -696,7 +675,6 @@ class Network(object):
 		:param merge_activity:
 		:return: new Population object
 		"""
-		from modules.signals import empty, SpikeList
 		assert sub_populations, "No sub-populations to merge provided..."
 		gids_list = [list(x.gids) for x in sub_populations]
 		gids = list(itertools.chain.from_iterable(gids_list))
@@ -719,7 +697,7 @@ class Network(object):
 		else:
 			pop_dict.update({'topology': False})
 
-		new_population = Population(ParameterSet(pop_dict))
+		new_population = Population(parameters.ParameterSet(pop_dict))
 
 		if merge_activity:
 			gids = []
@@ -728,11 +706,11 @@ class Network(object):
 			spk_activity_list = [x.spiking_activity for x in sub_populations]
 			analog_activity = [x.analog_activity for x in sub_populations]
 
-			if not empty(spk_activity_list):
+			if not signals.empty(spk_activity_list):
 				t_start = round(np.min([x.t_start for x in spk_activity_list]))
 				t_stop = round(np.max([x.t_stop for x in spk_activity_list]))
 
-				new_spike_list = SpikeList([], [], t_start=t_start, t_stop=t_stop, dims=n_neurons)
+				new_spike_list = signals.SpikeList([], [], t_start=t_start, t_stop=t_stop, dims=n_neurons)
 
 				for n in spk_activity_list:
 					if not isinstance(n, list):
@@ -743,7 +721,7 @@ class Network(object):
 						print "Merge specific spiking activity"   # TODO
 				new_population.spiking_activity = new_spike_list
 
-			if not empty(analog_activity):
+			if not signals.empty(analog_activity):
 				# TODO - extend AnalogSignalList[0] with [1] ...
 				for n in analog_activity:
 					new_population.analog_activity.append(n)
@@ -758,7 +736,7 @@ class Network(object):
 
 		NOTE: Should only be called once! Otherwise, connections are repeated..
 		"""
-		print ("\n Connecting Devices: ")
+		print ("\nConnecting Devices: ")
 		for n in range(self.n_populations):
 
 			if isinstance(self.record_spikes[n], list):
@@ -770,7 +748,7 @@ class Network(object):
 						self.device_type[n].append(dev_dict['model'])
 						dev_dict['label'] += self.population_names[n][nn] + '_' + dev_dict['model']
 						self.device_names[n].append(dev_dict['label'])
-						dev_gid = self.populations[n][nn].record_spikes(extract_nestvalid_dict(
+						dev_gid = self.populations[n][nn].record_spikes(parameters.extract_nestvalid_dict(
 							dev_dict, param_type='device'))
 						self.device_gids[n].append(dev_gid)
 						self.n_devices[n] += 1
@@ -789,7 +767,7 @@ class Network(object):
 								ids.append(self.populations[n][nn].gids[i])
 						else:
 							ids = None
-						dev_gid = self.populations[n][nn].record_analog(extract_nestvalid_dict(dev_dict,
+						dev_gid = self.populations[n][nn].record_analog(parameters.extract_nestvalid_dict(dev_dict,
 																							   param_type='device'), ids=ids, record=dev_dict['record_from'])
 						self.device_gids[n].append(dev_gid)
 						self.n_devices[n] += 1
@@ -806,7 +784,7 @@ class Network(object):
 					self.device_type[n].append(dev_dict['model'])
 					dev_dict['label'] += new_pop.name + '_' + dev_dict['model']
 					self.device_names[n].append(dev_dict['label'])
-					dev_gid = new_pop.record_spikes(extract_nestvalid_dict(dev_dict, param_type='device'))
+					dev_gid = new_pop.record_spikes(parameters.extract_nestvalid_dict(dev_dict, param_type='device'))
 					self.device_gids[n].append(dev_gid)
 					self.n_devices[n] += 1
 					print "- Connecting %s to %s, with label %s and id %s" % (dev_dict['model'], new_pop.name,
@@ -823,7 +801,8 @@ class Network(object):
 							ids.append(self.populations[n].gids[i])
 					else:
 						ids = None
-					dev_gid = new_pop.record_analog(extract_nestvalid_dict(dev_dict, param_type='device'), ids=ids,
+					dev_gid = new_pop.record_analog(parameters.extract_nestvalid_dict(dev_dict, param_type='device'),
+					                                ids=ids,
 													record=dev_dict['record_from'])
 					self.device_gids[n].append(dev_gid)
 
@@ -839,7 +818,8 @@ class Network(object):
 					self.device_type[n].append(dev_dict['model'])
 					dev_dict['label'] += '_' + self.population_names[n] + '_' + dev_dict['model']
 					self.device_names[n].append(dev_dict['label'])
-					dev_gid = self.populations[n].record_spikes(extract_nestvalid_dict(dev_dict, param_type='device'))
+					dev_gid = self.populations[n].record_spikes(parameters.extract_nestvalid_dict(dev_dict,
+					                                                                      param_type='device'))
 					self.device_gids[n].append(dev_gid)
 					self.n_devices[n] += 1
 					print "- Connecting %s to %s, with label %s and id %s" % (dev_dict['model'], self.population_names[n],
@@ -857,7 +837,8 @@ class Network(object):
 								ids.append(self.populations[n].gids[i])
 						else:
 							ids = None
-						dev_gid = self.populations[n].record_analog(extract_nestvalid_dict(dev_dict, param_type='device'),
+						dev_gid = self.populations[n].record_analog(parameters.extract_nestvalid_dict(dev_dict,
+						                                                                    param_type='device'),
 																	ids=ids, record=dev_dict['record_from'])
 						self.device_gids[n].append(dev_gid)
 
@@ -894,7 +875,8 @@ class Network(object):
 									ids.append(self.populations[n].gids[i])
 							else:
 								ids = None
-							dev_gid = self.populations[n].record_analog(extract_nestvalid_dict(dev_dict, param_type='device'),
+							dev_gid = self.populations[n].record_analog(parameters.extract_nestvalid_dict(dev_dict,
+							                                                                    param_type='device'),
 																		ids=ids, record=dev_dict['record_from'])
 							self.device_gids[n].append(dev_gid)
 
@@ -919,9 +901,7 @@ class Network(object):
 		:param connect_pars_set: ParameterSet for establishing connections
 		:return:
 		"""
-		if progress:
-			from modules.visualization import progress_bar
-		print ("\n Connecting populations: ")
+		print ("\nConnecting populations: ")
 		for n in range(connect_pars_set.n_synapse_types):
 			print ("    - %s [%s]" % (connect_pars_set.synapse_types[n], connect_pars_set.models[n]))
 
@@ -985,7 +965,6 @@ class Network(object):
 
 			#**** set up connections ****
 			if synapse_name.find('copy') > 0:  # re-connect the same neurons...
-				import time
 				start = time.time()
 				print "    - Connecting {0} (*)".format(synapse_name)
 
@@ -1010,7 +989,7 @@ class Network(object):
 						          nest.GetStatus([x['target']])[0]['model'] not in device_models]
 						receptors = [x['receptor'] for x in st if
 						             nest.GetStatus([x['target']])[0]['model'] not in device_models]
-						syn_dict = copy_dict(connect_pars_set.syn_specs[n], {'model': synapse_name, 'weight':
+						syn_dict = parameters.copy_dict(connect_pars_set.syn_specs[n], {'model': synapse_name, 'weight':
 							connect_pars_set.weight_dist[n], 'delay': connect_pars_set.delay_dist[n]})
 						conn_dict = connect_pars_set.conn_specs[n]
 
@@ -1022,7 +1001,7 @@ class Network(object):
 						              'receptor_type': syn_dict['receptor_type']} for iddx in range(len(target_gids))]
 						nest.DataConnect(syn_dicts)
 					if progress:
-						progress_bar(float(nnn) / float(len(its)))
+						visualization.progress_bar(float(nnn) / float(len(its)))
 				print "\tElapsed time: {0} s".format(str(time.time()-start))
 			else:
 				# 1) if pre-computed weights matrices are given
@@ -1042,22 +1021,24 @@ class Network(object):
 									connect_pars_set.delay_dist[n], dict):
 								delays = connect_pars_set.delay_dist[n]
 							elif isinstance(connect_pars_set.delay_dist[n], dict):
-								delays = [copy_dict(connect_pars_set.delay_dist[n]) for _ in range(len(weights))]
+								delays = [parameters.copy_dict(connect_pars_set.delay_dist[n]) for _ in range(len(
+									weights))]
 							else:
 								delays = np.repeat(connect_pars_set.delay_dist[n], len(weights))
 							for idx, tget in enumerate(postSyn_gid):
-								syn_dict = copy_dict(connect_pars_set.syn_specs[n], {'model': synapse_name, 'weight':
+								syn_dict = parameters.copy_dict(connect_pars_set.syn_specs[n], {'model': synapse_name,
+								                                                         'weight':
 									weights[idx], 'delay': delays[idx]})
 								nest.Connect([preSyn_gid], [tget], syn_spec=syn_dict)
 							if progress:
-								progress_bar(float(preSyn_matidx)/float(len(src_gids)))
+								visualization.progress_bar(float(preSyn_matidx)/float(len(src_gids)))
 					else:
 						raise Exception("Dimensions of W are inconsistent with population sizes")
 
 				# 2) if no pre-computed weights, and no topology in pre/post-synaptic populations, use dictionaries
 				elif (connect_pars_set.pre_computedW[n] is None) and (not connect_pars_set.topology_dependent[n]):
 
-					syn_dict = copy_dict(connect_pars_set.syn_specs[n], {'model': synapse_name, 'weight':
+					syn_dict = parameters.copy_dict(connect_pars_set.syn_specs[n], {'model': synapse_name, 'weight':
 						connect_pars_set.weight_dist[n], 'delay': connect_pars_set.delay_dist[n]})
 					conn_dict = connect_pars_set.conn_specs[n]
 
@@ -1065,11 +1046,10 @@ class Network(object):
 
 				# 3) if no precomputed weights, but topology in populations and topological connections
 				elif connect_pars_set.topology_dependent[n]:
-					import nest.topology as tp
 					assert (nest.is_sequence_of_gids(src_gids) and len(src_gids) == 1), "Source ids are not topology layer"
 					assert (nest.is_sequence_of_gids(tget_gids) and len(tget_gids) == 1), "Target ids are not topology " \
 				                                                                      "layer"
-					tp_dict = copy_dict(connect_pars_set.conn_specs[n], {'synapse_model': synapse_name})
+					tp_dict = parameters.copy_dict(connect_pars_set.conn_specs[n], {'synapse_model': synapse_name})
 					tp.ConnectLayers(src_gids, tget_gids, tp_dict)
 
 	def flush_records(self, decoders=False):
@@ -1077,8 +1057,7 @@ class Network(object):
 		Delete all data from all devices connected to the network
 		:return:
 		"""
-		from modules.signals import empty
-		if not empty(self.device_names) or not empty(self.state_extractors):
+		if not signals.empty(self.device_names) or not signals.empty(self.state_extractors):
 			print "\nClearing device data: "
 		devices = list(itertools.chain.from_iterable(self.device_names))
 
@@ -1088,12 +1067,12 @@ class Network(object):
 			if self.merged_populations:
 				decoder_ids.append([self.merged_populations[n].state_extractors for n in range(len(
 						self.merged_populations))])
-				if not empty(decoder_ids):
+				if not signals.empty(decoder_ids):
 					while isinstance(decoder_ids[0], list):
-						decoder_ids = list(iterate_obj_list(decoder_ids))
+						decoder_ids = list(signals.iterate_obj_list(decoder_ids))
 					decoder_names.append([self.merged_populations[idx].name for idx, n in enumerate(decoder_ids)])
 
-			if not empty(self.state_extractors):
+			if not signals.empty(self.state_extractors):
 				dec_ids = []
 
 				for idx, n in enumerate(self.populations):
@@ -1102,16 +1081,16 @@ class Network(object):
 
 				decoder_ids.append([self.populations[n].state_extractors for n in range(len(self.populations))])
 
-			decoder_names = list(iterate_obj_list(decoder_names))
-			decoder_ids = list(iterate_obj_list(decoder_ids))
+			decoder_names = list(signals.iterate_obj_list(decoder_names))
+			decoder_ids = list(signals.iterate_obj_list(decoder_ids))
 			if len(decoder_ids) != len(decoder_names):
-				decoder_ids = list(iterate_obj_list(decoder_ids))
+				decoder_ids = list(signals.iterate_obj_list(decoder_ids))
 
 		for idx, n in enumerate(list(itertools.chain.from_iterable(self.device_gids))):
 			print " - {0}".format(devices[idx])
 			nest.SetStatus(n, {'n_events': 0})
 			if nest.GetStatus(n)[0]['to_file']:
-				remove_files(nest.GetStatus(n)[0]['filenames'])
+				io.remove_files(nest.GetStatus(n)[0]['filenames'])
 
 		if decoders:
 			if np.mean([isinstance(dd, list) for dd in decoder_ids]):
@@ -1129,14 +1108,13 @@ class Network(object):
 				print " - {0}".format('StateExtractor_'+decoder_names[idx])
 				nest.SetStatus(n, {'n_events': 0})
 				if nest.GetStatus(n)[0]['to_file']:
-					remove_files(nest.GetStatus(n)[0]['filenames'])
+					io.remove_files(nest.GetStatus(n)[0]['filenames'])
 
 	def copy(self):
 		"""
 		Returns a copy of the entire network object... Doesn't create new nest objects...
 		:return:
 		"""
-		import copy
 		return copy.deepcopy(self)
 
 	def clone(self, original_parameter_set, devices=True, decoders=True):
@@ -1144,7 +1122,6 @@ class Network(object):
 		Creates a new network object
 		:return:
 		"""
-		import copy
 		parameters = copy.deepcopy(original_parameter_set)
 
 		def create_clone(net):
@@ -1152,21 +1129,22 @@ class Network(object):
 			Create Network object
 			:return:
 			"""
-			neuron_pars = [0 for n in range(len(list(iterate_obj_list(net.populations))))]
-			topology = [0 for n in range(len(list(iterate_obj_list(net.populations))))]
-			topology_dict = [0 for n in range(len(list(iterate_obj_list(net.populations))))]
-			pop_names = [0 for n in range(len(list(iterate_obj_list(net.populations))))]
-			spike_device_pars = [0 for n in range(len(list(iterate_obj_list(net.populations))))]
-			analog_dev_pars = [0 for n in range(len(list(iterate_obj_list(net.populations))))]
+			neuron_pars = [0 for n in range(len(list(signals.iterate_obj_list(net.populations))))]
+			topology = [0 for n in range(len(list(signals.iterate_obj_list(net.populations))))]
+			topology_dict = [0 for n in range(len(list(signals.iterate_obj_list(net.populations))))]
+			pop_names = [0 for n in range(len(list(signals.iterate_obj_list(net.populations))))]
+			spike_device_pars = [0 for n in range(len(list(signals.iterate_obj_list(net.populations))))]
+			analog_dev_pars = [0 for n in range(len(list(signals.iterate_obj_list(net.populations))))]
 			status_elements = ['archiver_length', 'element_type', 'frozen', 'global_id',
 			                   'has_connections', 'local', 'recordables', 't_spike',
 			                   'thread', 'thread_local_id', 'vp', 'n_synapses',
 			                   'local_id', 'model', 'parent']
-			for idx_pop, pop_obj in enumerate(list(iterate_obj_list(net.populations))):
+			for idx_pop, pop_obj in enumerate(list(signals.iterate_obj_list(net.populations))):
 				# get generic neuron_pars (update individually later):
-				neuron = extract_nestvalid_dict(nest.GetStatus([pop_obj.gids[0]])[0], param_type='neuron')
+				neuron = parameters.extract_nestvalid_dict(nest.GetStatus([pop_obj.gids[0]])[0], param_type='neuron')
 				d_tmp = {k: v for k, v in neuron.items() if k not in status_elements}
-				neuron_pars[idx_pop] = copy_dict(d_tmp, {'model': nest.GetStatus([pop_obj.gids[0]])[0]['model']})
+				neuron_pars[idx_pop] = parameters.copy_dict(d_tmp, {'model': nest.GetStatus([pop_obj.gids[0]])[0][
+					'model']})
 				if isinstance(pop_obj.topology, dict):
 					topology[idx_pop] = True
 					topology_dict[idx_pop] = pop_obj.topology
@@ -1175,12 +1153,12 @@ class Network(object):
 					topology_dict[idx_pop] = pop_obj.topology
 				pop_names[idx_pop] = net.population_names[idx_pop] + '_clone'
 				if net.record_spikes[idx_pop]:
-					spike_device_pars[idx_pop] = copy_dict(net.spike_device_pars[idx_pop],
+					spike_device_pars[idx_pop] = parameters.copy_dict(net.spike_device_pars[idx_pop],
 						{'label': net.spike_device_pars[idx_pop]['label']+'_clone'})
 				else:
 					spike_device_pars[idx_pop] = None
 				if net.record_analogs[idx_pop]:
-					analog_dev_pars[idx_pop] = copy_dict(net.analog_device_pars[idx_pop],
+					analog_dev_pars[idx_pop] = parameters.copy_dict(net.analog_device_pars[idx_pop],
 						{'label': net.analog_device_pars[idx_pop]['label']+'_clone'})
 				else:
 					analog_dev_pars[idx_pop] = None
@@ -1195,7 +1173,7 @@ class Network(object):
 			                      'spike_device_pars': spike_device_pars,
 			                      'record_analogs': net.record_analogs,
 			                      'analog_device_pars': analog_dev_pars}
-			clone_net = Network(ParameterSet(network_parameters, label='clone'))
+			clone_net = Network(parameters.ParameterSet(network_parameters, label='clone'))
 			#clone_net.connect_devices()
 
 			for pop_idx, pop_obj in enumerate(clone_net.populations):
@@ -1215,9 +1193,6 @@ class Network(object):
 			:param clone:
 			:return:
 			"""
-			import time
-			if progress:
-				from modules.visualization import progress_bar
 			devices = ['stimulator', 'structure']
 			base_idx = min(list(itertools.chain(*[n.gids for n in clone.populations])))-1
 			print "\n Replicating connectivity in clone network (*)"
@@ -1275,7 +1250,7 @@ class Network(object):
 						              'receptor_type': receptors[iddx]} for iddx in range(len(target_gids))]
 						nest.DataConnect(syn_dicts)
 						if progress:
-							progress_bar(float(nnn)/float(len(its)))
+							visualization.progress_bar(float(nnn)/float(len(its)))
 				print "\tElapsed time: {0} s".format(str(time.time() - start))
 
 		def connect_decoders(network, parameters):
@@ -1311,8 +1286,6 @@ class Network(object):
 			cn = 1.
 
 		if to_main:
-			import time
-
 			print "Connecting CopyNetwork: "
 			device_models = ['spike_detector', 'spike_generator', 'multimeter']
 			for pop_idx, pop_obj in enumerate(copy_net.populations):
@@ -1358,9 +1331,7 @@ class Network(object):
 				print "Elapsed Time: {0}".format(str(time.time()-start))
 
 		elif from_main:
-			import time
-
-			print "\n Connecting CopyNetwork: "
+			print "\nConnecting CopyNetwork: "
 			device_models = ['spike_detector', 'spike_generator', 'multimeter']
 			for pop_idx, pop_obj in enumerate(copy_net.populations):
 				original_gid_range = [min(self.populations[pop_idx].gids),
@@ -1423,8 +1394,7 @@ class Network(object):
 		the properties of the corresponding population.
 		To merge the data from multiple populations see extract_network_activity()
 		"""
-		from modules.signals import empty
-		if not empty(self.device_names):
+		if not signals.empty(self.device_names):
 			print "\nExtracting and storing recorded activity from devices:"
 
 		for idx, n in enumerate(self.populations):
@@ -1474,13 +1444,13 @@ class Network(object):
 		:return:
 		"""
 		analog_activity = []
-		spiking_activity = SpikeList([], [], start, stop, np.sum(list(iterate_obj_list(self.n_neurons))))
+		spiking_activity = signals.SpikeList([], [], start, stop, np.sum(list(signals.iterate_obj_list(self.n_neurons))))
 		gids = []
-		for n in list(iterate_obj_list(self.spiking_activity)):
+		for n in list(signals.iterate_obj_list(self.spiking_activity)):
 			gids.append(n.id_list)
 			for idd in n.id_list:
 				spiking_activity.append(idd, n.spiketrains[idd])
-		for n in list(iterate_obj_list(self.analog_activity)):
+		for n in list(signals.iterate_obj_list(self.analog_activity)):
 			analog_activity.append(n)
 		return spiking_activity, analog_activity
 
@@ -1528,19 +1498,20 @@ class Network(object):
 		:return:
 		"""
 		if isinstance(decoding_pars, dict):
-			decoding_pars = ParameterSet(decoding_pars)
-		assert isinstance(decoding_pars, ParameterSet), "DecodingLayer must be initialized with ParameterSet or " \
+			decoding_pars = parameters.ParameterSet(decoding_pars)
+		assert isinstance(decoding_pars, parameters.ParameterSet), "DecodingLayer must be initialized with " \
+		                                                           "ParameterSet or " \
 		                                                "dictionary"
 
-		populations = list(iterate_obj_list(self.population_names))
-		pop_objs = list(iterate_obj_list(self.populations))
+		populations = list(signals.iterate_obj_list(self.population_names))
+		pop_objs = list(signals.iterate_obj_list(self.populations))
 		decoder_params = {}
 		# initialize state extractors:
 		if hasattr(decoding_pars, "state_extractor"):
 			pars_st = decoding_pars.state_extractor
 			self.state_extractors = []
 			self.readouts = []
-			print "\n Connecting Decoders: "
+			print "\nConnecting Decoders: "
 			for ext_idx, n_src in enumerate(pars_st.source_population):
 				if isinstance(n_src, list):
 					if n_src == self.population_names:
@@ -1581,6 +1552,7 @@ class Network(object):
 				src_obj.connect_decoders(decoder_params)
 
 			self.state_extractors = [self.populations[x].state_extractors for x in range(self.n_populations)]
+			self.state_extractors.extend([x.state_extractors for x in self.merged_populations])
 			self.readouts = [self.populations[x].readouts for x in range(self.n_populations)]
 		else:
 			raise TypeError("State extraction parameters must be specified!")

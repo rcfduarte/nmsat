@@ -39,14 +39,16 @@ import sys
 import types
 import time
 import itertools
+import cPickle as pickle
 try:
 	import ntpath
 except ImportError as e:
 	raise ImportError("Import dependency not met: %s" % e)
-from modules.io import *
+import io
 import scipy.stats as st
 import inspect
 import pprint
+import nest
 
 
 ##########################################################################################
@@ -83,8 +85,6 @@ def extract_nestvalid_dict(d, param_type='neuron'):
 	:param param_type: type of parameters - kernel, neuron, population, network, connections, topology
 	:return: valid dictionary
 	"""
-	# QUESTION why import nest here? is it not already imported? and if not, it should be!
-	import nest
 	if param_type == 'neuron' or param_type == 'synapse' or param_type == 'device':
 		assert d['model'] in nest.Models(), "Model %s not currently implemented in %s" % (d['model'], nest.version())
 
@@ -979,7 +979,7 @@ class ParameterSpace:
 				system2['jdf_fields'].update({'{{ computation_script }}': remote_computation_file,
 				                             '{{ script_folder }}': remote_run_folder})
 
-				process_template(template_file, system2['jdf_fields'].as_dict(), save_to=local_exec_file)
+				io.process_template(template_file, system2['jdf_fields'].as_dict(), save_to=local_exec_file)
 				write_to_submit.append("{0}\n".format(exec_file_name))
 
 			with open(job_list, 'w') as fp:
@@ -1045,7 +1045,7 @@ class ParameterSpace:
 				parameters_array[tuple(index)] = pars_labels[pars_labels.index(params_label)]
 				try:
 					with open(data_path+'Results_'+params_label, 'r') as fp:
-						results = cPickle.load(fp)
+						results = pickle.load(fp)
 					print "Loading ParameterSet {0}".format(self.label)
 				except:
 					print "Dataset {0} Not Found, skipping".format(params_label)
@@ -1081,7 +1081,7 @@ class ParameterSpace:
 			results_array = []
 			try:
 				with open(data_path+'Results_'+self.label, 'r') as fp:
-					results = cPickle.load(fp)
+					results = pickle.load(fp)
 				print "Loading Dataset {0}".format(self.label)
 				if result:
 					assert isinstance(results, dict), "Results must be dictionary"
@@ -1151,7 +1151,7 @@ class ParameterSpace:
 
 				try:
 					with open(data_path + 'Results_' + params_label, 'r') as fp:
-						results = cPickle.load(fp)
+						results = pickle.load(fp)
 					print "Loading ParameterSet {0}".format(params_label)
 				except:
 					print "Dataset {0} Not Found, skipping".format(params_label)
@@ -1203,7 +1203,7 @@ class ParameterSpace:
 			results_array = []
 			try:
 				with open(data_path+'Results_'+self.label, 'r') as fp:
-					results = cPickle.load(fp)
+					results = pickle.load(fp)
 				print "Loading Dataset {0}".format(self.label)
 			except:
 				raise IOError("Dataset {0} Not Found".format(self.label))
@@ -1293,7 +1293,7 @@ class ParameterSpace:
 
 				try:
 					with open(data_path + 'Results_' + params_label, 'r') as fp:
-						results = cPickle.load(fp)
+						results = pickle.load(fp)
 					print "Loading ParameterSet {0}".format(params_label)
 				except:
 					print "Dataset {0} Not Found, skipping".format(params_label)
@@ -1379,7 +1379,7 @@ class ParameterSpace:
 			results_array = []
 			try:
 				with open(data_path + 'Results_' + self.label, 'r') as fp:
-					results = cPickle.load(fp)
+					results = pickle.load(fp)
 				print "Loading Dataset {0}".format(self.label)
 			except:
 				raise IOError("Dataset {0} Not Found".format(self.label))

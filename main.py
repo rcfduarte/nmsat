@@ -1,9 +1,8 @@
 #!/usr/bin/python
-
 import matplotlib
 matplotlib.use('Agg')
 import importlib
-from modules.parameters import *
+from modules.parameters import ParameterSpace
 from optparse import OptionParser
 from os import path
 import sys
@@ -53,13 +52,13 @@ def create_parser():
 
 def print_welcome_message():
 	print("""
-	  *** Network Simulation Testbed ***
+*** Neural Microcircuit Testbed ***
 
-	Version 0.1
+Version 0.1
 
-	  This program is provided AS IS and comes with
-	  NO WARRANTY. See the file LICENSE for details.
-	  """)
+This program is provided AS IS and comes with
+NO WARRANTY. See the file LICENSE for details.
+""")
 
 
 if __name__ == "__main__":

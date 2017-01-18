@@ -1,7 +1,6 @@
 __author__ = 'duarte'
 import sys
 from preset import *
-from defaults.paths import paths
 import numpy as np
 
 """
@@ -26,8 +25,8 @@ def build_parameters():
 		mem=32,
 		walltime='01-00:00:00',
 		queue='defqueue',
-		transient_time=100.,
-		sim_time=1000.)
+		transient_time=1000.,
+		sim_time=10000.)
 
 	kernel_pars = set_kernel_defaults(run_type=run, data_label=data_label, **system)
 	np.random.seed(kernel_pars['np_seed'])
@@ -73,7 +72,7 @@ def build_parameters():
 
 	net_pars['record_analogs'] = [True, False]
 	multimeter = rec_device_defaults(device_type='multimeter')
-	multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 10})
+	multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1})
 	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': 'E_analogs'}),
 	                                  copy_dict(multimeter, {'label': 'I_analogs'})]
 	# ##################################################################################################################

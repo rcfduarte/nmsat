@@ -1,5 +1,6 @@
 from modules.parameters import ParameterSpace
 from modules.visualization import *
+import modules.analysis as analysis
 from modules.io import process_template
 from defaults.paths import paths
 import matplotlib.pyplot as pl
@@ -53,6 +54,18 @@ analog_arrays = {'EI_CC': np.zeros_like(results[0]),
                  'IE_ratio': np.zeros_like(results[0])}
 
 keys2 = ['E']
+
+ainess = np.zeros_like(results[0])
+extra_analysis_parameters = {'time_bin': 1.,
+                             'n_pairs': 500,
+                             'tau': 20.,
+                             'window_len': 100,
+                             'summary_only': True,
+                             'complete': True,
+                             'time_resolved': False}
+main_metrics = ['ISI_distance', 'SPIKE_distance', 'ccs_pearson', 'cvs', 'cvs_log', 'd_vp', 'd_vr', 'ents', 'ffs']
+
+
 for x_value in pars.parameter_axes['xticks']:
 	for y_value in pars.parameter_axes['yticks']:
 		label = data_label + '_' + pars.parameter_axes['xlabel'] + '={0}_'.format(str(x_value)) + \
@@ -61,6 +74,10 @@ for x_value in pars.parameter_axes['xticks']:
 		d = results[1][idx][0]
 
 		print label, idx
+
+		ai = analysis.compute_ainess(d, main_metrics, pop='E', template_duration=10000.,
+               template_resolution=0.1, **extra_analysis_parameters)
+		ainess[idx] = ai['E']
 
 		if d is not None and bool(d['spiking_activity']):
 
