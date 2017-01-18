@@ -21,7 +21,7 @@ debug = False
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/noise_driven.py'
+params_file = '../parameters/one_pool_noisedriven.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -54,13 +54,15 @@ nest.SetKernelStatus(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(),
 # Build network
 # ======================================================================================================================
 net = Network(parameter_set.net_pars)
-net.merge_subpopulations([net.populations[0], net.populations[1]], name='EI')
 
 # ######################################################################################################################
 # Randomize initial variable values
 # ======================================================================================================================
-for n in list(iterate_obj_list(net.populations)):
-	n.randomize_initial_states('V_m', randomization_function=np.random.uniform, low=0.0, high=15.)
+for idx, n in enumerate(list(iterate_obj_list(net.populations))):
+	if hasattr(parameter_set.net_pars, "randomize_neuron_pars"):
+		randomize = parameter_set.net_pars.randomize_neuron_pars[idx]
+		for k, v in randomize.items():
+			n.randomize_initial_states(k, randomization_function=v[0], **v[1])
 
 # ######################################################################################################################
 # Build and connect input
@@ -85,7 +87,7 @@ if parameter_set.kernel_pars.transient_t:
 	net.simulate(parameter_set.kernel_pars.transient_t)
 	net.flush_records()
 
-net.simulate(parameter_set.kernel_pars.sim_time)  # +.1 to acquire last step...
+net.simulate(parameter_set.kernel_pars.sim_time + 1.)
 # ######################################################################################################################
 # Extract and store data
 # ======================================================================================================================
@@ -98,12 +100,12 @@ net.flush_records()
 # ======================================================================================================================
 analysis_interval = [parameter_set.kernel_pars.transient_t,
 	                     parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t]
-extra_analysis_parameters = {'time_bin': 1.,
+extra_analysis_parameters = {'time_bin': 1., # these parameters can be set in the main parameters file..
                              'n_pairs': 500,
                              'tau': 20.,
                              'window_len': 100,
                              'summary_only': True,
-                             'complete': True,
+                             'complete': False,
                              'time_resolved': False}
 results.update(characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
                                                 color_map='jet', plot=plot,

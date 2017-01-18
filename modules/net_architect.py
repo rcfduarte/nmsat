@@ -268,6 +268,7 @@ class Population(object):
 					neuron_ids = data[:, 0]
 					tmp = [(neuron_ids[n], spk_times[n]) for n in range(len(spk_times))]
 					self.spiking_activity = signals.SpikeList(tmp, np.unique(neuron_ids).tolist())
+					self.spiking_activity.complete(self.gids)
 				else:
 					neuron_ids = data[:, 0]
 					times = data[:, 1]
@@ -293,9 +294,11 @@ class Population(object):
 				tmp = [(neuron_ids[n], spk_times[n]) for n in range(len(spk_times))]
 				if t_start is None and t_stop is None:
 					self.spiking_activity = signals.SpikeList(tmp, np.unique(neuron_ids).tolist())
+					self.spiking_activity.complete(self.gids)
 				else:
 					self.spiking_activity = signals.SpikeList(tmp, np.unique(neuron_ids).tolist(), t_start=t_start,
 					                                  t_stop=t_stop)
+					self.spiking_activity.complete(self.gids)
 			elif len(status) > 2:
 				times = status['times']
 				neuron_ids = status['senders']
@@ -816,7 +819,7 @@ class Network(object):
 				if self.record_spikes[n]:
 					dev_dict = self.spike_device_pars[n].copy()
 					self.device_type[n].append(dev_dict['model'])
-					dev_dict['label'] += '_' + self.population_names[n] + '_' + dev_dict['model']
+					dev_dict['label'] += self.population_names[n] + '_' + dev_dict['model']
 					self.device_names[n].append(dev_dict['label'])
 					dev_gid = self.populations[n].record_spikes(parameters.extract_nestvalid_dict(dev_dict,
 					                                                                      param_type='device'))
@@ -828,7 +831,7 @@ class Network(object):
 					if isinstance(self.record_analogs[n], bool):
 						dev_dict = self.analog_device_pars[n].copy()
 						self.device_type[n].append(dev_dict['model'])
-						dev_dict['label'] += '_' + self.population_names[n] + '_' + dev_dict['model']
+						dev_dict['label'] += self.population_names[n] + '_' + dev_dict['model']
 						self.device_names[n].append(dev_dict['label'])
 						if dev_dict['record_n'] != self.populations[n].size:
 							tmp = np.random.permutation(self.n_neurons[n])[:dev_dict['record_n']]
@@ -866,7 +869,7 @@ class Network(object):
 						for nnn in range(int(self.record_analogs[n])):
 							dev_dict = self.analog_device_pars[n][nnn].copy()
 							self.device_type[n].append(dev_dict['model'])
-							dev_dict['label'] += '_' + self.population_names[n] + '_' + dev_dict['model']
+							dev_dict['label'] += self.population_names[n] + '_' + dev_dict['model']
 							self.device_names[n].append(dev_dict['label'])
 							if dev_dict['record_n'] != self.populations[n].size:
 								tmp = np.random.permutation(self.n_neurons[n])[:dev_dict['record_n']]
