@@ -3065,7 +3065,7 @@ class Readout(object):
 				binary_target[target[kk], kk] = 1.
 		return binary_output, binary_target, output_labels, target_labels
 
-	def measure_performance(self, target, output=None, labeled=False, comparison_function="custom"):
+	def measure_performance(self, target, output=None, labeled=False, comparison_function=None):
 		"""
 		Compute readout performance according to different metrics.
 		:param target: target output [numpy.array (binary or real-valued) or list (labels)]
