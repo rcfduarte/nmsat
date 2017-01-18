@@ -806,10 +806,6 @@ class ParameterSpace:
 			# call build_parameters for each range combination, and pack returned values into a list (set)
 			# contains a single dictionary if no range parameters
 			param_ranges = [module_obj.build_parameters( *elem ) for elem in range_combinations]
-<<<<<<< HEAD
-=======
-			# print param_ranges
->>>>>>> e14e3c850bb2852b1b49c3048a99024bc1d405be
 			global_label = param_ranges[0]['kernel_pars']['data_prefix']
 
 			if n_ranges <= 3:# and not emoo:

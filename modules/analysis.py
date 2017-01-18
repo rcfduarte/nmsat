@@ -1149,7 +1149,7 @@ def extract_results_vector(results_dict, keys):
 	:return:
 	"""
 	# reduce(getitem, keys, results_dict)
-	assert(np.mean([k in results_dict.keys() for k in keys])), "Key not in dictionary"
+	assert(all([k in results_dict.keys() for k in keys])), "Key not in dictionary"
 	out = np.empty((len(keys)))
 	for idx, k in enumerate(keys):
 		if isinstance(results_dict[k], tuple):
