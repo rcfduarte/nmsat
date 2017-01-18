@@ -24,8 +24,6 @@ CurrentList           - AnalogSignalList object used for current traces
 Interval              - object to handle time intervals
 
 PairsGenerator        -
-AutoPairs             -
-CustomPairs           -
 RandomPairs           -
 
 DistantDependentPairs -
@@ -33,21 +31,29 @@ StochasticGenerator   - object used to generate and handle stochastic input data
 ----------------------
 """
 import numpy as np
+from numpy import ma
 import re
-import math
 import scipy.signal as sp
-import scipy.stats as st
-from analysis import *
+import analysis
+import parameters
+import visualization
 from modules import check_dependency
-from io import *
+import io
 import itertools
+import cPickle as pickle
+import matplotlib.pyplot as pl
+
+has_pyspike = check_dependency('pyspike')
+if has_pyspike:
+	import pyspike as spk
+import nest
 
 
 def empty(seq):
 	if isinstance(seq, np.ndarray):
 		return not bool(seq.size) #seq.any() # seq.data
 	elif isinstance(seq, list) and seq:
-		if isiterable(seq):
+		if parameters.isiterable(seq):
 			result = np.mean([empty(n) for n in list(itertools.chain(seq))])
 		else:
 			result = np.mean([empty(n) for n in list(itertools.chain(*[seq]))])
@@ -65,7 +71,6 @@ def iterate_obj_list(obj_list):
 	:obj_list: list of objects to iterate
 	:return:
 	"""
-	# TODO - remove from net_architect (check for errors)
 	for idx, n in enumerate(obj_list):
 		if isinstance(n, list):
 			for idxx, nn in enumerate(obj_list[idx]):
@@ -97,7 +102,7 @@ def convert_activity(initializer):
 	# TODO: save option!
 	# if object is a string, it must be a file name; if it is a list of strings, it must be a list of filenames
 	if isinstance(initializer, basestring) or isinstance(initializer, list):
-		data = extract_data_fromfile(initializer)
+		data = io.extract_data_fromfile(initializer)
 		if data is not None:
 			if len(data.shape) != 2:
 				data = np.reshape(data, (int(len(data) / 2), 2))
@@ -145,8 +150,7 @@ def to_pyspike(spike_list):
 	:param spike_list: SpikeList object
 	:return: PySpike SpikeTrain object
 	"""
-	assert (check_dependency('pyspike')), "PySpike not found.."
-	import pyspike as spk
+	assert has_pyspike, "PySpike not found.."
 	bounds = spike_list.time_parameters()
 	spike_trains = []
 	for n_train in spike_list.id_list:
@@ -241,6 +245,29 @@ def hammingDistance(s1, s2):
     if len(s1) != len(s2):
         raise ValueError("Undefined for sequences of unequal length")
     return sum(bool(ord(ch1) - ord(ch2)) for ch1, ch2 in zip(s1, s2))
+
+
+##################################################################################
+def convert_array(array, id_list, dt=None, start=None, stop=None):
+	"""
+	Convert a numpy array into an AnalogSignalList object
+	:param array: NxT numpy array
+	:param id_list:
+	:param start:
+	:param stop:
+	:return:
+	"""
+	assert(isinstance(array, np.ndarray)), "Provide a numpy array as input"
+	new_AnalogSignalList = AnalogSignalList([], [], dt=dt, t_start=start, t_stop=stop,
+	                                        dims=len(id_list))
+
+	for n, id in enumerate(np.sort(id_list)):
+		try:
+			id_signal = AnalogSignal(array[n, :], dt)
+			new_AnalogSignalList.append(id, id_signal)
+		except Exception:
+			print "id %d is not in the source AnalogSignalList" % id
+	return new_AnalogSignalList
 
 
 ######################################################################################################
@@ -1013,7 +1040,7 @@ class SpikeTrain(object):
 		frequency axis.
 		"""
 		hist = self.time_histogram(time_bin, normalized=False)
-		freq_spect = simple_frequency_spectrum(hist)
+		freq_spect = analysis.simple_frequency_spectrum(hist)
 		freq_bin = 1000.0 / self.duration()  # Hz
 		freq_axis = np.arange(len(freq_spect)) * freq_bin
 		return freq_spect, freq_axis
@@ -1591,34 +1618,12 @@ class SpikeList(object):
 		else:
 			return result
 
-	def save(self, user_file):
-		"""
-        Save the SpikeList in a text or binary file
-
-        Inputs:
-            user_file - The user file that will have its own read/write method
-                        By default, if s tring is provided, a StandardTextFile object
-                        will be created. Nevertheless, you can also
-                        provide a StandardPickleFile
-
-        Examples:
-            >> spk.save("spikes.txt")
-            >> spk.save(StandardTextFile("spikes.txt"))
-            >> spk.save(StandardPickleFile("spikes.pck"))
-
-        See also:
-            DataHandler
-        """
-		spike_loader = DataHandler(user_file, self)
-		spike_loader.save()
-
-	def save_object(self, full_path_to_file):
+	def save(self, full_path_to_file):
 		"""
 		Save the SpikeList object with pickle
 		:param user_file:
 		:return:
 		"""
-		import pickle
 		with open(full_path_to_file, 'w') as fp:
 			pickle.dump(self, fp)
 
@@ -2202,10 +2207,8 @@ class SpikeList(object):
 			hist_1 = pairs_generator.spk1[pairs[idx, 0]].time_histogram(time_bin)
 			hist_2 = pairs_generator.spk2[pairs[idx, 1]].time_histogram(time_bin)
 			if not average:
-				import analysis
 				results[idx, :] = analysis.ccf(hist_1, hist_2)
 			else:
-				import analysis
 				results += analysis.ccf(hist_1, hist_2)
 		if not average:
 			return results
@@ -2568,9 +2571,6 @@ class SpikeList(object):
 		"""
 		Plot a simple raster, for a quick check
 		"""
-		import matplotlib as mpl
-		import matplotlib.pyplot as pl
-
 		if ax is None:
 			fig = pl.figure()
 			if with_rate:
@@ -2631,7 +2631,6 @@ class SpikeList(object):
 
 		t = np.arange(start, stop, dt)
 		if display:
-			from modules.visualization import progress_bar
 			print("\nCompiling activity matrix from SpikeList")
 		state_mat = np.zeros((N, len(t)))
 		if N is not None:
@@ -2643,7 +2642,7 @@ class SpikeList(object):
 			sk_train = self.spiketrains[int(self.id_list[idx])]
 			state_mat[int(nn), :] = sk_train.exponential_filter(dt, tau, start, stop)
 			if display:
-				progress_bar(float(idx)/float(len(id_list)))
+				visualization.progress_bar(float(idx)/float(len(id_list)))
 
 		return state_mat
 
@@ -2672,8 +2671,7 @@ class SpikeList(object):
 			sk_train = self.spiketrains[int(self.id_list[idx])]
 			state_mat[int(nn), :] = sk_train.spikes_to_states_binary(dt, start, stop)
 			if display:
-				from modules.visualization import progress_bar
-				progress_bar(float(idx)/float(len(id_list)))
+				visualization.progress_bar(float(idx)/float(len(id_list)))
 
 		return state_mat
 
@@ -2968,44 +2966,6 @@ class AnalogSignal(object):
 				result[index] = self.time_slice(t_start_new, t_stop_new)
 		return result
 
-	def mask_events(self,events,t_min=100,t_max=100):
-		"""
-        Returns a new Analog signal which has self.signal of numpy.ma.masked_array, where the internals (t_i-t_min, t_i+t_max) for events={t_i}
-        have been masked out.
-
-        Inputs:
-            events  - Can be a SpikeTrain object (and events will be the spikes) or just a list
-                      of times
-            t_min   - Time (>=0) to cut the signal before an event, in ms (default 100)
-            t_max   - Time (>=0) to cut the signal after an event, in ms  (default 100)
-
-        Examples:
-            >> res = signal.mask_events([100,200,300], t_min=0, t_max =100)
-
-
-        Author: Eilif Muller
-        """
-		from numpy import ma
-
-		if isinstance(events, SpikeTrain):
-			events = events.spike_times
-		else:
-			assert np.iterable(events), "events should be a SpikeTrain object or an iterable object"
-		assert (t_min >= 0) and (t_max >= 0), "t_min and t_max should be greater than or equal to 0"
-		assert len(events) > 0, "events should not be empty and should contained at least one element"
-
-		result = AnalogSignal(self.signal, self.dt, self.t_start, self.t_stop)
-		result.signal = ma.masked_array(result.signal, None)
-
-		for index, spike in enumerate(events):
-			t_start_new = np.max([spike - t_min, self.t_start])
-			t_stop_new = np.min([spike + t_max, self.t_stop])
-
-			i_start = int(round(t_start_new / self.dt))
-			i_stop = int(round(t_stop_new / self.dt))
-			result.signal.mask[i_start:i_stop] = True
-
-		return result
 
 	def slice_exclude_events(self,events,t_min=100,t_max=100):
 		"""
@@ -3437,7 +3397,7 @@ class AnalogSignalList(object):
             >> a.save(StandardTextFile("data.txt"))
             >> a.save(StandardPickleFile("data.pck"))
         """
-		as_loader = DataHandler(user_file, self)
+		as_loader = io.DataHandler(user_file, self)
 		as_loader.save()
 
 	def mean(self, axis=0):
@@ -3549,12 +3509,11 @@ class AnalogSignalList(object):
 
 		:return:
 		"""
-		import matplotlib.pyplot as plt
 		idx = np.random.permutation(self.id_list())[0]
-		fig = plt.figure()
-		plt.plot(self.time_axis(), self.analog_signals[int(idx)].raw_data())
+		fig = pl.figure()
+		pl.plot(self.time_axis(), self.analog_signals[int(idx)].raw_data())
 		fig.suptitle('Channel {0}'.format(str(idx)))
-		plt.show(block=False)
+		pl.show(block=False)
 
 		return idx
 
@@ -3684,44 +3643,6 @@ class PairsGenerator(object):
 
 
 ########################################################################################################################
-class AutoPairs(PairsGenerator):
-	"""
-    AutoPairs(SpikeList, SpikeList, no_silent). Inherits from PairsGenerator.
-    Generator that will return pairs of the same elements (contained in the
-    two SpikeList) selected twice.
-
-    Inputs:
-        spk1      - First SpikeList object to take cells from
-        spk2      - Second SpikeList object to take cells from
-        no_silent - Boolean to say if only non silent cells should
-                    be considered. False by default
-
-    Examples:
-        >> p = AutoPairs(spk1, spk1, True)
-        >> p.get_pairs(4)
-            [[1,1],[2,2],[4,4],[5,5]]
-
-    See also RandomPairs, CustomPairs, DistantDependentPairs
-	"""
-	def __init__(self, spk1, spk2, no_silent=False):
-		PairsGenerator.__init__(self, spk1, spk2, no_silent)
-
-	def get_pairs(self, nb_pairs):
-		cells = np.random.permutation(list(self.ids_1.intersection(self.ids_2)))
-		N = len(cells)
-		if nb_pairs > N:
-			if not self.no_silent:
-				print "Only %d distinct pairs can be extracted. Turn no_silent to True." % N
-		try:
-			pairs = np.zeros((N, 2), int)
-			pairs[:, 0] = cells[0:N]
-			pairs[:, 1] = cells[0:N]
-			return pairs
-		except Exception:
-			return np.array([[],[]])
-
-
-########################################################################################################################
 class RandomPairs(PairsGenerator):
 	"""
     RandomPairs(SpikeList, SpikeList, no_silent, no_auto). Inherits from PairsGenerator.
@@ -3771,215 +3692,6 @@ class RandomPairs(PairsGenerator):
 
 
 ########################################################################################################################
-class DistantDependentPairs(PairsGenerator):
-	"""
-    DistantDependentPairs(SpikeList, SpikeList, no_silent, no_auto). Inherits from PairsGenerator.
-    Generator that will return pairs of elements according to the distances between the cells. The
-    dimensions attribute of the SpikeList should be not empty.
-
-    Inputs:
-        spk1      - First SpikeList object to take cells from
-        spk2      - Second SpikeList object to take cells from
-        no_silent - Boolean to say if only non silent cells should
-                    be considered. False by default
-        no_auto   - Boolean to say if pairs with the same element (id,id) should
-                    be remove. True by default, i.e those pairs are discarded
-        length    - the lenght (in mm) covered by the extend of spk1 and spk2. Currently, spk1
-                    and spk2 should cover the same surface. Default is spk1.length
-        d_min     - the minimal distance between cells
-        d_max     - the maximal distance between cells
-
-    Examples:
-        >> p = DistantDependentPairs(spk1, spk1, True, False)
-        >> p.get_pairs(4, d_min=0, d_max = 50)
-            [[1,3],[2,5],[1,4],[5,5]]
-        >> p = DistantDependentPairs(spk1, spk1, True, True, lenght=1)
-        >> p.get_pairs(3, d_min=0.25, d_max=0.35)
-            [[1,3],[2,5],[1,4]]
-
-
-    See also RandomPairs, CustomPairs, AutoPairs
-	"""
-	def __init__(self, spk1, spk2, no_silent=False, no_auto=True, lenght=1., d_min=0, d_max=1e6):
-		PairsGenerator.__init__(self, spk1, spk2, no_silent)
-		self.lenght = lenght
-		self.no_auto = no_auto
-		self.d_min = d_min
-		self.d_max = d_max
-
-	def set_bounds(self, d_min, d_max):
-		self.d_min = d_min
-		self.d_max = d_max
-
-	def get_pairs(self, nb_pairs):
-		"""
-		Function to obtain a certain number of cells from the generator
-
-        Inputs:
-            nb_pairs - int to specify the number of pairs desired
-
-        The length parameter of the DistantDependentPairs should be defined correctly. It is the extent of the grid.
-
-        Examples:
-            >> res = p.get_pairs(100, 0.3, 0.5)
-		"""
-		cells1 = np.array(list(self.ids_1), int)
-		cells2 = np.array(list(self.ids_2), int)
-		pairs = np.zeros((0, 2), int)
-		N1 = len(cells1)
-		N2 = len(cells2)
-		T = min(N1, N2)
-		while len(pairs) < nb_pairs:
-			N = min(nb_pairs - len(pairs), T)
-			cell1 = cells1[np.floor(np.random.uniform(0, N1, N)).astype(int)]
-			cell2 = cells2[np.floor(np.random.uniform(0, N1, N)).astype(int)]
-			pos_cell1 = np.array(self.spk1.id2position(cell1)) * self.lenght / self.spk1.dimensions[0]
-			pos_cell2 = np.array(self.spk2.id2position(cell2)) * self.lenght / self.spk2.dimensions[0]
-			dist = distance(pos_cell1, pos_cell2, self.lenght)
-			idx = np.where((dist >= self.d_min) & (dist < self.d_max))[0]
-			N = len(idx)
-			if N > 0:
-				tmp_pairs = np.zeros((N, 2), int)
-				tmp_pairs[:, 0] = cell1[idx]
-				tmp_pairs[:, 1] = cell2[idx]
-				if self.no_auto:
-					idx = np.where(tmp_pairs[:, 0] == tmp_pairs[:, 1])[0]
-					pairs = np.concatenate((pairs, np.delete(tmp_pairs, idx, axis=0)))
-				else:
-					pairs = np.concatenate((pairs, tmp_pairs))
-		return pairs
-
-
-########################################################################################################################
-class CustomPairs(PairsGenerator):
-	"""
-    CustomPairs(SpikeList, SpikeList, pairs). Inherits from PairsGenerator.
-    Generator that will return custom pairs of elements.
-
-    Inputs:
-        spk1  - First SpikeList object to take cells from
-        spk2  - Second SpikeList object to take cells from
-        pairs - A list of tuple that will be the pairs returned
-                when get_pairs() function will be used.
-
-    Examples:
-        >> p = CustomPairs(spk1, spk1, [(i,i) for i in xrange(100)])
-        >> p.get_pairs(4)
-            [[1,1],[2,2],[3,3],[4,4]]
-
-    See also RandomPairs, CustomPairs, DistantDependentPairs, AutoPairs
-	"""
-	def __init__(self, spk1, spk2, pairs=[[], []]):
-		PairsGenerator.__init__(self, spk1, spk2)
-		self.pairs = np.array(pairs)
-
-	def get_pairs(self, nb_pairs):
-		if nb_pairs > len(self.pairs):
-			print "Trying to select too much pairs..."
-		return self.pairs[0:nb_pairs]
-
-########################################################################################################################
-# Change point detection library!!https://bitbucket.org/aihara/changefinder
-
-
-def LevinsonDurbin(r, lpcOrder):
-	"""
-	from http://aidiary.hatenablog.com/entry/20120415/1334458954
-	"""
-	a = np.zeros(lpcOrder + 1, dtype=np.float64)
-	e = np.zeros(lpcOrder + 1, dtype=np.float64)
-	a[0] = 1.0
-	a[1] = - r[1] / r[0]
-	e[1] = r[0] + r[1] * a[1]
-	lam = - r[1] / r[0]
-	for k in range(1, lpcOrder):
-		lam = 0.0
-		for j in range(k + 1):
-			lam -= a[j] * r[k + 1 - j]
-		lam /= e[k]
-
-		U = [1]
-		U.extend([a[i] for i in range(1, k + 1)])
-		U.append(0)
-
-		V = [0]
-		V.extend([a[i] for i in range(k, 0, -1)])
-		V.append(1)
-
-		a = np.array(U) + lam * np.array(V)
-		e[k + 1] = e[k] * (1.0 - lam * lam)
-
-	return a, e[-1]
-
-
-class _SDAR_1Dim(object):
-	def __init__(self, r, order):
-		self._r = r
-		self._mu = np.random.random()
-		self._sigma = np.random.random()
-		self._order = order
-		self._c = np.zeros(self._order+1)
-
-	def update(self,x,term):
-		assert len(term) >= self._order, "term must be order or more"
-		term = np.array(term)
-		self._mu = (1 - self._r) * self._mu + self._r * x
-		for i in range(1,self._order):
-			self._c[i] = (1-self._r)*self._c[i]+self._r * (x-self._mu) * (term[-i]-self._mu)
-		self._c[0] = (1-self._r)*self._c[0]+self._r * (x-self._mu)*(x-self._mu)
-		what, e = LevinsonDurbin(self._c,self._order)
-		xhat = np.dot(-what[1:],(term[::-1]  - self._mu))+self._mu
-		self._sigma = (1-self._r)*self._sigma + self._r * (x-xhat) * (x-xhat)
-		return -math.log(math.exp(-0.5 *(x-xhat)**2/self._sigma)/((2 * math.pi)**0.5 * self._sigma**0.5)),xhat
-
-
-class _ChangeFinderAbstract(object):
-	def _add_one(self,one,ts,size):
-		ts.append(one)
-		if len(ts)==size+1:
-			ts.pop(0)
-
-	def _smoothing(self,ts):
-		return sum(ts)/float(len(ts))
-
-
-class ChangeFinder(_ChangeFinderAbstract):
-	def __init__(self, r=0.5, order=1, smooth=7):
-		assert order > 0, "order must be 1 or more."
-		assert smooth > 2, "term must be 3 or more."
-		self._smooth = smooth
-		self._smooth2 = int(round(self._smooth/2.0))
-		self._order = order
-		self._r = r
-		self._ts = []
-		self._first_scores = []
-		self._smoothed_scores = []
-		self._second_scores = []
-		self._sdar_first = _SDAR_1Dim(r,self._order)
-		self._sdar_second = _SDAR_1Dim(r,self._order)
-
-	def update(self,x):
-		score = 0
-		predict = x
-		predict2 = 0
-		if len(self._ts) == self._order:
-			score, predict = self._sdar_first.update(x, self._ts)
-			self._add_one(score,self._first_scores,self._smooth)
-		self._add_one(x,self._ts,self._order)
-		second_target = None
-		if len(self._first_scores) == self._smooth:
-			second_target = self._smoothing(self._first_scores)
-		if second_target and len(self._smoothed_scores) == self._order:
-			score, predict2 = self._sdar_second.update(second_target, self._smoothed_scores)
-			self._add_one(score, self._second_scores, self._smooth2)
-		if second_target:
-			self._add_one(second_target,self._smoothed_scores, self._order)
-		if len(self._second_scores) == self._smooth2:
-			return self._smoothing(self._second_scores), predict
-		else:
-			return 0.0, predict
-
-
 def smooth(x, window_len=11, window='hanning'):
 	"""
 	Smooth the data using a window with requested size.
