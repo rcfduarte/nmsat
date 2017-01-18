@@ -90,22 +90,15 @@ def extract_nestvalid_dict(d, param_type='neuron'):
 
 		accepted_keys = nest.GetDefaults(d['model']).keys()
 		accepted_keys.remove('model')
+		nest_dict = {k: v for k, v in d.iteritems() if k in accepted_keys}
 	elif param_type == 'kernel':
 		accepted_keys = nest.GetKernelStatus().keys()
-		# nest_dict = {k: v for k, v in d.iteritems() if k in accepted_keys}
+		nest_dict = {k: v for k, v in d.iteritems() if k in accepted_keys}
 	else:
 		# TODO
 		print("{!s} not implemented yet".format(param_type))
 		assert False
 
-	# DONE added warning for unknown kernel dictionary entries
-	nest_dict = {}
-	for k, v in d.iteritems():
-		if k in accepted_keys:
-			nest_dict[k] = v
-		else:
-			pass
-			# print("WARNING: unknown kernel parameter `{}`!".format(k))
 	return nest_dict
 
 
@@ -813,7 +806,10 @@ class ParameterSpace:
 			# call build_parameters for each range combination, and pack returned values into a list (set)
 			# contains a single dictionary if no range parameters
 			param_ranges = [module_obj.build_parameters( *elem ) for elem in range_combinations]
+<<<<<<< HEAD
+=======
 			# print param_ranges
+>>>>>>> e14e3c850bb2852b1b49c3048a99024bc1d405be
 			global_label = param_ranges[0]['kernel_pars']['data_prefix']
 
 			if n_ranges <= 3:# and not emoo:
