@@ -2,8 +2,8 @@ __author__ = 'duarte'
 import numpy as np
 from scipy.sparse import coo_matrix
 import itertools
-from modules.net_architect import *
 from modules.input_architect import *
+from modules.net_architect import *
 from modules.signals import *
 from modules.visualization import progress_bar
 import nest

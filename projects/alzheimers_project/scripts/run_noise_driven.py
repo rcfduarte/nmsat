@@ -1,6 +1,12 @@
 __author__ = 'duarte'
-from modules.input_architect import *
-from modules.net_architect import *
+from modules.parameters import ParameterSet, ParameterSpace, extract_nestvalid_dict
+from modules.input_architect import EncodingLayer
+from modules.net_architect import Network
+from modules.io import set_storage_locations
+from modules.signals import iterate_obj_list
+from modules.visualization import set_global_rcParams
+from modules.analysis import characterize_population_activity
+import cPickle as pickle
 import numpy as np
 import nest
 
@@ -31,7 +37,7 @@ if not isinstance(parameter_set, ParameterSet):
 # ======================================================================================================================
 if plot:
 	import modules.visualization as vis
-	vis.set_global_rcParams(parameter_set.kernel_pars['mpl_path'])
+	set_global_rcParams(parameter_set.kernel_pars['mpl_path'])
 paths = set_storage_locations(parameter_set, save)
 
 np.random.seed(parameter_set.kernel_pars['np_seed'])
@@ -93,8 +99,18 @@ net.flush_records()
 # ======================================================================================================================
 analysis_interval = [parameter_set.kernel_pars.transient_t,
 	                     parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t]
-results.update(population_state(net, parameter_set, nPairs=500, time_bin=1., start=analysis_interval[0],
-                           stop=analysis_interval[1], plot=plot, display=display, save=paths['figures']+paths['label']))
+extra_analysis_parameters = {'time_bin': 1.,
+                             'n_pairs': 500,
+                             'tau': 20.,
+                             'window_len': 100,
+                             'summary_only': True,
+                             'complete': True,
+                             'time_resolved': False}
+results.update(characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
+                                                color_map='jet', plot=plot,
+                                                display=display, save=paths['figures']+paths['label'],
+                                                **extra_analysis_parameters))
+
 
 # ######################################################################################################################
 # Save data
