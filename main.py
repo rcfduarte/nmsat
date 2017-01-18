@@ -52,9 +52,9 @@ def create_parser():
 
 def print_welcome_message():
 	print("""
-*** Neural Microcircuit Testbed ***
+   *** Neural Microcircuit Testbed ***
 
-Version 0.1
+\t    Version 0.1
 
 This program is provided AS IS and comes with
 NO WARRANTY. See the file LICENSE for details.
@@ -63,8 +63,12 @@ NO WARRANTY. See the file LICENSE for details.
 
 if __name__ == "__main__":
 	print_welcome_message()
-	(options, args) = create_parser().parse_args()
+	if 'pynest' in sys.argv:
+		sys.argv.pop(0)
 
+	(options, args) = create_parser().parse_args()
+	print sys.argv
+	print options, args
 	# we need minimum 2 arguments (3 including the script)
 	if len(sys.argv) < 3 or options.p_file is None or options.c_function is None:
 		print("At least two arguments (parameter file and computation function) are required! Exiting..")

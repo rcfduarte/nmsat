@@ -33,7 +33,6 @@ copy_dict - copies a dictionary and updates it with extra key-value pairs
 """
 
 import numpy as np
-np.set_printoptions(threshold=np.nan)
 import os
 import sys
 import types
@@ -49,6 +48,7 @@ import scipy.stats as st
 import inspect
 import pprint
 import nest
+np.set_printoptions(threshold=np.nan)
 
 
 ##########################################################################################
@@ -938,7 +938,7 @@ class ParameterSpace:
 		system = self.parameter_sets[0].kernel_pars.system
 
 		if system['local']:
-			print "\nRunning {0} serially on {1} Parameter Sets".format(str(computation_function), str(len(self)))
+			print "\nRunning {0} serially on {1} Parameter Sets".format(str(computation_function.__module__.split('.')[1]), str(len(self)))
 
 			for par_set in self.parameter_sets:
 				print "\n- Parameters: {0}".format(str(par_set.label))

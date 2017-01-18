@@ -19,6 +19,7 @@ import matplotlib.pyplot as pl
 import matplotlib as mpl
 import numpy as np
 from matplotlib import rc
+import itertools
 import matplotlib.cm as cmx
 import matplotlib.colors as colors
 from mpl_toolkits.mplot3d import Axes3D
@@ -31,9 +32,8 @@ import scipy.stats as st
 from scipy import linalg
 import sklearn.decomposition as sk
 from sklearn.cluster.bicluster import SpectralBiclustering
-
 import signals
-import net_architect as net
+import net_architect
 import sys
 import os
 from modules import check_dependency
@@ -45,9 +45,6 @@ has_networkx = check_dependency('networkx')
 if has_networkx:
 	import networkx as nx
 has_sklearn = check_dependency('sklearn')
-if has_sklearn:
-	import sklearn.decomposition as sk
-	from sklearn.cluster.bicluster import SpectralBiclustering
 has_mayavi = check_dependency('mayavi')
 if has_mayavi:
 	from mayavi import mlab
@@ -1251,13 +1248,13 @@ class AnalogSignalPlots(object):
 
 		tt = self.signal_list.time_slice(self.start, self.stop)
 
-		if isinstance(self.signal_list, AnalogSignalList):
+		if isinstance(self.signal_list, signals.AnalogSignalList):
 			ids = self.signal_list.raw_data()[:, 1]
 			for n in np.unique(ids):
 				tmp = tt.id_slice([n])
 				vm = tmp.raw_data()[:, 0]
 				times = tmp.time_axis()
-		elif isinstance(self.signal_list, AnalogSignal):
+		elif isinstance(self.signal_list, signals.AnalogSignal):
 			times = tt.time_axis()
 			vm = tt.raw_data()
 		else:
@@ -1308,7 +1305,7 @@ class TopologyPlots(object):
 		"""
 		"""
 		self.network = network
-		self.populations = list(iterate_obj_list(network.populations))
+		self.populations = list(signals.iterate_obj_list(network.populations))
 		self.colormap = get_cmap(len(self.populations), colormap)
 		self.colors = [self.colormap(n) for n in range(len(self.populations))]
 		self.connection_parameters = connection_pars.as_dict()
@@ -1374,7 +1371,7 @@ class TopologyPlots(object):
 		Assign positions to the nodes, if no topology has been specified, positions will
 		be assigned randomly (type='random') or on a grid (type='grid')
 		"""
-		network_size = np.sum(list(iterate_obj_list(self.network.n_neurons)))
+		network_size = np.sum(list(signals.iterate_obj_list(self.network.n_neurons)))
 		if type == 'random':
 			pos = (np.sqrt(network_size) * np.random.random_sample((int(network_size), 2))).tolist()
 		elif type == 'grid':
@@ -1391,9 +1388,9 @@ class TopologyPlots(object):
 		Join all the individual weight matrices into one large global weights matrix
 		:return:
 		"""
-		if empty(self.network.synaptic_weights):
+		if signals.empty(self.network.synaptic_weights):
 			self.network.extract_synaptic_weights()
-		N = np.sum(list(iterate_obj_list(self.network.n_neurons)))
+		N = np.sum(list(signals.iterate_obj_list(self.network.n_neurons)))
 		self.full_weights = np.zeros((N, N))
 		pop_names = [n.name for n in self.populations]
 		pop_sizes = [n.size for n in self.populations]
@@ -1580,8 +1577,8 @@ class TopologyPlots(object):
 
 				syn_name = pop_names[tgt_idx]+pop_names[src_idx]
 
-				if empty(self.network.synaptic_weights):
-					w = extract_weights_matrix(neuron_ids[src_idx], neuron_ids[tgt_idx], True)
+				if signals.empty(self.network.synaptic_weights):
+					w = net_architect.extract_weights_matrix(neuron_ids[src_idx], neuron_ids[tgt_idx], True)
 				else:
 					w = self.network.synaptic_weights[n]
 
@@ -1609,7 +1606,7 @@ class TopologyPlots(object):
 					assert isinstance(save, str), "Please provide filename"
 					pl.savefig(save + '_connectivity.pdf')
 		else:
-			if empty(self.network.synaptic_weights):
+			if signals.empty(self.network.synaptic_weights):
 				self.network.extract_synaptic_weights()
 
 			weights = self.network.synaptic_weights
@@ -1656,8 +1653,8 @@ class TopologyPlots(object):
 				tgt_idx = pop_names.index(n[0])
 				syn_name = pop_names[tgt_idx] + pop_names[src_idx]
 
-				if empty(self.network.synaptic_delays):
-					w = extract_delays_matrix(neuron_ids[src_idx], neuron_ids[tgt_idx], True)
+				if signals.empty(self.network.synaptic_delays):
+					w = net_architect.extract_delays_matrix(neuron_ids[src_idx], neuron_ids[tgt_idx], True)
 				else:
 					w = self.network.synaptic_delays[n]
 
@@ -1685,7 +1682,7 @@ class TopologyPlots(object):
 					assert isinstance(save, str), "Please provide filename"
 					pl.savefig(save + '_delays.pdf')
 		else:
-			if empty(self.network.synaptic_delays):
+			if signals.empty(self.network.synaptic_delays):
 				self.network.extract_synaptic_delays()
 
 			weights = self.network.synaptic_delays
@@ -1733,8 +1730,8 @@ class TopologyPlots(object):
 
 				syn_name = pop_names[tgt_idx]+pop_names[src_idx]
 
-				if empty(self.network.synaptic_weights):
-					w = extract_weights_matrix(neuron_ids[src_idx], neuron_ids[tgt_idx], True)
+				if signals.empty(self.network.synaptic_weights):
+					w = net_architect.extract_weights_matrix(neuron_ids[src_idx], neuron_ids[tgt_idx], True)
 				else:
 					w = self.network.synaptic_weights[n]
 
@@ -1744,7 +1741,7 @@ class TopologyPlots(object):
 					ax_pl = ax[ctr]
 
 				weights = w[w.nonzero()].todense()
-				weights = list(iterate_obj_list(weights))
+				weights = list(signals.iterate_obj_list(weights))
 
 				plot_histogram(weights, 100, ax=ax_pl)
 				ax_pl.set_title(r'${0}$'.format(str(n)))
@@ -1762,7 +1759,7 @@ class TopologyPlots(object):
 					assert isinstance(save, str), "Please provide filename"
 					pl.savefig(save + '_wHist.pdf')
 		else:
-			if empty(self.network.synaptic_weights):
+			if signals.empty(self.network.synaptic_weights):
 				self.network.extract_synaptic_weights()
 
 			weights = self.network.synaptic_weights
@@ -1774,7 +1771,7 @@ class TopologyPlots(object):
 					ax_pl = ax[ctr]
 
 				weightss = w[w.nonzero()].todense()
-				weightss = list(iterate_obj_list(weightss))
+				weightss = list(signals.iterate_obj_list(weightss))
 
 				plot_histogram(weightss, 100, ax=ax_pl)
 				ax_pl.set_title(r'${0}$'.format(str(syn_name)))
@@ -1810,8 +1807,8 @@ class TopologyPlots(object):
 
 				syn_name = pop_names[tgt_idx]+pop_names[src_idx]
 
-				if empty(self.network.synaptic_delays):
-					w = extract_delays_matrix(neuron_ids[src_idx], neuron_ids[tgt_idx], True)
+				if signals.empty(self.network.synaptic_delays):
+					w = net_architect.extract_delays_matrix(neuron_ids[src_idx], neuron_ids[tgt_idx], True)
 				else:
 					w = self.network.synaptic_delays[n]
 
@@ -1821,7 +1818,7 @@ class TopologyPlots(object):
 					ax_pl = ax[ctr]
 
 				weights = w[w.nonzero()].todense()
-				weights = list(iterate_obj_list(weights))
+				weights = list(signals.iterate_obj_list(weights))
 
 				plot_histogram(weights, 100, ax=ax_pl)
 				ax_pl.set_title(r'${0}$'.format(str(n)))
@@ -1839,7 +1836,7 @@ class TopologyPlots(object):
 					assert isinstance(save, str), "Please provide filename"
 					pl.savefig(save + '_dHist.pdf')
 		else:
-			if empty(self.network.synaptic_delays):
+			if signals.empty(self.network.synaptic_delays):
 				self.network.extract_synaptic_delays()
 
 			weights = self.network.synaptic_delays
@@ -1851,7 +1848,7 @@ class TopologyPlots(object):
 					ax_pl = ax[ctr]
 
 				weightss = w[w.nonzero()].todense()
-				weightss = list(iterate_obj_list(weightss))
+				weightss = list(signals.iterate_obj_list(weightss))
 
 				plot_histogram(weightss, 100, ax=ax_pl)
 				ax_pl.set_title(r'${0}$'.format(str(syn_name)))
@@ -2091,8 +2088,8 @@ def animate_raster(spike_list, gids, window_size, display=False, save=False):
 	:return:
 	"""
 	time_axis = spike_list.time_axis(time_bin=1.)
-	steps = len(list(moving_window(time_axis, window_size)))
-	mw = moving_window(time_axis, window_size)
+	steps = len(list(signals.moving_window(time_axis, window_size)))
+	mw = signals.moving_window(time_axis, window_size)
 	fig = pl.figure()
 	ax1 = pl.subplot2grid((30, 1), (0, 0), rowspan=23, colspan=1)
 	ax2 = pl.subplot2grid((30, 1), (24, 0), rowspan=5, colspan=1, sharex=ax1)
@@ -2184,7 +2181,7 @@ def plot_response(responses, time_data, population, idx=None, spiking_activity=N
 	ax1.set_ylabel("Neuron")
 	fig1.suptitle(r"Population ${0}$ State".format(population.name))
 
-	if not empty(population.spiking_activity) or spiking_activity is not None:
+	if not signals.empty(population.spiking_activity) or spiking_activity is not None:
 		if spiking_activity is not None:
 			sl = spiking_activity
 		else:
@@ -2271,14 +2268,14 @@ def plot_state_matrix(state_mat, stim_labels, ax=None, label='', display=True, s
 	else:
 		ax.set_title(r'{0} - State Matrix'.format(str(label)))
 
-	xtick_labels = list(iterate_obj_list(stim_labels))
+	xtick_labels = list(signals.iterate_obj_list(stim_labels))
 	#step_size = len(xtick_labels)
 	plt = ax.imshow(state_mat, aspect='auto', interpolation='nearest')
 	divider = make_axes_locatable(ax)
 	cax = divider.append_axes("right", "5%", pad="4%")
 	pl.colorbar(plt, cax=cax)
 	ax.set_xticks(range(len(xtick_labels)))
-	ax.set_xticklabels(list(iterate_obj_list(stim_labels)))
+	ax.set_xticklabels(list(signals.iterate_obj_list(stim_labels)))
 	ax.set_xlabel(r"Time [sts]")
 	ax.set_ylabel("Neuron")
 
@@ -2417,7 +2414,7 @@ def extract_encoder_connectivity(enc_layer, net, display=True, save=False):
 	Extract and plot encoding layer connections
 	"""
 	if len(np.unique(enc_layer.connection_types)) == 1:
-		tgets = list(iterate_obj_list([list(iterate_obj_list(n.gids)) for n in net.populations]))
+		tgets = list(signals.iterate_obj_list([list(signals.iterate_obj_list(n.gids)) for n in net.populations]))
 		srces = list(itertools.chain(*[n.gids for n in enc_layer.generators][0]))
 		enc_layer.extract_synaptic_weights(srces, tgets, syn_name='Gen_Net')
 		enc_layer.extract_synaptic_delays(srces, tgets, syn_name='Gen_Net')
@@ -2464,196 +2461,10 @@ def extract_encoder_connectivity(enc_layer, net, display=True, save=False):
 		plot_connectivity_matrix(matrix.todense(), source_name, target_name, label=connection + 'd',
 		                         ax=globals()['ax_encd_{0}'.format(connection)],
 		                         display=display, save=save)
-
-
 #
 # 	def rate_map(self):
-#
-# 	# def activity_map(self, t_start=None, t_stop=None, float_positions=None, display=False, kwargs={}):
-# 	# """
-# 	#    Generate a 2D map of the activity averaged between t_start and t_stop.
-# 	#    If t_start and t_stop are not defined, we used those of the SpikeList object
-# 	#
-# 	#    Inputs:
-# 	#        t_start         - if not defined, the one of the SpikeList is used
-# 	#        t_stop          - if not defined, the one of the SpikeList is used
-# 	#        float_positions - None by default, meaning that the dimensions attribute
-# 	#                          of the SpikeList is used to arange the ids on a 2D grid.
-# 	#                          Otherwise, if the cells have floating positions,
-# 	#                          float_positions should be an array of size
-# 	#                          (2, nb_cells) with the x (first line) and y (second line)
-# 	#                          coordinates of the cells
-# 	#        display         - if True, a new figure is created. Could also be a subplot.
-# 	#                          The averaged spike_histogram over the whole population is
-# 	#                          then plotted
-# 	#        kwargs          - dictionary contening extra parameters that will be sent
-# 	#                          to the plot function
-# 	#
-# 	#    The 'dimensions' attribute of the SpikeList is used to turn ids into 2d positions. It should
-# 	#    therefore be not empty.
-# 	#
-# 	#    Examples:
-# 	#        >> spklist.activity_map(0,1000,display=True)
-# 	#
-# 	#    See also
-# 	#        activity_movie
-# 	#    """
-# 	#    subplot = get_display(display)
-# 	#
-# 	#    if t_start == None:
-# 	#        t_start = self.t_start
-# 	#    if t_stop  == None:
-# 	#        t_stop  = self.t_stop
-# 	#    if t_start != self.t_start or t_stop != self.t_stop:
-# 	#        spklist = self.time_slice(t_start, t_stop)
-# 	#    else:
-# 	#        spklist = self
-# 	#
-# 	#    if float_positions is None:
-# 	#        if self.dimensions is None:
-# 	#            raise Exception("Dimensions of the population are not defined ! Set spikelist.dims")
-# 	#        activity_map = numpy.zeros(self.dimensions, float)
-# 	#        rates        = spklist.mean_rates()
-# 	#        #id_offset    = min(self.id_list)
-# 	#        #x,y          = spklist.id2position(spklist.id_list, id_offset)
-# 	#        x,y          = spklist.id2position(spklist.id_list)
-# 	#        #j,i = x, self.dimensions[0] - 1 - y
-# 	#        for count, id in enumerate(spklist.id_list):
-# 	#            #activity_map[i[count],j[count]] = rates[count]
-# 	#            activity_map[x[count],y[count]] = rates[count]
-# 	#        if not subplot or not HAVE_PYLAB or not HAVE_MATPLOTLIB:
-# 	#            return activity_map
-# 	#        else:
-# 	#            im = subplot.imshow(activity_map, **kwargs)
-# 	#            pylab.colorbar(im)
-# 	#            pylab.draw()
-# 	#    elif isinstance(float_positions, numpy.ndarray):
-# 	#        if not len(spklist.id_list) == len(float_positions[0]):
-# 	#            raise Exception("Error, the number of flotting positions does not match the number of cells in the SpikeList")
-# 	#        rates = spklist.mean_rates()
-# 	#        if not subplot or not HAVE_PYLAB or not HAVE_MATPLOTLIB:
-# 	#            return rates
-# 	#        else:
-# 	#            x = float_positions[0,:]
-# 	#            y = float_positions[1,:]
-# 	#            im = subplot.scatter(x,y,c=rates, **kwargs)
-# 	#            pylab.colorbar(im)
-# 	#            pylab.draw()
-#
-# 	def rate_map_movie(self, interval=[]):
-#
-#     def activity_movie(self, time_bin=10, t_start=None, t_stop=None, float_positions=None, output="animation.mpg", bounds=(0,5), fps=10, display=True, kwargs={}):
-#         """
-#         Generate a movie of the activity between t_start and t_stop.
-#         If t_start and t_stop are not defined, we used those of the SpikeList object
-#
-#         Inputs:
-#             time_bin        - time step to bin activity during the movie.
-#                               One frame is the mean rate during time_bin
-#             t_start         - if not defined, the one of the SpikeList is used, in ms
-#             t_stop          - if not defined, the one of the SpikeList is used, in ms
-#             float_positions - None by default, meaning that the dimensions attribute of the SpikeList
-#                               is used to arange the ids on a 2D grid. Otherwise, if the cells have
-#                               flotting positions, float_positions should be an array of size
-#                               (2, nb_cells) with the x (first line) and y (second line) coordinates of
-#                               the cells
-#             output          - The filename to store the movie
-#             bounds          - The common color bounds used during all the movies frame.
-#                               This is a tuple
-#                               of values (min, max), in spikes per frame.
-#             fps             - The number of frame per second in the final movie
-#             display         - if True, a new figure is created. Could also be a subplot.
-#             kwargs          - dictionary contening extra parameters that will be sent to the plot
-#                               function
-#
-#         The 'dimensions' attribute of the SpikeList is used to turn ids into 2d positions. It should
-#         therefore be not empty.
-#
-#         Examples:
-#             >> spklist.activity_movie(10,0,1000,bounds=(0,5),display=subplot(221),output="test.mpg")
-#
-#         See also
-#             activity_map
-#         """
-#         subplot = get_display(display)
-#         if t_start is None: t_start = self.t_start
-#         if t_stop is None:  t_stop  = self.t_stop
-#         if not subplot or not HAVE_PYLAB:
-#             print PYLAB_ERROR
-#         else:
-#             files        = []
-#             if float_positions is None:
-#                 activity_map = numpy.zeros(self.dimensions)
-#                 im           = subplot.imshow(activity_map, **kwargs)
-#                 im.set_clim(bounds[0],bounds[1])
-#                 pylab.colorbar(im)
-#             else:
-#                 rates        = [0]*len(self)
-#                 im           = subplot.scatter(float_positions[0,:], float_positions[1,:], c=rates, **kwargs)
-#                 im.set_clim(bounds[0],bounds[1])
-#                 pylab.colorbar(im)
-#             count     = 0
-#             idx       = 0
-#             manager   = pylab.get_current_fig_manager()
-#             if t_start != self.t_start or t_stop != self.t_stop:
-#                 spk   = self.time_slice(t_start, t_stop)
-#             else:
-#                 spk   = self
-#             time, pos = spk.convert("times, ids")
-#             # We sort the spikes to allow faster process later
-#             sort_idx  = time.ravel().argsort(kind="quicksort")
-#             time      = time[sort_idx]
-#             pos       = pos[sort_idx]
-#             x,y       = spk.id2position(pos)
-#             max_idx   = len(time)-1
-#             logging.info('Making movie %s - this make take a while' % output)
-#             if float_positions is None:
-#                 if self.dimensions is None:
-#                     raise Exception("Dimensions of the population are not defined ! Set spikelist.dims")
-#                 while (t_start < t_stop):
-#                     activity_map = numpy.zeros(spk.dimensions)
-#                     while ((time[idx] < t_start + time_bin) and (idx < max_idx)):
-#                         #j,i = x, self.dimensions[0] - 1 -y
-#                         activity_map[x[idx],y[idx]] += 1
-#                         idx += 1
-#                     im.set_array(activity_map)
-#                     subplot.title("time = %d ms" %t_start)
-#                     im.set_clim(bounds[0],bounds[1])
-#                     manager.canvas.draw()
-#                     fname = "_tmp_spikes_%05d.png" %count
-#                     #logging.debug("Saving Frame %s", fname)
-#                     #progress_bar(float(t_start)/t_stop)
-#                     pylab.savefig(fname)
-#                     files.append(fname)
-#                     t_start += time_bin
-#                     count += 1
-#             elif isinstance(float_positions, numpy.ndarray):
-#                 if not len(self) == len(float_positions[0]):
-#                     raise Exception("Error, the number of flotting positions does not match the number of cells in the SpikeList")
-#                 while (t_start < t_stop):
-#                     rates = [0]*len(self)
-#                     while ((time[idx] < t_start + time_bin) and (idx < max_idx)):
-#                         rates[pos[idx]] += 1
-#                         idx += 1
-#                     im = subplot.scatter(float_positions[0,:], float_positions[1,:], c=rates, **kwargs)
-#                     subplot.title("time = %d ms" %t_start)
-#                     im.set_clim(bounds[0],bounds[1])
-#                     manager.canvas.draw()
-#                     fname = "_tmp_spikes_%05d.png" %count
-#                     #logging.debug("Saving Frame %s", fname)
-#                     progress_bar(float(t_start)/t_stop)
-#                     pylab.savefig(fname)
-#                     files.append(fname)
-#                     t_start += time_bin
-#                     count += 1
-#             command = "mencoder 'mf://_tmp_*.png' -mf type=png:fps=%d -ovc lavc -lavcopts vcodec=wmv2 -oac copy -o %s" %(fps,output)
-#             logging.debug(command)
-#             os.system(command)
-#             ## cleanup
-#             logging.debug("Clean up....")
-#             for fname in files: os.remove(fname)
 
-#
+
 def progress_bar(progress):
 	"""
 	Prints a progress bar to stdout.
@@ -2834,16 +2645,16 @@ def plot_synchrony_measures(results, label='', time_resolved=False, epochs=None,
 		x, y = results['SPIKE_sync_profile'].get_plottable_data()
 		ax1.plot(x, y, '-g', alpha=0.4)
 		ax1.set_ylabel(r'$S_{\mathrm{SPIKE_{s}}}(t)$')
-		ax1.plot(x, smooth(y, window_len=100, window='hamming'), '-g', lw=2.5)
+		ax1.plot(x, signals.smooth(y, window_len=100, window='hamming'), '-g', lw=2.5)
 
 		x3, y3 = results['ISI_profile'].get_plottable_data()
 		ax2.plot(x3, y3, '-b', alpha=0.4)
-		ax2.plot(x3, smooth(y3, window_len=100, window='hamming'), '-b', lw=2.5)
+		ax2.plot(x3, signals.smooth(y3, window_len=100, window='hamming'), '-b', lw=2.5)
 		ax2.set_ylabel(r'$d_{\mathrm{ISI}}(t)$')
 
 		x5, y5 = results['SPIKE_profile'].get_plottable_data()
 		ax3.plot(x5, y5, '-k', alpha=0.4)
-		ax3.plot(x5, smooth(y5, window_len=100, window='hamming'), '-k', lw=2.5)
+		ax3.plot(x5, signals.smooth(y5, window_len=100, window='hamming'), '-k', lw=2.5)
 		ax3.set_ylabel(r'$d_{\mathrm{SPIKE}}(t)$')
 
 	if display:
