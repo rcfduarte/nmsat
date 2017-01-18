@@ -86,64 +86,135 @@ def rec_device_defaults(start=0., stop=sys.float_info.max, resolution=0.1, recor
 	return ParameterSet(rec_devices)
 
 
-def set_neuron_defaults(default_set=0):
+def set_neuron_defaults(default_set=1):
 	"""
 	Default single neuron parameters
 
 	:param default_set: (int) - if applicable
 	:return: ParameterSet
 	"""
-	if default_set == 0:
-		print("\nLoading Default Neuron Set 7.3 - aeif_cond_exp, fixed voltage threshold, fixed absolute refractory "
-		      "time, Fast, conductance-based exponential synapses")
+	if default_set == 1:
+		print("\nLoading Default Neuron Set 1 (one pool, E/I neurons) - amat2_psc_exp, fixed voltage threshold, "
+		      "fixed absolute refractory time, Fast, exponential synapses, homogeneous parameters")
 		neuron_pars = {
 			'E': {
-				'model': 'aeif_cond_exp',
-				'C_m': 250.0,
-				'Delta_T': 2.0,
-				'E_L': -70.,
-				'E_ex': 0.0,
-				'E_in': -75.0,
+				'model': 'amat2_psc_exp',
+				'C_m': 200.0,
+				'E_L': -70.0,
 				'I_e': 0.,
-				'V_m': -70.,
-				'V_th': -50.,
-				'V_reset': -60.0,
-				'V_peak': 0.0,
-				'a': 4.0,
-				'b': 80.5,
-				'g_L': 16.7,
-				'g_ex': 1.0,
-				'g_in': 1.0,
-				't_ref': 2.0,
-				'tau_minus': 20.,
-				'tau_minus_triplet': 200.,
-				'tau_w': 144.0,
-				'tau_syn_ex': 2.,
-				'tau_syn_in': 6.0,
+				'V_m': -70.0,
+				'V_th_v': 0.0,
+				'alpha_1': 180.0,
+				'alpha_2': 3.0,
+				'beta': 0.2,
+				'omega': -55.0,
+				't_ref': 2.,
+				'tau_1': 10.0,
+				'tau_2': 200.0,
+				'tau_m': 10.0,
+				'tau_syn_ex': 3.0,
+				'tau_syn_in': 7.0,
+				'tau_v': 5.0
 			},
 			'I': {
-				'model': 'aeif_cond_exp',
-				'C_m': 250.0,
-				'Delta_T': 2.0,
-				'E_L': -70.,
-				'E_ex': 0.0,
-				'E_in': -75.0,
+				'model': 'amat2_psc_exp',
+				'C_m': 200.0,
+				'E_L': -70.0,
 				'I_e': 0.,
-				'V_m': -70.,
-				'V_th': -50.,
-				'V_reset': -60.0,
-				'V_peak': 0.0,
-				'a': 4.0,
-				'b': 80.5,
-				'g_L': 16.7,
-				'g_ex': 1.0,
-				'g_in': 1.0,
-				't_ref': 2.0,
-				'tau_minus': 20.,
-				'tau_minus_triplet': 200.,
-				'tau_w': 144.0,
-				'tau_syn_ex': 2.,
-				'tau_syn_in': 6.0,
+				'V_m': -70.0,
+				'V_th_v': 0.0,
+				'alpha_1': 180.0,
+				'alpha_2': 3.0,
+				'beta': 0.2,
+				'omega': -55.0,
+				't_ref': 2.,
+				'tau_1': 10.0,
+				'tau_2': 200.0,
+				'tau_m': 10.0,
+				'tau_syn_ex': 3.0,
+				'tau_syn_in': 7.0,
+				'tau_v': 5.0
+			},
+		}
+	elif default_set == 2:
+		print "\nLoading Default Neuron Set 2 (two pools, E1, I1, E2, I2 neurons) - amat2_psc_exp, fixed voltage " \
+		      "threshold, fixed absolute refractory time, Fast, exponential synapses, homogeneous parameters"
+		neuron_pars = {
+			'E1': {
+				'model': 'amat2_psc_exp',
+				'C_m': 200.0,
+				'E_L': -70.0,
+				'I_e': 0.,
+				'V_m': -70.0,
+				'V_th_v': 0.0,
+				'alpha_1': 180.0,
+				'alpha_2': 3.0,
+				'beta': 0.2,
+				'omega': -55.0,
+				't_ref': 2.,
+				'tau_1': 10.0,
+				'tau_2': 200.0,
+				'tau_m': 10.0,
+				'tau_syn_ex': 3.0,
+				'tau_syn_in': 7.0,
+				'tau_v': 5.0
+			},
+			'E2': {
+				'model': 'amat2_psc_exp',
+				'C_m': 200.0,
+				'E_L': -70.0,
+				'I_e': 0.,
+				'V_m': -70.0,
+				'V_th_v': 0.0,
+				'alpha_1': 180.0,
+				'alpha_2': 3.0,
+				'beta': 0.2,
+				'omega': -55.0,
+				't_ref': 2.,
+				'tau_1': 10.0,
+				'tau_2': 200.0,
+				'tau_m': 10.0,
+				'tau_syn_ex': 3.0,
+				'tau_syn_in': 7.0,
+				'tau_v': 5.0
+			},
+			'I1': {
+				'model': 'amat2_psc_exp',
+				'C_m': 200.0,
+				'E_L': -70.0,
+				'I_e': 0.,
+				'V_m': -70.0,
+				'V_th_v': 0.0,
+				'alpha_1': 180.0,
+				'alpha_2': 3.0,
+				'beta': 0.2,
+				'omega': -55.0,
+				't_ref': 2.,
+				'tau_1': 10.0,
+				'tau_2': 200.0,
+				'tau_m': 10.0,
+				'tau_syn_ex': 3.0,
+				'tau_syn_in': 7.0,
+				'tau_v': 5.0
+			},
+			'I2': {
+				'model': 'amat2_psc_exp',
+				'C_m': 200.0,
+				'E_L': -70.0,
+				'I_e': 0.,
+				'V_m': -70.0,
+				'V_th_v': 0.0,
+				'alpha_1': 180.0,
+				'alpha_2': 3.0,
+				'beta': 0.2,
+				'omega': -55.0,
+				't_ref': 2.,
+				'tau_1': 10.0,
+				'tau_2': 200.0,
+				'tau_m': 10.0,
+				'tau_syn_ex': 3.0,
+				'tau_syn_in': 7.0,
+				'tau_v': 5.0
 			},
 		}
 	else:
@@ -151,50 +222,102 @@ def set_neuron_defaults(default_set=0):
 	return neuron_pars
 
 
-def set_network_defaults(neuron_set=0, N=1250, **synapse_pars):
+def set_network_defaults(default_set=1, neuron_set=0, N=1250, **synapse_pars):
 	"""
 	Network default parameters
 	:param default_set:
 	:return:
 	"""
-	print("\nLoading Default Network Set - Standard BRN, no topology")
+	#TODO this can be simplified, based on the keys in the neuron dictionary...
+
 	syn_pars = ParameterSet(synapse_pars)
 	nE = 0.8 * N
 	nI = 0.2 * N
 
-	rec_devices = rec_device_defaults(start=0.)
-	neuron_pars = set_neuron_defaults(default_set=neuron_set)
+	if default_set == 1:
+		print("\nLoading Default Network Set 1 - One pool, standard BRN, no topology")
 
-	#############################################################################################################
-	# NETWORK Parameters
-	# ===========================================================================================================
-	net_pars = {
-		'n_populations': 2,
-		'pop_names': ['E', 'I'],
-		'n_neurons': [int(nE), int(nI)],
-		'neuron_pars': [neuron_pars['E'], neuron_pars['I']],
-		'randomize_neuron_pars': [{'V_m': (np.random.uniform, {'low': -70., 'high': -50.})},
-		                          {'V_m': (np.random.uniform, {'low': -70., 'high': -50.})}],
-		'topology': [False, False],
-		'topology_dict': [None, None],
-		'record_spikes': [True, True],
-		'spike_device_pars': [copy_dict(rec_devices,
-		                                {'model': 'spike_detector',
-		                                 'record_to': ['memory'],
-		                                 'interval': 0.1,
-		                                 'label': ''}),
-		                      copy_dict(rec_devices,
-		                                {'model': 'spike_detector',
-		                                 'record_to': ['memory'],
-		                                 'interval': 0.1,
-		                                 'label': ''})],
-		'record_analogs': [False, False],
-		'analog_device_pars': [None, None],
-	}
-	#############################################################################################################
-	# SYNAPSE Parameters
-	# ============================================================================================================
-	connection_pars = set_connection_defaults(syn_pars=syn_pars)
+		rec_devices = rec_device_defaults(start=0.)
+		neuron_pars = set_neuron_defaults(default_set=neuron_set)
+
+		#############################################################################################################
+		# NETWORK Parameters
+		# ===========================================================================================================
+		net_pars = {
+			'n_populations': 2,
+			'pop_names': ['E', 'I'],
+			'n_neurons': [int(nE), int(nI)],
+			'neuron_pars': [neuron_pars['E'], neuron_pars['I']],
+			'randomize_neuron_pars': [{'V_m': (np.random.uniform, {'low': -70., 'high': -50.})},
+			                          {'V_m': (np.random.uniform, {'low': -70., 'high': -50.})}],
+			'topology': [False, False],
+			'topology_dict': [None, None],
+			'record_spikes': [True, True],
+			'spike_device_pars': [copy_dict(rec_devices,
+			                                {'model': 'spike_detector',
+			                                 'record_to': ['memory'],
+			                                 'interval': 0.1,
+			                                 'label': ''}),
+			                      copy_dict(rec_devices,
+			                                {'model': 'spike_detector',
+			                                 'record_to': ['memory'],
+			                                 'interval': 0.1,
+			                                 'label': ''})],
+			'record_analogs': [False, False],
+			'analog_device_pars': [None, None],
+		}
+		#############################################################################################################
+		# SYNAPSE Parameters
+		# ============================================================================================================
+		connection_pars = set_connection_defaults(syn_pars=syn_pars)
+
+	elif default_set == 2:
+		print("\nLoading Default Network Set 2 - Two-pool system")
+
+		rec_devices = rec_device_defaults(start=0.)
+		neuron_pars = set_neuron_defaults(default_set=neuron_set)
+
+		#############################################################################################################
+		# NETWORK Parameters
+		# ===========================================================================================================
+		net_pars = {
+			'n_populations': 4,
+			'pop_names': ['E1', 'I1', 'E2', 'I2'],
+			'n_neurons': [int(nE), int(nI), int(nE), int(nI)],
+			'neuron_pars': [neuron_pars['E1'], neuron_pars['I1'], neuron_pars['E2'], neuron_pars['I2']],
+			'topology': [False, False, False, False],
+			'topology_dict': [None, None, None, None],
+			'record_spikes': [True, True, True, True],
+			'spike_device_pars': [copy_dict(rec_devices,
+			                                {'model': 'spike_detector',
+			                                 'record_to': ['memory'],
+			                                 'interval': 0.1,
+			                                 'label': ''}),
+			                      copy_dict(rec_devices,
+			                                 {'model': 'spike_detector',
+			                                  'record_to': ['memory'],
+			                                  'interval': 0.1,
+			                                  'label': ''}),
+			                      copy_dict(rec_devices,
+			                                {'model': 'spike_detector',
+			                                 'record_to': ['memory'],
+			                                 'interval': 0.1,
+			                                 'label': ''}),
+			                      copy_dict(rec_devices,
+			                                 {'model': 'spike_detector',
+			                                  'record_to': ['memory'],
+			                                  'interval': 0.1,
+			                                  'label': ''}),],
+			'record_analogs': [False, False, False, False],
+			'analog_device_pars': [None, None, None, None],
+			'description': {'topology': 'None'}
+		}
+		#############################################################################################################
+		# SYNAPSE Parameters
+		# ============================================================================================================
+		connection_pars = set_connection_defaults(syn_pars=syn_pars)
+	else:
+		raise NotImplementedError("Default set %s not implemented!" % str(default_set))
 
 	return ParameterSet(neuron_pars), ParameterSet(net_pars), ParameterSet(connection_pars)
 

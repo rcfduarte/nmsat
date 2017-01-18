@@ -1,7 +1,6 @@
 __author__ = 'duarte'
 import sys
 from preset import *
-from defaults.paths import paths
 import numpy as np
 
 """
@@ -14,6 +13,7 @@ spike_noise_input
 
 run = 'local'
 data_label = 'ED_SpikeNoise_global_stats'
+
 
 def build_parameters():
 	# ##################################################################################################################
@@ -73,8 +73,7 @@ def build_parameters():
 	net_pars['record_analogs'] = [True, False]
 	multimeter = rec_device_defaults(device_type='multimeter')
 	multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1})
-	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': 'E_analogs'}),
-	                                  copy_dict(multimeter, {'label': 'I_analogs'})]
+	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': ''}), {}]
 	# ######################################################################################################################
 	# Encoding Parameters
 	# ######################################################################################################################

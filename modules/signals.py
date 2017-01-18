@@ -1404,7 +1404,7 @@ class SpikeList(object):
 	def complete(self, id_list):
 		"""
 		Complete the SpikeList by adding empty SpikeTrain for all the ids present in
-        ids that will not already be in the SpikeList
+        ids that are not already in the SpikeList
 
          Inputs:
             id_list - The id_list that should be completed
@@ -2191,7 +2191,7 @@ class SpikeList(object):
         """
 		## We have to extract only the non silent cells, to avoid problems
 		if pairs_generator is None:
-			pairs_generator = RandomPairs(self, self, False, True)
+			pairs_generator = RandomPairs(self, self, True, True)
 
 		# Then we select the pairs of cells
 		pairs = pairs_generator.get_pairs(nb_pairs)
@@ -3652,7 +3652,7 @@ class RandomPairs(PairsGenerator):
         spk1      - First SpikeList object to take cells from
         spk2      - Second SpikeList object to take cells from
         no_silent - Boolean to say if only non silent cells should
-                    be considered. False by default
+                    be considered. True by default
         no_auto   - Boolean to say if pairs with the same element (id,id) should
                     be removed. True by default, i.e those pairs are discarded
 
@@ -3667,7 +3667,7 @@ class RandomPairs(PairsGenerator):
 
     See also RandomPairs, CustomPairs, DistantDependentPairs
 	"""
-	def __init__(self, spk1, spk2, no_silent=False, no_auto=True):
+	def __init__(self, spk1, spk2, no_silent=True, no_auto=True):
 		PairsGenerator.__init__(self, spk1, spk2, no_silent)
 		self.no_auto = no_auto
 
