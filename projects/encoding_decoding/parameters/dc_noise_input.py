@@ -73,8 +73,7 @@ def build_parameters():
 	net_pars['record_analogs'] = [True, False]
 	multimeter = rec_device_defaults(device_type='multimeter')
 	multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1})
-	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': 'E_analogs'}),
-	                                  copy_dict(multimeter, {'label': 'I_analogs'})]
+	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': ''}), {}]
 	# ##################################################################################################################
 	# Input Parameters
 	# ##################################################################################################################

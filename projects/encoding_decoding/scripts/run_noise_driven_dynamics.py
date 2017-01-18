@@ -1,11 +1,11 @@
 __author__ = 'duarte'
-import modules.parameters as prs
-import modules.io as io
-import modules.input_architect as inp
-import modules.net_architect as net_architect
-import modules.signals as signals
-import modules.visualization as vis
-import modules.analysis as analysis
+from modules.parameters import ParameterSet, ParameterSpace, extract_nestvalid_dict
+from modules.input_architect import EncodingLayer, InputNoise
+from modules.net_architect import Network
+from modules.io import set_storage_locations
+from modules.signals import iterate_obj_list
+from modules.visualization import set_global_rcParams, InputPlots
+from modules.analysis import characterize_population_activity, compute_ainess
 import cPickle as pickle
 import numpy as np
 import nest
@@ -24,12 +24,12 @@ debug = False
 params_file = '../parameters/dc_noise_input.py'
 # params_file = '../parameters/spike_noise_input.py'
 
-parameter_set = prs.ParameterSpace(params_file)[0]
+parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
 
-if not isinstance(parameter_set, prs.ParameterSet):
+if not isinstance(parameter_set, ParameterSet):
 	if isinstance(parameter_set, basestring) or isinstance(parameter_set, dict):
-		parameter_set = prs.ParameterSet(parameter_set)
+		parameter_set = ParameterSet(parameter_set)
 	else:
 		raise TypeError("parameter_set must be ParameterSet, string with full path to parameter file or dictionary")
 
@@ -37,8 +37,8 @@ if not isinstance(parameter_set, prs.ParameterSet):
 # Setup extra variables and parameters
 # ======================================================================================================================
 if plot:
-	vis.set_global_rcParams(parameter_set.kernel_pars['mpl_path'])
-paths = io.set_storage_locations(parameter_set, save)
+	set_global_rcParams(parameter_set.kernel_pars['mpl_path'])
+paths = set_storage_locations(parameter_set, save)
 
 np.random.seed(parameter_set.kernel_pars['np_seed'])
 results = dict()
@@ -49,17 +49,17 @@ results = dict()
 print '\nRuning ParameterSet {0}'.format(parameter_set.label)
 nest.ResetKernel()
 nest.set_verbosity('M_WARNING')
-nest.SetKernelStatus(prs.extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(), param_type='kernel'))
+nest.SetKernelStatus(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(), param_type='kernel'))
 
 # ######################################################################################################################
 # Build network
 # ======================================================================================================================
-net = net_architect.Network(parameter_set.net_pars)
+net = Network(parameter_set.net_pars)
 
 # ######################################################################################################################
 # Randomize initial variable values
 # ======================================================================================================================
-for idx, n in enumerate(list(signals.iterate_obj_list(net.populations))):
+for idx, n in enumerate(list(iterate_obj_list(net.populations))):
 	if hasattr(parameter_set.net_pars, "randomize_neuron_pars"):
 		randomize = parameter_set.net_pars.randomize_neuron_pars[idx]
 		for k, v in randomize.items():
@@ -72,20 +72,20 @@ if hasattr(parameter_set, "input_pars"):
 	# Current input (need to build noise signal)
 	input_seq = [1]
 	total_stimulation_time = parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t
-	input_noise = inp.InputNoise(parameter_set.input_pars.noise,
+	input_noise = InputNoise(parameter_set.input_pars.noise,
 	                         stop_time=total_stimulation_time)
 	input_noise.generate()
 	input_noise.re_seed(parameter_set.kernel_pars.np_seed)
 
 	if plot:
-		inp_plot = vis.InputPlots(stim_obj=None, input_obj=None, noise_obj=input_noise)
+		inp_plot = InputPlots(stim_obj=None, input_obj=None, noise_obj=input_noise)
 		inp_plot.plot_noise_component(display=display, save=False)
 
-	enc_layer = inp.EncodingLayer(parameter_set.encoding_pars, signal=input_noise)
+	enc_layer = EncodingLayer(parameter_set.encoding_pars, signal=input_noise)
 	enc_layer.connect(parameter_set.encoding_pars, net)
 else:
 	# Poisson input
-	enc_layer = inp.EncodingLayer(parameter_set.encoding_pars)
+	enc_layer = EncodingLayer(parameter_set.encoding_pars)
 	enc_layer.connect(parameter_set.encoding_pars, net)
 
 # ######################################################################################################################
@@ -97,10 +97,6 @@ net.connect_devices()
 # Connect Network
 # ======================================================================================================================
 net.connect_populations(parameter_set.connection_pars, progress=True)
-
-if plot and debug:
-	# TODO plot connectivity (generic)
-	pass
 
 # ######################################################################################################################
 # Simulate
@@ -131,7 +127,7 @@ extra_analysis_parameters = {'time_bin': 1.,
                              'summary_only': True,
                              'complete': True,
                              'time_resolved': False}
-results.update(analysis.characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
+results.update(characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
                                                 color_map='jet', plot=plot,
                                                 display=display, save=paths['figures']+paths['label'],
                                                 **extra_analysis_parameters))
@@ -151,7 +147,7 @@ if 'mean_I_ex' in results['analog_activity']['E'].keys():
 	results['analog_activity']['E']['IE_ratios'] = ei_ratios
 
 main_metrics = ['ISI_distance', 'SPIKE_distance', 'ccs_pearson', 'cvs', 'cvs_log', 'd_vp', 'd_vr', 'ents', 'ffs']
-analysis.compute_ainess(results, main_metrics, template_duration=analysis_interval[1] - analysis_interval[0],
+compute_ainess(results, main_metrics, template_duration=analysis_interval[1] - analysis_interval[0],
                template_resolution=parameter_set.kernel_pars.resolution, **extra_analysis_parameters)
 
 # ######################################################################################################################

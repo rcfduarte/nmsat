@@ -533,26 +533,38 @@ def plot_state_analysis(parameter_set, results, summary_only=False, start=None, 
 				times = results['analog_activity'][name]['time_axis']
 				vm = results['analog_activity'][name]['single_Vm']
 				idx = results['analog_activity'][name]['single_idx']
-				v_reset = parameter_set.net_pars.neuron_pars[pop_idx]['V_reset']
-				v_th = parameter_set.net_pars.neuron_pars[pop_idx]['V_th']
 				
 				if len(vm) != len(times):
 					times = times[:-1]
 
 				ax4.plot(times, vm, 'k', lw=1)
 				idxs = vm.argsort()
-				possible_spike_times = [t for t in idxs if (t < len(vm) - 1) and (vm[t + 1] == v_reset) and (vm[t] != v_reset)]
-				ax4.vlines(times[possible_spike_times], v_th, 50., lw=1)
+				if 'V_reset' in parameter_set.net_pars.neuron_pars[pop_idx].keys() and 'V_th' in parameter_set.net_pars.neuron_pars[pop_idx].keys():
+					v_reset = parameter_set.net_pars.neuron_pars[pop_idx]['V_reset']
+					v_th = parameter_set.net_pars.neuron_pars[pop_idx]['V_th']
+					possible_spike_times = [t for t in idxs if (t < len(vm) - 1) and (vm[t + 1] == v_reset) and (vm[t] != v_reset)]
+					ax4.vlines(times[possible_spike_times], v_th, 50., lw=1)
+
 				ax4.set_ylim(min(vm) - 5., 10.)
 
 				ax3.set_title('Neuron {0}'.format(str(idx)))
-				
 				currents = [x for x in results['analog_activity'][name].keys() if x[0] == 'I']
-				cl = ['r', 'b', 'gray']
-				for iiddxx, nn_curr in enumerate(currents):			
-					ax3.plot(times, results['analog_activity'][name][nn_curr], c=cl[iiddxx], lw=1)
-				ax3.set_xlim(min(times), max(times))
-				ax3.set_ylabel(r'$I_{syn} [nA]$')
+
+				if not signals.empty(currents):
+					cl = ['r', 'b', 'gray']
+					for iiddxx, nn_curr in enumerate(currents):
+						ax3.plot(times, results['analog_activity'][name][nn_curr], c=cl[iiddxx], lw=1)
+					ax3.set_xlim(min(times), max(times))
+					ax3.set_ylabel(r'$I_{syn} [nA]$')
+				else:
+					irrelevant_keys = ['single_Vm', 'single_idx']
+					other_variables = [x for x in results['analog_activity'][name].keys() if x[:6] == 'single' and x
+					not in irrelevant_keys]
+					cl = ['g', 'k', 'gray']
+					for iiddxx, nn_curr in enumerate(other_variables):
+						ax3.plot(times, results['analog_activity'][name][nn_curr], c=cl[iiddxx], lw=1)
+						ax3.set_xlim(min(times), max(times))
+						ax3.set_ylabel('{0}'.format(nn_curr))
 
 	if display:
 		pl.show(False)
@@ -1124,8 +1136,9 @@ class SpikePlots(object):
 		print '\n###################################################################'
 		print ' Activity recorded in [%s - %s] ms, from population %s ' % (str(self.start), str(self.stop), str(label))
 		print '###################################################################'
-		print 'Spiking Neurons: {0}/{1}'.format(str(len(tt.id_list)), str(self.N))
-		print 'Average Firing Rate: %.2f Hz' % np.mean(tt.mean_rates())
+		print 'Spiking Neurons: {0}/{1}'.format(str(len(np.nonzero(tt.mean_rates())[0])), str(self.N))
+		print 'Average Firing Rate: %.2f / %.2f Hz' % (np.mean(np.array(tt.mean_rates())[np.nonzero(tt.mean_rates())[0]]),
+		                                               np.mean(tt.mean_rates()))
 		# print 'Average Firing Rate (normalized by N): %.2f Hz' % (np.mean(tt.mean_rates()) * len(tt.id_list)) / self.N
 		print 'Fano Factor: %.2f' % stats['ffs'][0]
 		print '*********************************\n\tISI metrics:\n*********************************'

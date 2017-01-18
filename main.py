@@ -54,7 +54,7 @@ def print_welcome_message():
 	print("""
    *** Neural Microcircuit Testbed ***
 
-\t    Version 0.1
+\t      Version 0.1
 
 This program is provided AS IS and comes with
 NO WARRANTY. See the file LICENSE for details.

@@ -677,7 +677,7 @@ def compute_isi_stats(spike_list, summary_only=False, display=True):
 	:return: dictionary with all the relevant data
 	"""
 	if display:
-		print "Analysing inter-spike intervals..."
+		print "\nAnalysing inter-spike intervals..."
 		t_start = time.time()
 	results = dict()
 	if not summary_only:
@@ -724,7 +724,7 @@ def compute_spike_stats(spike_list, time_bin=1., summary_only=False, display=Fal
 	:return: dictionary with all the relevant data
 	"""
 	if display:
-		print "Analysing spiking activity..."
+		print "\nAnalysing spiking activity..."
 		t_start = time.time()
 	results = {}
 	rates = np.array(spike_list.mean_rates())
@@ -803,7 +803,7 @@ def compute_synchrony(spike_list, n_pairs=500, bin=1., tau=20., time_resolved=Fa
 	:return results: dict
 	"""
 	if display:
-		print "Analysing spike synchrony..."
+		print "\nAnalysing spike synchrony..."
 		t_start = time.time()
 	if has_pyspike:
 		spike_trains = sg.to_pyspike(spike_list)
@@ -913,7 +913,6 @@ def compute_analog_stats(population, parameter_set, variable_names, analysis_int
 			# remove nans and infs
 			results['EI_CC'] = np.extract(np.logical_not(np.isnan(results['EI_CC'])), results['EI_CC'])
 			results['EI_CC'] = np.extract(np.logical_not(np.isinf(results['EI_CC'])), results['EI_CC'])
-			# results['EI_CC'][np.isnan(results['EI_CC'])] = 0.
 
 		if 'V_m' in variable_names and plot:
 			results['single_Vm'] = locals()['V_m'].analog_signals[single_idx].signal
@@ -927,10 +926,12 @@ def compute_analog_stats(population, parameter_set, variable_names, analysis_int
 				if 'I_ex' in variable_names:
 					results['I_{0}'.format(nnn[-2:])] = cond
 					results['I_{0}'.format(nnn[-2:])] /= 1000.
-				else:
+				elif 'g_ex' in variable_names:
 					rev = reversals[idxx]
 					results['I_{0}'.format(nnn[-2:])] = cond * (results['single_Vm'] - rev)
 					results['I_{0}'.format(nnn[-2:])] /= 1000.
+				else:
+					results['single_{0}'.format(nnn)] = cond
 		return results
 
 
