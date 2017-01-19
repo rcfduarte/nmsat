@@ -703,15 +703,18 @@ class Network(object):
 		new_population = Population(parameters.ParameterSet(pop_dict))
 
 		if merge_activity:
-			gids = []
-			n_neurons = np.sum([x.size for x in sub_populations])
-			subpop_names = [x.name for x in sub_populations]
-			spk_activity_list = [x.spiking_activity for x in sub_populations]
-			analog_activity = [x.analog_activity for x in sub_populations]
+			gids 				= []
+			n_neurons 			= np.sum([x.size for x in sub_populations])
+			subpop_names 		= [x.name for x in sub_populations]
+			spk_activity_list 	= [x.spiking_activity for x in sub_populations]
+			analog_activity 	= [x.analog_activity for x in sub_populations]
 
-			if not signals.empty(spk_activity_list):
+			# if not signals.empty(spk_activity_list):
+			# TODO check here: do we only enter when all populations have spiked? It doesn't really make sense \
+			# otherwise, no?
+			if not any([sl.empty() for sl in spk_activity_list]):
 				t_start = round(np.min([x.t_start for x in spk_activity_list]))
-				t_stop = round(np.max([x.t_stop for x in spk_activity_list]))
+				t_stop 	= round(np.max([x.t_stop for x in spk_activity_list]))
 
 				new_spike_list = signals.SpikeList([], [], t_start=t_start, t_stop=t_stop, dims=n_neurons)
 

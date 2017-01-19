@@ -985,7 +985,12 @@ class SpikeTrain(object):
 		if not empty(self.isi()):
 			log_isi = np.log(isi)
 			weights = np.ones_like(log_isi) / len(log_isi)
-			n, bins = np.histogram(log_isi, n_bins, weights=weights)  # , normed=True)
+			# TODO @barni ValueError here, range parameter must be finite
+			try:
+				n, bins = np.histogram(log_isi, n_bins, weights=weights)  # , normed=True)
+			except ValueError as e:
+				print str(e)
+				exit(-1)
 			ent = []
 			for prob_mass in n:
 				ent.append(prob_mass * np.log2(prob_mass))
@@ -1626,6 +1631,14 @@ class SpikeList(object):
 		"""
 		with open(full_path_to_file, 'w') as fp:
 			pickle.dump(self, fp)
+
+	#TODO @barni is this okay here?
+	def empty(self):
+		"""
+		Checks if SpikeList object has any spikes.
+		:return: True, if all spiketrains are empty, False otherwise
+		"""
+		return not any([len(st) for idx, st in self.spiketrains.iteritems()])
 
 	#######################################################################
 	## Analysis methods that can be applied to a SpikeTrain object       ##
