@@ -1150,9 +1150,10 @@ def extract_results_vector(results_dict, keys):
 	:return:
 	"""
 	# reduce(getitem, keys, results_dict)
-	assert(all([k in results_dict.keys() for k in keys])), "Key not in dictionary"
-	out = np.empty((len(keys)))
-	for idx, k in enumerate(keys):
+	valid_keys = [k for k in keys if k in results_dict.keys()]
+	# assert(all([k in results_dict.keys() for k in keys])), "Key `{0}`not in dictionary".format(k)
+	out = np.empty((len(valid_keys)))
+	for idx, k in enumerate(valid_keys):
 		if isinstance(results_dict[k], tuple):
 			out[idx] = results_dict[k][0]
 		else:
