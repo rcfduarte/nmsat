@@ -70,7 +70,6 @@ for idx, n in enumerate(list(iterate_obj_list(net.populations))):
 # ======================================================================================================================
 if hasattr(parameter_set, "input_pars"):
 	# Current input (need to build noise signal)
-	input_seq = [1]
 	total_stimulation_time = parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t
 	input_noise = InputNoise(parameter_set.input_pars.noise,
 	                         stop_time=total_stimulation_time)
@@ -120,17 +119,10 @@ net.flush_records()
 analysis_interval = [parameter_set.kernel_pars.transient_t,
 	                     parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t]
 
-extra_analysis_parameters = {'time_bin': 1.,
-                             'n_pairs': 500,
-                             'tau': 20.,
-                             'window_len': 100,
-                             'summary_only': True,
-                             'complete': True,
-                             'time_resolved': False}
 results.update(characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
                                                 color_map='jet', plot=plot,
                                                 display=display, save=paths['figures']+paths['label'],
-                                                **extra_analysis_parameters))
+                                                **parameter_set.analysis_pars))
 
 # if 'I_ex' in results['analog_activity']['E'].keys():
 # 	I_ex = results['analog_activity']['E']['I_ex']
@@ -148,7 +140,7 @@ if 'mean_I_ex' in results['analog_activity']['E'].keys():
 
 main_metrics = ['ISI_distance', 'SPIKE_distance', 'ccs_pearson', 'cvs', 'cvs_log', 'd_vp', 'd_vr', 'ents', 'ffs']
 compute_ainess(results, main_metrics, template_duration=analysis_interval[1] - analysis_interval[0],
-               template_resolution=parameter_set.kernel_pars.resolution, **extra_analysis_parameters)
+               template_resolution=parameter_set.kernel_pars.resolution, **parameter_set.analysis_pars)
 
 # ######################################################################################################################
 # Save data

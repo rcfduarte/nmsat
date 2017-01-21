@@ -1780,7 +1780,7 @@ class InputSignal(object):
 		"""
 
 		channel_ids = []
-		signals = []
+		sigs = []
 
 		if signal is not None:
 			s = signal
@@ -1791,12 +1791,12 @@ class InputSignal(object):
 
 		for idx, nn in enumerate(s):
 			channel_ids.append(idx * np.ones_like(nn.signal))
-			signals.append(nn.signal)
-		signals = list(itertools.chain(*signals))
+			sigs.append(nn.signal)
+		signs = list(itertools.chain(*sigs))
 		channel_ids = list(itertools.chain(*channel_ids))
 
 		# generate AnalogSignalList
-		tmp = [(channel_ids[n], signals[n]) for n in range(len(channel_ids))]
+		tmp = [(channel_ids[n], signs[n]) for n in range(len(channel_ids))]
 		sig = signals.AnalogSignalList(tmp, np.unique(channel_ids).tolist(), times=t, dt=self.dt, t_start=min(t), t_stop=max(
 			t) + 1)
 
@@ -2448,11 +2448,11 @@ class InputSignalSet(object):
 		# except SystemError("cPickle failed to save file"):
 		if not self.online:
 			if self.transient_set is not None:
-				np.save(path+'TransientInputSignal.npy', self.transient_set.as_array())
+				np.save(path+'_TransientInputSignal.npy', self.transient_set.as_array())
 			if hasattr(self, 'unique_set') and self.unique_set is not None:
-				np.save(path + 'UniqueInputSignal.npy', self.unique_set.as_array())
+				np.save(path + '_UniqueInputSignal.npy', self.unique_set.as_array())
 			if self.train_set is not None:
-				np.save(path+'TrainInputSignal.npy', self.train_set.as_array())
+				np.save(path+'_TrainInputSignal.npy', self.train_set.as_array())
 			if self.test_set is not None:
 				np.save(path+'TestInputSignal.npy', self.test_set.as_array())
 		else:

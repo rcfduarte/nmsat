@@ -1,5 +1,5 @@
 __author__ = 'duarte'
-__all__ = ['single_neuron_dcinput']
+__all__ = ['single_neuron_dcinput', 'noise_driven_dynamics']
 import numpy as np
 from scipy.sparse import coo_matrix
 import itertools

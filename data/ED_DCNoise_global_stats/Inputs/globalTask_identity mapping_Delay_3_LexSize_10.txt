@@ -1,0 +1,7 @@
+Lang = {'Sequence length': 51, 'Output Accepted set': ['A'], 'Input set': ['A1', 'A0', 'A3', 'A2', 'A5', 'A4', 'A7', 'A6', 'A9', 'A8'], 'Task description': 'identity mapping', 'Output ID set': ['A1', 'A0', 'A3', 'A2', 'A5', 'A4', 'A7', 'A6', 'A9', 'A8'], 'Task number': 1, 'Lexicon size': 10, 'Maximum delay distance': 3, 'Pause length': 1, 'Filler size': 0}
+Input
+A4 A6 A3 A1 A5 A1 A1 A9 A2 A4 A7 A2 A9 A0 A8 A5 A1 A1 A1 A8 A8 A1 A9 A1 A6 A3 A0 A1 A1 A5 A3 A0 A4 A6 A5 A5 A1 A7 A4 A7 A7 A8 A2 A9 A3 A4 A2 A6 A0 A3 A7
+Output ID
+A4 A6 A3 A1 A5 A1 A1 A9 A2 A4 A7 A2 A9 A0 A8 A5 A1 A1 A1 A8 A8 A1 A9 A1 A6 A3 A0 A1 A1 A5 A3 A0 A4 A6 A5 A5 A1 A7 A4 A7 A7 A8 A2 A9 A3 A4 A2 A6 A0 A3 A7
+Output Ac
+A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A

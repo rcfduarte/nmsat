@@ -1,7 +1,8 @@
-from modules.parameters import ParameterSpace
+from modules.parameters import ParameterSpace, copy_dict
+from modules.signals import empty
 from modules.visualization import *
 import modules.analysis as analysis
-from modules.io import process_template
+from modules.io import process_template, set_project_paths
 from defaults.paths import paths
 import matplotlib.pyplot as pl
 from os import environ, system
@@ -16,7 +17,7 @@ noise_driven_dynamics_singletrial
 # data parameters
 project = 'encoding_decoding'
 data_path = '/home/neuro/Desktop/MANUSCRIPTS/in_preparation/Encoding_Decoding/data/noise_driven_dynamics/DCNoiseInput/'
-data_label = 'ED_DCNoiseInput_ParSpace_trial0'
+data_label = 'ED_DCNoiseInput_ParSpace_trial2'
 
 # set defaults and paths
 set_project_paths(project)
@@ -75,9 +76,9 @@ for x_value in pars.parameter_axes['xticks']:
 
 		print label, idx
 
-		ai = analysis.compute_ainess(d, main_metrics, pop='E', template_duration=10000.,
-               template_resolution=0.1, **extra_analysis_parameters)
-		ainess[idx] = ai['E']
+		# ai = analysis.compute_ainess(d, main_metrics, pop='E', template_duration=10000.,
+         #       template_resolution=0.1, **extra_analysis_parameters)
+		# ainess[idx] = ai['E']
 
 		if d is not None and bool(d['spiking_activity']):
 

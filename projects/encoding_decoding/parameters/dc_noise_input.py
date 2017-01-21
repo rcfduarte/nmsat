@@ -8,7 +8,7 @@ dc_noise_input
 - standard network setup, driven with noisy direct current injection
 - quantify and set population state
 - run with noise_driven_dynamics in computations
-- debug with run_noise_driven_dynamics script
+- debug with noise_driven_dynamics script
 """
 
 run = 'local'
@@ -123,6 +123,17 @@ def build_parameters():
 	# add_background_noise(encoding_pars, background_noise)
 
 	# ##################################################################################################################
+	# Extra analysis parameters (specific for this experiment)
+	# ==================================================================================================================
+	analysis_pars = {'time_bin': 1.,        # bin width for spike counts, fano factors and correlation coefficients
+	                 'n_pairs': 500,        # number of spike train pairs to consider in correlation coefficient
+	                 'tau': 20.,            # time constant of exponential filter (van Rossum distance)
+	                 'window_len': 100,     # length of sliding time window (for time_resolved analysis)
+	                 'summary_only': False, # how to save the data (only mean and std - True) or entire data set (False)
+	                 'complete': True,      # use all existing measures or just the fastest / simplest ones
+	                 'time_resolved': False}# perform time-resolved analysis
+
+	# ##################################################################################################################
 	# RETURN dictionary of Parameters dictionaries
 	# ==================================================================================================================
 	return dict([('kernel_pars', kernel_pars),
@@ -130,7 +141,8 @@ def build_parameters():
 	             ('net_pars', net_pars),
 	             ('encoding_pars', encoding_pars),
 	             ('connection_pars', connection_pars),
-	             ('input_pars', input_pars)])
+	             ('input_pars', input_pars),
+	             ('analysis_pars', analysis_pars)])
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations
