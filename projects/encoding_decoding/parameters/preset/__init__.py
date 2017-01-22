@@ -521,7 +521,7 @@ def set_decoding_defaults(output_resolution=1., to_memory=True, **decoder_pars):
 
 	:return:
 	"""
-	keys = ['decoded_population', 'state_variable', 'filter_time', 'readouts', 'global_sampling_times']
+	keys = ['decoded_population', 'state_variable', 'filter_time', 'readouts', 'sampling_times']
 	if not np.mean([n in decoder_pars.keys() for n in keys]).astype(bool) or len(decoder_pars[
 		                                                                             'decoded_population']) != \
 			len(decoder_pars['state_variable']):

@@ -244,8 +244,7 @@ class Population(object):
 	@staticmethod
 	def flush_records(device):
 		"""
-		Delete all recorded events and clear device memory
-		:param device: device gid
+		Delete all recorded events from extractors and clear device memory
 		"""
 		nest.SetStatus(device, {'n_events': 0})
 		if nest.GetStatus(device)[0]['to_file']:
@@ -667,7 +666,7 @@ class Network(object):
 		#self.readouts = []
 		self.merged_populations = []
 
-	def merge_subpopulations(self, sub_populations=[], name='', merge_activity=False, store=True):
+	def merge_subpopulations(self, sub_populations, name='', merge_activity=False, store=True):
 		"""
 		Combine sub-populations into a main Population object
 		:param sub_populations: [list] - of Population objects to merge
@@ -678,6 +677,10 @@ class Network(object):
 		assert sub_populations, "No sub-populations to merge provided..."
 		gids_list = [list(x.gids) for x in sub_populations]
 		gids = list(itertools.chain.from_iterable(gids_list))
+
+		subpop_names = [x.name for x in sub_populations]
+		if signals.empty(name):
+			name = ''.join(subpop_names)
 
 		pop_dict = {'pop_names': name, 'n_neurons': len(gids), 'gids': gids, 'is_subpop': False}
 
@@ -700,15 +703,13 @@ class Network(object):
 		new_population = Population(parameters.ParameterSet(pop_dict))
 
 		if merge_activity:
+			assert (nest.GetKernelStatus()['time']), "There is no activity to merge, run the simulation first and " \
+			                                         "merge_population_activity at the network level"
 			gids 				= []
 			n_neurons 			= np.sum([x.size for x in sub_populations])
-			subpop_names 		= [x.name for x in sub_populations]
 			spk_activity_list 	= [x.spiking_activity for x in sub_populations]
 			analog_activity 	= [x.analog_activity for x in sub_populations]
 
-			# if not signals.empty(spk_activity_list):
-			# TODO check here: do we only enter when all populations have spiked? It doesn't really make sense \
-			# otherwise, no?
 			if not any([sl.empty() for sl in spk_activity_list]):
 				t_start = round(np.min([x.t_start for x in spk_activity_list]))
 				t_stop 	= round(np.max([x.t_stop for x in spk_activity_list]))
@@ -1060,58 +1061,20 @@ class Network(object):
 		Delete all data from all devices connected to the network
 		:return:
 		"""
-		if not signals.empty(self.device_names) or not signals.empty(self.state_extractors):
-			print "\nClearing device data: "
+		if not signals.empty(self.device_names):
+			print("\nClearing device data: ")
 		devices = list(itertools.chain.from_iterable(self.device_names))
 
-		if decoders:
-			decoder_ids = []
-			decoder_names = []
-			if self.merged_populations:
-				decoder_ids.append([self.merged_populations[n].state_extractors for n in range(len(
-						self.merged_populations))])
-				if not signals.empty(decoder_ids):
-					while isinstance(decoder_ids[0], list):
-						decoder_ids = list(signals.iterate_obj_list(decoder_ids))
-					decoder_names.append([self.merged_populations[idx].name for idx, n in enumerate(decoder_ids)])
-
-			if not signals.empty(self.state_extractors):
-				dec_ids = []
-
-				for idx, n in enumerate(self.populations):
-					dec_ids.append(n.state_extractors)
-					decoder_names.append(list(np.repeat(n.name, len(n.state_extractors))))
-
-				decoder_ids.append([self.populations[n].state_extractors for n in range(len(self.populations))])
-
-			decoder_names = list(signals.iterate_obj_list(decoder_names))
-			decoder_ids = list(signals.iterate_obj_list(decoder_ids))
-			if len(decoder_ids) != len(decoder_names):
-				decoder_ids = list(signals.iterate_obj_list(decoder_ids))
-
 		for idx, n in enumerate(list(itertools.chain.from_iterable(self.device_gids))):
-			print " - {0}".format(devices[idx])
+			print " - {0} {1}".format(devices[idx], str(n))
 			nest.SetStatus(n, {'n_events': 0})
 			if nest.GetStatus(n)[0]['to_file']:
 				io.remove_files(nest.GetStatus(n)[0]['filenames'])
 
 		if decoders:
-			if np.mean([isinstance(dd, list) for dd in decoder_ids]):
-				dec_ids = list(itertools.chain(*decoder_ids))
-				iids = []
-				for dd in dec_ids:
-					if isinstance(dd, tuple):
-						iids.append(dd)
-					else:
-						iids.append(tuple([dd]))
-				dec_ids = iids
-			else:
-				dec_ids = decoder_ids
-			for idx, n in enumerate(dec_ids):
-				print " - {0}".format('StateExtractor_'+decoder_names[idx])
-				nest.SetStatus(n, {'n_events': 0})
-				if nest.GetStatus(n)[0]['to_file']:
-					io.remove_files(nest.GetStatus(n)[0]['filenames'])
+			for ctr, n_pop in enumerate(list(itertools.chain(*[self.merged_populations, self.populations]))):
+				if n_pop.decoding_layer is not None:
+					n_pop.decoding_layer.flush_records()
 
 	def copy(self):
 		"""
@@ -1441,7 +1404,7 @@ class Network(object):
 				self.spiking_activity[n] = self.populations[n].spiking_activity
 				self.analog_activity[n] = self.populations[n].analog_activity
 
-	def merge_population_activity(self, start=0., stop=1000.):
+	def merge_population_activity(self, start=0., stop=1000., save=False):
 		"""
 		Merge spike and analog data from the different populations
 		:return:
@@ -1455,6 +1418,12 @@ class Network(object):
 				spiking_activity.append(idd, n.spiketrains[idd])
 		for n in list(signals.iterate_obj_list(self.analog_activity)):
 			analog_activity.append(n)
+
+		if save and not signals.empty(self.merged_populations):
+			# verify if the merged population corresponds to the network's populations...
+			self.merged_populations[0].spiking_activity = spiking_activity
+			self.merged_populations[0].analog_activity = analog_activity
+
 		return spiking_activity, analog_activity
 
 	def extract_synaptic_weights(self, src_gids=None, tget_gids=None):
@@ -1515,10 +1484,7 @@ class Network(object):
 		# initialize state extractors:
 		if hasattr(decoding_pars, "state_extractor"):
 			pars_st = decoding_pars.state_extractor
-			# self.state_extractors = []
-			# self.readouts = []
-
-			print "\nConnecting Decoders: "
+			print("\nConnecting Decoders: ")
 
 			# group state_extractors by source population
 			sources = []
@@ -1556,68 +1522,10 @@ class Network(object):
 				pars_rd = decoding_pars.readout
 				for k, v in extractor_indices.items():
 					decoder_params[k].update({'readout': [pars_rd[x] for x in v]})
-
 		else:
 			raise IOError("DecodingLayer requires the specification of state extractors")
 
 		pops = [source_populations[sources.index(x)] for x in unique_sources]
-
 		for (population_name, population) in zip(unique_sources, pops):
 			population.connect_decoders(parameters.ParameterSet(decoder_params[population_name]))
-
-'''
-
-
-					if pop_label in merged_population_names:
-						pop_index = merged_population_names.index(pop_label)
-						src_population = merged_population_objs[pop_index]
-
-					# else:
-
-
-					if n_src == self.population_names:
-						label = ''
-						sub_pop_objects = []
-						for x in n_src:
-							label += x
-							sub_pop_objects.append(self.populations[self.population_names.index(x)])
-
-						src_obj = self.merge_subpopulations(sub_populations=sub_pop_objects, name=label,
-						                                    merge_activity=True)
-					else:
-						indices = [n_src.index(x) for x in self.population_names]
-						sub_pops = [n_src[x] for x in indices]
-						label = ''
-						sub_pop_objects = [self.populations[x] for x in indices]
-						for x in sub_pops:
-							label += x
-
-						src_obj = self.merge_subpopulations(sub_populations=sub_pop_objects, name=label,
-						                                    merge_activity=True)
-				elif n_src in populations:
-					pop_index = populations.index(n_src)
-					src_obj = pop_objs[pop_index]
-				else:
-					raise TypeError("No source populations in Network")
-
-				decoder_params.update({'state_extractor': {'state_variable': pars_st.state_variable[ext_idx],
-				                                           'state_specs': pars_st.state_specs[ext_idx]}})
-
-				if hasattr(decoding_pars, "readout"):
-					pars_readout = decoding_pars.readout[ext_idx]
-					assert(len(decoding_pars.readout) == decoding_pars.state_extractor.N), "Specify one readout dictionary " \
-					                                                                        "per state extractor"
-
-					decoder_params.update({'readout': pars_readout})
-
-				src_obj.connect_decoders(decoder_params)
-
-			self.state_extractors = [self.populations[x].state_extractors for x in range(self.n_populations)]
-			self.state_extractors.extend([x.state_extractors for x in self.merged_populations])
-			self.readouts = [self.populations[x].readouts for x in range(self.n_populations)]
-		else:
-			raise TypeError("State extraction parameters must be specified!")
-
-
-'''
-
+			# print decoder_params[population_name]

@@ -38,12 +38,6 @@ import copy
 import decimal
 import nest
 import nest.topology as tp
-has_rpy = check_dependency('rpy')
-has_rpy2 = check_dependency('rpy2')
-if has_rpy:
-	from rpy import r
-elif has_rpy2:
-	from rpy2.objects import r
 
 
 def pad_array(input_array, add=10):
@@ -454,288 +448,6 @@ class StochasticGenerator:
 			return spikes, extra_spikes
 		else:
 			return spikes
-
-	@staticmethod
-	def gamma_hazard(x, a, b, dt=1e-4):
-		"""
-		Compute the hazard function for a gamma process with parameters a,b
-		where a and b are the parameters of the gamma PDF:
-		y(t) = x^(a-1) \exp(-x/b) / (\Gamma(a)*b^a)
-
-		:param x: in units of seconds
-		:param a: dimensionless
-		:param b: in units of seconds
-		"""
-		# current implementation relies on RPy...
-		if has_rpy:
-			Hpre = -r.pgamma(x - dt, shape=a, scale=b, lower=False, log=True)
-			Hpost = -r.pgamma(x + dt, shape=a, scale=b, lower=False, log=True)
-			val = 0.5 * (Hpost - Hpre) / dt
-			return val
-		elif has_rpy2:
-			Hpre = -r.pgamma(x - dt, shape=a, scale=b, lower=False, log=True)[0]
-			Hpost = -r.pgamma(x + dt, shape=a, scale=b, lower=False, log=True)[0]
-			val = 0.5 * (Hpost - Hpre) / dt
-			return val
-		else:
-			raise ImportError("gamma_hazard requires RPy or RPy2 (http://rpy.sourceforge.net/)")
-
-	def inh_gamma_generator(self, a, b, t, t_stop, array=False):
-		"""
-		Returns a SpikeList whose spikes are a realization of an inhomogeneous gamma process
-		(dynamic rate). The implementation uses the thinning method, as presented in the
-		references.
-
-		:param a,b: arrays of the parameters of the gamma PDF where a[i] and b[i] will be active on interval [t[i],
-		t[i+1]]
-		:param t: an array specifying the time bins (in milliseconds) at which to specify the rate
-		:param t_stop: length of time to simulate process (in ms)
-		:param array: if True, a numpy array of sorted spikes is returned, rather than a SpikeList object.
-		Note:
-		-----
-			t_start=t[0]
-			a is a dimensionless quantity > 0, but typically on the order of 2-10.
-			a = 1 results in a poisson process.
-			b is assumed to be in units of 1/Hz (seconds).
-		References:
-		----------
-		Eilif Muller, Lars Buesing, Johannes Schemmel, and Karlheinz Meier
-		Spike-Frequency Adapting Neural Ensembles: Beyond Mean Adaptation and Renewal Theories
-		Neural Comput. 2007 19: 2958-3010.
-
-		Devroye, L. (1986). Non-uniform random variate generation. New York: Springer-Verlag.
-		"""
-		if np.shape(t) != np.shape(a) or np.shape(a) != np.shape(b):
-			raise ValueError('shape mismatch: t,a,b must be of the same shape')
-
-		# get max rate and generate poisson process to be thinned
-		rmax = np.max(1.0 / b)
-		ps = self.poisson_generator(rmax, t_start=t[0], t_stop=t_stop, array=True)
-
-		# return empty if no spikes
-		if len(ps) == 0:
-			if array:
-				return np.array([])
-			else:
-				return signals.SpikeTrain(np.array([]), t_start=t[0], t_stop=t_stop)
-		# gen uniform rand on 0,1 for each spike
-		rn = np.array(self.rng.uniform(0, 1, len(ps)))
-
-		# instantaneous a,b for each spike
-		idx = np.searchsorted(t, ps) - 1
-		spike_a = a[idx]
-		spike_b = b[idx]
-		keep = np.zeros(np.shape(ps), bool)
-
-		# thin spikes
-		i = 0
-		t_last = 0.0
-		t_i = 0
-
-		while i < len(ps):
-			# find index in "t" time
-			t_i += np.searchsorted(t[t_i:], ps[i], 'right') - 1
-			if rn[i] < self.gamma_hazard((ps[i] - t_last) / 1000.0, a[t_i], b[t_i]) / rmax:
-				# keep spike
-				t_last = ps[i]
-				keep[i] = True
-			i += 1
-
-		spike_train = ps[keep]
-
-		if array:
-			return spike_train
-
-		return signals.SpikeTrain(spike_train, t_start=t[0], t_stop=t_stop)
-
-	def inh_adaptingmarkov_generator(self, a, bq, tau, t, t_stop, array=False):
-		"""
-		Returns a SpikeList whose spikes are an inhomogeneous
-		realization (dynamic rate) of the so-called adapting markov
-		process (see references). The implementation uses the thinning
-		method, as presented in the references.
-
-		This is the 1d implementation, with no relative refractoriness.
-		For the 2d implementation with relative refractoriness,
-		see the inh_2dadaptingmarkov_generator.
-
-		:param a, bq: arrays of the parameters of the hazard function where a[i] and bq[i] will be active
-						on interval [t[i],t[i+1]]
-		:param tau: the time constant of adaptation (in milliseconds).
-		:param t: an array specifying the time bins (in milliseconds) at which to specify the rate
-		:param t_stop: length of time to simulate process (in ms)
-		:param array: if True, a numpy array of sorted spikes is returned, rather than a SpikeList object.
-
-		Note:
-		-----
-			- t_start=t[0]
-
-			- a is in units of Hz.  Typical values are available
-			  in Fig. 1 of Muller et al 2007, a~5-80Hz (low to high stimulus)
-
-			- bq here is taken to be the quantity b*q_s in Muller et al 2007, is thus
-			  dimensionless, and has typical values bq~3.0-1.0 (low to high stimulus)
-
-			- tau_s has typical values on the order of 100 ms
-
-		References:
-		-----------
-		Eilif Muller, Lars Buesing, Johannes Schemmel, and Karlheinz Meier
-		Spike-Frequency Adapting Neural Ensembles: Beyond Mean Adaptation and Renewal Theories
-		Neural Comput. 2007 19: 2958-3010.
-
-		Devroye, L. (1986). Non-uniform random variate generation. New York: Springer-Verlag.
-		"""
-		if np.shape(t) != np.shape(a) or np.shape(a) != np.shape(bq):
-			raise ValueError('Shape mismatch: t, a, b must be of the same shape')
-
-		# get max rate and generate poisson process to be thinned
-		rmax = np.max(a)
-		ps = self.poisson_generator(rmax, t_start=t[0], t_stop=t_stop, array=True)
-
-		isi = np.zeros_like(ps)
-		isi[1:] = ps[1:] - ps[:-1]
-		isi[0] = ps[0]  # -0.0 # assume spike at 0.0
-
-		# return empty if no spikes
-		if len(ps) == 0:
-			return signals.SpikeTrain(np.array([]), t_start=t[0], t_stop=t_stop)
-
-		# gen uniform rand on 0,1 for each spike
-		rn = np.array(self.rng.uniform(0, 1, len(ps)))
-
-		# instantaneous a,bq for each spike
-		idx = np.searchsorted(t, ps) - 1
-		spike_a = a[idx]
-		spike_bq = bq[idx]
-
-		keep = np.zeros(np.shape(ps), bool)
-
-		# thin spikes
-		i = 0
-		t_last = 0.0
-		t_i = 0
-		# initial adaptation state is unadapted, i.e. large t_s
-		t_s = 1000 * tau
-
-		while i < len(ps):
-			# find index in "t" time, without searching whole array each time
-			t_i += np.searchsorted(t[t_i:], ps[i], 'right') - 1
-
-			# evolve adaptation state
-			t_s += isi[i]
-
-			if rn[i] < a[t_i] * np.exp(-bq[t_i] * np.exp(-t_s / tau)) / rmax:
-				# keep spike
-				keep[i] = True
-				# remap t_s state
-				t_s = -tau * np.log(np.exp(-t_s / tau) + 1)
-			i += 1
-
-		spike_train = ps[keep]
-
-		if array:
-			return spike_train
-
-		return signals.SpikeTrain(spike_train, t_start=t[0], t_stop=t_stop)
-
-	def inh_2Dadaptingmarkov_generator(self, a, bq, tau_s, tau_r, qrqs, t, t_stop, array=False):
-		"""
-		Returns a SpikeList whose spikes are an inhomogeneous realization (dynamic rate) of the so-called 2D
-		adapting markov process (see references).  2D implies the process has two states, an adaptation state,
-		and a refractory state, both of	which affect its probability to spike.  The implementation
-		uses the thinning method, as presented in the references.
-
-		For the 1d implementation, with no relative refractoriness, see the inh_adaptingmarkov_generator.
-
-		:param a, bq: arrays of the parameters of the hazard function where a[i] and bq[i] will be active on
-						interval [t[i],t[i+1]]
-		:param tau_s: the time constant of adaptation (in milliseconds).
-		:param tau_r: the time constant of refractoriness (in milliseconds).
-		:param qrqs: the ratio of refractoriness conductance to adaptation conductance. typically on the order of 200.
-		:param t: an array specifying the time bins (in milliseconds) at which to specify the rate
-		:param t_stop: length of time to simulate process (in ms)
-		:param array: if True, a numpy array of sorted spikes is returned, rather than a SpikeList object.
-
-		Note:
-		-----
-			- t_start=t[0]
-
-			- a is in units of Hz.  Typical values are available
-			  in Fig. 1 of Muller et al 2007, a~5-80Hz (low to high stimulus)
-
-			- bq here is taken to be the quantity b*q_s in Muller et al 2007, is thus
-			  dimensionless, and has typical values bq~3.0-1.0 (low to high stimulus)
-
-			- qrqs is the quantity q_r/q_s in Muller et al 2007,
-			  where a value of qrqs = 3124.0nS/14.48nS = 221.96 was used.
-
-			- tau_s has typical values on the order of 100 ms
-			- tau_r has typical values on the order of 2 ms
-		References:
-		-----------
-		Eilif Muller, Lars Buesing, Johannes Schemmel, and Karlheinz Meier
-		Spike-Frequency Adapting Neural Ensembles: Beyond Mean Adaptation and Renewal Theories
-		Neural Comput. 2007 19: 2958-3010.
-
-		Devroye, L. (1986). Non-uniform random variate generation. New York: Springer-Verlag.
-		"""
-		if np.shape(t) != np.shape(a) or np.shape(a) != np.shape(bq):
-			raise ValueError('shape mismatch: t,a,b must be of the same shape')
-
-		# get max rate and generate poisson process to be thinned
-		rmax = np.max(a)
-		ps = self.poisson_generator(rmax, t_start=t[0], t_stop=t_stop, array=True)
-
-		isi = np.zeros_like(ps)
-		isi[1:] = ps[1:] - ps[:-1]
-		isi[0] = ps[0]  # -0.0 # assume spike at 0.0
-
-		# return empty if no spikes
-		if len(ps) == 0:
-			return signals.SpikeTrain(np.array([]), t_start=t[0], t_stop=t_stop)
-
-		# gen uniform rand on 0,1 for each spike
-		rn = np.array(self.rng.uniform(0, 1, len(ps)))
-
-		# instantaneous a,bq for each spike
-
-		idx = np.searchsorted(t, ps) - 1
-		spike_a = a[idx]
-		spike_bq = bq[idx]
-
-		keep = np.zeros(np.shape(ps), bool)
-
-		# thin spikes
-		i = 0
-		t_last = 0.0
-		t_i = 0
-		# initial adaptation state is unadapted, i.e. large t_s
-		t_s = 1000 * tau_s
-		t_r = 1000 * tau_s
-
-		while i < len(ps):
-			# find index in "t" time, without searching whole array each time
-			t_i += np.searchsorted(t[t_i:], ps[i], 'right') - 1
-
-			# evolve adaptation state
-			t_s += isi[i]
-			t_r += isi[i]
-
-			if rn[i] < a[t_i] * np.exp(-bq[t_i] * (np.exp(-t_s / tau_s) + qrqs * np.exp(-t_r / tau_r))) / rmax:
-				# keep spike
-				keep[i] = True
-				# remap t_s state
-				t_s = -tau_s * np.log(np.exp(-t_s / tau_s) + 1)
-				t_r = -tau_r * np.log(np.exp(-t_r / tau_r) + 1)
-			i += 1
-
-		spike_train = ps[keep]
-
-		if array:
-			return spike_train
-
-		return signals.SpikeTrain(spike_train, t_start=t[0], t_stop=t_stop)
 
 	def OU_generator(self, dt, tau, sigma, y0, t_start=0.0, t_stop=1000.0, rectify=False, array=False, time_it=False):
 		"""
@@ -1198,7 +910,7 @@ class StimulusSet(object):
 		Initialize the StimulusSet object
 		:param initializer: stimulus ParameterSet
 		"""
-		print("\n Generating StimulusSet: ")
+		print("\nGenerating StimulusSet: ")
 		self.grammar = None
 		self.full_stim_set = None
 		self.transient_stim_set = None
@@ -2138,7 +1850,7 @@ class InputSignalSet(object):
 	"""
 
 	def __init__(self, parameter_set, stim_obj=None, rng=None, online=False):
-		print "\n Generating Input Signals: "
+		print "\nGenerating Input Signals: "
 		self.online = online
 		self.parameters = parameter_set.input_pars
 		self.transient_set_signal = None
@@ -2789,8 +2501,8 @@ class EncodingLayer:
 		self.connection_weights = {}
 		self.connection_delays = {}
 		self.signal = signal
-		self.state_extractors = []
-		self.readouts = []
+		#self.state_extractors = []
+		#self.readouts = []
 
 		def create_encoders(encoder_pars, signal=None):
 			"""
@@ -3492,9 +3204,7 @@ class EncodingLayer:
 		# initialize state extractors:
 		if hasattr(decoding_pars, "state_extractor"):
 			pars_st = decoding_pars.state_extractor
-			self.state_extractors = []
-			self.readouts = []
-			print "\nConnecting Decoders: "
+			print("\nConnecting Decoders: ")
 			for ext_idx, n_src in enumerate(pars_st.source_population):
 				assert(n_src in self.encoder_names), "State extractor must connect to encoder population"
 				if n_src in self.encoder_names:
@@ -3503,19 +3213,17 @@ class EncodingLayer:
 				else:
 					raise TypeError("No source populations in Encoding Layer")
 
-				decoder_params.update({'state_extractor': {'state_variable': pars_st.state_variable[ext_idx],
-			                                           'state_specs': pars_st.state_specs[ext_idx]}})
+				decoder_params.update({'state_variable': pars_st.state_variable,
+			                           'state_specs': pars_st.state_specs})
 
 				if hasattr(decoding_pars, "readout"):
-					pars_readout = decoding_pars.readout[ext_idx]
+					pars_readout = decoding_pars.readout
 					assert(len(decoding_pars.readout) == decoding_pars.state_extractor.N), "Specify one readout dictionary " \
 					                                                                "per state extractor"
 					decoder_params.update({'readout': pars_readout})
-				src_obj.connect_decoders(decoder_params)
-			self.state_extractors = [self.encoders[x].state_extractors for x in range(len(self.encoders))]
-			self.readouts = [self.encoders[x].readouts for x in range(len(self.encoders))]
+				src_obj.connect_decoders(parameters.ParameterSet(decoder_params))
 		else:
-			raise TypeError("State extraction parameters must be specified!")
+			raise IOError("DecodingLayer requires the specification of state extractors")
 
 	def extract_synaptic_weights(self, src_gids=None, tget_gids=None, syn_name=None):
 		"""
@@ -3578,7 +3286,7 @@ class EncodingLayer:
 		:return:
 		"""
 		if not signals.empty(self.encoders):
-			print "\nExtracting and storing recorded activity from encoders: "
+			print("\nExtracting and storing recorded activity from encoders: ")
 		for n_enc in self.encoders:
 			if n_enc.attached_devices:
 				print "- Encoder {0}".format(n_enc.name)
@@ -3595,42 +3303,20 @@ class EncodingLayer:
 		Delete all data from all devices connected to the encoders
 		:return:
 		"""
-		if not signals.empty(self.encoders) or not signals.empty(self.state_extractors):
-			print "\nClearing device data: "
+		if not signals.empty(self.encoders):
+			print("\nClearing device data: ")
 		for n_enc in self.encoders:
 			if n_enc.attached_devices:
 				devices = n_enc.attached_device_names
 				for idx, n_dev in enumerate(n_enc.attached_devices):
-					print "- {0}".format(devices[idx])
+					print " - {0} {1}".format(devices[idx], str(n_dev))
 					nest.SetStatus(n_dev, {'n_events': 0})
 					if nest.GetStatus(n_dev)[0]['to_file']:
 						io.remove_files(nest.GetStatus(n_dev)[0]['filenames'])
-
 		if decoders:
-			decoder_ids = []
-			decoder_names = []
-			if not signals.empty(self.state_extractors):
-				dec_ids = []
-				for idx, n in enumerate(self.encoders):
-					dec_ids.append(n.state_extractors)
-					decoder_names.append(list(np.repeat(n.name, len(n.state_extractors))))
-
-				decoder_ids.append([self.encoders[n].state_extractors for n in range(len(self.encoders))])
-
-			decoder_names = list(signals.iterate_obj_list(decoder_names))
-			decoder_ids = list(signals.iterate_obj_list(decoder_ids))
-			if len(decoder_ids) != len(decoder_names):
-				decoder_ids = list(signals.iterate_obj_list(decoder_ids))
-
-			if not signals.empty(decoder_ids) and isinstance(decoder_ids[0], list):
-				dec_ids = list(itertools.chain(*decoder_ids))
-			else:
-				dec_ids = decoder_ids
-			for idx, n in enumerate(dec_ids):
-				print " - {0}".format('StateExtractor_' + decoder_names[idx])
-				nest.SetStatus(n, {'n_events': 0})
-				if nest.GetStatus(n)[0]['to_file']:
-					io.remove_files(nest.GetStatus(n)[0]['filenames'])
+			for n_enc in self.encoders:
+				if n_enc.decoding_layer is not None:
+					n_enc.decoding_layer.flush_records()
 
 	def update_state(self, signal):
 		"""

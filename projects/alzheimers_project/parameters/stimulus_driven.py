@@ -128,21 +128,23 @@ def build_parameters():
 	# ##################################################################################################################
 	# Decoding / Readout Parameters
 	# ##################################################################################################################
+	out_resolution = 1.
 	state_sampling = None  # 1.(cannot start at 0)
-	readout_labels = ['class0', 'class0']
+	readout_labels = ['ridge_classifier', 'pinv_classifier']
 	readout_algorithms = ['ridge', 'pinv']
 
 	decoders = dict(
-		decoded_population=[['E', 'I']],
-		state_variable=['spikes'],
+		decoded_population=[['E', 'I'], ['E', 'I'], 'E'],
+		state_variable=['spikes', 'V_m', 'spikes'],
 		filter_time=filter_tau,
 		readouts=readout_labels,
 		readout_algorithms=readout_algorithms,
-		global_sampling_times=state_sampling,
+		sampling_times=state_sampling,
+		#state_sampling_parameters=[{}],
+		#sampling_lag=10.,
 	)
 
-	decoding_pars = set_decoding_defaults(default_set=1, output_resolution=1., to_memory=True, kernel_pars=kernel_pars,
-	                                      **decoders)
+	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)
 
 	## Set decoders for input population (if applicable)
 	input_decoder = dict(
@@ -150,8 +152,8 @@ def build_parameters():
 		filter_time=filter_tau,
 		readouts=readout_labels,
 		readout_algorithms=readout_algorithms,
-		output_resolution=inp_resolution,
-		global_sampling_times=state_sampling)
+		output_resolution=out_resolution,
+		sampling_times=state_sampling)
 
 	encoding_pars = add_input_decoders(encoding_pars, input_decoder, kernel_pars)
 

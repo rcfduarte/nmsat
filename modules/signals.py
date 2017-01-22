@@ -1632,7 +1632,6 @@ class SpikeList(object):
 		with open(full_path_to_file, 'w') as fp:
 			pickle.dump(self, fp)
 
-	#TODO @barni is this okay here?
 	def empty(self):
 		"""
 		Checks if SpikeList object has any spikes.
