@@ -1,14 +1,17 @@
 __author__ = 'duarte'
-import sys
-sys.path.append('../')
-
-from modules.input_architect import *
-from modules.visualization import *
-from modules.analysis import *
+from modules.parameters import ParameterSet, ParameterSpace, extract_nestvalid_dict
+from modules.input_architect import EncodingLayer, StimulusSet, InputSignalSet
+from modules.net_architect import Network
 from modules.io import set_storage_locations
-from computations import *
-import time
+from modules.signals import iterate_obj_list, empty
+from modules.visualization import set_global_rcParams, InputPlots, extract_encoder_connectivity, TopologyPlots
+from modules.analysis import characterize_population_activity, compute_ainess
+from modules.auxiliary import iterate_input_sequence
 import cPickle as pickle
+import matplotlib.pyplot as pl
+import numpy as np
+import time
+import nest
 
 # ######################################################################################################################
 # Experiment options
@@ -37,9 +40,7 @@ if not isinstance(parameter_set, ParameterSet):
 # Setup extra variables and parameters
 # ======================================================================================================================
 if plot:
-	import modules.visualization as vis
-	from matplotlib import pyplot as pl
-	vis.set_global_rcParams(parameter_set.kernel_pars['mpl_path'])
+	set_global_rcParams(parameter_set.kernel_pars['mpl_path'])
 paths = set_storage_locations(parameter_set, save)
 
 np.random.seed(parameter_set.kernel_pars['np_seed'])
@@ -57,7 +58,7 @@ nest.SetKernelStatus(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(),
 # Build network
 # ======================================================================================================================
 net = Network(parameter_set.net_pars)
-net.merge_subpopulations([net.populations[0], net.populations[1]], name='EI')
+net.merge_subpopulations([net.populations[0], net.populations[1]])
 
 # ######################################################################################################################
 # Randomize initial variable values
@@ -80,9 +81,11 @@ print "- Elapsed Time: {0}".format(str(time.time()-stim_set_time))
 # Create InputSignalSet
 input_set_time = time.time()
 inputs = InputSignalSet(parameter_set, stim, online=online)
+
+inputs.generate_full_set(stim)
 if stim.transient_set_labels:
 	inputs.generate_transient_set(stim)
-	parameter_set.kernel_pars.transient_t = inputs.transient_stimulation_time
+
 inputs.generate_unique_set(stim)
 inputs.generate_train_set(stim)
 inputs.generate_test_set(stim)
@@ -116,18 +119,18 @@ else:
 enc_layer = EncodingLayer(parameter_set.encoding_pars, signal=input_signal, online=online)
 enc_layer.connect(parameter_set.encoding_pars, net)
 
-# Attach decoders to input encoding populations
-if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input_decoder"):
-	enc_layer.connect_decoders(parameter_set.encoding_pars.input_decoder)
-
 if plot and debug:
-	vis.extract_encoder_connectivity(enc_layer, net, display, save=paths['figures']+paths['label'])
+	extract_encoder_connectivity(enc_layer, net, display, save=paths['figures']+paths['label'])
 
 # ######################################################################################################################
 # Set-up Analysis
 # ======================================================================================================================
 net.connect_devices()
 net.connect_decoders(parameter_set.decoding_pars)
+
+# Attach decoders to input encoding populations
+if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input_decoder"):
+	enc_layer.connect_decoders(parameter_set.encoding_pars.input_decoder)
 
 # ######################################################################################################################
 # Connect Network
@@ -136,7 +139,7 @@ net.connect_populations(parameter_set.connection_pars)
 
 if plot and debug:
 	fig_W = pl.figure()
-	topology = vis.TopologyPlots(parameter_set.connection_pars, net)
+	topology = TopologyPlots(parameter_set.connection_pars, net)
 	topology.print_network(depth=3)
 	ax1 = pl.subplot2grid((6, 6), (0, 0), rowspan=4, colspan=4)
 	ax2 = pl.subplot2grid((6, 6), (5, 0), rowspan=1, colspan=4)
@@ -146,11 +149,15 @@ if plot and debug:
  	                           ax=[ax1, ax3, ax2, ax4], display=display, save=paths['figures']+paths['label'])
 
 # ######################################################################################################################
-# Simulate (Initial Transient)
+# Simulate (Full Set)
 # ======================================================================================================================
+iterate_input_sequence(net, enc_layer, parameter_set, stim, inputs, set_name='unique', record=True,
+                       store_activity=False)
+'''
 if stim.transient_set_labels:
 	if not online:
 		print "\nTransient time = {0} ms".format(str(parameter_set.kernel_pars.transient_t))
+
 
 	iterate_input_sequence(net, inputs.transient_set_signal, enc_layer, sampling_times=None,
 	                       sampling_lag=2., stim_set=stim, input_set=inputs, set_name='transient',
@@ -252,3 +259,5 @@ if save:
 	with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
 		pickle.dump(results, f)
 	parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
+
+'''

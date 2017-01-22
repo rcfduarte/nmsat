@@ -2180,45 +2180,68 @@ def animate_trajectory(response_matrix, pca_fit_obj, interval=100, label='', ax=
 		ani.save('{0}_animation.gif'.format(save), fps=1000)
 
 
-def plot_response(responses, time_data, population, idx=None, spiking_activity=None, display=True, save=False):
+def plot_response(population, ids=None, spiking_activity=None, display=True, save=False):
 	"""
+	Plot activity matrix and the traces for specified ids, along with the spikes recorded with the spike detector
+	:param population: Population object to which the responses belong
+	:param ids: ids of the neurons to plot independently
+	:param spiking_activity: if None the population's spiking_activity will be used instead, otherwise, should be a
+	SpikeList object
+	:param display:
+	:param save:
 	"""
-
+	assert (population.decoding_layer is not None), "Population must have a decoding layer"
+	assert (not signals.empty(population.decoding_layer.activity)), "Extract population activity first"
 	fig1 = pl.figure()
-	ax1 = fig1.add_subplot(111)
-	plt = ax1.imshow(responses.as_array(), aspect='auto', interpolation='nearest')
-	divider = make_axes_locatable(ax1)
-	cax = divider.append_axes("right", "5%", pad="4%")
-	cbar = fig1.colorbar(plt, cax=cax)
-	ax1.set_xlabel(r"Time [ms]")
-	ax1.set_ylabel("Neuron")
-	fig1.suptitle(r"Population ${0}$ State".format(population.name))
+	fig2 = pl.figure()
+	fig1.suptitle(r"Population {0} activity".format(population.name))
+
+	for state_idx, n_state in enumerate(population.decoding_layer.state_variables):
+		globals()['ax_{0}'.format(state_idx)] = fig1.add_subplot(len(population.decoding_layer.state_variables),
+		                                                         1, state_idx + 1)
+		plt = globals()['ax_{0}'.format(state_idx)].imshow(population.decoding_layer.activity[state_idx].as_array(),
+		                                                   aspect='auto', interpolation='nearest')
+		divider = make_axes_locatable(globals()['ax_{0}'.format(state_idx)])
+		cax = divider.append_axes("right", "5%", pad="4%")
+		cbar = fig1.colorbar(plt, cax=cax)
+		globals()['ax_{0}'.format(state_idx)].set_xlabel(r"Time [ms]")
+		globals()['ax_{0}'.format(state_idx)].set_ylabel("Neuron")
+		globals()['ax_{0}'.format(state_idx)].set_title("{0}".format(n_state))
 
 	if not signals.empty(population.spiking_activity) or spiking_activity is not None:
 		if spiking_activity is not None:
 			sl = spiking_activity
 		else:
 			sl = population.spiking_activity
-		fig2 = pl.figure()
-		ax21 = fig2.add_subplot(111)
-		fig2.suptitle(r"$" + str(population.name) + " Responses$")
-		if idx is None:
-			neuron_idx = np.random.permutation(sl.id_list)[0]
-			list_idx = np.where(np.sort(population.gids) == neuron_idx)[0][0]
+
+		if ids is not None:
+			assert (isinstance(ids, list) or isinstance(ids, np.ndarray)), "Provide list or array of neuron gids"
 		else:
-			list_idx = idx
-			neuron_idx = sl.id_list[idx]
-		spk = sl.spiketrains[int(neuron_idx)]
-		ax21.plot(time_data, responses.as_array()[list_idx, :])
-		# ax22 = fig2.add_subplot(212, sharex=ax21)
-		# new_spk_ids, _ = simple_raster(spk.spike_times, neuron_idx*np.ones_like(spk.spike_times), [neuron_idx], 'k',
-		#                                ax22, 2)
-		ax21.plot(spk.spike_times, np.ones_like(spk.spike_times), 'o')
-		ax21.set_title(r"gid {0} [${1}$]".format(str(neuron_idx), population.name))
-		#ax21.set_xlim([min(responses.as_array()[list_idx, :]), max(responses.as_array()[list_idx, :])])
-		#ax22.set_xlim([min(responses.as_array()[list_idx, :]), max(responses.as_array()[list_idx, :])])
-		if save:
-			fig2.savefig(save + population.name + '_Response2.pdf')
+			ids = np.random.permutation(sl.id_list)[:5]
+		list_idx = ids - min(population.gids)#np.where(np.sort(np.array(population.gids)) == neuron_idx)[
+		# 0][0]
+
+		for state_idx, n_state in enumerate(population.decoding_layer.state_variables):
+			globals()['fig_{0}'.format(state_idx)] = pl.figure()
+			label = "population_{0}_variable_{1}".format(str(population.name), str(n_state))
+			activity = population.decoding_layer.activity[state_idx]
+			globals()['fig_{0}'.format(state_idx)].suptitle(r"Population {0} [${1}$] - $dt={2}$".format(str(
+				population.name), str(n_state), str(activity.dt)))
+			time_axis = activity.time_axis()
+			for iid, neuron_id in enumerate(ids):
+				spk = sl.spiketrains[int(neuron_id)]
+				globals()['ax_1{0}'.format(str(iid))] = globals()['fig_{0}'.format(state_idx)].add_subplot(len(ids),
+				                                                                        1, iid+1)
+				globals()['ax_1{0}'.format(str(iid))].plot(time_axis, activity.as_array()[list_idx[iid], :])
+				ylims = globals()['ax_1{0}'.format(str(iid))].get_ylim()
+				for idxx, n_spk in enumerate(spk.spike_times):
+					globals()['ax_1{0}'.format(str(iid))].vlines(n_spk, ylims[0], ylims[1], lw=2)
+				# globals()['ax_1{0}'.format(str(iid))].plot(spk.spike_times, np.ones_like(spk.spike_times), 'o')
+				globals()['ax_1{0}'.format(str(iid))].set_title(r"gid {0} [{1}]".format(str(neuron_id), population.name))
+				globals()['ax_1{0}'.format(str(iid))].set_xlim([activity.t_start, activity.t_stop])
+				globals()['ax_1{0}'.format(str(iid))].set_ylim(ylims)
+			if save:
+				globals()['fig_{0}'.format(state_idx)].savefig(save + label + '.pdf')
 
 	if display:
 		pl.show(block=False)

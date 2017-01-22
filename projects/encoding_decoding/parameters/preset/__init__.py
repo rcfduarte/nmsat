@@ -516,6 +516,60 @@ def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=
 	return ParameterSet(encoding_pars)
 
 
+def set_decoding_defaults(output_resolution=1., to_memory=True, **decoder_pars):
+	"""
+
+	:return:
+	"""
+	keys = ['decoded_population', 'state_variable', 'filter_time', 'readouts', 'sampling_times']
+	if not np.mean([n in decoder_pars.keys() for n in keys]).astype(bool) or len(decoder_pars[
+		                                                                             'decoded_population']) != \
+			len(decoder_pars['state_variable']):
+		raise TypeError("Incorrect Decoder Parameters")
+
+	dec_pars = ParameterSet(decoder_pars)
+	n_decoders = len(dec_pars.decoded_population)
+	if to_memory:
+		rec_device = rec_device_defaults(start=0., #kernel_pars['transient_t'] - output_resolution,
+		                                 resolution=output_resolution)
+	else:
+		rec_device = rec_device_defaults(start=0., #kernel_pars['transient_t'] - output_resolution,
+		                                 resolution=output_resolution, record_to='file')
+	state_specs = []
+	for state_var in dec_pars.state_variable:
+		if state_var == 'V_m':
+			state_specs.append(copy_dict(rec_device, {'model': 'multimeter',
+			                                          'record_n': None,
+			                                          'record_from': ['V_m'],
+			                                          }))
+		elif state_var == 'spikes':
+			state_specs.append({'tau_m': dec_pars.filter_time, 'interval': output_resolution})
+		elif state_var == 'raw_spikes':
+			state_specs.append(copy_dict(rec_device, {'model': 'spike_detector'}))
+	if 'N' in decoder_pars.keys():
+		N = decoder_pars['N']
+	else:
+		N = len(dec_pars.readouts)
+	if len(dec_pars.readout_algorithms) == N:
+		readouts = [{'N': N, 'labels': dec_pars.readouts, 'algorithm': dec_pars.readout_algorithms} for n in
+		            range(n_decoders)]
+	else:
+		readouts = [{'N': N, 'labels': dec_pars.readouts, 'algorithm': [
+			dec_pars.readout_algorithms[n]]} for n in range(n_decoders)]
+
+	decoding_pars = {
+		'state_extractor': {
+			'N': n_decoders,
+			'filter_tau': dec_pars.filter_time,
+			'source_population': dec_pars.decoded_population,
+			'state_variable': dec_pars.state_variable,
+			'state_specs': state_specs},
+		'readout': readouts,
+		'sampling_times': dec_pars.sampling_times,
+	}
+	return ParameterSet(decoding_pars)
+
+
 def add_background_noise(encoding_pars, noise_pars):
 	"""
 	Adds a source of Poisson input to the specified populations (by modifying the encoding parameters)

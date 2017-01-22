@@ -161,13 +161,11 @@ def set_network_defaults(N=1250, kernel_pars=None, **synapse_pars):
 		'spike_device_pars': [copy_dict(rec_devices,
 		                                {'model': 'spike_detector',
 		                                 'record_to': ['memory'],
-		                                 'interval': 0.1,
-		                                 'label': 'E_Spikes'}),
+		                                 'label': ''}),
 		                      copy_dict(rec_devices,
 		                                {'model': 'spike_detector',
 		                                 'record_to': ['memory'],
-		                                 'interval': 0.1,
-		                                 'label': 'I_Spikes'})],
+		                                 'label': ''})],
 		'record_analogs': [False, False],
 		'analog_device_pars': [None, None],
 		'description': {'topology': 'None'}
@@ -320,12 +318,12 @@ def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=
 	return ParameterSet(encoding_pars)
 
 
-def set_decoding_defaults(output_resolution=1., to_memory=True, kernel_pars={}, **decoder_pars):
+def set_decoding_defaults(output_resolution=1., to_memory=True, **decoder_pars):
 	"""
 
 	:return:
 	"""
-	keys = ['decoded_population', 'state_variable', 'filter_time', 'readouts', 'global_sampling_times']
+	keys = ['decoded_population', 'state_variable', 'filter_time', 'readouts', 'sampling_times']
 	if not np.mean([n in decoder_pars.keys() for n in keys]).astype(bool) or len(decoder_pars[
 		                                                                             'decoded_population']) != \
 			len(decoder_pars['state_variable']):
@@ -349,22 +347,18 @@ def set_decoding_defaults(output_resolution=1., to_memory=True, kernel_pars={}, 
 		elif state_var == 'spikes':
 			state_specs.append({'tau_m': dec_pars.filter_time, 'interval': output_resolution})
 
-		elif state_var == 'raw_spikes':
-			state_specs.append(copy_dict(rec_device, {'model': 'spike_detector'}))
 	if 'N' in decoder_pars.keys():
 		N = decoder_pars['N']
 	else:
 		N = len(dec_pars.readouts)
 	if len(dec_pars.readout_algorithms) == N:
-		readouts = [{'N': N, 'labels': dec_pars.readouts, 'algorithm': dec_pars.readout_algorithms} for n in
+		readouts = [{'N': N, 'labels': dec_pars.readouts, 'algorithm': dec_pars.readout_algorithms} for _ in
 		            range(n_decoders)]
 	else:
 		readouts = [{'N': N, 'labels': dec_pars.readouts, 'algorithm': [
 			dec_pars.readout_algorithms[n]]} for n in range(n_decoders)]
 
 	decoding_pars = {
-		'description': {'measurements': '{0} state decoders attached to {1}'.format(str(n_decoders),
-		                                                                            str(dec_pars.decoded_population))},
 		'state_extractor': {
 			'N': n_decoders,
 			'filter_tau': dec_pars.filter_time,
@@ -372,7 +366,7 @@ def set_decoding_defaults(output_resolution=1., to_memory=True, kernel_pars={}, 
 			'state_variable': dec_pars.state_variable,
 			'state_specs': state_specs},
 		'readout': readouts,
-		'global_sampling_times': dec_pars.global_sampling_times,
+		'sampling_times': dec_pars.sampling_times,
 	}
 	return ParameterSet(decoding_pars)
 
@@ -438,7 +432,7 @@ def add_input_decoders(encoding_pars, input_decoder_pars, kernel_pars):
 		input_decoder_pars.state_variable))]})
 	resolution = decoder_dict.pop('output_resolution')
 
-	input_decoder = set_decoding_defaults(default_set=1, output_resolution=resolution, kernel_pars=kernel_pars, **decoder_dict)
+	input_decoder = set_decoding_defaults(output_resolution=resolution, kernel_pars=kernel_pars, **decoder_dict)
 	encoding_pars.update({'input_decoder': input_decoder.as_dict()})
 
 	return ParameterSet(encoding_pars)

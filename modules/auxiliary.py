@@ -1,98 +1,124 @@
-__author__ = 'duarte'
-__all__ = ['single_neuron_dcinput', 'noise_driven_dynamics']
-import numpy as np
+"""
+=====================================================================================
+Auxiliary Module
+=====================================================================================
+Functions that are frequently used...
+
+Functions:
+------------
+
+Classes:
+------------
+
+"""
 from scipy.sparse import coo_matrix
+
+import signals
+import net_architect
+import input_architect
+import parameters
+import numpy as np
 import itertools
-from modules.net_architect import *
-from modules.input_architect import *
-from modules.signals import *
-from modules.visualization import progress_bar
 import nest
 
 
 ########################################################################################################################
 # Auxiliary Functions
 ########################################################################################################################
-def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=None, sampling_lag=200.,
-                           stim_set=None, input_set=None, set_name=None, record=True,
-                           store_responses=False, jitter=None, average=False):
+def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_signal_set,
+                           set_name=None, record=True, store_activity=False):
 	"""
-	Run simulation iteratively, presenting one input stimulus at a time (when input is a discrete stimulus sequence)..
-	:param network_obj: Network object
-	:param input_signal: InputSignal object
+	Run simulation sequentiallu, presenting one input stimulus at a time (if input is a discrete stimulus sequence),
+	gathering the population responses in the DecodingLayers
+	:param net: Network object
 	:param enc_layer: EncodingLayer
 	:param sampling_times: parameter specifying how to sample the population state (either at the end of each
 	stimulus presentation (None), at fixed times (list or array of times relative to stimulus onset) or at a fixed
 	sampling rate (float in [0, 1])
-	:param stim_set: full StimulusSet object
-	:param input_set: full InputSignalSet object
+	:param stimulus_set: full StimulusSet object
+	:param input_signal_set: full InputSignalSet object
 	:param set_name: string with the name of the current set ('transient', 'unique', 'train', 'test')
 	:param record: [bool] - acquire and store state matrices (according to sampling_times and state characteristics)
-	:param store_responses: [bool] - record population activity for the entire simulation time (memory!)
+	:param store_activity: [bool] - record population activity for the entire simulation time (memory!)
 	:param jitter: if input is spike pattern, add jitter
 	:param average: [bool] - if True, state vector is average of subsampled activity vectors
 	"""
-	if not (isinstance(network_obj, Network)):
-		raise TypeError("Please provide a Network object")
-	if not isinstance(enc_layer, EncodingLayer):
-		raise TypeError("Please provide an EncodingLayer object")
-	if input_set is not None and not isinstance(input_set, InputSignalSet):
-		raise TypeError("input_set must be InputSignalSet")
+	assert (isinstance(net, net_architect.Network)), "Please provide a Network object"
+	assert (isinstance(enc_layer, input_architect.EncodingLayer)), "Please provide an EncodingLayer object"
+	assert (isinstance(input_signal_set, input_architect.InputSignalSet)), "input_set must be InputSignalSet"
+	assert (isinstance(parameter_set, parameters.ParameterSet)), "incorrect ParameterSet"
+	assert (isinstance(stimulus_set, input_architect.StimulusSet)), "incorrect ParameterSet"
 
-	# sampling_lag = 200. - 0.1# short look-up time window to acquire the state vector TODO
-	if sampling_times is None and not input_set.online:
-		t_samp = np.sort(list(iterate_obj_list(input_signal.offset_times)))
-	elif sampling_times is None and input_set.online:
+	# extract important parameters:
+	sampling_times = parameter_set.decoding_pars.sampling_times
+	jitter = parameter_set.encoding_pars.generator.jitter
+
+	# determine set to use and its properties
+	if set_name is None:
+		set_name = 'full'
+	current_set = set_name
+	all_labels = getattr(stimulus_set, '{0}_set_labels'.format(current_set))
+	if isinstance(all_labels[0], list):
+		labels = np.unique(list(itertools.chain(*all_labels)))
+		set_labels = list(itertools.chain(*all_labels))
+	else:
+		labels = np.unique(all_labels)
+		set_labels = all_labels
+	set_size = len(set_labels)
+	input_signal = getattr(input_signal_set, "{0}_set_signal".format(current_set))
+	stimulus_seq = getattr(stimulus_set, '{0}_set'.format(current_set))
+	if input_signal_set.online:
+		signal_iterator = getattr(input_signal_set, '{0}_set_signal_iterator'.format(current_set))
+		intervals = [0]
+	else:
+		signal_iterator = None
+		intervals = input_signal.intervals
+
+	# set state sampling parameters
+	if sampling_times is None and not input_signal_set.online:
+		t_samp = np.sort(list(signals.iterate_obj_list(input_signal.offset_times)))
+	elif sampling_times is None and input_signal_set.online:
 		t_samp = [0]
-	elif sampling_times is not None and input_set.online:
+	elif sampling_times is not None and input_signal_set.online:
 		t_samp = sampling_times
 		t_step = [0]
 	else:
 		t_samp = sampling_times
 
-	if not input_set.online:
-		intervals = input_signal.intervals
-		set_size = len(list(iterate_obj_list(input_signal.amplitudes)))
-		set_names = ['train', 'test', 'transient', 'unique', 'full']
-		set_sizes = {k: 0 for k in set_names}
-		for k, v in stim_set.__dict__.items():
-			for set_name in set_names:
-				if k == '{0}_set_labels'.format(set_name):
-					set_sizes['{0}'.format(set_name)] = len(v)
-		current_set = [key for key, value in set_sizes.items() if set_size == value][0]
-	else:
-		assert (set_name is not None), "set_name needs to be provided in online mode.."
-		current_set = set_name
-		set_size = len(getattr(stim_set, '{0}_set_labels'.format(current_set)))
-		signal_iterator = getattr(input_set, '{0}_set_signal_iterator'.format(current_set))
-		stimulus_seq = getattr(stim_set, '{0}_set'.format(current_set))
-		intervals = [0]  # ?
+	# if not input_signal_set.online:
+	# 	intervals = input_signal.intervals
+	# 	set_size = len(list(signals.iterate_obj_list(input_signal.amplitudes)))
+	# 	set_names = ['train', 'test', 'transient', 'unique', 'full']
+	# 	set_sizes = {k: 0 for k in set_names}
+	# 	for k, v in stimulus_set.__dict__.items():
+	# 		for set_name in set_names:
+	# 			if k == '{0}_set_labels'.format(set_name):
+	# 				set_sizes['{0}'.format(set_name)] = len(v)
+	# 	current_set = [key for key, value in set_sizes.items() if set_size == value][0]
+	# else:
+	# 	assert (set_name is not None), "set_name needs to be provided in online mode.."
+	# 	current_set = set_name
+	# 	set_size = len(getattr(stimulus_set, '{0}_set_labels'.format(current_set)))
+	# 	signal_iterator = getattr(input_signal_set, '{0}_set_signal_iterator'.format(current_set))
+	# 	stimulus_seq = getattr(stimulus_set, '{0}_set'.format(current_set))
+	# 	intervals = [0]  # ?
 
-	if store_responses:
+	if store_activity:
 		print("\n\n!!! All responses will be stored !!!")
-		all_labels = getattr(stim_set, '{0}_set_labels'.format(current_set))
-		if isinstance(all_labels[0], list):
-			labels = np.unique(list(itertools.chain(*all_labels)))
-			set_labels = list(itertools.chain(*all_labels))
-		else:
-			labels = np.unique(all_labels)
-			set_labels = all_labels
 		epochs = {k: [] for k in labels}
 
 	####################################################################################################################
 	if sampling_times is None:  # one sample for each stimulus (acquired at the last time point of each stimulus)
-		if input_set.online:
-			print("\nSimulating {0} steps".format(str(set_size)))
-		else:
-			print("\nSimulating {0} ms in {1} steps".format(str(
-				input_signal.input_signal.t_stop - input_signal.input_signal.t_start), str(set_size)))
+		print("\nSimulating {0} steps".format(str(set_size)))
 
 		# ################################ Main Loop ###################################
 		for idx, t in enumerate(t_samp):
 
+			# internal time
 			t_int = nest.GetKernelStatus()['time']
 
-			if input_set.online and idx < set_size:
+			# determine simulation time for current stimulus
+			if input_signal_set.online and idx < set_size:
 				local_signal = signal_iterator.next()
 				local_signal.time_offset(t_int)
 				intervals.append(local_signal.intervals)
@@ -101,7 +127,7 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 				if intervals[-1]:
 					t += intervals[-1]
 				t_sim = t - t_int
-				if store_responses:
+				if store_activity:
 					epochs[set_labels[idx]].append((t_int, t_samp[-1]))
 					print(idx, set_labels[idx], epochs[set_labels[idx]][-1])
 			else:
@@ -109,88 +135,91 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 				if idx < len(t_samp) - 1:
 					if intervals[idx]:
 						t += intervals[idx]
-					if store_responses:
+					if store_activity:
 						epochs[set_labels[idx]].append((t_int, t_samp[idx]))
 						print(idx, set_labels[idx], epochs[set_labels[idx]][-1])
 				t_sim = t - t_int
 
 			if len(t_samp) <= set_size + 1 and t_sim > 0.:
-				print("\nSimulating step {0} [{1} ms]".format(str(idx + 1), str(t_sim)))
+				print("\nSimulating step {0} / stimulus {1} [{2} ms]".format(str(idx + 1), str(set_labels[idx]),
+				                                                             str(t_sim)))
 
-				# Spike templates (need to be updated online)
-				if np.mean(['spike_pattern' in n for n in list(iterate_obj_list(enc_layer.generator_names))]) == 1. and \
-								input_set is not None:
-					assert (len(input_set.spike_patterns) == stim_set.dims), "Incorrect number of spike patterns"
-					if input_set.online and local_signal is not None:
-						stimulus_id = [nx for nx in range(stim_set.dims) if t_samp[-1] in local_signal.offset_times[nx]]
+				# update spike template data
+				if all(['spike_pattern' in n for n in list(signals.iterate_obj_list(enc_layer.generator_names))]):
+					assert (len(input_signal_set.spike_patterns) == stimulus_set.dims), "Incorrect number of spike " \
+					                                                                 "patterns"
+					if input_signal_set.online and local_signal is not None:
+						stimulus_id = [nx for nx in range(stimulus_set.dims) if t_samp[-1] in local_signal.offset_times[
+							nx]]
 					else:
-						stimulus_id = [nx for nx in range(stim_set.dims) if
+						stimulus_id = [nx for nx in range(stimulus_set.dims) if
 						               t_samp[idx] in input_signal.offset_times[nx]]
 					if t_int == 0.:
-						spks = input_set.spike_patterns[stimulus_id[0]].time_offset(t_int + nest.GetKernelStatus()[
-							'resolution'], True)
+						spks = input_signal_set.spike_patterns[stimulus_id[0]].time_offset(t_int +
+						            nest.GetKernelStatus()['resolution'], True)
 					else:
-						spks = input_set.spike_patterns[stimulus_id[0]].time_offset(t_int, True)
+						spks = input_signal_set.spike_patterns[stimulus_id[0]].time_offset(t_int, True)
 
 					if jitter is not None:
 						print jitter
-						spks.jitter(jitter)
+						spks.jitter(jitter) # TODO ...
 					enc_layer.update_state(spks)
 
-				# online signal update
-				elif input_set is not None and local_signal is not None and input_set.online:
+				# update signal
+				elif input_signal_set is not None and local_signal is not None and input_signal_set.online:
 					stim_input = coo_matrix(stimulus_seq.todense()[:, idx])
 					local_signal.input_signal = local_signal.generate_single_step(stim_input)
 
 					if t_int == 0.:
 						dt = nest.GetKernelStatus()['resolution']
-						local_signal.input_signal.time_offset(dt)
+						local_signal.input_signal.time_offset(dt) # check this out? Why not offset always?
 					enc_layer.update_state(local_signal.input_signal)
 
 				# simulate and extract recordings from devices
-				network_obj.simulate(t_sim)
-				network_obj.extract_population_activity()
-				network_obj.extract_network_activity()
+				net.simulate(t_sim)
+				net.extract_population_activity()
+				net.extract_network_activity()
 				enc_layer.extract_encoder_activity()
+				if not signals.empty(net.merged_populations):
+					net.merge_population_activity(start=t_int, stop=t_int+t, save=True)
 
 				if record:
 					# Extract state vectors
-					for ctr, n_pop in enumerate(list(itertools.chain(*[network_obj.merged_populations,
-					                                                   network_obj.populations, enc_layer.encoders]))):
-						if n_pop in network_obj.merged_populations and idx == 0 and not n_pop.name[-1].isdigit():
-							n_pop.name += str(ctr)
-						if not empty(n_pop.state_extractors):
-							n_pop.extract_state_vector(time_point=t, lag=sampling_lag, save=True)
+					for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
+					                                                   net.populations, enc_layer.encoders]))):
+						if n_pop.decoding_layer is not None:
+							# if debug:
+							# 	n_pop.decoding_layer.evaluate_decoding()
+							n_pop.decoding_layer.extract_state_vector(time_point=t, save=True, reset=False) ### !!!
 					# clear devices
-					if not store_responses:
-						network_obj.flush_records(decoders=True)
+					if not store_activity:
+						net.flush_records(decoders=True)
 						enc_layer.flush_records(decoders=True)
 
 		if record:
 			# compile state matrices:
-			for n_pop in list(itertools.chain(*[network_obj.merged_populations, network_obj.populations,
-			                                    enc_layer.encoders])):
-				if not empty(n_pop.state_matrix):
-					n_pop.compile_state_matrix()
+			for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
+				if n_pop.decoding_layer is not None:
+					n_pop.decoding_layer.compile_state_matrix() ## !!!
 
 	####################################################################################################################
 	elif (sampling_times is not None) and (isinstance(t_samp, list) or isinstance(t_samp, np.ndarray)):  # multiple
 		# sampling times per stimulus (build multiple state matrices)
-		if input_set.online:
+		if input_signal_set.online:
 			print("\nSimulating {0} steps".format(str(set_size)))
 		else:
-			t_step = np.sort(list(iterate_obj_list(input_signal.offset_times)))
+			t_step = np.sort(list(signals.iterate_obj_list(input_signal.offset_times)))
 			print("\nSimulating {0} ms in {1} steps".format(str(
 				input_signal.input_signal.t_stop - input_signal.input_signal.t_start), str(set_size)))
 
 		# initialize state matrices
-		for ctr, n_pop in enumerate(list(itertools.chain(*[network_obj.merged_populations, network_obj.populations,
+		for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations, net.populations,
 		                                                   enc_layer.encoders]))):
-			if not empty(n_pop.state_extractors) and len(n_pop.state_extractors) == 1:
+			if not signals.empty(n_pop.state_extractors) and len(n_pop.state_extractors) == 1:
 				n_pop.state_matrix = [[[] for _ in range(len(t_samp))]]
-			elif not empty(n_pop.state_extractors) and len(n_pop.state_extractors) > 1:
+			elif not signals.empty(n_pop.state_extractors) and len(n_pop.state_extractors) > 1:
 				n_pop.state_matrix = [[[] for _ in range(len(t_samp))] for _ in range(len(n_pop.state_extractors))]
-			if not empty(n_pop.state_extractors):
+			if not signals.empty(n_pop.state_extractors):
 				n_pop.state_sample_times = list(sampling_times)
 
 		# ################################ Main Loop ###################################
@@ -198,7 +227,7 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 
 			t_int = nest.GetKernelStatus()['time']
 
-			if input_set.online and idx < set_size:
+			if input_signal_set.online and idx < set_size:
 				local_signal = signal_iterator.next()
 				local_signal.time_offset(t_int)
 				intervals.append(local_signal.intervals)
@@ -207,7 +236,7 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 				if intervals[-1]:
 					t += intervals[-1]
 				t_sim = t - t_int
-				if store_responses:
+				if store_activity:
 					epochs[set_labels[idx]].append((t_int, t_samp[-1]))
 					print(idx, set_labels[idx], epochs[set_labels[idx]][-1])
 			else:
@@ -215,7 +244,7 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 				if idx < len(t_step) - 1:
 					if intervals[idx]:
 						t += intervals[idx]
-					if store_responses:
+					if store_activity:
 						epochs[set_labels[idx]].append((t_int, t_samp[idx]))
 						print(idx, set_labels[idx], epochs[set_labels[idx]][-1])
 				t_sim = t - t_int
@@ -224,25 +253,25 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 				print("\nSimulating step {0} [{1} ms]".format(str(idx + 1), str(t_sim)))
 
 				# Spike templates (need to be updated online)
-				if np.mean(['spike_pattern' in n for n in list(iterate_obj_list(enc_layer.generator_names))]) == 1. \
-						and input_set is not None:
-					assert (len(input_set.spike_patterns) == stim_set.dims), "Incorrect number of spike patterns"
-					if input_set.online and local_signal is not None:
-						stimulus_id = [nx for nx in range(stim_set.dims) if t_step[-1] in local_signal.offset_times[
+				if np.mean(['spike_pattern' in n for n in list(signals.iterate_obj_list(enc_layer.generator_names))]) == 1. \
+						and input_signal_set is not None:
+					assert (len(input_signal_set.spike_patterns) == stimulus_set.dims), "Incorrect number of spike patterns"
+					if input_signal_set.online and local_signal is not None:
+						stimulus_id = [nx for nx in range(stimulus_set.dims) if t_step[-1] in local_signal.offset_times[
 							nx]]
 					else:
-						stimulus_id = [nx for nx in range(stim_set.dims) if
+						stimulus_id = [nx for nx in range(stimulus_set.dims) if
 						               t_step[idx] in input_signal.offset_times[nx]]
 					if t_int == 0.:
-						spks = input_set.spike_patterns[stimulus_id[0]].time_offset(t_int + nest.GetKernelStatus()[
+						spks = input_signal_set.spike_patterns[stimulus_id[0]].time_offset(t_int + nest.GetKernelStatus()[
 							'resolution'], True)
 					else:
-						spks = input_set.spike_patterns[stimulus_id[0]].time_offset(t_int, True)
+						spks = input_signal_set.spike_patterns[stimulus_id[0]].time_offset(t_int, True)
 					if jitter is not None:
 						spks.jitter(jitter)
 					enc_layer.update_state(spks)
 
-				elif input_set is not None and local_signal is not None and input_set.online:
+				elif input_signal_set is not None and local_signal is not None and input_signal_set.online:
 					stim_input = coo_matrix(stimulus_seq.todense()[:, idx])
 					local_signal.input_signal = local_signal.generate_single_step(stim_input)
 
@@ -251,9 +280,9 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 						local_signal.input_signal.time_offset(dt)
 					enc_layer.update_state(local_signal.input_signal)
 
-				network_obj.simulate(t_sim)
-				network_obj.extract_population_activity()
-				network_obj.extract_network_activity()
+				net.simulate(t_sim)
+				net.extract_population_activity()
+				net.extract_network_activity()
 				enc_layer.extract_encoder_activity()
 
 				if record:
@@ -261,12 +290,12 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 					# Extract state
 					# =====================================================================================
 					# Extract merged responses
-					for ctr, n_pop in enumerate(list(itertools.chain(*[network_obj.merged_populations,
-					                                                   network_obj.populations,
+					for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
+					                                                   net.populations,
 					                                                   enc_layer.encoders]))):
-						if n_pop in network_obj.merged_populations and idx == 0 and not n_pop.name[-1].isdigit():
+						if n_pop in net.merged_populations and idx == 0 and not n_pop.name[-1].isdigit():
 							n_pop.name += str(ctr)
-						if not empty(n_pop.state_extractors):
+						if not signals.empty(n_pop.state_extractors):
 							print("Collecting state matrices from Population {0}".format(str(n_pop.name)))
 							for sample_idx, n_sample_time in enumerate(t_samp):
 								assert (n_sample_time >= sampling_lag), "Minimum sampling time must be >= sampling lag"
@@ -277,34 +306,34 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 								for state_id, state_vec in enumerate(state_vectors):
 									n_pop.state_matrix[state_id][sample_idx].append(state_vec[0])
 
-					if not store_responses:
-						network_obj.flush_records(decoders=True)
+					if not store_activity:
+						net.flush_records(decoders=True)
 						enc_layer.flush_records(decoders=True)
 		if record:
 			# compile matrices:
-			for ctr, n_pop in enumerate(list(itertools.chain(*[network_obj.merged_populations,
-			                                                   network_obj.populations, enc_layer.encoders]))):
-				if not empty(n_pop.state_matrix):
+			for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
+			                                                   net.populations, enc_layer.encoders]))):
+				if not signals.empty(n_pop.state_matrix):
 					n_pop.compile_state_matrix(sampling_times=sampling_times)
 
 	####################################################################################################################
 	elif sampling_times is not None and isinstance(t_samp, float) and not average:  # sub-sampled state (and input)
 		# multiple sampling times per stimulus (build multiple state matrices)
-		if not input_set.online:
-			t_step = np.sort(list(iterate_obj_list(input_signal.offset_times)))
+		if not input_signal_set.online:
+			t_step = np.sort(list(signals.iterate_obj_list(input_signal.offset_times)))
 
 		sample_every_n = int(round(t_samp ** (-1)))  # * step_size  # take one sample of activity every n steps
 
-		if input_set.online:
+		if input_signal_set.online:
 			print("\nSimulating {0} steps".format(str(set_size)))
 		else:
 			print("\nSimulating {0} ms in {1} steps".format(str(
 				input_signal.input_signal.t_stop - input_signal.input_signal.t_start), str(len(t_step))))
 
 		# initialize state matrices
-		for n_pop in list(itertools.chain(*[network_obj.merged_populations,
-		                                    network_obj.populations, enc_layer.encoders])):
-			if not empty(n_pop.state_extractors):
+		for n_pop in list(itertools.chain(*[net.merged_populations,
+		                                    net.populations, enc_layer.encoders])):
+			if not signals.empty(n_pop.state_extractors):
 				n_pop.state_matrix = [[] for _ in range(len(n_pop.state_extractors))]
 
 		# ################################ Main Loop ###################################
@@ -312,7 +341,7 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 
 			t_int = nest.GetKernelStatus()['time']
 
-			if input_set.online and idx < set_size:
+			if input_signal_set.online and idx < set_size:
 				local_signal = signal_iterator.next()
 				local_signal.time_offset(t_int)
 				intervals.append(local_signal.intervals)
@@ -321,7 +350,7 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 				if intervals[-1]:
 					t += intervals[-1]
 				t_sim = t - t_int
-				if store_responses:
+				if store_activity:
 					epochs[set_labels[idx]].append((t_int, t_samp[-1]))
 					print(idx, set_labels[idx], epochs[set_labels[idx]][-1])
 			else:
@@ -329,33 +358,33 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 				if idx < len(t_step) - 1:
 					if intervals[idx]:
 						t += intervals[idx]
-					if store_responses:
+					if store_activity:
 						epochs[set_labels[idx]].append((t_int, t_samp[idx]))
 						print(idx, set_labels[idx], epochs[set_labels[idx]][-1])
 				t_sim = t - t_int
 			if t_sim > 0.:
 				print("\nSimulating step {0} [{1} ms]".format(str(idx + 1), str(t_sim)))
 				# Spike templates (need to be updated online)
-				if np.mean(['spike_pattern' in n for n in list(iterate_obj_list(enc_layer.generator_names))]) == 1. \
+				if np.mean(['spike_pattern' in n for n in list(signals.iterate_obj_list(enc_layer.generator_names))]) == 1. \
 						and \
-								input_set is not None:
-					assert (len(input_set.spike_patterns) == stim_set.dims), "Incorrect number of spike patterns"
-					if input_set.online and local_signal is not None:
-						stimulus_id = [nx for nx in range(stim_set.dims) if t_step[-1] in local_signal.offset_times[
+								input_signal_set is not None:
+					assert (len(input_signal_set.spike_patterns) == stimulus_set.dims), "Incorrect number of spike patterns"
+					if input_signal_set.online and local_signal is not None:
+						stimulus_id = [nx for nx in range(stimulus_set.dims) if t_step[-1] in local_signal.offset_times[
 							nx]]
 					else:
-						stimulus_id = [nx for nx in range(stim_set.dims) if
+						stimulus_id = [nx for nx in range(stimulus_set.dims) if
 						               t_step[idx] in input_signal.offset_times[nx]]
 					if t_int == 0.:
-						spks = input_set.spike_patterns[stimulus_id[0]].time_offset(t_int + nest.GetKernelStatus()[
+						spks = input_signal_set.spike_patterns[stimulus_id[0]].time_offset(t_int + nest.GetKernelStatus()[
 							'resolution'], True)
 					else:
-						spks = input_set.spike_patterns[stimulus_id[0]].time_offset(t_int, True)
+						spks = input_signal_set.spike_patterns[stimulus_id[0]].time_offset(t_int, True)
 					if jitter is not None:
 						spks.jitter(jitter)
 					enc_layer.update_state(spks)
 
-				elif input_set is not None and local_signal is not None and input_set.online:
+				elif input_signal_set is not None and local_signal is not None and input_signal_set.online:
 					stim_input = coo_matrix(stimulus_seq.todense()[:, idx])
 					local_signal.input_signal = local_signal.generate_single_step(stim_input)
 
@@ -364,24 +393,24 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 						local_signal.input_signal.time_offset(dt)
 					enc_layer.update_state(local_signal.input_signal)
 
-				network_obj.simulate(t_sim)
-				network_obj.extract_population_activity()
-				network_obj.extract_network_activity()
+				net.simulate(t_sim)
+				net.extract_population_activity()
+				net.extract_network_activity()
 				enc_layer.extract_encoder_activity()
 
 				if record:
 					# Extract state
-					for ctr, n_pop in enumerate(list(itertools.chain(*[network_obj.merged_populations,
-					                                                   network_obj.populations, enc_layer.encoders]))):
-						if n_pop in network_obj.merged_populations and idx == 0 and not n_pop.name[-1].isdigit():
+					for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
+					                                                   net.populations, enc_layer.encoders]))):
+						if n_pop in net.merged_populations and idx == 0 and not n_pop.name[-1].isdigit():
 							n_pop.name += str(ctr)
-						if not empty(n_pop.state_extractors):
+						if not signals.empty(n_pop.state_extractors):
 							print("Collecting response samples from Population {0} [rate = {1}]".format(str(
 								n_pop.name), str(t_samp)))
 							responses = n_pop.extract_response_matrix(start=t_int, stop=t, save=False)
 							for response_idx, n_response in enumerate(responses):
-								if store_responses:
-									np.save(store_responses + n_pop.name + '-StateVar{0}-Response{1}.npy'.format(str(
+								if store_activity:
+									np.save(store_activity + n_pop.name + '-StateVar{0}-Response{1}.npy'.format(str(
 										response_idx), str(idx)), n_response)
 								if idx == 0:
 									n_pop.state_matrix[response_idx] = n_response.as_array()[:, ::sample_every_n]
@@ -390,29 +419,29 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 									                                             n_response.as_array()[:,
 									                                             ::sample_every_n], axis=1)
 					# clear devices
-					if not store_responses:
-						network_obj.flush_records(decoders=True)
+					if not store_activity:
+						net.flush_records(decoders=True)
 						enc_layer.flush_records(decoders=True)
 
 	####################################################################################################################
 	elif sampling_times is not None and isinstance(t_samp, float) and average:  # sub-sampled state (and input)
 		# multiple sampling times per stimulus (build multiple state matrices), state vector = average over stimulus
 		# presentation time
-		if not input_set.online:
-			t_step = np.sort(list(iterate_obj_list(input_signal.offset_times)))
+		if not input_signal_set.online:
+			t_step = np.sort(list(signals.iterate_obj_list(input_signal.offset_times)))
 
 		sample_every_n = int(round(t_samp ** (-1)))  # * step_size  # take one sample of activity every n steps
 
-		if input_set.online:
+		if input_signal_set.online:
 			print("\nSimulating {0} steps".format(str(set_size)))
 		else:
 			print("\nSimulating {0} ms in {1} steps".format(str(
 				input_signal.input_signal.t_stop - input_signal.input_signal.t_start), str(len(t_step))))
 
 		# initialize state matrices
-		for n_pop in list(itertools.chain(*[network_obj.merged_populations,
-		                                    network_obj.populations, enc_layer.encoders])):
-			if not empty(n_pop.state_extractors):
+		for n_pop in list(itertools.chain(*[net.merged_populations,
+		                                    net.populations, enc_layer.encoders])):
+			if not signals.empty(n_pop.state_extractors):
 				n_pop.state_matrix = [[] for _ in range(len(n_pop.state_extractors))]
 		inter_stim_int = 0
 
@@ -421,7 +450,7 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 
 			t_int = nest.GetKernelStatus()['time']
 
-			if input_set.online and idx < set_size:
+			if input_signal_set.online and idx < set_size:
 				local_signal = signal_iterator.next()
 				local_signal.time_offset(t_int)
 				intervals.append(local_signal.intervals)
@@ -431,7 +460,7 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 					t += intervals[-1]
 					inter_stim_int = intervals[-1]
 				t_sim = t - t_int
-				if store_responses:
+				if store_activity:
 					epochs[set_labels[idx]].append((t_int, t_samp[-1]))
 					print(idx, set_labels[idx], epochs[set_labels[idx]][-1])
 			else:
@@ -440,33 +469,33 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 					if intervals[idx]:
 						t += intervals[idx]
 						inter_stim_int = intervals[idx]
-					if store_responses:
+					if store_activity:
 						epochs[set_labels[idx]].append((t_int, t_samp[idx]))
 						print(idx, set_labels[idx], epochs[set_labels[idx]][-1])
 				t_sim = t - t_int
 			if t_sim > 0.:
 				print("\nSimulating step {0} [{1} ms]".format(str(idx + 1), str(t_sim)))
 				# Spike templates (need to be updated online)
-				if np.mean(['spike_pattern' in n for n in list(iterate_obj_list(enc_layer.generator_names))]) == 1. \
+				if np.mean(['spike_pattern' in n for n in list(signals.iterate_obj_list(enc_layer.generator_names))]) == 1. \
 						and \
-								input_set is not None:
-					assert (len(input_set.spike_patterns) == stim_set.dims), "Incorrect number of spike patterns"
-					if input_set.online and local_signal is not None:
-						stimulus_id = [nx for nx in range(stim_set.dims) if t_step[-1] in local_signal.offset_times[
+								input_signal_set is not None:
+					assert (len(input_signal_set.spike_patterns) == stimulus_set.dims), "Incorrect number of spike patterns"
+					if input_signal_set.online and local_signal is not None:
+						stimulus_id = [nx for nx in range(stimulus_set.dims) if t_step[-1] in local_signal.offset_times[
 							nx]]
 					else:
-						stimulus_id = [nx for nx in range(stim_set.dims) if
+						stimulus_id = [nx for nx in range(stimulus_set.dims) if
 						               t_step[idx] in input_signal.offset_times[nx]]
 					if t_int == 0.:
-						spks = input_set.spike_patterns[stimulus_id[0]].time_offset(t_int + nest.GetKernelStatus()[
+						spks = input_signal_set.spike_patterns[stimulus_id[0]].time_offset(t_int + nest.GetKernelStatus()[
 							'resolution'], True)
 					else:
-						spks = input_set.spike_patterns[stimulus_id[0]].time_offset(t_int, True)
+						spks = input_signal_set.spike_patterns[stimulus_id[0]].time_offset(t_int, True)
 					if jitter is not None:
 						spks.jitter(jitter)
 					enc_layer.update_state(spks)
 
-				elif input_set is not None and local_signal is not None and input_set.online:
+				elif input_signal_set is not None and local_signal is not None and input_signal_set.online:
 					stim_input = coo_matrix(stimulus_seq.todense()[:, idx])
 					local_signal.input_signal = local_signal.generate_single_step(stim_input)
 
@@ -475,25 +504,25 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 						local_signal.input_signal.time_offset(dt)
 					enc_layer.update_state(local_signal.input_signal)
 
-				network_obj.simulate(t_sim)
-				network_obj.extract_population_activity()
-				network_obj.extract_network_activity()
+				net.simulate(t_sim)
+				net.extract_population_activity()
+				net.extract_network_activity()
 				enc_layer.extract_encoder_activity()
 
 				if record:
 					# Extract state
-					for ctr, n_pop in enumerate(list(itertools.chain(*[network_obj.merged_populations,
-					                                                   network_obj.populations, enc_layer.encoders]))):
-						if n_pop in network_obj.merged_populations and idx == 0 and not n_pop.name[-1].isdigit():
+					for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
+					                                                   net.populations, enc_layer.encoders]))):
+						if n_pop in net.merged_populations and idx == 0 and not n_pop.name[-1].isdigit():
 							n_pop.name += str(ctr)
-						if not empty(n_pop.state_extractors):
+						if not signals.empty(n_pop.state_extractors):
 							print("Collecting response samples from Population {0} [rate = {1}]".format(str(
 								n_pop.name), str(t_samp)))
 							responses = n_pop.extract_response_matrix(start=t_int, stop=t - inter_stim_int, save=False)
 							for response_idx, n_response in enumerate(responses):
-								if store_responses:
+								if store_activity:
 									np.save(
-										store_responses + n_pop.name + '-StateVar{0}-Response{1}.npy'.format(str(
+										store_activity + n_pop.name + '-StateVar{0}-Response{1}.npy'.format(str(
 											response_idx), str(idx)), n_response)
 								if idx == 0:
 									subsampled_states = n_response.as_array()[:, ::sample_every_n]
@@ -505,11 +534,11 @@ def iterate_input_sequence(network_obj, input_signal, enc_layer, sampling_times=
 									                                             state_vec,
 									                                             axis=1)
 					# clear devices
-					if not store_responses:
-						network_obj.flush_records(decoders=True)
+					if not store_activity:
+						net.flush_records(decoders=True)
 						enc_layer.flush_records(decoders=True)
 	else:
 		raise NotImplementedError("Specify sampling times as None (last step sample), list or array of times, or float")
 
-	if store_responses:
+	if store_activity:
 		return epochs

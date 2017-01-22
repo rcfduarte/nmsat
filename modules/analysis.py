@@ -25,12 +25,14 @@ noise_driven_dynamics
 ...
 
 """
+import sys
 import numpy as np
 import parameters as prs
 import input_architect as ips
 import visualization
 import signals as sg
 import net_architect
+import io
 from modules import check_dependency
 import itertools
 from operator import getitem
@@ -728,15 +730,18 @@ def compute_spike_stats(spike_list, time_bin=1., summary_only=False, display=Fal
 		t_start = time.time()
 	results = {}
 	rates = np.array(spike_list.mean_rates())
+	rates = rates[~np.isnan(rates)]
 	counts = spike_list.spike_counts(dt=time_bin, normalized=False, binary=False)
 	ffs = np.array(spike_list.fano_factors(time_bin))
 	if summary_only:
 		results['counts'] = (np.mean(counts[~np.isnan(counts)]), np.var(counts[~np.isnan(counts)]))
-		results['mean_rates'] = (np.mean(rates[~np.isnan(rates)]), np.var(rates[~np.isnan(rates)]))
+		results['mean_rates'] = (np.mean(rates), np.var(rates))
 		results['ffs'] = (np.mean(ffs[~np.isnan(ffs)]), np.var(ffs[~np.isnan(ffs)]))
+		results['corrected_rates'] = (np.mean(rates[np.nonzero(rates)[0]]), np.std(rates[np.nonzero(rates)[0]]))
 	else:
 		results['counts'] = counts
-		results['mean_rates'] = rates[~np.isnan(rates)]
+		results['mean_rates'] = rates
+		results['corrected_rates'] = rates[np.nonzero(rates)[0]]
 		results['ffs'] = ffs[~np.isnan(ffs)]
 		results['spiking_neurons'] = spike_list.id_list
 	if display:
@@ -1903,6 +1908,7 @@ def discrete_readout_train(state, target, readout, index):
 	elif index > 0:
 		state = state[:, :-index]
 		target = target[:, index:]
+
 	readout.train(state, target)
 	norm_wout = readout.measure_stability()
 	print "|W_out| [{0}] = {1}".format(readout.name, str(norm_wout))
@@ -1926,6 +1932,7 @@ def discrete_readout_test(state, target, readout, index):
 	elif index > 0:
 		state = state[:, :-index]
 		target = target[:, index:]
+
 	readout.test(state)
 	performance = readout.measure_performance(target, labeled=True)
 	return performance
@@ -2531,51 +2538,59 @@ def get_state_rank(network):
 	return results
 
 
-########################################################################################################################
-class StateExtractor(object):
-	"""
-	Acquire state vector / matrix from the desired population(s)
-	"""
-	def __init__(self, initializer, src_obj, gids):
-		"""
-		"""
-		if isinstance(initializer, dict):
-			initializer = prs.ParameterSet(initializer)
-		assert isinstance(initializer, prs.ParameterSet), "StateExtractor must be initialized with ParameterSet of " \
-													  "dictionary"
-		print("- State acquisition from Population {0} [{1}]".format(src_obj.name, initializer.state_variable))
-		self.parameters = initializer
-		if initializer.state_variable == 'V_m':
-			device_specs = prs.extract_nestvalid_dict(initializer.state_specs, param_type='device')
-			mm = nest.Create('multimeter', 1, device_specs)
-			# src_obj.attached_devices.append(mm)
-			nest.Connect(mm, gids)
-			self.gids = mm
-
-		elif initializer.state_variable == 'spikes':
-			neuron_specs = prs.extract_nestvalid_dict(initializer.state_specs, param_type='neuron')
-			state_rec_neuron = nest.Create(initializer.state_specs.model, len(gids), neuron_specs)
-			nest.Connect(gids, state_rec_neuron, 'one_to_one', syn_spec={'weight': 1., 'delay': 0.1,
-																		 'model': 'static_synapse'})
-			# src_obj.attached_devices.append(state_rec_neuron)
-			device_specs = prs.extract_nestvalid_dict(prs.copy_dict(initializer.device_specs, {}), param_type='device')
-			# device_specs = {'record_from': ['V_m'], 'record_to': ['memory'],
-			#                 'interval': 1.}  #initializer.sampling_times}
-			mm = nest.Create('multimeter', 1, device_specs)
-			nest.Connect(mm, state_rec_neuron)
-			self.gids = mm
-
-		elif initializer.state_variable == 'spikes_post':
-			self.gids = None
-			self.src_obj = src_obj
-		else:
-			raise TypeError("Not implemented..")
-
-	def flush_records(self):
-		"""
-		Delete data from NEST devices
-		"""
-		nest.SetStatus(self.gids, {'n_events': 0})
+# ########################################################################################################################
+# class StateExtractor(object):
+# 	"""
+# 	Acquire state vector / matrix from the desired population(s)
+# 	"""
+# 	def __init__(self, initializer, src_population):
+# 		"""
+# 		Creates state extractor devices and connects them to the target population
+# 		"""
+# 		if isinstance(initializer, dict):
+# 			initializer = prs.ParameterSet(initializer)
+# 		assert isinstance(initializer, prs.ParameterSet), "StateExtractor must be initialized with ParameterSet of " \
+# 													  "dictionary"
+#
+# 		print("- State acquisition from Population {0}:".format(src_population.name))
+# 		self.parameters = initializer
+# 		self.state_variables = initializer.state_variable
+#
+# 		for extractor_index, state_variable in enumerate(self.state_variables):
+# 			if state_variable == 'V_m':
+# 				mm_specs = prs.extract_nestvalid_dict(self.parameters.state_specs[extractor_index], param_type='device')
+# 				mm = nest.Create('multimeter', 1, mm_specs)
+#
+# 				device_specs = prs.extract_nestvalid_dict(initializer.state_specs, param_type='device')
+# 				mm = nest.Create('multimeter', 1, device_specs)
+# 				# src_obj.attached_devices.append(mm)
+# 				nest.Connect(mm, gids)
+# 				self.gids = mm
+#
+# 			elif initializer.state_variable == 'spikes':
+# 				neuron_specs = prs.extract_nestvalid_dict(initializer.state_specs, param_type='neuron')
+# 				state_rec_neuron = nest.Create(initializer.state_specs.model, len(gids), neuron_specs)
+# 				nest.Connect(gids, state_rec_neuron, 'one_to_one', syn_spec={'weight': 1., 'delay': 0.1,
+# 																			 'model': 'static_synapse'})
+# 				# src_obj.attached_devices.append(state_rec_neuron)
+# 				device_specs = prs.extract_nestvalid_dict(prs.copy_dict(initializer.device_specs, {}), param_type='device')
+# 				# device_specs = {'record_from': ['V_m'], 'record_to': ['memory'],
+# 				#                 'interval': 1.}  #initializer.sampling_times}
+# 				mm = nest.Create('multimeter', 1, device_specs)
+# 				nest.Connect(mm, state_rec_neuron)
+# 				self.gids = mm
+#
+# 			elif initializer.state_variable == 'spikes_post':
+# 				self.gids = None
+# 				self.src_obj = src_obj
+# 			else:
+# 				raise TypeError("Not implemented..")
+#
+# 	def flush_records(self):
+# 		"""
+# 		Delete data from NEST devices
+# 		"""
+# 		nest.SetStatus(self.gids, {'n_events': 0})
 
 
 ########################################################################################################################
@@ -2592,8 +2607,8 @@ class Readout(object):
 		self.weights = None
 		self.fit_obj = None
 		self.output = None
-		self.index = 0
-		self.norm_wout = 0
+		self.index = None
+		self.norm_wout = None
 		self.performance = {}
 		if display:
 			print("\t- Readout {0} [trained with {1}]".format(self.name, self.rule))
@@ -2914,68 +2929,276 @@ class DecodingLayer(object):
 	extracts the network state (according to specifications) and trains
 	readout weights
 	"""
-	def __init__(self, initializer, net_obj):
+	def __init__(self, initializer, population):
 		"""
+		Create and connect decoders to population
 		"""
 		if isinstance(initializer, dict):
 			initializer = prs.ParameterSet(initializer)
 		assert isinstance(initializer, prs.ParameterSet), "StateExtractor must be initialized with ParameterSet or " \
 													  "dictionary"
-		populations = list(sg.iterate_obj_list(net_obj.population_names))
-		pop_objs = list(sg.iterate_obj_list(net_obj.populations))
 
-		# initialize state_extractors
-		if hasattr(initializer, 'state_extractor'):
-			pars_st = initializer.state_extractor
-			self.extractors = []
-			print "\n Creating Decoding Layer: "
-			for nn in range(pars_st.N):
-				if isinstance(pars_st.source_population[nn], str):
-					src_idx = populations.index(pars_st.source_population[nn])
-					src_obj = pop_objs[src_idx]
+		self.decoding_pars = initializer
+		self.state_variables = initializer.state_variable
+		self.extractors = []
+		self.readouts = [[] for _ in range(len(self.state_variables))]
+		self.activity = [None for _ in range(len(self.state_variables))]
+		self.state_matrix = [[] for _ in range(len(self.state_variables))]
+		self.source_population = population
 
-				elif isinstance(pars_st.source_population[nn], list):
-					src_idx = [populations.index(x) for x in pars_st.source_population[nn]]
-					src_objs = [pop_objs[x] for x in src_idx]
-					name = ''
-					for x in pars_st.source_population[nn]:
-						name += x
-					src_obj = net_obj.merge_subpopulations(sub_populations=src_objs, name=name)
+		for state_idx, state_variable in enumerate(self.state_variables):
+			state_specs = initializer.state_specs[state_idx]
+			if state_variable == 'V_m':
+				mm_specs = prs.extract_nestvalid_dict(state_specs, param_type='device')
+				mm = nest.Create('multimeter', 1, mm_specs)
+				self.extractors.append(mm)
+				nest.Connect(mm, population.gids)
+			elif state_variable == 'spikes':
+				rec_neuron_pars = {'model': 'iaf_psc_delta', 'V_m': 0., 'E_L': 0., 'C_m': 1.,
+				                   'tau_m': state_specs['tau_m'],
+				                   'V_th': sys.float_info.max, 'V_reset': 0.,
+				                   'V_min': 0.}
+				rec_neuron_pars.update(state_specs)
+				filter_neuron_specs = prs.extract_nestvalid_dict(rec_neuron_pars, param_type='neuron')
 
-				src_gids = src_obj.gids
-
-				if isinstance(pars_st.sampling_times, int) or isinstance(pars_st.sampling_times, float):
-					samp = pars_st.sampling_times
-				elif isinstance(pars_st.sampling_times, list) and len(pars_st.sampling_times) == 1:
-					samp = pars_st.sampling_times[0]
-				elif len(pars_st.sampling_times) == pars_st.N:
-					samp = pars_st.sampling_times[nn]
+				rec_neurons = nest.Create(rec_neuron_pars['model'], len(population.gids), filter_neuron_specs)
+				if 'start' in state_specs.keys():
+					rec_mm = nest.Create('multimeter', 1, {'record_from': ['V_m'],
+					                                       'record_to': ['memory'],
+					                                       'interval': rec_neuron_pars['interval'],
+					                                       'start': state_specs['start']})
 				else:
-					samp = pars_st.sampling_times
+					rec_mm = nest.Create('multimeter', 1, {'record_from': ['V_m'],
+					                                       'record_to': ['memory'],
+					                                       'interval': rec_neuron_pars['interval']})
+				self.extractors.append(rec_mm)
+				nest.Connect(rec_mm, rec_neurons)
+				nest.Connect(population.gids, rec_neurons, 'one_to_one',
+				             syn_spec={'weight': 1., 'delay': 0.1, 'model': 'static_synapse'})
+			else:
+				raise NotImplementedError("Acquisition from state variable {0} not implemented yet".format(
+					state_variable))
+			print("- State acquisition from Population {0} [{1}] - id {2}".format(population.name, state_variable,
+			                                                                      self.extractors[-1]))
 
-				state_ext_pars = {'state_variable': pars_st.state_variable[nn],
-								  'state_specs': pars_st.state_specs[nn],
-								  'sampling_times': samp,
-								  'device_specs': pars_st.device_specs[nn]}
-				self.extractors.append(StateExtractor(state_ext_pars, src_obj, src_gids))
+			if hasattr(initializer, "readout"):
+				pars_readout = prs.ParameterSet(initializer.readout[state_idx])
+				implemented_algorithms = ['pinv', 'ridge', 'logistic', 'svm-linear', 'svm-rbf', 'perceptron', 'elastic',
+				                          'bayesian_ridge']
 
-		# initialize readouts
-		if hasattr(initializer, 'readout'):
-			pars_readout = initializer.readout
-			self.readouts = []
-			implemented_algorithms = ['pinv', 'ridge', 'logistic', 'svm-linear', 'svm-rbf', 'perceptron', 'elastic',
-									  'bayesian_ridge']
-			for nn in range(pars_readout.N):
-				if len(pars_readout.algorithm) == pars_readout.N:
-					alg = pars_readout.algorithm[nn]
-				elif len(pars_readout.algorithm) == 1:
-					alg = pars_readout.algorithm[0]
-				else:
-					raise TypeError("Please provide readout algorithm for each readout or a single string, common to all "
-									"readouts")
+				for n_readout in range(pars_readout.N):
+					if len(pars_readout.algorithm) == pars_readout.N:
+						alg = pars_readout.algorithm[n_readout]
+					elif len(pars_readout.algorithm) == 1:
+						alg = pars_readout.algorithm[0]
+					else:
+						raise TypeError("Please provide readout algorithm for each readout or a single string, common to all "
+						                "readouts")
 
-				assert(alg in implemented_algorithms), "Algorithm {0} not implemented".format(alg)
-				readout_pars = {'label': pars_readout.labels[nn],
-								'rule': alg}
+					assert (alg in implemented_algorithms), "Algorithm {0} not implemented".format(alg)
 
-				self.readouts.append(Readout(prs.ParameterSet(readout_pars)))
+					readout_dict = {'label': pars_readout.labels[n_readout],
+					                'algorithm': alg}
+					self.readouts[state_idx].append(Readout(prs.ParameterSet(readout_dict)))
+
+	def flush_records(self):
+		"""
+		Clear data from NEST devices
+		:return:
+		"""
+		for idx, n_device in enumerate(self.extractors):
+			nest.SetStatus(n_device, {'n_events': 0})
+			if nest.GetStatus(n_device)[0]['to_file']:
+				io.remove_files(nest.GetStatus(n_device)[0]['filenames'])
+			print(" - State extractor {0} [{1}] from Population {2}".format(str(self.state_variables[idx]),
+			                                                               str(n_device[0]),
+			                                                               str(self.source_population.name)))
+
+	def flush_states(self):
+		"""
+		Clear all data
+		:return:
+		"""
+		print("\n-Deleting state and activity data from all decoders attached to {0}".format(str(
+			self.source_population.name)))
+		self.activity = [None for _ in range(len(self.state_variables))]
+		self.state_matrix = [None for _ in range(len(self.state_variables))]
+
+	def extract_activity(self, start=None, stop=None, save=False, reset=True):
+		"""
+		Read recorded activity from devices and store it
+		:param start:
+		:param stop:
+		:return:
+		"""
+		all_responses = []
+		print("\nExtracting and storing recorded activity from state extractors:")
+		print("- Population {0}:".format(str(self.source_population.name)))
+		for idx, n_state in enumerate(self.extractors):
+			print("\t- Reading extractor {0} [{1}]".format(n_state, str(self.state_variables[idx])))
+			start_time1 = time.time()
+			if nest.GetStatus(n_state)[0]['to_memory']:
+				initializer = n_state
+			else:
+				initializer = nest.GetStatus(n_state)[0]['filenames']
+
+			if isinstance(initializer, basestring) or isinstance(initializer, list):
+				data = io.extract_data_fromfile(initializer)
+				if data is not None:
+					if len(data.shape) != 2:
+						data = np.reshape(data, (int(len(data)/2), 2))
+					if data.shape[1] == 2:
+						raise NotImplementedError("Reading spiking activity directly not implemented")
+					else:
+						neuron_ids = data[:, 0]
+						times = data[:, 1]
+						if start is not None and stop is not None:
+							idx1 = np.where(times >= start)[0]
+							idx2 = np.where(times <= stop)[0]
+							idxx = np.intersect1d(idx1, idx2)
+							times = times[idxx]
+							neuron_ids = neuron_ids[idxx]
+							data = data[idxx, :]
+						for nn in range(data.shape[1]):
+							if nn > 1:
+								sigs = data[:, nn]
+								tmp = [(neuron_ids[n], sigs[n]) for n in range(len(neuron_ids))]
+								responses = sg.AnalogSignalList(tmp, np.unique(neuron_ids).tolist(), times=times)
+
+			elif isinstance(initializer, tuple) or isinstance(initializer, int):
+				status_dict = nest.GetStatus(initializer)[0]['events']
+				times = status_dict['times']
+				if start is not None and stop is not None:
+					idx1 = np.where(times >= start)[0]
+					idx2 = np.where(times <= stop)[0]
+					idxx = np.intersect1d(idx1, idx2)
+					times = times[idxx]
+					status_dict['V_m'] = status_dict['V_m'][idxx]
+					status_dict['senders'] = status_dict['senders'][idxx]
+				tmp = [(status_dict['senders'][n], status_dict['V_m'][n]) for n in range(len(status_dict['senders']))]
+				responses = sg.AnalogSignalList(tmp, np.unique(status_dict['senders']).tolist(), times=times)
+			else:
+				raise TypeError("Incorrect Decoder ID")
+
+			all_responses.append(responses)
+			print "Elapsed time: {0} s".format(str(time.time()-start_time1))
+
+		if reset:
+			self.reset_states()
+
+		if save:
+			for idx, n_response in enumerate(all_responses):
+				self.activity[idx] = n_response
+		else:
+			return all_responses
+
+	def extract_state_vector(self, time_point=200., lag=10., save=True, reset=False):
+		"""
+		Read population responses within a local time window and extract a single state vector at the specified time
+		:param time_point: in ms
+		:param lag: length of local time window = [time_point-lag, time_point]
+		:param save: bool - store state vectors in the decoding layer or return them
+		:return:
+		"""
+		if not sg.empty(self.activity):
+			responses = self.activity
+		else:
+			responses = self.extract_activity(start=time_point-lag, stop=time_point, save=False)
+		if save and (isinstance(responses, list) and len(self.state_matrix) != len(responses)):
+			self.state_matrix = [[] for _ in range(len(responses))]
+		elif not save and (isinstance(responses, list)):
+			state_vectors = [[] for _ in range(len(responses))]
+		elif not save:
+			state_vectors = []
+		for idx, n in enumerate(responses):
+			state_vector = n.as_array()[:, -1]
+			if save:
+				self.state_matrix[idx].append(state_vector)
+			else:
+				state_vectors[idx].append(state_vector)
+		if reset:
+			self.reset_states()
+		if not save:
+			return state_vectors
+
+	def compile_state_matrix(self, sampling_times=None):
+		"""
+		After gathering all state vectors, compile a standard state matrix
+		:return:
+		"""
+		assert self.state_matrix, "State matrix elements need to be stored before calling this function"
+		states = []
+		if len(self.state_matrix) > 1 and sampling_times is None:
+			states = []
+			for n_idx, n_state in enumerate(self.state_matrix):
+				states.append(np.array(n_state).T)
+			self.state_matrix = states
+		elif len(self.state_matrix) > 1 and sampling_times is not None:
+			for n_idx, n_state in enumerate(self.state_matrix):
+				states = []
+				for idx_state, n_state_mat in enumerate(n_state):
+					states.append(np.array(n_state_mat).T)
+				self.state_matrix[n_idx] = states
+		elif len(self.state_matrix) == 1 and sampling_times is not None:
+			states = []
+			for idx_state, n_state_mat in enumerate(self.state_matrix[0]):
+				states.append(np.array(n_state_mat).T)
+			self.state_matrix[0] = states
+		else:
+			states.append(np.array(self.state_matrix[0]).T)
+			self.state_matrix = states
+
+	def evaluate_decoding(self, n_neurons=10):
+		"""
+		Make sure the state extraction process is consistent
+		:param spike_list: raw spiking activity data for this population
+		:param n_neurons: choose n random neurons to plot
+		:return:
+		"""
+		spike_list = self.source_population.spiking_activity
+		start = spike_list.t_start
+		stop = spike_list.t_stop
+		neuron_ids = np.random.permutation(spike_list.id_list)[:n_neurons]
+		# mat_idx = neuron_ids - min(spike_list.id_list)
+
+		if sg.empty(self.activity):
+			self.extract_activity(start=start, stop=stop, save=True)
+		visualization.plot_response(self.source_population, ids=neuron_ids)
+
+	def reset_states(self):
+		"""
+
+		:return:
+		"""
+		pass
+
+'''
+	def reset_states():
+		"""
+		"""
+
+
+	def copy_readout_set(self, n=1):
+		"""
+		Returns n copies of all the readouts attached to the population
+		:param n: number of copies
+		:return: list of Readout objects
+		"""
+		assert self.readouts, "Population {0} doesn't have any readouts attached!".format(self.name)
+
+		all_copies = []
+		for n_copy in range(n):
+			if isinstance(self.readouts[0], list):
+				# nested readouts (multiple state variables for current population)
+				copy_readouts = [[] for _ in range(len(self.readouts))]
+				for set_index in range(len(self.readouts)):
+					for n_readout, readout in enumerate(self.readouts[set_index]):
+						copy_readouts[set_index].append(readout.copy())
+			else:
+				copy_readouts = []
+				for n_readout, readout in enumerate(self.readouts):
+					copy_readouts.append(readout.copy())
+			all_copies.append(copy_readouts)
+		return all_copies
+
+'''
