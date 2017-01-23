@@ -1,3 +1,5 @@
+import itertools
+
 __author__ = 'duarte'
 from modules.parameters import ParameterSet, ParameterSpace, extract_nestvalid_dict
 from modules.input_architect import EncodingLayer, StimulusSet, InputSignalSet
@@ -153,7 +155,15 @@ if plot and debug:
 # ======================================================================================================================
 iterate_input_sequence(net, enc_layer, parameter_set, stim, inputs, set_name='full', record=True,
                        store_activity=True)
-
+# evaluate the decoding methods (only if store activity was set to True, otherwise no activity remains stored for
+# analysis)
+if not empty(net.merged_populations):
+	net.merge_population_activity(save=True)
+for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
+					                net.populations, enc_layer.encoders]))):
+	if n_pop.decoding_layer is not None:
+		n_pop.decoding_layer.extract_activity(save=True, reset=False)
+		n_pop.decoding_layer.evaluate_decoding()
 
 '''
 if stim.transient_set_labels:

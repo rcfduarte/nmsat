@@ -2193,7 +2193,6 @@ def plot_response(population, ids=None, spiking_activity=None, display=True, sav
 	assert (population.decoding_layer is not None), "Population must have a decoding layer"
 	assert (not signals.empty(population.decoding_layer.activity)), "Extract population activity first"
 	fig1 = pl.figure()
-	fig2 = pl.figure()
 	fig1.suptitle(r"Population {0} activity".format(population.name))
 
 	for state_idx, n_state in enumerate(population.decoding_layer.state_variables):
