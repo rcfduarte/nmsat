@@ -47,8 +47,10 @@ import scipy.integrate as integ
 import sklearn.decomposition as sk
 import sklearn.linear_model as lm
 import sklearn.svm as svm
-from sklearn.cross_validation import StratifiedKFold
-from sklearn.grid_search import GridSearchCV
+# from sklearn.cross_validation import StratifiedKFold
+# from sklearn.grid_search import GridSearchCV
+from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import GridSearchCV
 import sklearn.metrics as met
 import scipy.stats.mstats as mst
 import nest
