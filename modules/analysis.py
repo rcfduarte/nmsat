@@ -2524,9 +2524,9 @@ def get_state_rank(network):
 	"""
 	results = dict()
 	for ctr, n_pop in enumerate(list(itertools.chain(*[network.merged_populations, network.populations]))):
-
 		results[n_pop.name] = []
 		states = []
+
 		if not sg.empty(n_pop.state_matrix) and isinstance(n_pop.state_matrix[0], list):
 			states = list(itertools.chain(*n_pop.state_matrix))
 		elif not sg.empty(n_pop.state_matrix):
@@ -2536,61 +2536,6 @@ def get_state_rank(network):
 			results[n_pop.name].append(np.linalg.matrix_rank(n_state))
 
 	return results
-
-
-# ########################################################################################################################
-# class StateExtractor(object):
-# 	"""
-# 	Acquire state vector / matrix from the desired population(s)
-# 	"""
-# 	def __init__(self, initializer, src_population):
-# 		"""
-# 		Creates state extractor devices and connects them to the target population
-# 		"""
-# 		if isinstance(initializer, dict):
-# 			initializer = prs.ParameterSet(initializer)
-# 		assert isinstance(initializer, prs.ParameterSet), "StateExtractor must be initialized with ParameterSet of " \
-# 													  "dictionary"
-#
-# 		print("- State acquisition from Population {0}:".format(src_population.name))
-# 		self.parameters = initializer
-# 		self.state_variables = initializer.state_variable
-#
-# 		for extractor_index, state_variable in enumerate(self.state_variables):
-# 			if state_variable == 'V_m':
-# 				mm_specs = prs.extract_nestvalid_dict(self.parameters.state_specs[extractor_index], param_type='device')
-# 				mm = nest.Create('multimeter', 1, mm_specs)
-#
-# 				device_specs = prs.extract_nestvalid_dict(initializer.state_specs, param_type='device')
-# 				mm = nest.Create('multimeter', 1, device_specs)
-# 				# src_obj.attached_devices.append(mm)
-# 				nest.Connect(mm, gids)
-# 				self.gids = mm
-#
-# 			elif initializer.state_variable == 'spikes':
-# 				neuron_specs = prs.extract_nestvalid_dict(initializer.state_specs, param_type='neuron')
-# 				state_rec_neuron = nest.Create(initializer.state_specs.model, len(gids), neuron_specs)
-# 				nest.Connect(gids, state_rec_neuron, 'one_to_one', syn_spec={'weight': 1., 'delay': 0.1,
-# 																			 'model': 'static_synapse'})
-# 				# src_obj.attached_devices.append(state_rec_neuron)
-# 				device_specs = prs.extract_nestvalid_dict(prs.copy_dict(initializer.device_specs, {}), param_type='device')
-# 				# device_specs = {'record_from': ['V_m'], 'record_to': ['memory'],
-# 				#                 'interval': 1.}  #initializer.sampling_times}
-# 				mm = nest.Create('multimeter', 1, device_specs)
-# 				nest.Connect(mm, state_rec_neuron)
-# 				self.gids = mm
-#
-# 			elif initializer.state_variable == 'spikes_post':
-# 				self.gids = None
-# 				self.src_obj = src_obj
-# 			else:
-# 				raise TypeError("Not implemented..")
-#
-# 	def flush_records(self):
-# 		"""
-# 		Delete data from NEST devices
-# 		"""
-# 		nest.SetStatus(self.gids, {'n_events': 0})
 
 
 ########################################################################################################################
@@ -3032,10 +2977,10 @@ class DecodingLayer(object):
 		:return:
 		"""
 		all_responses = []
-		print("\nExtracting and storing recorded activity from state extractors:")
-		print("- Population {0}:".format(str(self.source_population.name)))
+		print("\nExtracting and storing recorded activity from state extractors [Population {0}]:".format(str(
+			self.source_population.name)))
 		for idx, n_state in enumerate(self.extractors):
-			print("\t- Reading extractor {0} [{1}]".format(n_state, str(self.state_variables[idx])))
+			print("  - Reading extractor {0} [{1}]".format(n_state, str(self.state_variables[idx])))
 			start_time1 = time.time()
 			if nest.GetStatus(n_state)[0]['to_memory']:
 				initializer = n_state

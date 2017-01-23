@@ -151,8 +151,10 @@ if plot and debug:
 # ######################################################################################################################
 # Simulate (Full Set)
 # ======================================================================================================================
-iterate_input_sequence(net, enc_layer, parameter_set, stim, inputs, set_name='unique', record=True,
-                       store_activity=False)
+iterate_input_sequence(net, enc_layer, parameter_set, stim, inputs, set_name='full', record=True,
+                       store_activity=True)
+
+
 '''
 if stim.transient_set_labels:
 	if not online:
