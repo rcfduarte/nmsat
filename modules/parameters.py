@@ -49,7 +49,6 @@ import inspect
 import pprint
 import nest
 import errno
-from defaults.paths import paths
 np.set_printoptions(threshold=np.nan)
 
 
@@ -944,7 +943,7 @@ class ParameterSpace:
 			main_experiment_folder 	= export_folder + '{0}/'.format(self.label)
 
 			try:
-				os.mkdirs(main_experiment_folder)
+				os.makedirs(main_experiment_folder)
 			except OSError as err:
 				if err.errno == errno.EEXIST and os.path.isdir(main_experiment_folder):
 					print "Path `{0}` already exists, will be overwritten!".format(main_experiment_folder)
