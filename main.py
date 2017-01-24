@@ -11,7 +11,6 @@ from optparse import OptionParser
 from os import path
 import importlib
 from modules.parameters import ParameterSpace
-import nest
 
 def run_experiment(params_file_full_path, computation_function="noise_driven_dynamics", **parameters):
 	"""
@@ -27,9 +26,9 @@ def run_experiment(params_file_full_path, computation_function="noise_driven_dyn
 		project_dir, _ = path.split(path.split(params_file_full_path)[0])
 		sys.path.append(project_dir)
 		experiment = importlib.import_module("computations." + computation_function)
-	except:
-		print("Could not find experiment `%s`. Is it in the project's ./computations/ directory?" %
-		      computation_function)
+	except Exception as err:
+		print("Could not find experiment `{0}`. Is it in the project's ./computations/ directory? \nError: {1}".format(
+			computation_function, str(err)))
 		exit(-1)
 
 	if 'keep_all' in parameters.keys():

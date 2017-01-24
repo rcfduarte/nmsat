@@ -48,6 +48,8 @@ import scipy.stats as st
 import inspect
 import pprint
 import nest
+import errno
+from defaults.paths import paths
 np.set_printoptions(threshold=np.nan)
 
 
@@ -938,38 +940,46 @@ class ParameterSpace:
 			return results
 		else:
 			print "\nPreparing job description files..."
-			export_folder = system['remote_directory']
-			if not os.path.exists(export_folder + '{0}'.format(self.label)):
-				os.mkdir(export_folder + '{0}'.format(self.label))
-			main_experiment_folder = export_folder + '{0}/'.format(self.label)
-			remote_run_folder = export_folder + self.label + '/'
-			project_dir = os.path.abspath(project_dir)
-			py_file_common_header = "import sys\nsys.path.append('%s')\nimport matplotlib\nmatplotlib.use(" \
-			                        "'Agg')\nfrom modules.parameters import *\nfrom " \
-			                        "modules.analysis import *\nfrom computations import *\n\n" % project_dir
+			export_folder 			= system['remote_directory']
+			main_experiment_folder 	= export_folder + '{0}/'.format(self.label)
 
-			write_to_submit = []
-			submit_jobs_file = main_experiment_folder + 'submit_jobs.py'
-			job_list = main_experiment_folder + 'job_list.txt'
-			cancel_jobs_file = main_experiment_folder + 'cancel_jobs.py'
+			try:
+				os.mkdirs(main_experiment_folder)
+			except OSError as err:
+				if err.errno == errno.EEXIST and os.path.isdir(main_experiment_folder):
+					print "Path `{0}` already exists, will be overwritten!".format(main_experiment_folder)
+				else:
+					raise OSError(e.errno, "Could not create exported experiment folder.", main_experiment_folder)
+
+			remote_run_folder 	  = export_folder + self.label + '/'
+			project_dir 		  = os.path.abspath(project_dir)
+			network_dir 		  = os.path.abspath(project_dir + '/../../')
+			py_file_common_header = ("import sys\nsys.path.append('{0}')\nsys.path.append('{1}')\nimport matplotlib"
+									"\nmatplotlib.use('Agg')\nfrom modules.parameters import *\nfrom "
+									"modules.analysis import *\nfrom computations import *\n\n").format(
+									project_dir, network_dir)
+
+			write_to_submit 	= []
+			submit_jobs_file 	= main_experiment_folder + 'submit_jobs.py'
+			job_list 			= main_experiment_folder + 'job_list.txt'
+			cancel_jobs_file 	= main_experiment_folder + 'cancel_jobs.py'
 
 			for par_set in self.parameter_sets:
-				system2 = par_set.kernel_pars.system
-				template_file = system2['jdf_template']
-				exec_file_name = remote_run_folder + par_set.label + '.sh'
-				local_exec_file = main_experiment_folder + par_set.label + '.sh'
-				computation_file = main_experiment_folder + par_set.label + '.py'
+				system2 			= par_set.kernel_pars.system
+				template_file 		= system2['jdf_template']
+				exec_file_name 		= remote_run_folder + par_set.label + '.sh'
+				local_exec_file 	= main_experiment_folder + par_set.label + '.sh'
+				computation_file 	= main_experiment_folder + par_set.label + '.py'
 				remote_computation_file = remote_run_folder + par_set.label + '.py'
 
 				par_set.save(main_experiment_folder + par_set.label+'.txt')
-				parameters_file = main_experiment_folder + par_set.label+'.txt'
 				with open(computation_file, 'w') as fp:
 					fp.write(py_file_common_header)
 					fp.write(computation_function.__module__.split('.')[1] + '.' +computation_function.__name__ +
-					         "({0}, **{1})".format("'./" + par_set.label + ".txt'", str(parameters)))
+							 "({0}, **{1})".format("'./" + par_set.label + ".txt'", str(parameters)))
 
 				system2['jdf_fields'].update({'{{ computation_script }}': remote_computation_file,
-				                             '{{ script_folder }}': remote_run_folder})
+											  '{{ script_folder }}': remote_run_folder})
 
 				io.process_template(template_file, system2['jdf_fields'].as_dict(), save_to=local_exec_file)
 				write_to_submit.append("{0}\n".format(exec_file_name))
@@ -989,7 +999,7 @@ class ParameterSpace:
 				fp.write("\t\t\t\tos.system('sbatch {0}'.format(line))")
 				fp.write("\n\n")
 				fp.write("if __name__=='__main__':\n\tif len(sys.argv)>1:\n\t\tsubmit_jobs(int(sys.argv[1]), "
-				         "int(sys.argv[2]))")
+						 "int(sys.argv[2]))")
 
 			with open(cancel_jobs_file, 'w') as fp:
 				fp.write(
