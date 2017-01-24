@@ -955,8 +955,8 @@ class ParameterSpace:
 			network_dir 		  = os.path.abspath(project_dir + '/../../')
 			py_file_common_header = ("import sys\nsys.path.append('{0}')\nsys.path.append('{1}')\nimport matplotlib"
 									"\nmatplotlib.use('Agg')\nfrom modules.parameters import *\nfrom "
-									"modules.analysis import *\nfrom computations import *\n\n").format(
-									project_dir, network_dir)
+									"modules.analysis import *\nfrom computations import {2}\n\n")\
+									.format(project_dir, network_dir, computation_function)
 
 			write_to_submit 	= []
 			submit_jobs_file 	= main_experiment_folder + 'submit_jobs.py'
@@ -974,7 +974,7 @@ class ParameterSpace:
 				par_set.save(main_experiment_folder + par_set.label+'.txt')
 				with open(computation_file, 'w') as fp:
 					fp.write(py_file_common_header)
-					fp.write(computation_function.__module__.split('.')[1] + '.' +computation_function.__name__ +
+					fp.write(computation_function.__module__.split('.')[1] + '.' + computation_function.__name__ +
 							 "({0}, **{1})".format("'./" + par_set.label + ".txt'", str(parameters)))
 
 				system2['jdf_fields'].update({'{{ computation_script }}': remote_computation_file,
