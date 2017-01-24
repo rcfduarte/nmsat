@@ -665,13 +665,13 @@ def test_offline_filtering(spike_list, N, dt, tau):
 
 	idx = np.random.permutation(spike_list.id_list)[0]
 	mat_idx = idx - min(spike_list.id_list)
-	activity_matrix = spike_list.compile_response_matrix(dt, tau, start=start, stop=stop, N=N, display=True)
+	activity_matrix = spike_list.filter_spiketrains(dt, tau, start=start, stop=stop, N=N, display=True)
 	spk_train = spike_list.spiketrains[idx]
 	t = np.arange(spike_list.t_start, spike_list.t_stop, dt)
 	resp = spk_train.exponential_filter(dt, tau, start, stop)
 
 	fig, ax = pl.subplots()
-	ax.plot(spk_train.spike_times, np.ones_like(spk_train.spike_times), 'ro')
+	ax.plot(spk_train.spike_times, 20*np.ones_like(spk_train.spike_times), 'ro')
 	ax.plot(t, resp, 'b')
 	ax.plot(t, activity_matrix[mat_idx, :], 'g')
 

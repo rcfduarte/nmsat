@@ -102,7 +102,6 @@ def build_parameters():
 	# ##################################################################################################################
 	# Encoding Parameters
 	# ##################################################################################################################
-	filter_tau = 20.  # time constant of exponential filter (applied to spike trains)
 	n_afferents = 1250  # number of stimulus-specific afferents (if necessary)
 	n_stim = stim_pars['n_stim']  # number of different input stimuli
 
@@ -129,7 +128,8 @@ def build_parameters():
 	# Decoding / Readout Parameters
 	# ##################################################################################################################
 	out_resolution = 1.
-	state_sampling = None  # 1.(cannot start at 0)
+	filter_tau = 20.  # time constant of exponential filter (applied to spike trains)
+	state_sampling = [50., 100., 150., 200.]#None  # 1.(cannot start at 0)
 	readout_labels = ['ridge_classifier', 'pinv_classifier']
 	readout_algorithms = ['ridge', 'pinv']
 
@@ -140,6 +140,7 @@ def build_parameters():
 		readouts=readout_labels,
 		readout_algorithms=readout_algorithms,
 		sampling_times=state_sampling,
+		reset_states=[True, False, True]
 		#state_sampling_parameters=[{}],
 		#sampling_lag=10.,
 	)

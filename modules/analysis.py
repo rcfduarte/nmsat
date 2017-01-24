@@ -47,8 +47,6 @@ import scipy.integrate as integ
 import sklearn.decomposition as sk
 import sklearn.linear_model as lm
 import sklearn.svm as svm
-# from sklearn.cross_validation import StratifiedKFold
-# from sklearn.grid_search import GridSearchCV
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import GridSearchCV
 import sklearn.metrics as met
@@ -1212,7 +1210,7 @@ def compute_ainess(results, keys, pop=None, template_duration=10000., template_r
 			result_vector = np.delete(result_vector, idx)
 			result_template = np.delete(result_template, idx)
 
-		# compute normalized Euclidean distance
+		# compute distance
 		ai_ness = cosine(result_vector, result_template)
 		print("\nPopulation {0} AIness = {1}".format(str(population), str(ai_ness)))
 
@@ -1266,36 +1264,36 @@ def analyse_activity_dynamics(activity_matrix, epochs=None, label='', plot=False
 	return results
 
 
-def compute_time_resolved_dimensionality(spike_list=None, activity_matrix=None, time_bin=1., window_len=100,
-                                         display=True):
-	"""
-	Determines the effective state-space dimensionality (with the PCA method), in a moving window
-	:return:
-	"""
-	time_axis = spike_list.time_axis(time_bin=time_bin)
-	steps = len(list(sg.moving_window(time_axis, window_len)))
-	mw = sg.moving_window(time_axis, window_len)
-	rr = dict()
-	print "\nAnalysing activity in moving window.."
-	if activity_matrix is None and spike_list is not None:
-		population_response = spike_list.compile_response_matrix()
-	else:
-		population_response = activity_matrix
-	pca_obj = sk.PCA(n_components=population_response.shape[0])
-
-	rr = {'dimensionality_profile': []}
-	for n in range(steps):
-		if display:
-			visualization.progress_bar(float(float(n) / steps))
-		time_window = mw.next()
-		local_list = spike_list.time_slice(t_start=min(time_window), t_stop=max(time_window))
-		local_response = local_list.compile_response_matrix()
-		X = pca_obj.fit_transform(local_response.T)
-		local_dimensionality = compute_dimensionality(local_response, pca_obj=pca_obj,
-		                                                                 display=False)
-		rr['dimensionality_profile'].append(local_dimensionality)
-
-	return rr
+# def compute_time_resolved_dimensionality(spike_list=None, activity_matrix=None, time_bin=1., window_len=100,
+#                                          display=True):
+# 	"""
+# 	Determines the effective state-space dimensionality (with the PCA method), in a moving window
+# 	:return:
+# 	"""
+# 	time_axis = spike_list.time_axis(time_bin=time_bin)
+# 	steps = len(list(sg.moving_window(time_axis, window_len)))
+# 	mw = sg.moving_window(time_axis, window_len)
+# 	rr = dict()
+# 	print "\nAnalysing activity in moving window.."
+# 	if activity_matrix is None and spike_list is not None:
+# 		population_response = spike_list.compile_response_matrix()
+# 	else:
+# 		population_response = activity_matrix
+# 	pca_obj = sk.PCA(n_components=population_response.shape[0])
+#
+# 	rr = {'dimensionality_profile': []}
+# 	for n in range(steps):
+# 		if display:
+# 			visualization.progress_bar(float(float(n) / steps))
+# 		time_window = mw.next()
+# 		local_list = spike_list.time_slice(t_start=min(time_window), t_stop=max(time_window))
+# 		local_response = local_list.compile_response_matrix()
+# 		X = pca_obj.fit_transform(local_response.T)
+# 		local_dimensionality = compute_dimensionality(local_response, pca_obj=pca_obj,
+# 		                                                                 display=False)
+# 		rr['dimensionality_profile'].append(local_dimensionality)
+#
+# 	return rr
 
 
 def compute_time_resolved_statistics(spike_list, label='', time_bin=1., window_len=100, epochs=None,
@@ -2227,7 +2225,8 @@ def advanced_state_analysis(state, stim_labels, label='', plot=True, display=Tru
 
 def evaluate_encoding(enc_layer, parameter_set, analysis_interval, input_signal, plot=True, display=True, save=False):
 	"""
-
+	Determine the quality of the encoding method (if there are encoders), by reading out the state of the encoders
+	and training it to reconstruct the input signal
 	:param enc_layer:
 	:return:
 	"""
@@ -2243,17 +2242,23 @@ def evaluate_encoding(enc_layer, parameter_set, analysis_interval, input_signal,
 		#                                                                   time_resolved=False, color_map='jet',
 		#                                                                   plot=plot, display=display, save=save)
 
-		if isinstance(n_enc.spiking_activity, sg.SpikeList) and not sg.empty(n_enc.spiking_activity):
+		if isinstance(n_enc.spiking_activity, sg.SpikeList) and not n_enc.spiking_activity.empty():
 			inp_spikes = n_enc.spiking_activity.time_slice(analysis_interval[0], analysis_interval[1])
 			tau = parameter_set.decoding_pars.state_extractor.filter_tau
 			n_input_neurons = np.sum(parameter_set.encoding_pars.encoder.n_neurons)
-			inp_responses = inp_spikes.compile_response_matrix(dt=input_signal.dt,
-															   tau=tau, start=analysis_interval[0],
-															   stop=analysis_interval[1], N=n_input_neurons)
-			inp_readout_pars = prs.copy_dict(parameter_set.decoding_pars.readout[0], {'label': 'InputNeurons',
-																				  'algorithm':
-																					  parameter_set.decoding_pars.readout[
-																						  0]['algorithm'][0]})
+			if n_enc.decoding_layer is not None:
+				inp_responses = n_enc.decoding_layer.extract_activity(start=analysis_interval[0],
+				                                                      stop=analysis_interval[1], save=False,
+				                                                      reset=False)[0]
+				inp_readout_pars = prs.copy_dict(n_enc.decoding_layer.decoding_pars.readout[0])
+			else:
+				# TEST!!
+				inp_responses = inp_spikes.filter_spiketrains(dt=input_signal.dt,
+				                                              tau=tau, start=analysis_interval[0],
+				                                              stop=analysis_interval[1], N=n_input_neurons)
+				inp_readout_pars = prs.copy_dict(parameter_set.decoding_pars.readout[0],
+			                                 {'label': 'InputNeurons',
+			                                  'algorithm': parameter_set.decoding_pars.readout[0]['algorithm'][0]})
 			inp_readout = Readout(prs.ParameterSet(inp_readout_pars))
 			analysis_signal = input_signal.time_slice(analysis_interval[0], analysis_interval[1])
 			inp_readout.train(inp_responses, analysis_signal.as_array())
@@ -2529,13 +2534,16 @@ def get_state_rank(network):
 		results[n_pop.name] = []
 		states = []
 
-		if not sg.empty(n_pop.state_matrix) and isinstance(n_pop.state_matrix[0], list):
-			states = list(itertools.chain(*n_pop.state_matrix))
-		elif not sg.empty(n_pop.state_matrix):
-			states = n_pop.state_matrix
+		if n_pop.decoding_layer is not None:
+			if not sg.empty(n_pop.decoding_layer.state_matrix) and isinstance(n_pop.decoding_layer.state_matrix[0],
+			                                                                  list):
+				states = list(itertools.chain(*n_pop.decoding_layer.state_matrix))
+			elif not sg.empty(n_pop.decoding_layer.state_matrix):
+				states = n_pop.decoding_layer.state_matrix
 
-		for n_state in states:
-			results[n_pop.name].append(np.linalg.matrix_rank(n_state))
+		for idx_state, n_state in enumerate(states):
+			results[n_pop.name].update({n_pop.decoding_layer.state_variables[idx_state]: np.linalg.matrix_rank(
+				n_state)})
 
 	return results
 
@@ -3095,7 +3103,7 @@ class DecodingLayer(object):
 			states.append(np.array(self.state_matrix[0]).T)
 			self.state_matrix = states
 
-	def evaluate_decoding(self, n_neurons=10):
+	def evaluate_decoding(self, n_neurons=10, display=False, save=False):
 		"""
 		Make sure the state extraction process is consistent
 		:param spike_list: raw spiking activity data for this population
@@ -3110,7 +3118,7 @@ class DecodingLayer(object):
 
 		if sg.empty(self.activity):
 			self.extract_activity(start=start, stop=stop, save=True)
-		visualization.plot_response(self.source_population, ids=neuron_ids)
+		visualization.plot_response(self.source_population, ids=neuron_ids, display=display, save=save)
 
 	def reset_states(self):
 		"""
