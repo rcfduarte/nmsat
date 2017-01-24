@@ -1,3 +1,5 @@
+import itertools
+
 __author__ = 'duarte'
 from modules.parameters import ParameterSet, ParameterSpace, extract_nestvalid_dict
 from modules.input_architect import EncodingLayer, StimulusSet, InputSignalSet
@@ -5,7 +7,7 @@ from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
 from modules.visualization import set_global_rcParams, InputPlots, extract_encoder_connectivity, TopologyPlots
-from modules.analysis import characterize_population_activity, compute_ainess
+from modules.analysis import characterize_population_activity, compute_ainess, evaluate_encoding, get_state_rank
 from modules.auxiliary import iterate_input_sequence
 import cPickle as pickle
 import matplotlib.pyplot as pl
@@ -19,7 +21,7 @@ import nest
 plot = True
 display = False
 save = True
-debug = False
+debug = True
 online = True
 
 # ######################################################################################################################
@@ -151,19 +153,23 @@ if plot and debug:
 # ######################################################################################################################
 # Simulate (Full Set)
 # ======================================================================================================================
-iterate_input_sequence(net, enc_layer, parameter_set, stim, inputs, set_name='unique', record=True,
-                       store_activity=False)
-'''
+# iterate_input_sequence(net, enc_layer, parameter_set, stim, inputs, set_name='full', record=True,
+#                        store_activity=True)
+# # evaluate the decoding methods (only if store_activity was set to True, otherwise no activity remains stored for
+# # analysis)
+# if debug:
+# 	for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
+# 						                net.populations, enc_layer.encoders]))):
+# 		if n_pop.decoding_layer is not None:
+# 			n_pop.decoding_layer.evaluate_decoding(display=display, save=paths['figures']+paths['label'])
+
 if stim.transient_set_labels:
 	if not online:
 		print "\nTransient time = {0} ms".format(str(parameter_set.kernel_pars.transient_t))
-
-
-	iterate_input_sequence(net, inputs.transient_set_signal, enc_layer, sampling_times=None,
-	                       sampling_lag=2., stim_set=stim, input_set=inputs, set_name='transient',
-	                       store_responses=False, record=False,
-	                       jitter=parameter_set.encoding_pars.generator.jitter)
+	iterate_input_sequence(net, enc_layer, parameter_set, stim, inputs, set_name='transient', record=False,
+	                                              store_activity=False)
 	parameter_set.kernel_pars.transient_t = nest.GetKernelStatus()['time']
+	inputs.transient_stimulation_time = nest.GetKernelStatus()['time']
 	net.extract_population_activity(t_start=0., t_stop=parameter_set.kernel_pars.transient_t -
 	                                                   parameter_set.kernel_pars.resolution)
 	net.extract_network_activity()
@@ -177,20 +183,20 @@ if stim.transient_set_labels:
 
 	if parameter_set.kernel_pars.transient_t > 1000.:
 		analysis_interval = [1000, parameter_set.kernel_pars.transient_t]
-		results['population_activity'] = population_state(net, parameter_set=parameter_set,
-		                                                  nPairs=500, time_bin=1.,
-		                                                  start=analysis_interval[0],
-		                                                  stop=analysis_interval[1] -
-		                                                       parameter_set.kernel_pars.resolution,
-		                                                  plot=plot, display=display,
-		                                                  save=paths['figures']+paths['label'])
+		# results['population_activity'] = population_state(net, parameter_set=parameter_set,
+		#                                                   nPairs=500, time_bin=1.,
+		#                                                   start=analysis_interval[0],
+		#                                                   stop=analysis_interval[1] -
+		#                                                        parameter_set.kernel_pars.resolution,
+		#                                                   plot=plot, display=display,
+		#                                                   save=paths['figures']+paths['label'])
 		enc_layer.extract_encoder_activity()
-		# results.update(evaluate_encoding(enc_layer, parameter_set, analysis_interval,
-		#                                  inputs.transient_set_signal, plot=plot, display=display,
-		#                                  save=paths['figures']+paths['label']))
+		results.update(evaluate_encoding(enc_layer, parameter_set, analysis_interval,
+		                                 inputs.transient_set_signal, plot=plot, display=display,
+		                                 save=paths['figures']+paths['label']))
 
-	net.flush_records()
-	enc_layer.flush_records()
+	net.flush_records(decoders=True)
+	enc_layer.flush_records(decoders=True)
 
 # ######################################################################################################################
 # Simulate (Unique Sequence)
@@ -198,11 +204,9 @@ if stim.transient_set_labels:
 if not online:
 	print "\nUnique Sequence time = {0} ms".format(str(inputs.unique_stimulation_time))
 
-iterate_input_sequence(net, inputs.unique_set_signal, enc_layer,
-                       sampling_times=parameter_set.decoding_pars.global_sampling_times,
-                       sampling_lag=2., stim_set=stim, input_set=inputs,
-                       set_name='unique', store_responses=False,
-                       jitter=parameter_set.encoding_pars.generator.jitter)
+iterate_input_sequence(net, enc_layer, parameter_set, stim, inputs, set_name='unique', record=True,
+	                                              store_activity=False)
+inputs.unique_stimulation_time = nest.GetKernelStatus()['time'] - inputs.transient_stimulation_time
 results['rank'] = get_state_rank(net)
 n_stim = len(stim.elements)
 print "State Rank: {0} / {1}".format(str(results['rank']), str(n_stim))
@@ -218,39 +222,36 @@ for n_enc in enc_layer.encoders:
 # ======================================================================================================================
 if not online:
 	print "\nTrain time = {0} ms".format(str(inputs.train_stimulation_time))
-iterate_input_sequence(net, inputs.train_set_signal, enc_layer,
-                       sampling_times=parameter_set.decoding_pars.global_sampling_times,
-                       sampling_lag=2., stim_set=stim, input_set=inputs,
-                       set_name='train', store_responses=False,
-                       jitter=parameter_set.encoding_pars.generator.jitter)
-
+iterate_input_sequence(net, enc_layer, parameter_set, stim, inputs, set_name='train', record=True,
+	                                              store_activity=False)
+inputs.train_stimulation_time = nest.GetKernelStatus()['time'] - (inputs.transient_stimulation_time + inputs.unique_stimulation_time)
 # ######################################################################################################################
 # Train Readouts
 # ======================================================================================================================
-train_all_readouts(parameter_set, net, stim, inputs.train_set_signal, encoding_layer=enc_layer, flush=True, debug=debug,
-                   plot=plot, display=display, save=paths)
+# train_all_readouts(parameter_set, net, stim, inputs.train_set_signal, encoding_layer=enc_layer, flush=True, debug=debug,
+#                    plot=plot, display=display, save=paths)
 
 # ######################################################################################################################
 # Simulate (Test period)
 # ======================================================================================================================
 if not online:
 	print "\nTest time = {0} ms".format(str(inputs.test_stimulation_time))
-iterate_input_sequence(net, inputs.test_set_signal, enc_layer,
-                       sampling_times=parameter_set.decoding_pars.global_sampling_times,
-                       sampling_lag=2., stim_set=stim, input_set=inputs, set_name='test',
-                       store_responses=False, #paths['activity'],
-                       jitter=parameter_set.encoding_pars.generator.jitter)
+iterate_input_sequence(net, enc_layer, parameter_set, stim, inputs, set_name='train', record=True,
+	                                              store_activity=False)
+inputs.test_stimulation_time = nest.GetKernelStatus()['time'] - (inputs.transient_stimulation_time +
+                                                                  inputs.unique_stimulation_time + inputs.train_stimulation_time)
+
 
 # ######################################################################################################################
 # Test Readouts
 # ======================================================================================================================
-test_all_readouts(parameter_set, net, stim, inputs.test_set_signal, encoding_layer=enc_layer, flush=False, debug=debug,
-                  plot=plot, display=display, save=paths)
-
-results['Performance'] = {}
-results['Performance'].update(analyse_performance_results(net, enc_layer, plot=plot, display=display, save=paths[
-	                                                                                                  'figures']+paths[
-	'label']))
+# test_all_readouts(parameter_set, net, stim, inputs.test_set_signal, encoding_layer=enc_layer, flush=False, debug=debug,
+#                   plot=plot, display=display, save=paths)
+#
+# results['Performance'] = {}
+# results['Performance'].update(analyse_performance_results(net, enc_layer, plot=plot, display=display, save=paths[
+# 	                                                                                                  'figures']+paths[
+# 	'label']))
 
 # ######################################################################################################################
 # Save data
@@ -260,4 +261,3 @@ if save:
 		pickle.dump(results, f)
 	parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
 
-'''

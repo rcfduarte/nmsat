@@ -2625,11 +2625,11 @@ class SpikeList(object):
 		"""
 		if N is None:
 			N = len(self.id_list)
-		responses = self.compile_response_matrix(dt, tau, start=time_point-lag, stop=time_point, N=N)
+		responses = self.filter_spiketrains(dt, tau, start=time_point - lag, stop=time_point, N=N)
 
 		return responses[:, -1]
 
-	def compile_response_matrix(self, dt, tau, start=None, stop=None, N=None, display=True):
+	def filter_spiketrains(self, dt, tau, start=None, stop=None, N=None, display=True):
 		"""
 		Returns an NxT matrix where each row represents the filtered spiking activity of
 		one neuron and the columns represent time...

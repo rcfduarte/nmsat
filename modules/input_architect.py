@@ -3280,7 +3280,7 @@ class EncodingLayer:
 		else:
 			print "Provide gids!!"
 
-	def extract_encoder_activity(self):
+	def extract_encoder_activity(self, t_start=None, t_stop=None):
 		"""
 		Read the spiking activity of the encoders present in the EncodingLayer
 		:return:
@@ -3292,11 +3292,11 @@ class EncodingLayer:
 				print "- Encoder {0}".format(n_enc.name)
 				for n_dev in n_enc.attached_devices:
 					if nest.GetStatus(n_dev)[0]['to_memory']:
-						status = nest.GetStatus(n_dev)[0]['events']
-						t_start, t_stop = np.min(status['times']), np.max(status['times'])
+						# status = nest.GetStatus(n_dev)[0]['events']
+						# t_start, t_stop = np.min(status['times']), np.max(status['times'])
 						n_enc.activity_set(n_dev, t_start=t_start, t_stop=t_stop)
 					elif nest.GetStatus(n_dev)[0]['to_file']:
-						n_enc.activity_set(list(nest.GetStatus(n_enc)[0]['filenames']))
+						n_enc.activity_set(list(nest.GetStatus(n_enc)[0]['filenames']), t_start=t_start, t_stop=t_stop)
 
 	def flush_records(self, decoders=False):
 		"""
