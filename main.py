@@ -1,12 +1,17 @@
 #!/usr/bin/python
+import sys
+import copy
+
+# this is currently to bypass the sys.argv pollution in PyNEST
+cmdl_args = copy.copy(sys.argv)
+
 import matplotlib
 matplotlib.use('Agg')
-import importlib
-from modules.parameters import ParameterSpace
 from optparse import OptionParser
 from os import path
-import sys
-
+import importlib
+from modules.parameters import ParameterSpace
+import nest
 
 def run_experiment(params_file_full_path, computation_function="noise_driven_dynamics", **parameters):
 	"""
@@ -44,8 +49,9 @@ def run_experiment(params_file_full_path, computation_function="noise_driven_dyn
 
 def create_parser():
 	parser_ = OptionParser()
-	parser_.add_option("-f", "--param-file", dest="p_file", help="parameter file", metavar="FILE")
-	parser_.add_option("-c", "--computation-function", dest="c_function", help="computation function to execute")
+	parser_.add_option("-f", "--filename", type="string", action="store", dest="p_file", default=None, help="parameter file")
+	parser_.add_option("-c", "--computation-function", action="store", dest="c_function", type="string", default=None,
+					   help="computation function to execute")
 
 	return parser_
 
@@ -63,19 +69,15 @@ NO WARRANTY. See the file LICENSE for details.
 
 if __name__ == "__main__":
 	print_welcome_message()
-	if 'pynest' in sys.argv:
-		sys.argv.pop(0)
+	(options, args) = create_parser().parse_args(cmdl_args)
 
-	(options, args) = create_parser().parse_args()
-	print sys.argv
-	print options, args
 	# we need minimum 2 arguments (3 including the script)
-	if len(sys.argv) < 3 or options.p_file is None or options.c_function is None:
+	if len(cmdl_args) < 3 or options.p_file is None or options.c_function is None:
 		print("At least two arguments (parameter file and computation function) are required! Exiting..")
 		exit(-1)
 
 	# TODO do we allow random arguments or should we include all possible params as options, would be nice in the help
-	d = dict([arg.split('=', 1) for arg in args])
+	d = dict([arg.split('=', 1) for arg in args[1:]])
 	for k, v in d.items():
 		if v == 'False':
 			d.update({k: False})
