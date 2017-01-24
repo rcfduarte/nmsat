@@ -956,7 +956,7 @@ class ParameterSpace:
 			py_file_common_header = ("import sys\nsys.path.append('{0}')\nsys.path.append('{1}')\nimport matplotlib"
 									"\nmatplotlib.use('Agg')\nfrom modules.parameters import *\nfrom "
 									"modules.analysis import *\nfrom computations import {2}\n\n")\
-									.format(project_dir, network_dir, computation_function)
+									.format(project_dir, network_dir, computation_function.__module__.split('.')[1])
 
 			write_to_submit 	= []
 			submit_jobs_file 	= main_experiment_folder + 'submit_jobs.py'
