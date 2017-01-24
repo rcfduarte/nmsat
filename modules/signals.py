@@ -1651,8 +1651,8 @@ class SpikeList(object):
 			isi_hist
 		"""
 		isis = []
-		for id in self.id_list:
-			isis.append(self.spiketrains[id].isi())
+		for id_ in self.id_list:
+			isis.append(self.spiketrains[id_].isi())
 		return isis
 
 	def cv_isi(self, float_only=False):
@@ -2469,7 +2469,7 @@ class SpikeList(object):
         """
 		## We have to extract only the non silent cells, to avoid problems
 		if pairs_generator is None:
-			pairs_generator = RandomPairs(self, self, False, True)
+			pairs_generator = RandomPairs(self, self, True, True)
 
 		pairs = pairs_generator.get_pairs(nb_pairs)
 		N = len(pairs)
