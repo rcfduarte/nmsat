@@ -2895,19 +2895,25 @@ class DecodingLayer(object):
 
 		self.decoding_pars = initializer
 		self.state_variables = initializer.state_variable
+		self.reset_state_variables = initializer.reset_states
+		self.average_states = initializer.average_states
 		self.extractors = []
 		self.readouts = [[] for _ in range(len(self.state_variables))]
 		self.activity = [None for _ in range(len(self.state_variables))]
 		self.state_matrix = [[] for _ in range(len(self.state_variables))]
+		self.initial_states = [None for _ in range(len(self.state_variables))]
 		self.source_population = population
+		self.state_sample_times = None
 
 		for state_idx, state_variable in enumerate(self.state_variables):
 			state_specs = initializer.state_specs[state_idx]
-			if state_variable == 'V_m':
+			if state_variable == 'V_m': # TODO - implement any other recordables from the neuron!!
 				mm_specs = prs.extract_nestvalid_dict(state_specs, param_type='device')
 				mm = nest.Create('multimeter', 1, mm_specs)
 				self.extractors.append(mm)
 				nest.Connect(mm, population.gids)
+				original_neuron_status = nest.GetStatus(population.gids)
+				self.initial_states[state_idx] = np.array([x['V_m'] for x in original_neuron_status])
 			elif state_variable == 'spikes':
 				rec_neuron_pars = {'model': 'iaf_psc_delta', 'V_m': 0., 'E_L': 0., 'C_m': 1.,
 				                   'tau_m': state_specs['tau_m'],
@@ -2930,9 +2936,17 @@ class DecodingLayer(object):
 				nest.Connect(rec_mm, rec_neurons)
 				nest.Connect(population.gids, rec_neurons, 'one_to_one',
 				             syn_spec={'weight': 1., 'delay': 0.1, 'model': 'static_synapse'})
+				self.initial_states[state_idx] = np.zeros((len(rec_neurons),))
 			else:
-				raise NotImplementedError("Acquisition from state variable {0} not implemented yet".format(
-					state_variable))
+				if state_variable in nest.GetStatus(population.gids[0])[0]['recordables']:
+					mm_specs = prs.extract_nestvalid_dict(state_specs, param_type='device')
+					mm = nest.Create('multimeter', 1, mm_specs)
+					self.extractors.append(mm)
+					nest.Connect(mm, population.gids)
+					self.initial_states[state_idx] = np.zeros((len(population.gids),))
+				else:
+					raise NotImplementedError("Acquisition from state variable {0} not implemented yet".format(
+						state_variable))
 			print("- State acquisition from Population {0} [{1}] - id {2}".format(population.name, state_variable,
 			                                                                      self.extractors[-1]))
 
@@ -2979,7 +2993,7 @@ class DecodingLayer(object):
 		self.activity = [None for _ in range(len(self.state_variables))]
 		self.state_matrix = [None for _ in range(len(self.state_variables))]
 
-	def extract_activity(self, start=None, stop=None, save=False, reset=True):
+	def extract_activity(self, start=None, stop=None, save=False):
 		"""
 		Read recorded activity from devices and store it
 		:param start:
@@ -3037,10 +3051,6 @@ class DecodingLayer(object):
 
 			all_responses.append(responses)
 			print "Elapsed time: {0} s".format(str(time.time()-start_time1))
-
-		if reset:
-			self.reset_states()
-
 		if save:
 			for idx, n_response in enumerate(all_responses):
 				self.activity[idx] = n_response
@@ -3122,16 +3132,27 @@ class DecodingLayer(object):
 
 	def reset_states(self):
 		"""
-
+		Sets all state variables to 0
 		:return:
 		"""
-		pass
+		for idx_state, n_state in enumerate(self.state_variables):
+			if self.reset_state_variables[idx_state]:
+				print("\nReseting {0} state in Population {1}".format(n_state, self.source_population.name))
+				if n_state == 'V_m':
+					for idx, neuron_id in enumerate(self.source_population.gids):
+						nest.SetStatus([neuron_id], {'V_m': self.initial_states[idx_state][idx]})
+				elif n_state == 'spikes':
+					recording_neuron_gids = nest.GetStatus(nest.GetConnections(self.extractors[idx_state]), 'target')
+					for idx, neuron_id in enumerate(recording_neuron_gids):
+						nest.SetStatus([neuron_id], {'V_m': self.initial_states[idx_state][idx]})
+				else:
+					try:
+						for idx, neuron_id in enumerate(self.source_population.gids):
+							nest.SetStatus([neuron_id], {n_state: self.initial_states[idx_state][idx]})
+					except ValueError:
+						print("State variable {0} cannot be reset".format(n_state))
 
 '''
-	def reset_states():
-		"""
-		"""
-
 
 	def copy_readout_set(self, n=1):
 		"""

@@ -1179,8 +1179,6 @@ class Network(object):
 		properties of the Network object (it may be redundant to maintain both activity sets, and it's only useful in
 		certain situations)
 		"""
-		#TODO Question should we revisit this?
-
 		for n in range(self.n_populations):
 			if isinstance(self.populations[n], list) and self.n_devices[n]:
 				for nn in range(len(self.populations[n])):
@@ -1298,12 +1296,12 @@ class Network(object):
 				extractor_indices.update({n_ext: np.where(np.array(sources) == n_ext)[0]})
 
 			# create decoder parameters dictionary for each source population
-			keys = ['state_specs', 'state_variable']
+			keys = ['state_specs', 'state_variable', 'reset_states', 'average_states']
 			for k, v in extractor_indices.items():
 				decoder_params.update({k: {}})
 				for k1 in keys:
 					decoder_params[k].update({k1: [pars_st[k1][x] for x in v]})
-
+			# print decoder_params
 			if hasattr(decoding_pars, "readout"):
 				pars_rd = decoding_pars.readout
 				for k, v in extractor_indices.items():

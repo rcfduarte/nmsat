@@ -2705,7 +2705,7 @@ class AnalogSignal(object):
         >> s = AnalogSignal(range(100), dt=0.1, t_start=0, t_stop=10)
 
     See also
-        AnalogSignalList, load_currentlist, load_vmlist, load_conductancelist, load
+        AnalogSignalList
 	"""
 	def __init__(self, signal, dt, t_start=None, t_stop=None):
 		self.signal = np.array(signal, float)
@@ -2717,6 +2717,12 @@ class AnalogSignal(object):
 		self.signal_length = len(signal)
 		# If t_stop is not None, we test that the signal has the correct number
 		# of elements
+		# print self.dt
+		print t_start, self.t_start
+		print t_stop, self.t_stop
+		print dt, self.dt
+		print (t_stop-t_start) / float(dt)
+		print (self.t_stop - self.t_start) / float(self.dt)
 		if self.t_stop is not None:
 			if abs(self.t_stop - self.t_start - self.dt * len(self.signal)) > 0.1 * self.dt:
 				raise Exception("Inconsistent arguments: t_start=%g, t_stop=%g, dt=%g implies %d elements, actually %d" % (

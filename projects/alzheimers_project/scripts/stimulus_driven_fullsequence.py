@@ -157,11 +157,11 @@ iterate_input_sequence(net, enc_layer, parameter_set, stim, inputs, set_name='fu
                        store_activity=True)
 # evaluate the decoding methods (only if store_activity was set to True, otherwise no activity remains stored for
 # analysis)
-if debug:
-	for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
-						                net.populations, enc_layer.encoders]))):
-		if n_pop.decoding_layer is not None:
-			n_pop.decoding_layer.evaluate_decoding(display=display, save=paths['figures']+paths['label'])
+# if debug:
+for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
+					                net.populations]))):#, enc_layer.encoders]))):
+	if n_pop.decoding_layer is not None:
+		n_pop.decoding_layer.evaluate_decoding(display=display, save=paths['figures']+paths['label'])
 
 '''
 if stim.transient_set_labels:

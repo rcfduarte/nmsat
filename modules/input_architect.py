@@ -2283,52 +2283,6 @@ class Encoder(net_architect.Population):
 		net_architect.Population.__init__(self, pop_set=par_set)
 		print "\nCreating Input Encoder {0}".format(str(par_set.pop_names))
 
-	# def generate_stochastic_spikes(self, encoder_pars, weights, sign):
-	# 	"""
-	# 	"""
-	# 	if isinstance(encoder_pars, dict):
-	# 		encoder_pars = ParameterSet(encoder_pars)
-	# 	if not isinstance(encoder_pars, ParameterSet):
-	# 		raise TypeError("Parameters must be dict or ParameterSet")
-	#
-	# 	pars_idx = encoder_pars.labels.index(self.name)
-	#
-	# 	signals = sign.input_signal.analog_signals
-	# 	signal_array = np.zeros((len(signals), int(signals[0].duration())))
-	# 	st_gen = StochasticGenerator()
-	# 	globals()['time_data'] = sign.input_signal.time_axis()
-	# 	x = getattr(st_gen, encoder_pars.models[pars_idx])
-	# 	globals()['t_stop'] = sign.global_stop
-	#
-	# 	for n in range(len(signals)):
-	# 		signal_array[n, :] = signals[n].signal
-	#
-	# 	weighted_input = np.dot(weights.T, signal_array)
-	#
-	# 	spk_t = []
-	# 	spk_i = []
-	# 	dt = nest.GetKernelStatus()['resolution']
-	# 	import decimal
-	# 	d = decimal.Decimal(str(dt))
-	# 	decimal_place = d.as_tuple()[1][0]
-	#
-	# 	for nn in range(self.size):
-	# 		globals()['signal'] = weighted_input[nn, :]
-	# 		args = {k: eval(v) for k, v in encoder_pars.model_pars[pars_idx].items()}
-	# 		spk_train = x(**args)
-	#
-	# 		# round to simulation resolution
-	# 		times_tmp = [round(decimal.Decimal(str(xx)), decimal_place) for xx in np.copy(spk_train.spike_times)]
-	# 		# times_tmp2 = round(times_tmp, decimal_place)
-	# 		spk_t.append(times_tmp)
-	# 		spk_i.append(nn * np.ones_like(spk_train.spike_times))
-	#
-	# 	times = list(itertools.chain(*spk_t))
-	# 	ids = list(itertools.chain(*spk_i))
-	# 	tmp = [(ids[n], tt) for n, tt in enumerate(times)]
-	# 	self.spiking_activity = SpikeList(spikes=tmp, id_list=list(np.unique(ids)), t_start=min(time_data),
-	# 	                                  t_stop=t_stop)
-
 
 ########################################################################################################################
 class Generator:
@@ -2484,7 +2438,6 @@ class EncodingLayer:
 				raise TypeError("signal must be InputSignal, AnalogSignalList or SpikeList")
 		elif signal is not None and online:
 			self.n_generators.append(signal.dimensions)
-			#signal = None
 		elif stim_seq is not None:
 			seq = list(signals.iterate_obj_list(stim_seq))
 			assert isinstance(seq[0], str), "Provided stim_seq must be string sequence"
@@ -2501,8 +2454,6 @@ class EncodingLayer:
 		self.connection_weights = {}
 		self.connection_delays = {}
 		self.signal = signal
-		#self.state_extractors = []
-		#self.readouts = []
 
 		def create_encoders(encoder_pars, signal=None):
 			"""
@@ -3214,7 +3165,9 @@ class EncodingLayer:
 					raise TypeError("No source populations in Encoding Layer")
 
 				decoder_params.update({'state_variable': pars_st.state_variable,
-			                           'state_specs': pars_st.state_specs})
+			                           'state_specs': pars_st.state_specs,
+				                       'reset_states': pars_st.reset_states,
+				                       'average_states': pars_st.average_states})
 
 				if hasattr(decoding_pars, "readout"):
 					pars_readout = decoding_pars.readout
