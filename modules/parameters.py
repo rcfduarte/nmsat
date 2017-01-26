@@ -385,6 +385,7 @@ class ParameterSet(dict):
 			                "or a parameters dictionary")
 
 		# set label
+		# TODO do we really need to add a label to each ParameterSet??
 		if isinstance(initializer, dict):
 			if 'label' in initializer:
 				self.label = initializer['label']

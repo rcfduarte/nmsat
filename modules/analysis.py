@@ -683,31 +683,38 @@ def compute_isi_stats(spike_list, summary_only=False, display=True):
 		t_start = time.time()
 	results = dict()
 	if not summary_only:
-		results['isi'] = np.array(list(itertools.chain(*spike_list.isi())))
-		results['cvs'] = spike_list.cv_isi(float_only=True)
-		results['lvs'] = spike_list.local_variation()
-		results['lvRs'] = spike_list.local_variation_revised(float_only=True)
-		results['ents'] = spike_list.isi_entropy(float_only=True)
-		results['iR'] = spike_list.instantaneous_regularity(float_only=True)
-		results['cvs_log'] = spike_list.cv_log_isi(float_only=True)
-		results['isi_5p'] = spike_list.isi_5p(float_only=True)
-		results['ai'] = spike_list.adaptation_index(float_only=True)
+		results['isi'] 		= np.array(list(itertools.chain(*spike_list.isi())))
+		results['cvs'] 		= spike_list.cv_isi(float_only=True)
+		results['lvs'] 		= spike_list.local_variation()
+		results['lvRs'] 	= spike_list.local_variation_revised(float_only=True)
+		results['ents'] 	= spike_list.isi_entropy(float_only=True)
+		results['iR'] 		= spike_list.instantaneous_regularity(float_only=True)
+		results['cvs_log'] 	= spike_list.cv_log_isi(float_only=True)
+		results['isi_5p'] 	= spike_list.isi_5p(float_only=True)
+		results['ai'] 		= spike_list.adaptation_index(float_only=True)
 	else:
 		results['isi'] = []
 		cvs = spike_list.cv_isi(float_only=True)
 		results['cvs'] = (np.mean(cvs), np.var(cvs))
+
 		lvs = spike_list.local_variation()
 		results['lvs'] = (np.mean(lvs), np.var(lvs))
+
 		lvRs = spike_list.local_variation_revised(float_only=True)
 		results['lvRs'] = (np.mean(lvRs), np.var(lvRs))
+
 		H = spike_list.isi_entropy(float_only=True)
 		results['ents'] = (np.mean(H), np.var(H))
+
 		iRs = spike_list.instantaneous_regularity(float_only=True)
 		results['iR'] = (np.mean(iRs), np.var(iRs))
+
 		cvs_log = spike_list.cv_log_isi(float_only=True)
 		results['cvs_log'] = (np.mean(cvs_log), np.var(cvs_log))
+
 		isi_5p = spike_list.isi_5p(float_only=True)
 		results['isi_5p'] = (np.mean(isi_5p), np.var(isi_5p))
+
 		ai = spike_list.adaptation_index(float_only=True)
 		results['ai'] = (np.mean(ai), np.var(ai))
 	if display:
@@ -734,16 +741,16 @@ def compute_spike_stats(spike_list, time_bin=1., summary_only=False, display=Fal
 	counts = spike_list.spike_counts(dt=time_bin, normalized=False, binary=False)
 	ffs = np.array(spike_list.fano_factors(time_bin))
 	if summary_only:
-		results['counts'] = (np.mean(counts[~np.isnan(counts)]), np.var(counts[~np.isnan(counts)]))
-		results['mean_rates'] = (np.mean(rates), np.var(rates))
-		results['ffs'] = (np.mean(ffs[~np.isnan(ffs)]), np.var(ffs[~np.isnan(ffs)]))
-		results['corrected_rates'] = (np.mean(rates[np.nonzero(rates)[0]]), np.std(rates[np.nonzero(rates)[0]]))
+		results['counts'] 			= (np.mean(counts[~np.isnan(counts)]), np.var(counts[~np.isnan(counts)]))
+		results['mean_rates'] 		= (np.mean(rates), np.var(rates))
+		results['ffs'] 				= (np.mean(ffs[~np.isnan(ffs)]), np.var(ffs[~np.isnan(ffs)]))
+		results['corrected_rates'] 	= (np.mean(rates[np.nonzero(rates)[0]]), np.std(rates[np.nonzero(rates)[0]]))
 	else:
-		results['counts'] = counts
-		results['mean_rates'] = rates
-		results['corrected_rates'] = rates[np.nonzero(rates)[0]]
-		results['ffs'] = ffs[~np.isnan(ffs)]
-		results['spiking_neurons'] = spike_list.id_list
+		results['counts'] 			= counts
+		results['mean_rates'] 		= rates
+		results['corrected_rates'] 	= rates[np.nonzero(rates)[0]]
+		results['ffs'] 				= ffs[~np.isnan(ffs)]
+		results['spiking_neurons'] 	= spike_list.id_list
 	if display:
 		print "Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3)))
 	return results
@@ -1038,19 +1045,33 @@ def manifold_learning(activity_matrix, n_neighbors, standardize=True, plot=True,
 def characterize_population_activity(population_object, parameter_set, analysis_interval, epochs=None,
 									 time_bin=1., n_pairs=500, tau=20., window_len=100,
 									 color_map='jet', summary_only=False, complete=True, time_resolved=True,
-									 plot=True, display=True, save=False):
+									 plot=True, display=True, save=False, prng=None, label="global"):
 	"""
 	Compute all the relevant metrics of recorded activity (spiking and analog signals), providing
 	a thorough characterization and quantification of population dynamics
+
+	:return results: dict
 	:param population_object: Population or Network object whose activity should be analyzed
 	:param parameter_set: complete ParameterSet
 	:param analysis_interval: list or tuple with [start_time, stop time] specifying the time interval to analyse
-
-	:return results: dict
+	:param epochs:
+	:param time_bin:
+	:param n_pairs:
+	:param tau:
+	:param window_len:
+	:param color_map:
+	:param summary_only:
+	:param complete:
+	:param time_resolved:
+	:param plot:
+	:param display:
+	:param save:
+	:param prng: numpy.random object for precise experiment reproduction
+	:param label: TODO should be removed, ParameterSet adds a label key to the dictionaries...
+	:return:
 	"""
 	# TODO - reduce function parameters??
-	# from modules.net_architect import Population, Network
-	# from modules.signals import iterate_obj_list, SpikeList, AnalogSignalList
+	# TODO - fix label bug
 	if isinstance(population_object, net_architect.Population):
 		gids = None
 		base_population_object = None
@@ -1063,13 +1084,12 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 		if not gids:
 			gids = [np.array(n.gids) for n in list(sg.iterate_obj_list(population_object.populations))]
 
-		base_population_object = population_object
-		population_object = new_population
+		base_population_object 	= population_object
+		population_object 		= new_population
 	else:
 		raise TypeError("Incorrect population object. Must be Population or Network object")
 
-	results = {'spiking_activity': {}, 'analog_activity': {}, 'metadata': {}}
-	results['metadata'] = {'population_name': population_object.name}
+	results = {'spiking_activity': {}, 'analog_activity': {}, 'metadata': {'population_name': population_object.name}}
 
 	########################################################################################################
 	# Spiking activity analysis
@@ -1166,13 +1186,18 @@ def extract_results_vector(results_dict, keys):
 	return out
 
 
-def compute_ainess(results, keys, pop=None, template_duration=10000., template_resolution=0.1,
+def compute_ainess(results, keys, pop=None, template_duration=10000., template_resolution=0.1, prng=None,
                    **analysis_parameters):
 	"""
 	Determine the level of asynchronous, irregular population activity as the normalized Euclidean distance between
 	the results obtained for keys and those obtained for a Poisson process, with the same mean rate
-	:param pop: None (analyses all results) or str with the name of population to analyse
+
 	:param results: results dictionary
+	:param keys:
+	:param pop: None (analyses all results) or str with the name of population to analyse
+	:param template_duration:
+	:param template_resolution:
+	:param prng: numpy.random object for reproducing experiments
 	:return:
 	"""
 	result = {}
@@ -1193,7 +1218,7 @@ def compute_ainess(results, keys, pop=None, template_duration=10000., template_r
 
 		# generate Poisson template with same rate, number of spiking neurons and resolution
 		template = ips.generate_template(len(neurons), rate, duration=template_duration+2000.,
-		                                 resolution=template_resolution, #rng=None,
+		                                 resolution=template_resolution, rng=prng,
 		                                 store=False).time_slice(1000., template_duration+1000.)
 
 		analysis_pars = {k: v for k, v in analysis_parameters.items() if k in ['time_bin', 'n_pairs', 'tau',

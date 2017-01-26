@@ -5,7 +5,7 @@ from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list
 from modules.visualization import set_global_rcParams
-from modules.analysis import characterize_population_activity
+from modules.analysis import characterize_population_activity, compute_ainess
 import cPickle as pickle
 import numpy as np
 import nest
@@ -13,10 +13,10 @@ import nest
 # ######################################################################################################################
 # Experiment options
 # ======================================================================================================================
-plot = True
+plot 	= True
 display = True
-save = False
-debug = False
+save 	= True
+debug 	= False
 
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
@@ -100,18 +100,22 @@ net.flush_records()
 # ======================================================================================================================
 analysis_interval = [parameter_set.kernel_pars.transient_t,
 	                     parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t]
-extra_analysis_parameters = {'time_bin': 1., # these parameters can be set in the main parameters file..
-                             'n_pairs': 500,
-                             'tau': 20.,
-                             'window_len': 100,
-                             'summary_only': True,
-                             'complete': False,
-                             'time_resolved': False}
+# extra_analysis_parameters = {'time_bin': 1., # these parameters can be set in the main parameters file..
+#                              'n_pairs': 500,
+#                              'tau': 20.,
+#                              'window_len': 100,
+#                              'summary_only': True,
+#                              'complete': False,
+#                              'time_resolved': False}
+
 results.update(characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
                                                 color_map='jet', plot=plot,
                                                 display=display, save=paths['figures']+paths['label'],
-                                                **extra_analysis_parameters))
+												prng=np.random, **(parameter_set.analysis_pars)))
 
+main_metrics = ['ISI_distance', 'SPIKE_distance', 'ccs_pearson', 'cvs', 'cvs_log', 'd_vp', 'd_vr', 'ents', 'ffs']
+compute_ainess(results, main_metrics, template_duration=analysis_interval[1] - analysis_interval[0],
+               template_resolution=parameter_set.kernel_pars.resolution, **parameter_set.analysis_pars)
 # ######################################################################################################################
 # Save data
 # ======================================================================================================================
