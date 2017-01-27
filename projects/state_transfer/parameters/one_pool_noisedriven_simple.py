@@ -85,38 +85,37 @@ def build_parameters():
 	# ##################################################################################################################
 	# Extra analysis parameters (specific for this experiment)
 	# ==================================================================================================================
-
 	analysis_pars = {
-	                # 'summary_only': True,  # how to save the data (only mean and std - True) or entire data set (False)
-	                # 'complete': False,     # use all existing measures or just the fastest / simplest ones
+	                 # 'summary_only': True,  # how to save the data (only mean and std - True) or entire data set (False)
+	                 # 'complete': False,     # use all existing measures or just the fastest / simplest ones
+
 
 					# !!! analysis depth, or level, or something else..
-					'depth': 1,			# 1: save only summary of data, use only fastest measures
-										# 2: save all data, use only fastest measures
-										# 3: save only summary of data, use all available measures
-										# 4: save all data, use all available measures
+					'depth': 1,  # 1: save only summary of data, use only fastest measures
+					# 2: save all data, use only fastest measures
+					# 3: save only summary of data, use all available measures
+					# 4: save all data, use all available measures
 
-					'numerics': {
-						'time_bin': 1.,  	# bin width for spike counts, fano factors and correlation coefficients
-						'n_pairs': 500,  	# number of spike train pairs to consider in correlation coefficient
-						'tau': 20.,  		# time constant of exponential filter (van Rossum distance)
-						'window_len': 100}, # length of sliding time window (for time_resolved analysis)
+					# numerical values...
+					'time_bin': 1.,  # bin width for spike counts, fano factors and correlation coefficients
+					'n_pairs': 500,  # number of spike train pairs to consider in correlation coefficient
+					'tau': 20.,  # time constant of exponential filter (van Rossum distance)
+					'window_len': 100,  # length of sliding time window (for time_resolved analysis)
 
-					'stats': {
-						# other options are possible here...
-						'epochs': None,
-						'time_resolved': False,  # perform time-resolved analysis
+					# what stats to use, here we could expand, give more choices to the user
+					'time_resolved': False,  # perform time-resolved analysis
+					'epochs': None,
+					# !!! for ainess, we could instead enforce more generic options, such as synchrony, regularity,
+					# etc., as you suggested in the email.
+					'ainess': ['ISI_distance', 'SPIKE_distance', 'ccs_pearson',  # compute level of asynchronous,
+							   'cvs', 'cvs_log', 'd_vp', 'd_vr', 'ents', 'ffs'],  # irregular population activity
 
-						# !!! for ainess, we could instead enforce more generic options, such as synchrony, regularity,
-						# etc., as you suggested in the email.
-						'ainess': ['ISI_distance', 'SPIKE_distance', 'ccs_pearson',  # compute level of asynchronous,
-								   'cvs', 'cvs_log', 'd_vp', 'd_vr', 'ents', 'ffs']},  # irregular population activity
-					'meta': {
-						'save_path': "",  # if set to None, then we're not saving anything
-						'plot': True,
-						'display': True,
-						'color_map': 'jet'}
-	}
+					# meta options
+					'save_path': "",  # if set to None, then we're not saving anything
+					'plot': True,
+					'display': True,
+					'color_map': 'jet'}
+
 
 	# ##################################################################################################################
 	# RETURN dictionary of Parameters dictionaries
