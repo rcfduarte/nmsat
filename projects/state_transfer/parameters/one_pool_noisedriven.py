@@ -87,9 +87,6 @@ def build_parameters():
 	# ==================================================================================================================
 
 	analysis_pars = {
-	                # 'summary_only': True,  # how to save the data (only mean and std - True) or entire data set (False)
-	                # 'complete': False,     # use all existing measures or just the fastest / simplest ones
-
 					# !!! analysis depth, or level, or something else..
 					'depth': 1,			# 1: save only summary of data, use only fastest measures
 										# 2: save all data, use only fastest measures
@@ -97,10 +94,10 @@ def build_parameters():
 										# 4: save all data, use all available measures
 
 					'numerics': {
-						'time_bin': 1.,  	# bin width for spike counts, fano factors and correlation coefficients
-						'n_pairs': 500,  	# number of spike train pairs to consider in correlation coefficient
-						'tau': 20.,  		# time constant of exponential filter (van Rossum distance)
-						'window_len': 100}, # length of sliding time window (for time_resolved analysis)
+						'time_bin': 	1.,  	# bin width for spike counts, fano factors and correlation coefficients
+						'n_pairs': 		500,  	# number of spike train pairs to consider in correlation coefficient
+						'tau': 			20., 	# time constant of exponential filter (van Rossum distance)
+						'window_len': 	100}, 	# length of sliding time window (for time_resolved analysis)
 
 					'stats': {
 						# other options are possible here...
@@ -111,11 +108,12 @@ def build_parameters():
 						# etc., as you suggested in the email.
 						'ainess': ['ISI_distance', 'SPIKE_distance', 'ccs_pearson',  # compute level of asynchronous,
 								   'cvs', 'cvs_log', 'd_vp', 'd_vr', 'ents', 'ffs']},  # irregular population activity
+
 					'meta': {
-						'save_path': "",  # if set to None, then we're not saving anything
-						'plot': True,
-						'display': True,
-						'color_map': 'jet'}
+						'save_path': 	"",  # if set to None, then we're not saving anything
+						'plot': 		True,
+						'display': 		True,
+						'color_map': 	'jet'}
 	}
 
 	# ##################################################################################################################

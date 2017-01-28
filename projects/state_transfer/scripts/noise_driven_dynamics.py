@@ -5,7 +5,7 @@ from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list
 from modules.visualization import set_global_rcParams
-from modules.analysis import characterize_population_activity, compute_ainess
+from modules.analysis import characterize_population_activity_new, compute_ainess
 import cPickle as pickle
 import numpy as np
 import nest
@@ -99,23 +99,14 @@ net.flush_records()
 # Analyse / plot data
 # ======================================================================================================================
 analysis_interval = [parameter_set.kernel_pars.transient_t,
-	                     parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t]
-# extra_analysis_parameters = {'time_bin': 1., # these parameters can be set in the main parameters file..
-#                              'n_pairs': 500,
-#                              'tau': 20.,
-#                              'window_len': 100,
-#                              'summary_only': True,
-#                              'complete': False,
-#                              'time_resolved': False}
+	                 parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t]
 
-results.update(characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
-                                                color_map='jet', plot=plot,
-                                                display=display, save=paths['figures']+paths['label'],
-												prng=np.random, **(parameter_set.analysis_pars)))
 
-main_metrics = ['ISI_distance', 'SPIKE_distance', 'ccs_pearson', 'cvs', 'cvs_log', 'd_vp', 'd_vr', 'ents', 'ffs']
-compute_ainess(results, main_metrics, template_duration=analysis_interval[1] - analysis_interval[0],
-               template_resolution=parameter_set.kernel_pars.resolution, **parameter_set.analysis_pars)
+# TODO, temporarily, the save path is updated here, but I'll solve it
+parameter_set.analysis_pars.meta.save_path = paths['figures']+paths['label']
+results.update(characterize_population_activity_new(net, parameter_set, analysis_interval,
+													np.random, parameter_set.analysis_pars))
+
 # ######################################################################################################################
 # Save data
 # ======================================================================================================================
