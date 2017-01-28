@@ -1554,6 +1554,7 @@ class SpikeList(object):
 				is_empty = False
 				if self.spiketrains[id].spike_times[0] < first_spike:
 					first_spike = self.spiketrains[id].spike_times[0]
+					#print id, first_spike
 		if is_empty:
 			raise Exception("No spikes can be found in the SpikeList object !")
 		else:
@@ -2718,11 +2719,11 @@ class AnalogSignal(object):
 		# If t_stop is not None, we test that the signal has the correct number
 		# of elements
 		# print self.dt
-		print t_start, self.t_start
-		print t_stop, self.t_stop
-		print dt, self.dt
-		print (t_stop-t_start) / float(dt)
-		print (self.t_stop - self.t_start) / float(self.dt)
+		# print t_start, self.t_start
+		# print t_stop, self.t_stop
+		# print dt, self.dt
+		# print (t_stop-t_start) / float(dt)
+		# print (self.t_stop - self.t_start) / float(self.dt)
 		if self.t_stop is not None:
 			if abs(self.t_stop - self.t_start - self.dt * len(self.signal)) > 0.1 * self.dt:
 				raise Exception("Inconsistent arguments: t_start=%g, t_stop=%g, dt=%g implies %d elements, actually %d" % (
@@ -2984,7 +2985,6 @@ class AnalogSignal(object):
 				result[index] = self.time_slice(t_start_new, t_stop_new)
 		return result
 
-
 	def slice_exclude_events(self,events,t_min=100,t_max=100):
 		"""
         yields new AnalogSignals with events cutout (useful for removing spikes).
@@ -3092,7 +3092,9 @@ class AnalogSignalList(object):
 		if dt is None:
 			assert times is not None, "dt or times must be specified"
 			dt = np.mean(np.diff(np.unique(times)))
-		self.dt = np.round(float(dt), 1)
+		# print "min time: ", min(times)
+		# print "max time: ", max(times)
+		self.dt = np.round(float(dt), 2) #1)
 
 		if t_start is None and times is None:
 			t_start = 0.
@@ -3522,12 +3524,13 @@ class AnalogSignalList(object):
 					                                                               t_min=t_min, t_max=t_max)
 		return results
 
-	def plot_random(self):
+	def plot_random(self, idx=None):
 		"""
 
 		:return:
 		"""
-		idx = np.random.permutation(self.id_list())[0]
+		if idx is None:
+			idx = np.random.permutation(self.id_list())[0]
 		fig = pl.figure()
 		pl.plot(self.time_axis(), self.analog_signals[int(idx)].raw_data())
 		fig.suptitle('Channel {0}'.format(str(idx)))

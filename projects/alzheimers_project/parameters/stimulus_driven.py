@@ -75,7 +75,7 @@ def build_parameters():
 		test_set_length=int(n_trials * 0.2),
 	)
 
-	inp_resolution = 0.01
+	inp_resolution = 0.1
 	inp_amplitude = 1200.
 	inp_duration = 200.
 	inter_stim_interval = 0.
@@ -115,10 +115,10 @@ def build_parameters():
 		models=['static_synapse'],
 		model_pars=[{}],
 		weight_dist=[w_in],
-		delay_dist=[1.],
+		delay_dist=[kernel_pars['resolution']],
 		preset_W=[None],
 		gen_to_enc_W=None,
-		jitter=None)
+		jitter=(100., True)) # jitter=None or jitter=(value[float], correct_borders[bool])
 
 	encoding_pars = set_encoding_defaults(default_set=4, input_dimensions=n_stim,
 	                                      n_encoding_neurons=n_afferents, **input_synapses)
@@ -127,7 +127,7 @@ def build_parameters():
 	# ##################################################################################################################
 	# Decoding / Readout Parameters
 	# ##################################################################################################################
-	out_resolution = 0.1
+	out_resolution = 0.01
 	filter_tau = 20.  # time constant of exponential filter (applied to spike trains)
 	state_sampling = None  # 1.(cannot start at 0)
 	readout_labels = ['ridge_classifier', 'pinv_classifier']

@@ -76,7 +76,8 @@ def extract_weights_matrix(src_gids, tgets_gids, progress=True):
 	:param tgets_gids: list or tuple of gids of target neurons
 	:return: len(tgets_gids) x len(src_gids) weight matrix
 	"""
-	print "\n Extracting connectivity (weights) matrix..."
+	if progress:
+		print "\n Extracting connectivity (weights) matrix..."
 	t_start = time.time()
 	w = lil_matrix((len(tgets_gids), len(src_gids)))
 	a = nest.GetConnections(list(np.unique(src_gids)), list(np.unique(tgets_gids)))
@@ -93,8 +94,8 @@ def extract_weights_matrix(src_gids, tgets_gids, progress=True):
 		if progress:
 			visualization.progress_bar(float(nnn+1) / float(len(its)))
 	t_stop = time.time()
-
-	print "Elapsed time: %s" % (str(t_stop - t_start))
+	if progress:
+		print "Elapsed time: %s" % (str(t_stop - t_start))
 	# for consistency with pre_computedW, we transpose this matrix (should be [src X tget])
 	return w.T
 
@@ -106,7 +107,8 @@ def extract_delays_matrix(src_gids, tgets_gids, progress=True):
  	:param tgets_gids: list or tuple of gids of target neurons
  	:return: len(tgets_gids) x len(src_gids) weight matrix
  	"""
-	print "\n Extracting connectivity (delays) matrix..."
+	if progress:
+		print "\n Extracting connectivity (delays) matrix..."
 	t_start = time.time()
 	d = lil_matrix((len(tgets_gids), len(src_gids)))
 	a = nest.GetConnections(list(np.unique(src_gids)), list(np.unique(tgets_gids)))
@@ -123,7 +125,8 @@ def extract_delays_matrix(src_gids, tgets_gids, progress=True):
 		if progress:
 			visualization.progress_bar(float(nnn+1) / float(len(its)))
 	t_stop = time.time()
-	print "Elapsed time: %s" % (str(t_stop - t_start))
+	if progress:
+		print "Elapsed time: %s" % (str(t_stop - t_start))
 	return d
 
 

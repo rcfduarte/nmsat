@@ -230,7 +230,7 @@ mathtext.default : it # The default font to use for math.
 # default face and edge color, default tick sizes,
 # default fontsizes for ticklabels, and so on.  See
 # http://matplotlib.org/api/axes_api.html#module-matplotlib.axes
-axes.hold           : True    # whether to clear the axes by default on
+#axes.hold           : True    # whether to clear the axes by default on
 axes.facecolor      : white   # axes background color
 axes.edgecolor      : black   # axes edge color
 axes.linewidth      : 1.0     # edge linewidth
@@ -302,7 +302,7 @@ grid.alpha       :   0.6     # transparency, between 0.0 and 1.0
 ### Legend
 legend.fancybox      : False  # if True, use a rounded box for the
                                # legend, else a rectangle
-legend.isaxes        : True
+#legend.isaxes        : True
 legend.numpoints     : 2      # the number of points in the legend line
 legend.fontsize      : large
 legend.borderpad     : 0.5    # border whitespace in fontsize units

@@ -50,6 +50,7 @@ import sklearn.svm as svm
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import GridSearchCV
 import sklearn.metrics as met
+import sklearn.manifold as man
 import scipy.stats.mstats as mst
 import nest
 np.seterr(all='ignore')
@@ -1006,10 +1007,6 @@ def manifold_learning(activity_matrix, n_neighbors, standardize=True, plot=True,
 	:param activity_matrix: matrix to analyze (NxT)
 	:return:
 	"""
-	assert(check_dependency('sklearn')), "Scikit-Learn not found"
-	import sklearn.manifold as man
-	import matplotlib.pyplot as pl
-
 	# TODO extend and test - and include in the analyse_activity_dynamics function
 	if display:
 		print "Testing manifold learning algorithms"
@@ -2892,7 +2889,6 @@ class DecodingLayer(object):
 			initializer = prs.ParameterSet(initializer)
 		assert isinstance(initializer, prs.ParameterSet), "StateExtractor must be initialized with ParameterSet or " \
 													  "dictionary"
-
 		self.decoding_pars = initializer
 		self.state_variables = initializer.state_variable
 		self.reset_state_variables = initializer.reset_states
@@ -2902,6 +2898,7 @@ class DecodingLayer(object):
 		self.activity = [None for _ in range(len(self.state_variables))]
 		self.state_matrix = [[] for _ in range(len(self.state_variables))]
 		self.initial_states = [None for _ in range(len(self.state_variables))]
+		self.total_delays = [0. for _ in range(len(self.state_variables))]
 		self.source_population = population
 		self.state_sample_times = None
 
@@ -3032,11 +3029,13 @@ class DecodingLayer(object):
 							if nn > 1:
 								sigs = data[:, nn]
 								tmp = [(neuron_ids[n], sigs[n]) for n in range(len(neuron_ids))]
-								responses = sg.AnalogSignalList(tmp, np.unique(neuron_ids).tolist(), times=times)
+								responses = sg.AnalogSignalList(tmp, np.unique(neuron_ids).tolist(), times=times,
+								                                t_start=start, t_stop=stop)
 
 			elif isinstance(initializer, tuple) or isinstance(initializer, int):
 				status_dict = nest.GetStatus(initializer)[0]['events']
 				times = status_dict['times']
+				dt = np.diff(np.sort(np.unique(times)))
 				if start is not None and stop is not None:
 					idx1 = np.where(times >= start)[0]
 					idx2 = np.where(times <= stop)[0]
@@ -3044,8 +3043,10 @@ class DecodingLayer(object):
 					times = times[idxx]
 					status_dict['V_m'] = status_dict['V_m'][idxx]
 					status_dict['senders'] = status_dict['senders'][idxx]
+				print start, stop
 				tmp = [(status_dict['senders'][n], status_dict['V_m'][n]) for n in range(len(status_dict['senders']))]
-				responses = sg.AnalogSignalList(tmp, np.unique(status_dict['senders']).tolist(), times=times)
+				responses = sg.AnalogSignalList(tmp, np.unique(status_dict['senders']).tolist(), times=times,
+				                                t_start=start, t_stop=stop)
 			else:
 				raise TypeError("Incorrect Decoder ID")
 
@@ -3124,7 +3125,6 @@ class DecodingLayer(object):
 		start = spike_list.t_start
 		stop = spike_list.t_stop
 		neuron_ids = np.random.permutation(spike_list.id_list)[:n_neurons]
-		# mat_idx = neuron_ids - min(spike_list.id_list)
 
 		if sg.empty(self.activity):
 			self.extract_activity(start=start, stop=stop, save=True)
@@ -3151,6 +3151,44 @@ class DecodingLayer(object):
 							nest.SetStatus([neuron_id], {n_state: self.initial_states[idx_state][idx]})
 					except ValueError:
 						print("State variable {0} cannot be reset".format(n_state))
+
+	def determine_total_delay(self):
+		"""
+		Determine the connection delays involved in the decoding layer
+		:return:
+		"""
+		for idx, extractor_id in enumerate(self.extractors):
+			status_dict = nest.GetStatus(nest.GetConnections(source=extractor_id))
+			tget_gids = [n['target'] for n in status_dict]
+			source_neurons = [x for x in tget_gids if x in self.source_population.gids]
+			if sg.empty(source_neurons):
+				assert (self.state_variables[idx] == 'spikes'), "No connections to {0} extractor".format(
+					self.state_variables[idx])
+				assert (np.array([nest.GetStatus([x])[0]['model'] == 'iaf_psc_delta' for x in tget_gids]).all()), \
+					"No connections to {0} extractor".format(
+					self.state_variables[idx])
+
+				net_to_decneurons = net_architect.extract_delays_matrix(src_gids=self.source_population.gids,
+				                                                        tgets_gids=tget_gids, progress=False)
+				net_to_decneurons_delay = np.unique(np.array(net_to_decneurons[net_to_decneurons.nonzero()].todense()))
+				assert (len(net_to_decneurons_delay) == 1), "Heterogeneous delays in decoding layer are not supported.."
+
+				decneurons_to_mm = net_architect.extract_delays_matrix(src_gids=extractor_id, tgets_gids=tget_gids, progress=False)
+				decneurons_to_mm_delay = np.unique(np.array(decneurons_to_mm[decneurons_to_mm.nonzero()].todense()))
+				assert (len(decneurons_to_mm_delay) == 1), "Heterogeneous delays in decoding layer are not " \
+				                                            "supported.."
+
+				self.total_delays[idx] = float(net_to_decneurons_delay)# + decneurons_to_mm_delay)
+			else:
+				delays = net_architect.extract_delays_matrix(src_gids=extractor_id, tgets_gids=tget_gids, progress=False)
+				delay = np.unique(np.array(delays[delays.nonzero()].todense()))
+				assert (len(delay) == 1), "Heterogeneous delays in decoding layer are not supported.."
+				self.total_delays[idx] = 0.#0.float(delay)
+		print("\nTotal delays in Population {0} DecodingLayer {1}: {2} ms".format(str(self.source_population.name),
+		                                                                          str(self.state_variables),
+		                                                                          str(self.total_delays)))
+
+
 
 '''
 

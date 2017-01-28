@@ -52,7 +52,10 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 
 	# extract important parameters:
 	sampling_times = parameter_set.decoding_pars.sampling_times
-	jitter = parameter_set.encoding_pars.generator.jitter
+	if hasattr(parameter_set.encoding_pars.generator, "jitter"):
+		jitter = parameter_set.encoding_pars.generator.jitter
+	else:
+		jitter = None
 
 	# determine set to use and its properties
 	if set_name is None:
