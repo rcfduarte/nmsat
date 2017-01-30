@@ -2901,6 +2901,8 @@ class DecodingLayer(object):
 		self.total_delays = [0. for _ in range(len(self.state_variables))]
 		self.source_population = population
 		self.state_sample_times = None
+		self.sampled_times = []
+		self.extractor_resolution = [[] for _ in range(len(self.state_variables))]
 
 		for state_idx, state_variable in enumerate(self.state_variables):
 			state_specs = initializer.state_specs[state_idx]
@@ -2911,6 +2913,7 @@ class DecodingLayer(object):
 				nest.Connect(mm, population.gids)
 				original_neuron_status = nest.GetStatus(population.gids)
 				self.initial_states[state_idx] = np.array([x['V_m'] for x in original_neuron_status])
+				self.extractor_resolution[state_idx] = state_specs['interval']
 			elif state_variable == 'spikes':
 				rec_neuron_pars = {'model': 'iaf_psc_delta', 'V_m': 0., 'E_L': 0., 'C_m': 1.,
 				                   'tau_m': state_specs['tau_m'],
@@ -2932,8 +2935,9 @@ class DecodingLayer(object):
 				self.extractors.append(rec_mm)
 				nest.Connect(rec_mm, rec_neurons)
 				nest.Connect(population.gids, rec_neurons, 'one_to_one',
-				             syn_spec={'weight': 1., 'delay': 0.1, 'model': 'static_synapse'})
+				             syn_spec={'weight': 1., 'delay': rec_neuron_pars['interval'], 'model': 'static_synapse'})
 				self.initial_states[state_idx] = np.zeros((len(rec_neurons),))
+				self.extractor_resolution[state_idx] = rec_neuron_pars['interval']
 			else:
 				if state_variable in nest.GetStatus(population.gids[0])[0]['recordables']:
 					mm_specs = prs.extract_nestvalid_dict(state_specs, param_type='device')
@@ -2941,12 +2945,12 @@ class DecodingLayer(object):
 					self.extractors.append(mm)
 					nest.Connect(mm, population.gids)
 					self.initial_states[state_idx] = np.zeros((len(population.gids),))
+					self.extractor_resolution[state_idx] = state_specs['interval']
 				else:
 					raise NotImplementedError("Acquisition from state variable {0} not implemented yet".format(
 						state_variable))
 			print("- State acquisition from Population {0} [{1}] - id {2}".format(population.name, state_variable,
 			                                                                      self.extractors[-1]))
-
 			if hasattr(initializer, "readout"):
 				pars_readout = prs.ParameterSet(initializer.readout[state_idx])
 				implemented_algorithms = ['pinv', 'ridge', 'logistic', 'svm-linear', 'svm-rbf', 'perceptron', 'elastic',
@@ -2966,6 +2970,9 @@ class DecodingLayer(object):
 					readout_dict = {'label': pars_readout.labels[n_readout],
 					                'algorithm': alg}
 					self.readouts[state_idx].append(Readout(prs.ParameterSet(readout_dict)))
+		# print self.extractor_resolution
+		assert (len(np.unique(np.array(self.extractor_resolution))) == 1), "Output resolution must be common to " \
+		                                                                   "all state extractors"
 
 	def flush_records(self):
 		"""
@@ -2988,9 +2995,9 @@ class DecodingLayer(object):
 		print("\n-Deleting state and activity data from all decoders attached to {0}".format(str(
 			self.source_population.name)))
 		self.activity = [None for _ in range(len(self.state_variables))]
-		self.state_matrix = [None for _ in range(len(self.state_variables))]
+		self.state_matrix = [[] for _ in range(len(self.state_variables))]
 
-	def extract_activity(self, start=None, stop=None, save=False):
+	def extract_activity(self, start=None, stop=None, save=True):
 		"""
 		Read recorded activity from devices and store it
 		:param start:
@@ -3008,6 +3015,12 @@ class DecodingLayer(object):
 			else:
 				initializer = nest.GetStatus(n_state)[0]['filenames']
 
+			# compensate delay in 'spikes' state variable
+			if self.state_variables[idx] == 'spikes':
+				if not self.total_delays[idx]:
+					self.determine_total_delay()
+				time_shift = self.extractor_resolution[idx] #self.total_delays[idx]
+
 			if isinstance(initializer, basestring) or isinstance(initializer, list):
 				data = io.extract_data_fromfile(initializer)
 				if data is not None:
@@ -3018,6 +3031,8 @@ class DecodingLayer(object):
 					else:
 						neuron_ids = data[:, 0]
 						times = data[:, 1]
+						if self.state_variables[idx] == 'spikes':
+							times -= time_shift
 						if start is not None and stop is not None:
 							idx1 = np.where(times >= start)[0]
 							idx2 = np.where(times <= stop)[0]
@@ -3035,15 +3050,16 @@ class DecodingLayer(object):
 			elif isinstance(initializer, tuple) or isinstance(initializer, int):
 				status_dict = nest.GetStatus(initializer)[0]['events']
 				times = status_dict['times']
+				if self.state_variables[idx] == 'spikes':
+					times -= time_shift
 				dt = np.diff(np.sort(np.unique(times)))
 				if start is not None and stop is not None:
-					idx1 = np.where(times >= start)[0]
-					idx2 = np.where(times <= stop)[0]
+					idx1 = np.where(times >= start - 0.001)[0]
+					idx2 = np.where(times <= stop + 0.001)[0]
 					idxx = np.intersect1d(idx1, idx2)
 					times = times[idxx]
 					status_dict['V_m'] = status_dict['V_m'][idxx]
 					status_dict['senders'] = status_dict['senders'][idxx]
-				print start, stop
 				tmp = [(status_dict['senders'][n], status_dict['V_m'][n]) for n in range(len(status_dict['senders']))]
 				responses = sg.AnalogSignalList(tmp, np.unique(status_dict['senders']).tolist(), times=times,
 				                                t_start=start, t_stop=stop)
@@ -3051,14 +3067,14 @@ class DecodingLayer(object):
 				raise TypeError("Incorrect Decoder ID")
 
 			all_responses.append(responses)
-			print "Elapsed time: {0} s".format(str(time.time()-start_time1))
+			print("Elapsed time: {0} s".format(str(time.time()-start_time1)))
 		if save:
 			for idx, n_response in enumerate(all_responses):
 				self.activity[idx] = n_response
 		else:
 			return all_responses
 
-	def extract_state_vector(self, time_point=200., lag=10., save=True, reset=False):
+	def extract_state_vector(self, time_point=200., lag=0.1, save=True, reset=False):
 		"""
 		Read population responses within a local time window and extract a single state vector at the specified time
 		:param time_point: in ms
@@ -3066,6 +3082,7 @@ class DecodingLayer(object):
 		:param save: bool - store state vectors in the decoding layer or return them
 		:return:
 		"""
+		self.sampled_times.append(time_point)
 		if not sg.empty(self.activity):
 			responses = self.activity
 		else:
@@ -3137,8 +3154,9 @@ class DecodingLayer(object):
 		"""
 		for idx_state, n_state in enumerate(self.state_variables):
 			if self.reset_state_variables[idx_state]:
-				print("\nReseting {0} state in Population {1}".format(n_state, self.source_population.name))
+				# print("\nReseting {0} state in Population {1}".format(n_state, self.source_population.name))
 				if n_state == 'V_m':
+					print("Resetting V_m can lead to incorrect results!")
 					for idx, neuron_id in enumerate(self.source_population.gids):
 						nest.SetStatus([neuron_id], {'V_m': self.initial_states[idx_state][idx]})
 				elif n_state == 'spikes':
@@ -3189,7 +3207,6 @@ class DecodingLayer(object):
 		                                                                          str(self.total_delays)))
 
 
-
 '''
 
 	def copy_readout_set(self, n=1):
@@ -3216,3 +3233,16 @@ class DecodingLayer(object):
 		return all_copies
 
 '''
+
+
+def reset_decoders(net, enc_layer):
+	"""
+	Reset all decoders
+	:param net:
+	:param enc_layer:
+	:return:
+	"""
+	for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
+	                                                   net.populations, enc_layer.encoders]))):
+		if n_pop.decoding_layer is not None:
+			n_pop.decoding_layer.reset_states()

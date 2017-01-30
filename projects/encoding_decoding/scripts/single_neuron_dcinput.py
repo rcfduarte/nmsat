@@ -1,8 +1,13 @@
 __author__ = 'duarte'
-from modules.input_architect import *
-from modules.net_architect import *
+from modules.parameters import ParameterSet, ParameterSpace, extract_nestvalid_dict
+from modules.input_architect import EncodingLayer
+from modules.net_architect import Network
+from modules.io import set_storage_locations
+from modules.signals import iterate_obj_list
+from modules.analysis import single_neuron_dcresponse
+import cPickle as pickle
 import numpy as np
-from scipy import stats
+import scipy.stats as stats
 import nest
 
 # ######################################################################################################################
@@ -15,7 +20,7 @@ save = True
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/single_neuron_dcinput.py'
+params_file = '../parameters/singleneuron_dcinput.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -77,19 +82,20 @@ if parameter_set.kernel_pars.transient_t:
 	net.simulate(parameter_set.kernel_pars.transient_t)
 	net.flush_records()
 
-net.simulate(parameter_set.kernel_pars.sim_time + 1.0)
+net.simulate(parameter_set.kernel_pars.sim_time + nest.GetKernelStatus()['resolution'])
 
 # ######################################################################################################################
 # Extract and store data
 # ======================================================================================================================
-net.extract_population_activity()
+net.extract_population_activity(t_start=parameter_set.kernel_pars.transient_t + nest.GetKernelStatus()['resolution'],
+                                t_stop=parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t)
 net.extract_network_activity()
 net.flush_records()
 
 # ######################################################################################################################
 # Analyse / plot data
 # ======================================================================================================================
-analysis_interval = [parameter_set.kernel_pars.transient_t,
+analysis_interval = [parameter_set.kernel_pars.transient_t + nest.GetKernelStatus()['resolution'],
 	                     parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t]
 
 for idd, nam in enumerate(net.population_names):

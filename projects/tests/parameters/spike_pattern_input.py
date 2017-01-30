@@ -160,21 +160,21 @@ def build_parameters():
 	# ##################################################################################################################
 	# Decoding / Readout Parameters
 	# ##################################################################################################################
-	out_resolution = 0.1
+	out_resolution = 1.
 	filter_tau = 20.  # time constant of exponential filter (applied to spike trains)
 	state_sampling = None  # 1.(cannot start at 0)
 	readout_labels = ['ridge_classifier', 'pinv_classifier']
 	readout_algorithms = ['ridge', 'pinv']
 
 	decoders = dict(
-		decoded_population=[['E', 'I'], ['E', 'I'], 'E'],
-		state_variable=['spikes', 'V_m', 'spikes'],
+		decoded_population=[['E', 'I'], ['E', 'I'], ['E', 'I'], 'E'],
+		state_variable=['spikes', 'V_m', 'spikes', 'V_m'],
 		filter_time=filter_tau,
 		readouts=readout_labels,
 		readout_algorithms=readout_algorithms,
 		sampling_times=state_sampling,
-		reset_states=[True, False, True],
-		average_states=[True, True, True]
+		reset_states=[True, False, False, False],
+		average_states=[True, True, True, True]
 	)
 
 	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)

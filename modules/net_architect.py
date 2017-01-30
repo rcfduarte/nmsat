@@ -276,6 +276,13 @@ class Population(object):
 				else:
 					neuron_ids = data[:, 0]
 					times = data[:, 1]
+					if t_start is not None and t_stop is not None:
+						idx1 = np.where(times >= t_start)[0]
+						idx2 = np.where(times <= t_stop)[0]
+						idxx = np.intersect1d(idx1, idx2)
+						times = times[idxx]
+						neuron_ids = neuron_ids[idxx]
+						data = data[idxx, :]
 					for nn in range(data.shape[1]):
 						if nn > 1:
 							sigs = data[:, nn]
@@ -305,6 +312,12 @@ class Population(object):
 				idxs = np.argsort(times)
 				times = times[idxs]
 				neuron_ids = neuron_ids[idxs]
+				if t_start is not None and t_stop is not None:
+					idx1 = np.where(times >= t_start)[0]
+					idx2 = np.where(times <= t_stop)[0]
+					idxx = np.intersect1d(idx1, idx2)
+					times = times[idxx]
+					neuron_ids = neuron_ids[idxx]
 				rem_keys = ['times', 'senders']
 				new_dict = {k: v[idxs] for k, v in status.iteritems() if k not in rem_keys}
 				self.analog_activity = []

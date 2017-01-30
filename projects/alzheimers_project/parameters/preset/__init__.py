@@ -332,18 +332,11 @@ def set_decoding_defaults(output_resolution=1., to_memory=True, **decoder_pars):
 	dec_pars = ParameterSet(decoder_pars)
 	n_decoders = len(dec_pars.decoded_population)
 	if to_memory:
-		rec_device = rec_device_defaults(start=0.,  # kernel_pars['transient_t'] - output_resolution,
-		                                 resolution=output_resolution)
+		rec_device = rec_device_defaults(start=0., resolution=output_resolution)
 	else:
-		rec_device = rec_device_defaults(start=0.,  # kernel_pars['transient_t'] - output_resolution,
-		                                 resolution=output_resolution, record_to='file')
+		rec_device = rec_device_defaults(start=0., resolution=output_resolution, record_to='file')
 	state_specs = []
 	for state_var in dec_pars.state_variable:
-		# if state_var == 'V_m':
-		# 	state_specs.append(copy_dict(rec_device, {'model': 'multimeter',
-		# 	                                          'record_n': None,
-		# 	                                          'record_from': ['V_m'],
-		# 	                                          }))
 		if state_var == 'spikes':
 			state_specs.append({'tau_m': dec_pars.filter_time, 'interval': output_resolution})
 		else:
@@ -374,6 +367,7 @@ def set_decoding_defaults(output_resolution=1., to_memory=True, **decoder_pars):
 			'average_states': dec_pars.average_states},
 		'readout': readouts,
 		'sampling_times': dec_pars.sampling_times,
+		'output_resolution': output_resolution
 	}
 	return ParameterSet(decoding_pars)
 

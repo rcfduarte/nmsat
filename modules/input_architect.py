@@ -2334,6 +2334,8 @@ class Generator:
 		else:
 			if isinstance(signal, InputSignal):
 				signal = signal.input_signal
+			elif isinstance(signal, InputNoise):
+				signal = signal.noise_signal
 			else:
 				assert(isinstance(signal, signals.AnalogSignalList)), "Incorrect signal format!"
 
@@ -2341,8 +2343,11 @@ class Generator:
 				self.input_dimension = len(signal)
 
 			for nn in range(self.input_dimension):
-				t_axis = signal.time_axis()#[1:]
+				t_axis = signal.time_axis()
 				s_data = signal[nn].raw_data()#[1:]
+				if len(t_axis) != len(s_data):
+					t_axis = t_axis[:-1]
+				# print min(t_axis), max(t_axis)
 
 				if self.model == 'step_current_generator':
 					nest.SetStatus(self.gids[nn], {'amplitude_times': t_axis,

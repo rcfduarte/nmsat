@@ -19,8 +19,8 @@ import nest
 # Experiment options
 # ======================================================================================================================
 plot = True
-display = False
-save = True
+display = True
+save = False
 debug = False
 online = True
 
@@ -120,9 +120,7 @@ else:
 	input_signal = inputs.transient_set_signal
 enc_layer = EncodingLayer(parameter_set.encoding_pars, signal=input_signal, online=online)
 enc_layer.connect(parameter_set.encoding_pars, net)
-
-if plot and debug:
-	extract_encoder_connectivity(enc_layer, net, display, save=paths['figures']+paths['label'])
+enc_layer.extract_connectivity(net)
 
 # ######################################################################################################################
 # Set-up Analysis
@@ -161,7 +159,7 @@ iterate_input_sequence(net, enc_layer, parameter_set, stim, inputs, set_name='fu
 for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
 					                net.populations]))):#, enc_layer.encoders]))):
 	if n_pop.decoding_layer is not None:
-		n_pop.decoding_layer.evaluate_decoding(display=display, save=paths['figures']+paths['label'])
+		n_pop.decoding_layer.evaluate_decoding(n_neurons=10, display=display, save=paths['figures']+paths['label'])
 
 '''
 if stim.transient_set_labels:

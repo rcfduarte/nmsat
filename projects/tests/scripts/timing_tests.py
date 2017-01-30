@@ -7,7 +7,7 @@ from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
 from modules.visualization import set_global_rcParams, InputPlots, extract_encoder_connectivity, TopologyPlots
-from modules.analysis import characterize_population_activity, compute_ainess
+from modules.analysis import reset_decoders
 from modules.auxiliary import iterate_input_sequence
 import cPickle as pickle
 from scipy.sparse import coo_matrix
@@ -28,8 +28,8 @@ online = True
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-# params_file = '../parameters/dc_input.py'
-params_file = '../parameters/spike_pattern_input.py'
+params_file = '../parameters/dc_input.py'
+# params_file = '../parameters/spike_pattern_input.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -145,22 +145,28 @@ enc_layer.extract_connectivity(net)
 
 # print enc_layer.generator_names
 
-# determine timing compensations required
-enc_layer.determine_total_delay()
-
-
-######################################################################################################
-for n_pop in list(itertools.chain(*[net.merged_populations, net.populations])):
-	if n_pop.decoding_layer is not None:
-		n_pop.decoding_layer.determine_total_delay()
-
 
 ########################################################################################################################
 stimulus_set = stim
 input_signal_set = inputs
-set_name = 'full'
+set_name = "full"
 record = True
 store_activity = True
+########################################################################################################################
+
+# determine timing compensations required
+enc_layer.determine_total_delay()
+encoder_delay = enc_layer.total_delay
+decoder_delays = []
+decoder_resolutions = []
+for n_pop in list(itertools.chain(*[net.merged_populations, net.populations])):
+	if n_pop.decoding_layer is not None:
+		n_pop.decoding_layer.determine_total_delay()
+		decoder_delays.append(n_pop.decoding_layer.total_delays)
+		decoder_resolutions.append(n_pop.decoding_layer.extractor_resolution)
+decoder_delay = max(list(itertools.chain(*decoder_delays)))
+decoder_resolution = min(list(itertools.chain(*decoder_resolutions)))
+time_correction_factor = encoder_delay + decoder_resolution
 
 # extract important parameters:
 sampling_times = parameter_set.decoding_pars.sampling_times
@@ -171,9 +177,8 @@ else:
 
 # determine set to use and its properties
 if set_name is None:
-	set_name = 'full'
-current_set = set_name
-all_labels = getattr(stimulus_set, '{0}_set_labels'.format(current_set))
+	set_name = "full"
+all_labels = getattr(stimulus_set, "{0}_set_labels".format(set_name))
 if isinstance(all_labels[0], list):
 	labels = np.unique(list(itertools.chain(*all_labels)))
 	set_labels = list(itertools.chain(*all_labels))
@@ -181,20 +186,21 @@ else:
 	labels = np.unique(all_labels)
 	set_labels = all_labels
 set_size = len(set_labels)
-input_signal = getattr(input_signal_set, "{0}_set_signal".format(current_set))
-stimulus_seq = getattr(stimulus_set, '{0}_set'.format(current_set))
+input_signal = getattr(input_signal_set, "{0}_set_signal".format(set_name))
+stimulus_seq = getattr(stimulus_set, "{0}_set".format(set_name))
 if input_signal_set.online:
-	signal_iterator = getattr(input_signal_set, '{0}_set_signal_iterator'.format(current_set))
-	intervals = [0]
+	signal_iterator = getattr(input_signal_set, "{0}_set_signal_iterator".format(set_name))
 else:
 	signal_iterator = None
-	intervals = input_signal.intervals
 
 # set state sampling parameters - TODO!! why t_step and t_samp?
 if sampling_times is None and not input_signal_set.online:
-	t_samp = np.sort(list(iterate_obj_list(input_signal.offset_times)))
+	t_samp = np.sort(list(iterate_obj_list(input_signal.offset_times))) # extract stimulus offset times from
+# input_signal
 elif sampling_times is None and input_signal_set.online:
-	t_samp = [0]
+	t_samp = [0.] # offset times will be specified online, in the main iteration
+
+## rethink this!!
 elif sampling_times is not None and input_signal_set.online:
 	t_samp = sampling_times
 	t_step = [0]
@@ -203,49 +209,52 @@ else:
 
 
 if not record:
-	print("\n!!! No population activity will be stored !!!")
+	print("\n!!! No population activity data will be gathered !!!")
 if store_activity:
 	print("\n\n!!! All responses will be stored !!!")
 	epochs = {k: [] for k in labels}
-	t0 = nest.GetKernelStatus()['time']
+	t0 = nest.GetKernelStatus()['time'] + decoder_resolution
 
 print("\nSimulating {0} steps".format(str(set_size)))
 
 # ################################ Main Loop ###################################
-for idx, t in enumerate(t_samp):
+for idx, state_sample_time in enumerate(t_samp):
 
-	# internal time
-	t_int = nest.GetKernelStatus()['time']
+	internal_time = nest.GetKernelStatus()['time']
 
 	# determine simulation time for current stimulus - TODO FUNCTION
 	if input_signal_set.online and idx < set_size:
 		local_signal = signal_iterator.next()
-		local_signal.time_offset(t_int)
-		intervals.append(local_signal.intervals)
-		t_samp.append(list(itertools.chain(*local_signal.offset_times))[0])
-		t = t_samp[-1]
-		if intervals[-1]:
-			t += intervals[-1]
-		if store_activity:
-			epochs[set_labels[idx]].append((t_int, t_samp[-1]))
-		# print(idx, set_labels[idx], epochs[set_labels[idx]][-1])
+		stimulus_duration = list(itertools.chain(*local_signal.durations))[0]
+		stimulus_onset = t_samp[-1] # prior to adding new step
+		local_signal.time_offset(stimulus_onset)
+		stimulus_offset = list(itertools.chain(*local_signal.offset_times))[0]
+		t_samp.append(stimulus_offset)
+		state_sample_time = t_samp[-1] # new time
+		simulation_time = stimulus_duration # stimulus duration..
+		if local_signal.intervals[-1]:
+			simulation_time += local_signal.intervals[-1]
 	else:
 		local_signal = None
+		simulation_time = state_sample_time
 		if idx < len(t_samp) - 1:
-			if intervals[idx]:
-				t += intervals[idx]
-			if store_activity:
-				epochs[set_labels[idx]].append((t_int, t_samp[idx]))
-			# print(idx, set_labels[idx], epochs[set_labels[idx]][-1])
+			if input_signal.intervals[idx]:
+				simulation_time += input_signal.intervals[idx]
 
-	t_sim = t - t_int
+	# correct for delays and sample acquisition times
+	# if internal_time == 0.:
+	# 	simulation_time += time_correction_factor
 
-	print t_int, t_sim, t
+	assert (simulation_time > 0.), "Simulation time cannot be <= 0"
+	# print t_samp, internal_time, simulation_time, state_sample_time
 
-	if len(t_samp) <= set_size + 1 and t_sim > 0.:
+
+	if idx < set_size:
+		if store_activity:
+			epochs[set_labels[idx]].append((stimulus_onset, state_sample_time))
 
 		print("\nSimulating step {0} / stimulus {1} [{2} ms]".format(str(idx + 1), str(set_labels[idx]),
-		                                                             str(t_sim)))
+		                                                             str(simulation_time)))
 
 		# update spike template data - TODO FUNCTION
 		if all(['spike_pattern' in n for n in list(iterate_obj_list(enc_layer.generator_names))]):
@@ -271,7 +280,8 @@ for idx, t in enumerate(t_samp):
 			else:
 				spks = sk_pattern
 
-			spks = spks.time_offset(t_int, True)
+			spks = spks.time_offset(stimulus_onset, True)
+			# spks.raster_plot(True)
 			enc_layer.update_state(spks)
 
 
@@ -279,73 +289,78 @@ for idx, t in enumerate(t_samp):
 		elif input_signal_set is not None and local_signal is not None and input_signal_set.online:
 			stim_input = coo_matrix(stimulus_seq.todense()[:, idx])
 			local_signal.input_signal = local_signal.generate_single_step(stim_input)
-			print min(local_signal.input_signal.time_axis()), max(local_signal.input_signal.time_axis())
-			print min(local_signal.time_data), max(local_signal.time_data)
-			local_signal.time_offset(local_signal.dt)
-			print min(local_signal.input_signal.time_axis()), max(local_signal.input_signal.time_axis())
-			print min(local_signal.time_data), max(local_signal.time_data)
-			# if t_int == 0.:
-			# 	## !!! TEST - device update times cannot be 0.
-			# 	dt = nest.GetKernelStatus()['resolution']
-			# 	local_signal.input_signal.time_offset(dt)
-			local_signal.input_signal.plot_random(0)
 
+			# print min(local_signal.input_signal.time_axis()), max(local_signal.input_signal.time_axis())
+			# print min(local_signal.time_data), max(local_signal.time_data)
+			#
+			# local_signal.time_offset(local_signal.dt)
+			# print min(local_signal.input_signal.time_axis()), max(local_signal.input_signal.time_axis())
+			# print min(local_signal.time_data), max(local_signal.time_data)
+			# if internal_time == 0.:
+			# # 	## !!! TEST - device update times cannot be 0.
+			# 	dt = nest.GetKernelStatus()['resolution']
+			# if internal_time == 0.:
+			local_signal.time_offset(decoder_resolution)
 			enc_layer.update_state(local_signal.input_signal)
 
-			fig, ax = pl.subplots()
-			ax.plot(nest.GetStatus(enc_layer.generators[0].gids[0])[0]['amplitude_times'],
-			        nest.GetStatus(enc_layer.generators[
-				                       0].gids[0])[0]['amplitude_values'])
-			pl.show()
-
 		# simulate and extract recordings from devices
-		if t_int == 0.:  # compensate for delays
-			t_int += parameter_set.decoding_pars.output_resolution
-			total_simulation_time = t_sim + enc_layer.total_delay + parameter_set.decoding_pars.output_resolution
+		if internal_time == 0.:
+			net.simulate(simulation_time + decoder_resolution)
+			reset_decoders(net, enc_layer)
+			net.simulate(encoder_delay)
 		else:
-			total_simulation_time = t_sim
-		net.simulate(total_simulation_time)
-		net.extract_population_activity(t_start=t_int, t_stop=t_int + total_simulation_time)
+			net.simulate(simulation_time - encoder_delay)
+			reset_decoders(net, enc_layer)
+			net.simulate(decoder_resolution)
+
+		net.extract_population_activity(t_start=stimulus_onset + decoder_resolution, t_stop=state_sample_time)
 		net.extract_network_activity()
-		enc_layer.extract_encoder_activity(t_start=t_int, t_stop=t_int + total_simulation_time)
+		enc_layer.extract_encoder_activity(t_start=stimulus_onset + decoder_resolution, t_stop=state_sample_time)
 		if not empty(net.merged_populations):
-			net.merge_population_activity(start=t_int, stop=t_int + total_simulation_time, save=True)
+			net.merge_population_activity(start=stimulus_onset + decoder_resolution, stop=state_sample_time, save=True)
+
 
 		if record: #- TODO FUNCTION
 			# Extract and store state vectors
 			for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
 			                                                   net.populations, enc_layer.encoders]))):
 				if n_pop.decoding_layer is not None:
-					n_pop.decoding_layer.extract_state_vector(time_point=round(t_int + total_simulation_time,
-					                                                           2), save=True, reset=False)  ### !!!
-					n_pop.decoding_layer.reset_states()
+
+					# n_pop.decoding_layer.extract_activity(start=stimulus_onset + decoder_resolution, stop=state_sample_time)
+					# n_pop.decoding_layer.evaluate_decoding(n_neurons=5, display=display, save=False)
+
+
+					n_pop.decoding_layer.extract_state_vector(time_point=round(state_sample_time, 2), save=True)  ### !!!
+					# n_pop.decoding_layer.reset_states()
 			# clear devices
 			if not store_activity:
 				net.flush_records(decoders=True)
 				enc_layer.flush_records(decoders=True)
-#
-# # TODO FUNCTION
-if store_activity:
-	# store full activity
-	net.extract_population_activity(t_start=t0,
-	                                t_stop=nest.GetKernelStatus()['time'] - parameter_set.decoding_pars.output_resolution)
-	net.extract_network_activity()
-	enc_layer.extract_encoder_activity(t_start=t0,
-	                                   t_stop=nest.GetKernelStatus()['time'] - parameter_set.decoding_pars.output_resolution)
-	if not empty(net.merged_populations):
-		net.merge_population_activity(start=t0,
-		                              stop=nest.GetKernelStatus()['time'] - parameter_set.decoding_pars.output_resolution,
-		                              save=True)
-	for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
-	                                                   net.populations, enc_layer.encoders]))):
-		if n_pop.decoding_layer is not None:
-			n_pop.decoding_layer.extract_activity(save=True)
 if record:
 	# compile state matrices:
 	for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
 		if n_pop.decoding_layer is not None:
 			n_pop.decoding_layer.compile_state_matrix()
 
+#
+# # TODO FUNCTION
+if store_activity:
+	# store full activity
+	net.extract_population_activity(t_start=t0,
+	                                t_stop=nest.GetKernelStatus()['time'] - time_correction_factor)
+	net.extract_network_activity()
+	enc_layer.extract_encoder_activity(t_start=t0,
+	                                   t_stop=nest.GetKernelStatus()['time'] - time_correction_factor)
+	if not empty(net.merged_populations):
+		net.merge_population_activity(start=t0,
+		                              stop=nest.GetKernelStatus()['time'] - time_correction_factor,
+		                              save=True)
+	for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
+	                                                   net.populations, enc_layer.encoders]))):
+		if n_pop.decoding_layer is not None:
+			n_pop.decoding_layer.extract_activity(start=t0,
+			                                      stop=nest.GetKernelStatus()['time'] - time_correction_factor,
+			                                      save=True)
 
 ######################################################################################################
 for n_pop in list(itertools.chain(*[net.merged_populations, net.populations])):
@@ -358,7 +373,7 @@ for n_pop in list(itertools.chain(*[net.merged_populations, net.populations])):
 # Simulate (Full Set)
 # ======================================================================================================================
 iterate_input_sequence(net, enc_layer, parameter_set, stim, inputs, set_name='full', record=True,
-                       store_activity=True)
+                          store_activity=True)
 # evaluate the decoding methods (only if store_activity was set to True, otherwise no activity remains stored for
 # analysis)
 # if debug:

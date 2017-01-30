@@ -93,7 +93,7 @@ def build_parameters():
 	# ######################################################################################################################
 	# Input Parameters
 	# ######################################################################################################################
-	inp_resolution = 1.
+	inp_resolution = 0.1
 	inp_amplitude = 1100.
 	inp_duration = 200.
 	inter_stim_interval = 0.
@@ -161,7 +161,7 @@ def build_parameters():
 		readouts=readout_labels,
 		readout_algorithms=readout_algorithms,
 		sampling_times=state_sampling,
-		reset_states=[True, False, True],
+		reset_states=[True, False, False],
 		average_states=[True, True, True]
 	)
 

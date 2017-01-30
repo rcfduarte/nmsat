@@ -17,7 +17,7 @@ def build_parameters():
 	# ##################################################################################################################
 	system = dict(
 		nodes=1,
-		ppn=16,
+		ppn=64,
 		mem=32,
 		walltime='01-00:00:00',
 		queue='batch',
@@ -118,7 +118,7 @@ def build_parameters():
 		delay_dist=[kernel_pars['resolution']],
 		preset_W=[None],
 		gen_to_enc_W=None,
-		jitter=(100., True)) # jitter=None or jitter=(value[float], correct_borders[bool])
+		jitter=None) # jitter=None or jitter=(value[float], correct_borders[bool])
 
 	encoding_pars = set_encoding_defaults(default_set=4, input_dimensions=n_stim,
 	                                      n_encoding_neurons=n_afferents, **input_synapses)
@@ -127,20 +127,20 @@ def build_parameters():
 	# ##################################################################################################################
 	# Decoding / Readout Parameters
 	# ##################################################################################################################
-	out_resolution = 0.01
+	out_resolution = 0.1
 	filter_tau = 20.  # time constant of exponential filter (applied to spike trains)
 	state_sampling = None  # 1.(cannot start at 0)
 	readout_labels = ['ridge_classifier', 'pinv_classifier']
 	readout_algorithms = ['ridge', 'pinv']
 
 	decoders = dict(
-		decoded_population=[['E', 'I'], ['E', 'I'], 'E'],
+		decoded_population=[['E', 'I'], ['E', 'I'], ['E', 'I']],
 		state_variable=['spikes', 'V_m', 'spikes'],
 		filter_time=filter_tau,
 		readouts=readout_labels,
 		readout_algorithms=readout_algorithms,
 		sampling_times=state_sampling,
-		reset_states=[True, False, True],
+		reset_states=[True, False, False],
 		average_states=[True, True, True]
 	)
 

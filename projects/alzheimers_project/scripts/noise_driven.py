@@ -21,7 +21,7 @@ debug = False
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/noise_driven.py'
+params_file = '../parameters/noise_driven_params.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
