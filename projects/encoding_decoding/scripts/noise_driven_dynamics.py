@@ -21,8 +21,8 @@ debug = False
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/dc_noise_input.py'
-# params_file = '../parameters/spike_noise_input.py'
+# params_file = '../parameters/dc_noise_input.py'
+params_file = '../parameters/spike_noise_input.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -118,7 +118,7 @@ net.flush_records()
 # ======================================================================================================================
 analysis_interval = [parameter_set.kernel_pars.transient_t,
 	                     parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t]
-
+parameter_set.analysis_pars.pop('label')
 results.update(characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
                                                 color_map='jet', plot=plot,
                                                 display=display, save=paths['figures']+paths['label'],

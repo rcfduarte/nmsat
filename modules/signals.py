@@ -1554,6 +1554,7 @@ class SpikeList(object):
 				is_empty = False
 				if self.spiketrains[id].spike_times[0] < first_spike:
 					first_spike = self.spiketrains[id].spike_times[0]
+					#print id, first_spike
 		if is_empty:
 			raise Exception("No spikes can be found in the SpikeList object !")
 		else:
@@ -2698,14 +2699,14 @@ class AnalogSignal(object):
     Inputs:
         signal  - the vector with the data of the AnalogSignal
         dt      - the time step between two data points of the sampled analog signal
-        t_start - begining of the signal, in ms.
-        t_stop  - end of the SpikeList, in ms. If None, will be inferred from the data
+        t_start - beginning of the signal, in ms.
+        t_stop  - end of the SignalList, in ms. If None, will be inferred from the data
 
     Examples:
         >> s = AnalogSignal(range(100), dt=0.1, t_start=0, t_stop=10)
 
     See also
-        AnalogSignalList, load_currentlist, load_vmlist, load_conductancelist, load
+        AnalogSignalList
 	"""
 	def __init__(self, signal, dt, t_start=None, t_stop=None):
 		self.signal = np.array(signal, float)
@@ -2713,16 +2714,34 @@ class AnalogSignal(object):
 		if t_start is None:
 			t_start = 0
 		self.t_start = float(t_start)
-		self.t_stop = t_stop
+		self.t_stop = float(t_stop)
 		self.signal_length = len(signal)
-		# If t_stop is not None, we test that the signal has the correct number
-		# of elements
+		self.closed_time_interval = False # to allow signals that include the last time step or not.. (dirty fix)
+		# print self.signal_length
 		if self.t_stop is not None:
-			if abs(self.t_stop - self.t_start - self.dt * len(self.signal)) > 0.1 * self.dt:
+			t_axis = np.arange(self.t_start, self.t_stop + 0.0001, self.dt)
+			# print len(t_axis[:-1])
+			if len(self.signal) == len(t_axis):
+				self.closed_time_interval = True
+			elif len(self.signal) == len(t_axis[:-1]):
+				self.closed_time_interval = False
+			else:
 				raise Exception("Inconsistent arguments: t_start=%g, t_stop=%g, dt=%g implies %d elements, actually %d" % (
-					t_start, t_stop, dt, int(round((t_stop-t_start) / float(dt))), len(signal)))
+					self.t_start, self.t_stop, self.dt, int(round((self.t_stop - self.t_start) / float(self.dt))),
+					len(self.signal)))
+
+			# if len(self.signal) != int(round((self.t_stop + self.dt - self.t_start) / float(self.dt))):
+			# 	raise Exception("Inconsistent arguments: t_start=%g, t_stop=%g, dt=%g implies %d elements, actually %d" % (
+			# 		self.t_start, self.t_stop, self.dt, int(round((self.t_stop - self.t_start) / float(self.dt))),
+			# 		len(self.signal)))
+			#
+			#
+			# if self.t_stop is not None:
+			# 	if abs(self.t_stop - self.t_start - self.dt * len(self.signal)) > 0.1 * self.dt:
+			# 		raise Exception("Inconsistent arguments: t_start=%g, t_stop=%g, dt=%g implies %d elements, actually %d" % (
+			# 			t_start, t_stop, dt, int(round((t_stop-t_start) / float(dt))), len(signal)))
 		else:
-			self.t_stop = self.t_start + len(self.signal) * self.dt
+			self.t_stop = round(self.t_start + len(self.signal) * self.dt, 2)
 
 		if self.t_start >= self.t_stop:
 			raise Exception("Incompatible time interval for the creation of the AnalogSignal. t_start=%s, t_stop=%s" % (self.t_start, self.t_stop))
@@ -2774,7 +2793,10 @@ class AnalogSignal(object):
 			norm = self.t_start
 		else:
 			norm = 0.
-		return np.arange(self.t_start - norm, self.t_stop - norm, self.dt)
+		if self.closed_time_interval:
+			return np.arange(self.t_start - norm, self.t_stop - norm + 0.0001, self.dt)
+		else:
+			return np.arange(self.t_start - norm, self.t_stop - norm, self.dt)
 
 	def time_offset(self, offset):
 		"""
@@ -2978,7 +3000,6 @@ class AnalogSignal(object):
 				result[index] = self.time_slice(t_start_new, t_stop_new)
 		return result
 
-
 	def slice_exclude_events(self,events,t_min=100,t_max=100):
 		"""
         yields new AnalogSignals with events cutout (useful for removing spikes).
@@ -3086,7 +3107,9 @@ class AnalogSignalList(object):
 		if dt is None:
 			assert times is not None, "dt or times must be specified"
 			dt = np.mean(np.diff(np.unique(times)))
-		self.dt = np.round(float(dt), 1)
+		# print "min time: ", min(times)
+		# print "max time: ", max(times)
+		self.dt = np.round(float(dt), 2) #1)
 
 		if t_start is None and times is None:
 			t_start = 0.
@@ -3109,7 +3132,6 @@ class AnalogSignalList(object):
 		self.dimensions = dims
 		self.analog_signals = {}
 		self.signal_length = len(signals)
-		# print "%s" % str(self.signal_length)
 
 		signals = np.array(signals)
 
@@ -3122,15 +3144,12 @@ class AnalogSignalList(object):
 		for id in id_list:
 			signal = np.transpose(signals[signals[:, 0] == id, :])[1]
 			if len(signal) > 0 and len(signal) == max(lens):
-				# print max(lens)
 				self.analog_signals[id] = AnalogSignal(signal, self.dt, self.t_start, self.t_stop)
 			elif len(signal) > 0 and len(signal) != max(lens):
 				sig = np.zeros(max(lens))
 				sig[:len(signal)] = signal.copy()
 				steps_left = max(lens) - len(signal)
-				# print steps_left
 				sig[len(signal):] = np.ones(steps_left) * signal[-1]
-				# print len(sig)
 				self.analog_signals[id] = AnalogSignal(sig, self.dt, self.t_start, self.t_stop)
 
 		signals = self.analog_signals.values()
@@ -3226,7 +3245,10 @@ class AnalogSignalList(object):
 		"""
         Return the time axis of the AnalogSignalList object
         """
-		return np.arange(self.t_start, self.t_stop, self.dt)
+		if all(self.analog_signals[x].closed_time_interval for x in self.analog_signals):
+			return np.arange(self.t_start, self.t_stop + 0.00001, self.dt) # !! (adding 0.00001 to have the last timestep
+		else:
+			return np.arange(self.t_start, self.t_stop, self.dt)
 
 	def id_offset(self, offset):
 		"""
@@ -3390,7 +3412,7 @@ class AnalogSignalList(object):
 			time_axis = self.time_axis()
 
 		a = np.zeros((len(self.id_list()), len(time_axis)))
-		#print len(self.time_axis())
+		# print len(self.time_axis())
 		for idx, n in enumerate(self.id_list()):
 			a[idx, :] = self.analog_signals[n].raw_data()
 
@@ -3516,14 +3538,19 @@ class AnalogSignalList(object):
 					                                                               t_min=t_min, t_max=t_max)
 		return results
 
-	def plot_random(self):
+	def plot_random(self, idx=None):
 		"""
 
 		:return:
 		"""
-		idx = np.random.permutation(self.id_list())[0]
+		if idx is None:
+			idx = np.random.permutation(self.id_list())[0]
 		fig = pl.figure()
-		pl.plot(self.time_axis(), self.analog_signals[int(idx)].raw_data())
+		t_axis = self.time_axis()
+		s_data = self.analog_signals[int(idx)].raw_data()
+		if len(t_axis) != len(s_data):
+			t_axis = t_axis[:-1]
+		pl.plot(t_axis, s_data)
 		fig.suptitle('Channel {0}'.format(str(idx)))
 		pl.show(block=False)
 

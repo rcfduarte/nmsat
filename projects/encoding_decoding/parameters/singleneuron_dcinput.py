@@ -27,9 +27,9 @@ def build_parameters():
 	times = list(np.arange(0., total_time, analysis_interval))
 	amplitudes = list(np.linspace(min_current, max_current, len(times)))
 
-	# ######################################################################################################################
+	# ##################################################################################################################
 	# System / Kernel Parameters
-	# ######################################################################################################################
+	# ##################################################################################################################
 	system = dict(
 		nodes=1,
 		ppn=8,
@@ -41,9 +41,9 @@ def build_parameters():
 
 	kernel_pars = set_kernel_defaults(run_type=run, data_label=data_label, **system)
 
-	# ######################################################################################################################
+	# ##################################################################################################################
 	# Neuron, Synapse and Network Parameters
-	# ######################################################################################################################
+	# ##################################################################################################################
 	neuron_pars = set_neuron_defaults()
 	n_pars = {k: v for k, v in neuron_pars.items() if k != 'description'}
 	multimeter = rec_device_defaults(device_type='multimeter')
@@ -71,9 +71,9 @@ def build_parameters():
 	})
 	neuron_pars = ParameterSet(neuron_pars)
 
-	# ######################################################################################################################
+	# ##################################################################################################################
 	# Input/Encoding Parameters
-	# ######################################################################################################################
+	# ##################################################################################################################
 	connections = [('{0}'.format(str(n)), 'DC_Input') for n in net_pars.pop_names]
 	n_connections = len(connections)
 	encoding_pars = ParameterSet({
@@ -101,7 +101,31 @@ def build_parameters():
 			'delay_dist': [1. for _ in range(n_connections)],
 			'preset_W': [None for _ in range(n_connections)]},
 	})
-
+	# ##################################################################################################################
+	# Analysis Parameters
+	# ##################################################################################################################
+	# analysis_pars = {
+	# 	'numerics': {
+	# 		'time_bin': 1.,  # bin width for spike counts, fano factors and correlation coefficients
+	# 		'n_pairs': 500,  # number of spike train pairs to consider in correlation coefficient
+	# 		'tau': 20.,  # time constant of exponential filter (van Rossum distance)
+	# 		'window_len': 100},  # length of sliding time window (for time_resolved analysis)
+	# 	'stats': {
+	# 		# other options are possible here...
+	# 		'epochs': None,
+	# 		'time_resolved': False,  # perform time-resolved analysis
+	#
+	# 		# !!! for ainess, we could instead enforce more generic options, such as synchrony, regularity,
+	# 		# etc., as you suggested in the email.
+	# 		'ainess': ['ISI_distance', 'SPIKE_distance', 'ccs_pearson',  # compute level of asynchronous,
+	# 		           'cvs', 'cvs_log', 'd_vp', 'd_vr', 'ents', 'ffs']},  # irregular population activity
+	#
+	# 	'meta': {
+	# 		'save_path': "",  # if set to None, then we're not saving anything
+	# 		'plot': True,
+	# 		'display': True,
+	# 		'color_map': 'jet'}
+	# }
 	# ##################################################################################################################
 	# RETURN dictionary of Parameters dictionaries
 	# ==================================================================================================================
