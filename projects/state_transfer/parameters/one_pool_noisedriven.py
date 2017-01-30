@@ -83,13 +83,48 @@ def build_parameters():
 	add_background_noise(encoding_pars, background_noise)
 
 	# ##################################################################################################################
+	# Extra analysis parameters (specific for this experiment)
+	# ==================================================================================================================
+
+	analysis_pars = {
+					# !!! analysis depth, or level, or something else..
+					'depth': 1,			# 1: save only summary of data, use only fastest measures
+										# 2: save all data, use only fastest measures
+										# 3: save only summary of data, use all available measures
+										# 4: save all data, use all available measures
+
+					'numerics': {
+						'time_bin': 	1.,  	# bin width for spike counts, fano factors and correlation coefficients
+						'n_pairs': 		500,  	# number of spike train pairs to consider in correlation coefficient
+						'tau': 			20., 	# time constant of exponential filter (van Rossum distance)
+						'window_len': 	100}, 	# length of sliding time window (for time_resolved analysis)
+
+					'stats': {
+						# other options are possible here...
+						'epochs': None,
+						'time_resolved': False,  # perform time-resolved analysis
+
+						# !!! for ainess, we could instead enforce more generic options, such as synchrony, regularity,
+						# etc., as you suggested in the email.
+						'ainess': ['ISI_distance', 'SPIKE_distance', 'ccs_pearson',  # compute level of asynchronous,
+								   'cvs', 'cvs_log', 'd_vp', 'd_vr', 'ents', 'ffs']},  # irregular population activity
+
+					'meta': {
+						'save_path': 	"",  # if set to None, then we're not saving anything
+						'plot': 		True,
+						'display': 		True,
+						'color_map': 	'jet'}
+	}
+
+	# ##################################################################################################################
 	# RETURN dictionary of Parameters dictionaries
 	# ==================================================================================================================
-	return dict([('kernel_pars', kernel_pars),
-	             ('neuron_pars', neuron_pars),
-	             ('net_pars', net_pars),
-	             ('encoding_pars', encoding_pars),
-	             ('connection_pars', connection_pars)])
+	return dict([('kernel_pars', 	 kernel_pars),
+	             ('neuron_pars', 	 neuron_pars),
+	             ('net_pars', 		 net_pars),
+	             ('encoding_pars', 	 encoding_pars),
+	             ('connection_pars', connection_pars),
+				 ('analysis_pars', 	 analysis_pars)])
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations
