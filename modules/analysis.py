@@ -693,7 +693,7 @@ def compute_isi_stats_new(spike_list, depth=1, display=True):
 	results['isi_5p'] 	= spike_list.isi_5p(float_only=True)
 	results['ai'] 		= spike_list.adaptation_index(float_only=True)
 
-	if depth == 1:
+	if depth == 1 or depth == 3:
 		results['isi'] = []
 		cvs 	= results['cvs']
 		lvs 	= results['lvs']
