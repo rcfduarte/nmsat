@@ -11,20 +11,20 @@ dc_noise_input
 - debug with noise_driven_dynamics script
 """
 
-run = 'local'
-data_label = 'ED_DCNoise_global_stats'
+run = 'Jureca'
+data_label = 'ED_dcnoise_input'
 
 
-def build_parameters():
+def build_parameters(g, ro_in):
 	# ##################################################################################################################
 	# System / Kernel Parameters
 	# ##################################################################################################################
 	system = dict(
 		nodes=1,
-		ppn=8,
+		ppn=24,
 		mem=32,
 		walltime='01-00:00:00',
-		queue='defqueue',
+		queue='batch',
 		transient_time=1000.,
 		sim_time=10000.)
 
@@ -46,7 +46,7 @@ def build_parameters():
 	pII = 0.2
 
 	# connection weights
-	g = 13.5
+	# g = 13.5
 	wE = 1.2
 	wI = -g * wE
 
@@ -77,7 +77,7 @@ def build_parameters():
 	# ##################################################################################################################
 	# Input Parameters
 	# ##################################################################################################################
-	ro_in = 1100
+	# ro_in = 1100
 
 	input_pars = {'noise':
 		                {'N': 1,
@@ -148,4 +148,6 @@ def build_parameters():
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
+	'g': np.arange(4, 25.5, 0.5),
+	'ro_in': np.arange(300., 1800., 100.)
 }

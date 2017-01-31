@@ -11,8 +11,8 @@ spike_noise_input
 - debug with noise_driven_dynamics script
 """
 
-run = 'local'
-data_label = 'ED_dcnoise_input'
+run = 'Jureca'
+data_label = 'ED_spike_noise_input'
 
 
 def build_parameters(g, nu_x):
