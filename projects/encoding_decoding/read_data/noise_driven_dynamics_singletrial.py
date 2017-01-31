@@ -56,15 +56,15 @@ analog_arrays = {'EI_CC': np.zeros_like(results[0]),
 
 keys2 = ['E']
 
-ainess = np.zeros_like(results[0])
-extra_analysis_parameters = {'time_bin': 1.,
-                             'n_pairs': 500,
-                             'tau': 20.,
-                             'window_len': 100,
-                             'summary_only': True,
-                             'complete': True,
-                             'time_resolved': False}
-main_metrics = ['ISI_distance', 'SPIKE_distance', 'ccs_pearson', 'cvs', 'cvs_log', 'd_vp', 'd_vr', 'ents', 'ffs']
+# ainess = np.zeros_like(results[0])
+# extra_analysis_parameters = {'time_bin': 1.,
+#                              'n_pairs': 500,
+#                              'tau': 20.,
+#                              'window_len': 100,
+#                              'summary_only': True,
+#                              'complete': True,
+#                              'time_resolved': False}
+# main_metrics = ['ISI_distance', 'SPIKE_distance', 'ccs_pearson', 'cvs', 'cvs_log', 'd_vp', 'd_vr', 'ents', 'ffs']
 
 
 for x_value in pars.parameter_axes['xticks']:

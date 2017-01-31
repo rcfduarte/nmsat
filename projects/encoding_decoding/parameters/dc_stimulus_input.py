@@ -4,36 +4,33 @@ from preset import *
 import numpy as np
 
 """
-spike_noise_input
-- standard network setup, driven with noisy, Poissonian input
-- quantify and set population state
-- run with noise_driven_dynamics in computations
-- debug with noise_driven_dynamics script
+dc_input
+- test dc_input stimulus processing
 """
 
 run = 'local'
-data_label = 'ED_SpikeNoise_global_stats'
-
+data_label = 'ED_DCNoise_global_stats'
 
 def build_parameters():
-	# ##################################################################################################################
+	# ######################################################################################################################
 	# System / Kernel Parameters
-	# ##################################################################################################################
+	# ######################################################################################################################
 	system = dict(
 		nodes=1,
-		ppn=8,
-		mem=32,
+		ppn=16,
+		mem=32000,
 		walltime='01-00:00:00',
 		queue='defqueue',
 		transient_time=1000.,
-		sim_time=10000.)
+		sim_time=1000.)
 
 	kernel_pars = set_kernel_defaults(run_type=run, data_label=data_label, **system)
 	np.random.seed(kernel_pars['np_seed'])
+
 	# ##################################################################################################################
 	# Neuron, Synapse and Network Parameters
 	# ##################################################################################################################
-	N = 10000
+	N = 10
 	nE = 0.8 * N
 	nI = 0.2 * N
 	dE = 1.0
@@ -72,56 +69,103 @@ def build_parameters():
 
 	net_pars['record_analogs'] = [True, False]
 	multimeter = rec_device_defaults(device_type='multimeter')
-	multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1000})
+	multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1})
 	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': ''}), {}]
+
+	# ######################################################################################################################
+	# Stimulus Parameters
+	# ######################################################################################################################
+	n_trials = 5
+	n_discard = 0
+
+	n_stim = 5
+
+	stim_pars = dict(
+		n_stim=n_stim,
+		elements=np.arange(0, n_stim, 1).astype(int),
+		grammar=None,
+		full_set_length=int(n_trials + n_discard),
+		transient_set_length=int(n_discard),
+		train_set_length=int(n_trials * 0.8),
+		test_set_length=int(n_trials * 0.2),
+	)
+
+	# ######################################################################################################################
+	# Input Parameters
+	# ######################################################################################################################
+	inp_resolution = 0.1
+	inp_amplitude = 1100.
+	inp_duration = 200.
+	inter_stim_interval = 0.
+
+	input_pars = {
+		'signal': {
+			'N': n_stim,
+			'durations': [inp_duration],
+			'i_stim_i': [inter_stim_interval],
+			'kernel': ('box', {}),
+			'start_time': 0.,
+			'stop_time': sys.float_info.max,
+			'max_amplitude': [inp_amplitude],
+			'min_amplitude': 0.,
+			'resolution': inp_resolution},
+		# 'noise': {
+		# 	'N': 0,
+		# 	'noise_source': ['GWN'],
+		# 	'noise_pars': {'amplitude': 5., 'mean': 1., 'std': 0.25},
+		# 	'rectify': True,
+		# 	'start_time': 0.,
+		# 	'stop_time': sys.float_info.max,
+		# 	'resolution': inp_resolution, }
+	}
+
 	# ######################################################################################################################
 	# Encoding Parameters
 	# ######################################################################################################################
-	nu_x = 20.
-	k_x = pEE * nE
+	gamma_in = pEE
+	r = 0.5
 	w_in = 1.
+	sig_w = 0.5 * w_in
 
-	encoding_pars = set_encoding_defaults(default_set=0)
+	# Input connectivity
+	input_synapses = dict(
+		target_population_names=['E', 'I'],
+		conn_specs=[{'rule': 'pairwise_bernoulli', 'p': gamma_in},
+		            {'rule': 'pairwise_bernoulli', 'p': gamma_in}],
+		syn_specs=[{}, {}],
+		models=['static_synapse', 'static_synapse'],
+		model_pars=[{}, {}],
+		weight_dist=[
+			{'distribution': 'normal_clipped', 'mu': w_in, 'sigma': 0.5 * w_in, 'low': 0.0001, 'high': 10. * w_in},
+			{'distribution': 'normal_clipped', 'mu': w_in, 'sigma': 0.5 * w_in, 'low': 0.0001, 'high': 10. * w_in}],
+		delay_dist=[0.1, 0.1],
+		preset_W=[None, None],
+		gen_to_enc_W=None)
 
-	background_noise = dict(
-		start=0., stop=sys.float_info.max, origin=0.,
-		rate=nu_x*k_x, target_population_names=['E', 'I'],
-		additional_parameters={
-			'syn_specs': {},
-			'models': 'static_synapse',
-			'model_pars': {},
-			'weight_dist': {'distribution': 'normal_clipped', 'mu': w_in, 'sigma': 0.5*w_in, 'low': 0.0001,
-			                'high': 10.*w_in},
-			'delay_dist': 0.1})
-	add_background_noise(encoding_pars, background_noise)
-
-	# nu_x = 12.
-	# k_x = pEE * nE
-	# w_in = 1.
-	#
-	# background_noise2 = dict(
-	# 	start=0., stop=sys.float_info.max, origin=0.,
-	# 	rate=nu_x*k_x, target_population_names=['E', 'I'],
-	# 	generator_label='background',
-	# 	additional_parameters={
-	# 		'syn_specs': {},
-	# 		'models': 'static_synapse',
-	# 		'model_pars': {},
-	# 		'weight_dist': {'distribution': 'normal_clipped', 'mu': w_in, 'sigma': 0.5*w_in, 'low': 0.0001,
-	# 		                'high': 10.*w_in},
-	# 		'delay_dist': 0.1})
-	# add_background_noise(encoding_pars, background_noise2)
+	encoding_pars = set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=0.,
+	                                      **input_synapses)
 
 	# ##################################################################################################################
-	# Extra analysis parameters (specific for this experiment)
-	# ==================================================================================================================
-	analysis_pars = {'time_bin': 1.,        # bin width for spike counts, fano factors and correlation coefficients
-	                 'n_pairs': 500,        # number of spike train pairs to consider in correlation coefficient
-	                 'tau': 20.,            # time constant of exponential filter (van Rossum distance)
-	                 'window_len': 100,     # length of sliding time window (for time_resolved analysis)
-	                 'summary_only': True, # how to save the data (only mean and std - True) or entire data set (False)
-	                 'complete': False,      # use all existing measures or just the fastest / simplest ones
-	                 'time_resolved': False}# perform time-resolved analysis
+	# Decoding / Readout Parameters
+	# ##################################################################################################################
+	out_resolution = 0.1
+	filter_tau = 20.  # time constant of exponential filter (applied to spike trains)
+	state_sampling = None  # 1.(cannot start at 0)
+	readout_labels = ['ridge_classifier', 'pinv_classifier']
+	readout_algorithms = ['ridge', 'pinv']
+
+	decoders = dict(
+		decoded_population=[['E', 'I'], ['E', 'I'], 'E'],
+		state_variable=['spikes', 'V_m', 'spikes'],
+		filter_time=filter_tau,
+		readouts=readout_labels,
+		readout_algorithms=readout_algorithms,
+		sampling_times=state_sampling,
+		reset_states=[True, False, False],
+		average_states=[True, True, True]
+	)
+
+	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)
 
 	# ##################################################################################################################
 	# RETURN dictionary of Parameters dictionaries
@@ -131,7 +175,10 @@ def build_parameters():
 	             ('net_pars', net_pars),
 	             ('encoding_pars', encoding_pars),
 	             ('connection_pars', connection_pars),
-	             ('analysis_pars', analysis_pars)])
+	             ('input_pars', input_pars),
+	             ('decoding_pars', decoding_pars),
+	             ('stim_pars', stim_pars)])
+
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations

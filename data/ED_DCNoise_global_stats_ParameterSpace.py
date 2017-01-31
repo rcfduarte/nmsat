@@ -4,15 +4,15 @@ from preset import *
 import numpy as np
 
 """
-spike_noise_input
-- standard network setup, driven with noisy, Poissonian input
+dc_noise_input
+- standard network setup, driven with noisy direct current injection
 - quantify and set population state
 - run with noise_driven_dynamics in computations
 - debug with noise_driven_dynamics script
 """
 
 run = 'local'
-data_label = 'ED_SpikeNoise_global_stats'
+data_label = 'ED_DCNoise_global_stats'
 
 
 def build_parameters():
@@ -72,37 +72,47 @@ def build_parameters():
 
 	net_pars['record_analogs'] = [True, False]
 	multimeter = rec_device_defaults(device_type='multimeter')
-	multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1000})
+	multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1})
 	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': ''}), {}]
-	# ######################################################################################################################
+	# ##################################################################################################################
+	# Input Parameters
+	# ##################################################################################################################
+	ro_in = 1100
+
+	input_pars = {'noise':
+		                {'N': 1,
+		                 'noise_source': ['GWN'],
+		                 'noise_pars': {'amplitude': ro_in, 'mean': 1., 'std': 0.1},
+		                 'rectify': False,
+		                 'start_time': 0.,
+		                 'stop_time': sys.float_info.max,
+		                 'resolution': 0.1}
+	}
+	# ##################################################################################################################
 	# Encoding Parameters
-	# ######################################################################################################################
-	nu_x = 20.
-	k_x = pEE * nE
+	# ##################################################################################################################
 	w_in = 1.
+	input_synapses = dict(
+		target_population_names=['E', 'I'],
+		conn_specs=[{'rule': 'pairwise_bernoulli', 'p': pEE}, {'rule': 'pairwise_bernoulli', 'p': pEE}],
+		syn_specs=[{}, {}],
+		models=['static_synapse', 'static_synapse'],
+		model_pars=[{}, {}],
+		weight_dist=[{'distribution': 'normal_clipped', 'mu': w_in, 'sigma': 0.5*w_in, 'low': 0.0001, 'high': 10.*w_in},
+		             {'distribution': 'normal_clipped', 'mu': w_in, 'sigma': 0.5*w_in, 'low': 0.0001, 'high': 10.*w_in}],
+		delay_dist=[0.1, 0.1],
+		preset_W=[None, None],
+		gen_to_enc_W=None)
 
-	encoding_pars = set_encoding_defaults(default_set=0)
+	encoding_pars = set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=0., **input_synapses)
 
-	background_noise = dict(
-		start=0., stop=sys.float_info.max, origin=0.,
-		rate=nu_x*k_x, target_population_names=['E', 'I'],
-		additional_parameters={
-			'syn_specs': {},
-			'models': 'static_synapse',
-			'model_pars': {},
-			'weight_dist': {'distribution': 'normal_clipped', 'mu': w_in, 'sigma': 0.5*w_in, 'low': 0.0001,
-			                'high': 10.*w_in},
-			'delay_dist': 0.1})
-	add_background_noise(encoding_pars, background_noise)
-
-	# nu_x = 12.
+	# nu_x = 10.
 	# k_x = pEE * nE
 	# w_in = 1.
 	#
-	# background_noise2 = dict(
+	# background_noise = dict(
 	# 	start=0., stop=sys.float_info.max, origin=0.,
 	# 	rate=nu_x*k_x, target_population_names=['E', 'I'],
-	# 	generator_label='background',
 	# 	additional_parameters={
 	# 		'syn_specs': {},
 	# 		'models': 'static_synapse',
@@ -110,7 +120,7 @@ def build_parameters():
 	# 		'weight_dist': {'distribution': 'normal_clipped', 'mu': w_in, 'sigma': 0.5*w_in, 'low': 0.0001,
 	# 		                'high': 10.*w_in},
 	# 		'delay_dist': 0.1})
-	# add_background_noise(encoding_pars, background_noise2)
+	# add_background_noise(encoding_pars, background_noise)
 
 	# ##################################################################################################################
 	# Extra analysis parameters (specific for this experiment)
@@ -119,8 +129,8 @@ def build_parameters():
 	                 'n_pairs': 500,        # number of spike train pairs to consider in correlation coefficient
 	                 'tau': 20.,            # time constant of exponential filter (van Rossum distance)
 	                 'window_len': 100,     # length of sliding time window (for time_resolved analysis)
-	                 'summary_only': True, # how to save the data (only mean and std - True) or entire data set (False)
-	                 'complete': False,      # use all existing measures or just the fastest / simplest ones
+	                 'summary_only': False, # how to save the data (only mean and std - True) or entire data set (False)
+	                 'complete': True,      # use all existing measures or just the fastest / simplest ones
 	                 'time_resolved': False}# perform time-resolved analysis
 
 	# ##################################################################################################################
@@ -131,6 +141,7 @@ def build_parameters():
 	             ('net_pars', net_pars),
 	             ('encoding_pars', encoding_pars),
 	             ('connection_pars', connection_pars),
+	             ('input_pars', input_pars),
 	             ('analysis_pars', analysis_pars)])
 
 # ######################################################################################################################

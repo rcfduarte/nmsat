@@ -50,6 +50,7 @@ import sklearn.svm as svm
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import GridSearchCV
 import sklearn.metrics as met
+from sklearn.metrics.pairwise import pairwise_distances
 import sklearn.manifold as man
 import scipy.stats.mstats as mst
 import nest
@@ -1534,11 +1535,14 @@ def compute_ainess(results, keys, pop=None, template_duration=10000., template_r
 
 	for population in results['spiking_activity'].keys():
 
-		if population in results['metadata']['sub_population_names']:
-			pop_idx = results['metadata']['sub_population_names'].index(population)
-			neurons = results['metadata']['sub_population_gids'][pop_idx]
+		if 'sub_population_names' in results['metadata'].keys():
+			if population in results['metadata']['sub_population_names']:
+				pop_idx = results['metadata']['sub_population_names'].index(population)
+				neurons = results['metadata']['sub_population_gids'][pop_idx]
+			else:
+				neurons = list(itertools.chain(*results['metadata']['sub_population_gids']))
 		else:
-			neurons = list(itertools.chain(*results['metadata']['sub_population_gids']))
+			neurons = results['metadata']['spike_list'].id_list
 		rate = results['spiking_activity'][population]['mean_rates'][0]
 
 		# retrieve vector of results from population
@@ -1563,13 +1567,17 @@ def compute_ainess(results, keys, pop=None, template_duration=10000., template_r
 			result_vector = np.delete(result_vector, idx)
 			result_template = np.delete(result_template, idx)
 
-		# compute distance
-		ai_ness = cosine(result_vector, result_template)
-		print("\nPopulation {0} AIness = {1}".format(str(population), str(ai_ness)))
+		# compute distance - use various metrics to test...
+		test_distances = ['cosine', 'euclidean', 'manhattan', 'mahalanobis', 'seuclidean', 'minkowski']
+		result.update({population: {}})
 
-		# store
-		result.update({population: ai_ness})
-
+		for metric in test_distances:
+			try:
+				result[population].update({
+					metric: pairwise_distances(result_vector.reshape(1, -1), result_template.reshape(1, -1),
+					                           metric=metric, n_jobs=-1)})
+			except:
+				continue
 	return result
 
 
@@ -3395,7 +3403,7 @@ class DecodingLayer(object):
 			if self.state_variables[idx] == 'spikes':
 				if not self.total_delays[idx]:
 					self.determine_total_delay()
-				time_shift = self.extractor_resolution[idx] #self.total_delays[idx]
+				time_shift = self.total_delays[idx] #self.extractor_resolution[idx] #
 
 			if isinstance(initializer, basestring) or isinstance(initializer, list):
 				data = io.extract_data_fromfile(initializer)
@@ -3438,7 +3446,7 @@ class DecodingLayer(object):
 					status_dict['senders'] = status_dict['senders'][idxx]
 				tmp = [(status_dict['senders'][n], status_dict['V_m'][n]) for n in range(len(status_dict['senders']))]
 				responses = sg.AnalogSignalList(tmp, np.unique(status_dict['senders']).tolist(), times=times,
-				                                t_start=start, t_stop=stop)
+				                                dt=self.extractor_resolution[idx], t_start=start, t_stop=stop)
 			else:
 				raise TypeError("Incorrect Decoder ID")
 
@@ -3450,7 +3458,7 @@ class DecodingLayer(object):
 		else:
 			return all_responses
 
-	def extract_state_vector(self, time_point=200., lag=0.1, save=True, reset=False):
+	def extract_state_vector(self, time_point=200., save=True, reset=False):
 		"""
 		Read population responses within a local time window and extract a single state vector at the specified time
 		:param time_point: in ms
@@ -3458,6 +3466,8 @@ class DecodingLayer(object):
 		:param save: bool - store state vectors in the decoding layer or return them
 		:return:
 		"""
+		# set the lag to  be == 2*resolution
+		lag = np.unique(self.extractor_resolution)[0] * 2.
 		self.sampled_times.append(time_point)
 		if not sg.empty(self.activity):
 			responses = self.activity

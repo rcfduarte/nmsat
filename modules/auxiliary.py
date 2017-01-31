@@ -63,6 +63,9 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 	decoder_delay = max(list(itertools.chain(*decoder_delays)))
 	decoder_resolution = min(list(itertools.chain(*decoder_resolutions)))
 	time_correction_factor = encoder_delay + decoder_resolution
+	if decoder_resolution != encoder_delay:
+		print "To avoid errors in the delay compensation, it is advisable to set the ouput resolution to be the same " \
+		      "as the encoder delays" # because the state resolution won't be enough to capture the time compensation..
 
 	# extract important parameters:
 	sampling_times = parameter_set.decoding_pars.sampling_times
@@ -111,9 +114,11 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 				retrieve_stimulus_timing(input_signal_set, idx, set_size, signal_iterator, t_samp, state_sample_time, input_signal)
 
 			if idx < set_size:
+				# store and display stimulus information
 				print("\nSimulating step {0} / stimulus {1} [{2} ms]".format(str(idx + 1), str(set_labels[idx]),
 				                                                             str(simulation_time)))
 				epochs[set_labels[idx]].append((stimulus_onset, state_sample_time))
+				state_sample_time += encoder_delay  # correct sampling time
 
 				# update spike template data
 				if all(['spike_pattern' in n for n in list(signals.iterate_obj_list(enc_layer.generator_names))]):
@@ -123,24 +128,24 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 				elif input_signal_set is not None and local_signal is not None and input_signal_set.online:
 					update_input_signals(enc_layer, idx, stimulus_seq, local_signal, decoder_resolution)
 
-				# simulate
+				# simulate and reset (if applicable)
 				if internal_time == 0.:
-					net.simulate(simulation_time + decoder_resolution)
+					net.simulate(simulation_time + encoder_delay + decoder_delay)
 					analysis.reset_decoders(net, enc_layer)
-					net.simulate(encoder_delay)
+					net.simulate(decoder_resolution)
 				else:
-					net.simulate(simulation_time - encoder_delay)
+					net.simulate(simulation_time - decoder_resolution)
 					analysis.reset_decoders(net, enc_layer)
 					net.simulate(decoder_resolution)
 
-				net.extract_population_activity(t_start=stimulus_onset + decoder_resolution, t_stop=state_sample_time)
+				# extract and store activity
+				net.extract_population_activity(t_start=stimulus_onset + encoder_delay, t_stop=state_sample_time)
 				net.extract_network_activity()
-				enc_layer.extract_encoder_activity(t_start=stimulus_onset + decoder_resolution,
-				                                   t_stop=state_sample_time)
+				enc_layer.extract_encoder_activity(t_start=stimulus_onset + encoder_delay, t_stop=state_sample_time)
 				if not signals.empty(net.merged_populations):
-					net.merge_population_activity(start=stimulus_onset + decoder_resolution, stop=state_sample_time,
+					net.merge_population_activity(start=stimulus_onset + encoder_delay, stop=state_sample_time,
 					                              save=True)
-
+				# sample population activity
 				if record:
 					extract_state_vectors(net, enc_layer, state_sample_time, store_activity)
 

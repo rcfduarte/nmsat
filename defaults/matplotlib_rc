@@ -320,7 +320,7 @@ legend.scatterpoints : 1 # number of scatter points
 
 ### FIGURE
 # See http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure
-figure.figsize   : 15, 9    # figure size in inches
+#figure.figsize   : 15, 9    # figure size in inches
 figure.dpi       : 100      # figure dots per inch
 figure.facecolor : 0.75    # figure facecolor; 0.75 is scalar gray
 figure.edgecolor : white   # figure edgecolor
@@ -348,7 +348,7 @@ image.origin : upper             # lower | upper
 image.resample  : False
 
 ### CONTOUR PLOTS
-contour.negative_linestyle :  dashed # dashed | solid
+contour.negative_linestyle :  solid # dashed | solid
 
 ### Agg rendering
 ### Warning: experimental, 2008/10/10
