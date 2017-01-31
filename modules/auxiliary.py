@@ -55,7 +55,7 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 	encoder_delay = enc_layer.total_delay
 	decoder_delays = []
 	decoder_resolutions = []
-	for n_pop in list(itertools.chain(*[net.merged_populations, net.populations])):
+	for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
 		if n_pop.decoding_layer is not None:
 			n_pop.decoding_layer.determine_total_delay()
 			decoder_delays.append(n_pop.decoding_layer.total_delays)

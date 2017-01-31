@@ -1313,7 +1313,7 @@ class Network(object):
 				extractor_indices.update({n_ext: np.where(np.array(sources) == n_ext)[0]})
 
 			# create decoder parameters dictionary for each source population
-			keys = ['state_specs', 'state_variable', 'reset_states', 'average_states']
+			keys = ['state_specs', 'state_variable', 'reset_states', 'average_states', 'standardize']
 			for k, v in extractor_indices.items():
 				decoder_params.update({k: {}})
 				for k1 in keys:

@@ -3143,7 +3143,8 @@ class EncodingLayer:
 				decoder_params.update({'state_variable': pars_st.state_variable,
 			                           'state_specs': pars_st.state_specs,
 				                       'reset_states': pars_st.reset_states,
-				                       'average_states': pars_st.average_states})
+				                       'average_states': pars_st.average_states,
+				                       'standardize': pars_st.standardize})
 
 				if hasattr(decoding_pars, "readout"):
 					pars_readout = decoding_pars.readout

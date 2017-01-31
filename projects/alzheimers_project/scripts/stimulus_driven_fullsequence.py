@@ -7,7 +7,7 @@ from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
 from modules.visualization import set_global_rcParams, InputPlots, extract_encoder_connectivity, TopologyPlots
-from modules.analysis import analyse_state_matrix
+from modules.analysis import analyse_state_matrix, get_state_rank, readout_train, readout_test
 from modules.auxiliary import iterate_input_sequence
 import cPickle as pickle
 import matplotlib.pyplot as pl
@@ -46,7 +46,7 @@ if plot:
 paths = set_storage_locations(parameter_set, save)
 
 np.random.seed(parameter_set.kernel_pars['np_seed'])
-results = dict()
+results = dict(rank={}, performance={})
 
 # ######################################################################################################################
 # Set kernel and simulation parameters
@@ -148,16 +148,54 @@ store_activity = False  # put in analysis_pars
 iterate_input_sequence(net, enc_layer, parameter_set, stim, inputs, set_name='full', record=True,
                        store_activity=store_activity)
 
+sub_sets = ['transient', 'unique', 'train', 'test']
+target_matrix = stim.full_set.todense()
 for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
 					                net.populations]))):#, enc_layer.encoders]))):
 	if n_pop.decoding_layer is not None:
+		dec_layer = n_pop.decoding_layer
 		if store_activity and debug:
-			n_pop.decoding_layer.evaluate_decoding(n_neurons=10, display=display, save=paths['figures']+paths['label'])
+			dec_layer.evaluate_decoding(n_neurons=10, display=display, save=paths['figures']+paths['label'])
+
+		results['rank'].update({n_pop.name: {}})
 
 		# parse state variables
-		for idx_var, var in enumerate(n_pop.decoding_layer.state_variables):
-			analyse_state_matrix(n_pop.decoding_layer.state_matrix[idx_var], stim.full_set_labels,
-			                     label=n_pop.name+var, plot=plot, display=display, save=paths['figures']+paths['label'])
+		for idx_var, var in enumerate(dec_layer.state_variables):
+			time_steps = 0
+			end_step = 0
+			state_matrix = dec_layer.state_matrix[idx_var]
+			for stim_set in sub_sets:
+				labels = getattr(stim, "{0}_set_labels".format(stim_set))
+				if not empty(labels) and not empty(state_matrix):
+					end_step += len(labels)
+					state = state_matrix[:, time_steps:end_step]
+					print "Population {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, stim_set,
+					                                                          str(state.shape))
+					target = target_matrix[:, time_steps:end_step]
+					time_steps += len(labels)
+					if stim_set == 'unique':
+						results['rank'][n_pop.name].update({var+str(idx_var): get_state_rank(state)})
+					elif stim_set == 'train':
+						readouts = dec_layer.readouts[idx_var]
+						for readout in readouts:
+							readout_train(readout, state, target=np.array(target), index=None, accepted=None,
+							              display=display, plot=plot, save=paths['figures']+paths['label'])
+					# elif stim_set == 'test':
+					# 	# target =
+					# 	test_readouts(dec_layer.readouts[idx_var], state, target)
+
+
+					analyse_state_matrix(state_matrix, stim.full_set_labels, label=n_pop.name+var+stim_set,
+					                     plot=plot, display=display, save=paths['figures']+paths['label'])
+
+
+
+# train_target = stim.train_set.todense()
+#
+# readouts = dec_layer.readouts[0]
+# for readout in readouts:
+# 	readout_train(readout, state_train, target=train_target, index=None, accepted=None, display=True,
+# 	              plot=True, save=False)
 
 
 ########################################################################################################################

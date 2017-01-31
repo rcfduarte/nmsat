@@ -873,7 +873,7 @@ def plot_w_out(w_out, label, display=True, save=False):
 	Creates a histogram of the readout weights
 	"""
 	fig1, ax1 = pl.subplots()
-	fig1.suptitle("{0} - Biclustering W out".format(str(label)))
+	fig1.suptitle(r"${0}$ - Biclustering W out".format(str(label)))
 	n_clusters = np.min(w_out.shape)
 	n_bars = np.max(w_out.shape)
 	model = SpectralBiclustering(n_clusters=n_clusters, method='log',
@@ -893,7 +893,8 @@ def plot_w_out(w_out, label, display=True, save=False):
 		locals()['ax_{0}'.format(str(n))] = fig.add_subplot(1, n_clusters, n+1)
 		locals()['ax_{0}'.format(str(n))].barh(range(n_bars), w_out[:, n], height=1.0, linewidth=0, alpha=0.8)
 		locals()['ax_{0}'.format(str(n))].set_ylim([0, w_out.shape[0]])
-		# locals()['ax_{0}'.format(str(n))].set_xlim([0, w_out.shape[0]])
+		locals()['ax_{0}'.format(str(n))].set_xticklabels([])
+		locals()['ax_{0}'.format(str(n))].set_yticklabels([])
 	if save:
 		assert isinstance(save, str), "Please provide filename"
 		fig1.savefig(save+'W_out_Biclustering.pdf')

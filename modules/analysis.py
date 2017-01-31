@@ -53,6 +53,7 @@ import sklearn.metrics as met
 from sklearn.metrics.pairwise import pairwise_distances
 import sklearn.manifold as man
 import scipy.stats.mstats as mst
+from sklearn.preprocessing import StandardScaler
 import nest
 np.seterr(all='ignore')
 
@@ -1575,7 +1576,7 @@ def compute_ainess(results, keys, pop=None, template_duration=10000., template_r
 			try:
 				result[population].update({
 					metric: pairwise_distances(result_vector.reshape(1, -1), result_template.reshape(1, -1),
-					                           metric=metric, n_jobs=-1)})
+					                           metric=metric, n_jobs=-1)[0][0]})
 			except:
 				continue
 	return result
@@ -2277,27 +2278,43 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 		return results
 
 
-def discrete_readout_train(state, target, readout, index):
+def readout_train(readout, state, target, index=None, accepted=None, display=True, plot=False, save=False):
 	"""
+	Train readout object
+	:param readout: Readout object
+	:param state: np.ndarray state matrix
+	:param target: np.ndarray target_matrix
+	:param index: time_shift state and target
+	:param accepted: indices of accepted time steps
+	:return norm_wout: norm of readout weights, weights are stored in Readout object
+	"""
+	assert (isinstance(state, np.ndarray)), "Provide state matrix as array"
+	assert (isinstance(target, np.ndarray)), "Provide target matrix as array"
+	assert (isinstance(readout, Readout)), "Provide Readout object"
 
-	:return:
-	"""
-	if index < 0:
+	if accepted is not None:
+		state = state[:, accepted]
+		target = target[:, accepted]
+
+	if index is not None and index < 0:
 		index = -index
 		state = state[:, index:]
 		target = target[:, :-index]
-	elif index > 0:
+	elif index is not None and index > 0:
 		state = state[:, :-index]
 		target = target[:, index:]
 
 	readout.train(state, target)
 	norm_wout = readout.measure_stability()
-	print "|W_out| [{0}] = {1}".format(readout.name, str(norm_wout))
+	if display:
+		print "|W_out| [{0}] = {1}".format(readout.name, str(norm_wout))
+	if plot:
+		readout.plot_weights(display=display, save=save)
 
 	return norm_wout
 
 
-def discrete_readout_test(state, target, readout, index):
+def readout_test(state, target, readout, index=None, accepted=None, display=True, plot=False, save=False):
 	"""
 
 	:param state:
@@ -2306,11 +2323,19 @@ def discrete_readout_test(state, target, readout, index):
 	:param index:
 	:return:
 	"""
-	if index < 0:
+	assert (isinstance(state, np.ndarray)), "Provide state matrix as array"
+	assert (isinstance(target, np.ndarray)), "Provide target matrix as array"
+	assert (isinstance(readout, Readout)), "Provide Readout object"
+
+	if accepted is not None:
+		state = state[:, accepted]
+		target = target[:, accepted]
+
+	if index is not None and index < 0:
 		index = -index
 		state = state[:, index:]
 		target = target[:, :-index]
-	elif index > 0:
+	elif index is not None and index > 0:
 		state = state[:, :-index]
 		target = target[:, index:]
 
@@ -2905,10 +2930,10 @@ def analyse_state_divergence(parameter_set, net, clone, plot=True, display=True,
 	return results
 
 
-def get_state_rank(network):
+def calculate_ranks(network):
 	"""
-	Calculate the rank of all state matrices
-	:return:
+	Calculate the rank of all state matrices stored in the population's decoding_layers
+	:return dict: {population_name: {state_variable: rank}}
 	"""
 	results = dict()
 	for ctr, n_pop in enumerate(list(itertools.chain(*[network.merged_populations, network.populations]))):
@@ -2923,10 +2948,17 @@ def get_state_rank(network):
 				states = n_pop.decoding_layer.state_matrix
 
 		for idx_state, n_state in enumerate(states):
-			results[n_pop.name].update({n_pop.decoding_layer.state_variables[idx_state]: np.linalg.matrix_rank(
-				n_state)})
+			results[n_pop.name].update({n_pop.decoding_layer.state_variables[idx_state]: get_state_rank(n_state)})
 
 	return results
+
+
+def get_state_rank(matrix):
+	"""
+	Calculate the rank of all state matrices
+	:return:
+	"""
+	return np.linalg.matrix_rank(matrix)
 
 
 ########################################################################################################################
@@ -2966,8 +2998,10 @@ class Readout(object):
 		if display:
 			print("\nTraining Readout {0} [{1}]".format(str(self.name), str(self.rule)))
 		if self.rule == 'pinv':
-			self.weights = np.dot(np.linalg.pinv(np.transpose(state_train)), np.transpose(target_train))
-			self.fit_obj = []
+			reg = lm.LinearRegression(fit_intercept=False)
+			reg.fit(state_train.T, target_train.T)
+			self.weights = reg.coef_#np.dot(np.linalg.pinv(np.transpose(state_train)), np.transpose(target_train))
+			self.fit_obj = reg #[]
 
 		elif self.rule == 'ridge':
 			# Get w_out by ridge regression:
@@ -3048,15 +3082,15 @@ class Readout(object):
 			print "\nTesting Readout {0}".format(str(self.name))
 		self.output = None
 		# Question: how comes we are not sure whether the shapes of weight and states matrices match?
-		if self.rule == 'pinv':
-			# TODO remove False here, just debugging
-			if np.shape(self.weights)[1] == np.shape(state_test)[0] and \
-				np.shape(self.weights)[0] != np.shape(state_test)[0]:
-				self.output = np.dot(self.weights, state_test)
-			elif np.shape(self.weights)[0] == np.shape(state_test)[0]:
-				self.output = np.dot(np.transpose(self.weights), state_test)
-		else:
-			self.output = self.fit_obj.predict(state_test.T)
+		# if self.rule == 'pinv':
+		# 	# TODO remove False here, just debugging
+		# 	if np.shape(self.weights)[1] == np.shape(state_test)[0] and \
+		# 		np.shape(self.weights)[0] != np.shape(state_test)[0]:
+		# 		self.output = np.dot(self.weights, state_test)
+		# 	elif np.shape(self.weights)[0] == np.shape(state_test)[0]:
+		# 		self.output = np.dot(np.transpose(self.weights), state_test)
+		# else:
+		self.output = self.fit_obj.predict(state_test.T)
 
 		return self.output
 
@@ -3151,18 +3185,20 @@ class Readout(object):
 		:param labeled:
 		:return:
 		"""
+		assert (isinstance(target, np.ndarray)), "Provide target matrix as array"
+
 		if output is None:
 			output = self.output
 
-		# is_binary_target = all(np.unique([np.unique(target) == [0., 1.]]))
-		# is_binary_output = all(np.unique([np.unique(output) == [0., 1.]]))
-		is_binary_target = np.mean(np.unique(np.array(list(sg.iterate_obj_list(target.tolist())))) == [0., 1.]).astype(
-								   bool)
-		is_binary_output = np.mean(np.unique(np.array(list(sg.iterate_obj_list(output.tolist())))) == [0., 1.]).astype(
-								   bool)
+		is_binary_target = all(np.unique([np.unique(target) == [0., 1.]]))
+		is_binary_output = all(np.unique([np.unique(output) == [0., 1.]]))
+		# is_binary_target = np.mean(np.unique(np.array(list(sg.iterate_obj_list(target.tolist())))) == [0., 1.]).astype(
+		# 						   bool)
+		# is_binary_output = np.mean(np.unique(np.array(list(sg.iterate_obj_list(output.tolist())))) == [0., 1.]).astype(
+		# 						   bool)
 
-		if output.shape != target.shape and len(output.shape) > 1:
-			output = output.T
+		# if output.shape != target.shape and len(output.shape) > 1:
+		# 	output = output.T
 		performance = {'raw': {}, 'max': {}, 'label': {}}
 
 		if len(output.shape) > 1:
@@ -3228,6 +3264,7 @@ class Readout(object):
 		"""
 		Determine the stability of the solution (norm of weights)
 		"""
+		self.norm_wout = np.linalg.norm(self.weights)
 		return np.linalg.norm(self.weights)
 
 	def copy(self):
@@ -3287,6 +3324,7 @@ class DecodingLayer(object):
 		self.state_sample_times = None
 		self.sampled_times = []
 		self.extractor_resolution = [[] for _ in range(len(self.state_variables))]
+		self.standardize_states = initializer.standardize
 
 		for state_idx, state_variable in enumerate(self.state_variables):
 			state_specs = initializer.state_specs[state_idx]
@@ -3500,21 +3538,36 @@ class DecodingLayer(object):
 		if len(self.state_matrix) > 1 and sampling_times is None:
 			states = []
 			for n_idx, n_state in enumerate(self.state_matrix):
-				states.append(np.array(n_state).T)
+				st = np.array(n_state).T
+				if self.standardize_states[n_idx]:
+					st = StandardScaler().fit_transform(st.T).T
+				states.append(st)
 			self.state_matrix = states
 		elif len(self.state_matrix) > 1 and sampling_times is not None:
 			for n_idx, n_state in enumerate(self.state_matrix):
 				states = []
 				for idx_state, n_state_mat in enumerate(n_state):
-					states.append(np.array(n_state_mat).T)
+					st = np.array(n_state_mat).T
+					if self.standardize_states[n_idx]:
+						st = StandardScaler().fit_transform(st.T).T
+					states.append(st)
+					# states.append(np.array(n_state_mat).T)
 				self.state_matrix[n_idx] = states
 		elif len(self.state_matrix) == 1 and sampling_times is not None:
 			states = []
 			for idx_state, n_state_mat in enumerate(self.state_matrix[0]):
-				states.append(np.array(n_state_mat).T)
+				st = np.array(n_state_mat).T
+				if self.standardize_states[idx_state]:
+					st = StandardScaler().fit_transform(st.T).T
+				states.append(st)
+				# states.append(np.array(n_state_mat).T)
 			self.state_matrix[0] = states
 		else:
-			states.append(np.array(self.state_matrix[0]).T)
+			st = np.array(self.state_matrix[0]).T
+			if self.standardize_states[0]:
+				st = StandardScaler().fit_transform(st.T).T
+			states.append(st)
+			# states.append(st)
 			self.state_matrix = states
 
 	def evaluate_decoding(self, n_neurons=10, display=False, save=False):

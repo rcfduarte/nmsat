@@ -60,10 +60,10 @@ def build_parameters():
 	# ##################################################################################################################
 	# Input Parameters
 	# ##################################################################################################################
-	n_trials = 500
+	n_trials = 50
 	n_discard = 10
 
-	n_stim = 50
+	n_stim = 5
 
 	stim_pars = dict(
 		n_stim=n_stim,
@@ -141,7 +141,8 @@ def build_parameters():
 		readout_algorithms=readout_algorithms,
 		sampling_times=state_sampling,
 		reset_states=[True, False, False],
-		average_states=[True, True, True]
+		average_states=[True, True, True],
+		standardize=[False, True, False]
 	)
 
 	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)
@@ -155,7 +156,9 @@ def build_parameters():
 		output_resolution=out_resolution,
 		sampling_times=state_sampling,
 		reset_states=[True],
-		average_states=[True])
+		average_states=[True],
+		standardize=[False]
+	)
 
 	encoding_pars = add_input_decoders(encoding_pars, input_decoder, kernel_pars)
 
