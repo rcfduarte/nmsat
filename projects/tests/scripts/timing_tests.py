@@ -7,9 +7,10 @@ from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
 from modules.visualization import set_global_rcParams, InputPlots, extract_encoder_connectivity, TopologyPlots
-from modules.analysis import analyse_state_matrix
+from modules.analysis import reset_decoders
 from modules.auxiliary import iterate_input_sequence
 import cPickle as pickle
+from scipy.sparse import coo_matrix
 import matplotlib.pyplot as pl
 import numpy as np
 import time
@@ -21,13 +22,14 @@ import nest
 plot = True
 display = True
 save = False
-debug = False
+debug = True
 online = True
 
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/stimulus_driven.py'
+# params_file = '../parameters/dc_input.py'
+params_file = '../parameters/spike_pattern_input.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -65,8 +67,16 @@ net.merge_subpopulations([net.populations[0], net.populations[1]])
 # ######################################################################################################################
 # Randomize initial variable values
 # ======================================================================================================================
-for n in list(iterate_obj_list(net.populations)):
-	n.randomize_initial_states('V_m', randomization_function=np.random.uniform, low=0.0, high=15.)
+for idx, n in enumerate(list(iterate_obj_list(net.populations))):
+	if hasattr(parameter_set.net_pars, "randomize_neuron_pars"):
+		randomize = parameter_set.net_pars.randomize_neuron_pars[idx]
+		for k, v in randomize.items():
+			n.randomize_initial_states(k, randomization_function=v[0], **v[1])
+
+# ######################################################################################################################
+# Connect Network
+# ======================================================================================================================
+# net.connect_populations(parameter_set.connection_pars)
 
 # ######################################################################################################################
 # Build and connect input
@@ -83,7 +93,14 @@ print "- Elapsed Time: {0}".format(str(time.time()-stim_set_time))
 # Create InputSignalSet
 input_set_time = time.time()
 inputs = InputSignalSet(parameter_set, stim, online=online)
-inputs.generate_datasets(stim)
+
+inputs.generate_full_set(stim)
+if stim.transient_set_labels:
+	inputs.generate_transient_set(stim)
+
+inputs.generate_unique_set(stim)
+inputs.generate_train_set(stim)
+inputs.generate_test_set(stim)
 print "- Elapsed Time: {0}".format(str(time.time() - input_set_time))
 
 # Plot example signal
@@ -107,13 +124,11 @@ if save:
 # ######################################################################################################################
 # Encode Input
 # ======================================================================================================================
-if not online:
-	input_signal = inputs.full_set_signal
-else:
-	input_signal = inputs.transient_set_signal
-enc_layer = EncodingLayer(parameter_set.encoding_pars, signal=input_signal, online=online)
+enc_layer = EncodingLayer(parameter_set.encoding_pars, signal=inputs.full_set_signal, online=online)
 enc_layer.connect(parameter_set.encoding_pars, net)
-enc_layer.extract_connectivity(net)
+
+# if plot and debug:
+# 	extract_encoder_connectivity(enc_layer, net, display, save=paths['figures']+paths['label'])
 
 # ######################################################################################################################
 # Set-up Analysis
@@ -125,45 +140,265 @@ net.connect_decoders(parameter_set.decoding_pars)
 if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input_decoder"):
 	enc_layer.connect_decoders(parameter_set.encoding_pars.input_decoder)
 
-# ######################################################################################################################
-# Connect Network
-# ======================================================================================================================
-net.connect_populations(parameter_set.connection_pars)
 
-if plot and debug:
-	fig_W = pl.figure()
-	topology = TopologyPlots(parameter_set.connection_pars, net)
-	topology.print_network(depth=3)
-	ax1 = pl.subplot2grid((6, 6), (0, 0), rowspan=4, colspan=4)
-	ax2 = pl.subplot2grid((6, 6), (5, 0), rowspan=1, colspan=4)
-	ax3 = pl.subplot2grid((6, 6), (0, 5), rowspan=4, colspan=1)
-	ax4 = pl.subplot2grid((6, 6), (5, 5), rowspan=1, colspan=1)
-	topology.plot_connectivity(parameter_set.connection_pars.synapse_types,
- 	                           ax=[ax1, ax3, ax2, ax4], display=display, save=paths['figures']+paths['label'])
+enc_layer.extract_connectivity(net)
 
-# ######################################################################################################################
-# Simulate (Full Set)
-# ======================================================================================================================
-store_activity = False  # put in analysis_pars
-iterate_input_sequence(net, enc_layer, parameter_set, stim, inputs, set_name='full', record=True,
-                       store_activity=store_activity)
-
-for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
-					                net.populations]))):#, enc_layer.encoders]))):
-	if n_pop.decoding_layer is not None:
-		if store_activity and debug:
-			n_pop.decoding_layer.evaluate_decoding(n_neurons=10, display=display, save=paths['figures']+paths['label'])
-
-		# parse state variables
-		for idx_var, var in enumerate(n_pop.decoding_layer.state_variables):
-			analyse_state_matrix(n_pop.decoding_layer.state_matrix[idx_var], stim.full_set_labels,
-			                     label=n_pop.name+var, plot=plot, display=display, save=paths['figures']+paths['label'])
+# print enc_layer.generator_names
 
 
 ########################################################################################################################
+stimulus_set = stim
+input_signal_set = inputs
+set_name = "full"
+record = True
+store_activity = True
+########################################################################################################################
+
+# determine timing compensations required
+enc_layer.determine_total_delay()
+encoder_delay = enc_layer.total_delay
+decoder_delays = []
+decoder_resolutions = []
+for n_pop in list(itertools.chain(*[net.merged_populations, net.populations])):
+	if n_pop.decoding_layer is not None:
+		n_pop.decoding_layer.determine_total_delay()
+		decoder_delays.append(n_pop.decoding_layer.total_delays)
+		decoder_resolutions.append(n_pop.decoding_layer.extractor_resolution)
+decoder_delay = max(list(itertools.chain(*decoder_delays)))
+decoder_resolution = min(list(itertools.chain(*decoder_resolutions)))
+time_correction_factor = encoder_delay + decoder_resolution
+# print decoder_resolution, encoder_delay
+
+if decoder_resolution != encoder_delay:
+	print "To avoid errors in the delay compensation, it is advisable to set the ouput resolution to be the same as " \
+	      "the encoder delays"
+
+# extract important parameters:
+sampling_times = parameter_set.decoding_pars.sampling_times
+if hasattr(parameter_set.encoding_pars.generator, "jitter"):
+	jitter = parameter_set.encoding_pars.generator.jitter
+else:
+	jitter = None
+
+# determine set to use and its properties
+if set_name is None:
+	set_name = "full"
+all_labels = getattr(stimulus_set, "{0}_set_labels".format(set_name))
+if isinstance(all_labels[0], list):
+	labels = np.unique(list(itertools.chain(*all_labels)))
+	set_labels = list(itertools.chain(*all_labels))
+else:
+	labels = np.unique(all_labels)
+	set_labels = all_labels
+set_size = len(set_labels)
+input_signal = getattr(input_signal_set, "{0}_set_signal".format(set_name))
+stimulus_seq = getattr(stimulus_set, "{0}_set".format(set_name))
+if input_signal_set.online:
+	signal_iterator = getattr(input_signal_set, "{0}_set_signal_iterator".format(set_name))
+else:
+	signal_iterator = None
+
+# set state sampling parameters - TODO!! why t_step and t_samp?
+if sampling_times is None and not input_signal_set.online:
+	t_samp = np.sort(list(iterate_obj_list(input_signal.offset_times))) # extract stimulus offset times from
+# input_signal
+elif sampling_times is None and input_signal_set.online:
+	t_samp = [0.] # offset times will be specified online, in the main iteration
+
+## rethink this!!
+elif sampling_times is not None and input_signal_set.online:
+	t_samp = sampling_times
+	t_step = [0]
+else:
+	t_samp = sampling_times
+
+
+if not record:
+	print("\n!!! No population activity data will be gathered !!!")
+if store_activity:
+	print("\n\n!!! All responses will be stored !!!")
+	epochs = {k: [] for k in labels}
+	t0 = nest.GetKernelStatus()['time'] + decoder_resolution
+
+print("\nSimulating {0} steps".format(str(set_size)))
+
+# ################################ Main Loop ###################################
+for idx, state_sample_time in enumerate(t_samp):
+
+	internal_time = nest.GetKernelStatus()['time']
+
+	# determine simulation time for current stimulus - TODO FUNCTION
+	if input_signal_set.online and idx < set_size:
+		local_signal = signal_iterator.next()
+		stimulus_duration = list(itertools.chain(*local_signal.durations))[0]
+		stimulus_onset = t_samp[-1] # prior to adding new step
+		local_signal.time_offset(stimulus_onset)
+		stimulus_offset = list(itertools.chain(*local_signal.offset_times))[0]
+		t_samp.append(stimulus_offset)
+		state_sample_time = t_samp[-1] # new time
+		simulation_time = stimulus_duration # stimulus duration..
+		if local_signal.intervals[-1]:
+			simulation_time += local_signal.intervals[-1]
+	else:
+		local_signal = None
+		simulation_time = state_sample_time
+		if idx < len(t_samp) - 1:
+			if input_signal.intervals[idx]:
+				simulation_time += input_signal.intervals[idx]
+
+
+	state_sample_time += encoder_delay
+	# correct for delays and sample acquisition times
+	# if internal_time == 0.:
+	# 	simulation_time += time_correction_factor
+
+	assert (simulation_time > 0.), "Simulation time cannot be <= 0"
+	# print t_samp, internal_time, simulation_time, state_sample_time
+
+
+	if idx < set_size:
+		if store_activity:
+			epochs[set_labels[idx]].append((stimulus_onset, state_sample_time))
+
+		print("\nSimulating step {0} / stimulus {1} [{2} ms]".format(str(idx + 1), str(set_labels[idx]),
+		                                                             str(simulation_time)))
+
+		# update spike template data - TODO FUNCTION
+		if all(['spike_pattern' in n for n in list(iterate_obj_list(enc_layer.generator_names))]):
+			assert (len(input_signal_set.spike_patterns) == stimulus_set.dims), "Incorrect number of spike " \
+			                                                                    "patterns"
+			if input_signal_set.online and local_signal is not None:
+				stimulus_id = [nx for nx in range(stimulus_set.dims) if t_samp[-1] in local_signal.offset_times[
+					nx]]
+			else:
+				stimulus_id = [nx for nx in range(stimulus_set.dims) if
+				               t_samp[idx] in input_signal.offset_times[nx]]
+			sk_pattern = input_signal_set.spike_patterns[stimulus_id[0]].copy()
+
+			if jitter is not None:
+				if jitter[1]:  # compensate for boundary effects
+					sk_pattern.jitter(jitter[0])
+					resize_window = sk_pattern.time_parameters()
+					spks = sk_pattern.time_slice(resize_window[0] + jitter[0], resize_window[1] - jitter[
+						0])
+					spks.time_offset(-jitter[0])
+				else:
+					spks = sk_pattern.jitter(jitter[0])
+			else:
+				spks = sk_pattern
+
+			spks = spks.time_offset(stimulus_onset, True)
+			# spks.raster_plot(True)
+			enc_layer.update_state(spks)
+
+
+		# update signal - TODO FUNCTION
+		elif input_signal_set is not None and local_signal is not None and input_signal_set.online:
+			stim_input = coo_matrix(stimulus_seq.todense()[:, idx])
+			local_signal.input_signal = local_signal.generate_single_step(stim_input)
+
+			# print min(local_signal.input_signal.time_axis()), max(local_signal.input_signal.time_axis())
+			# print min(local_signal.time_data), max(local_signal.time_data)
+			#
+			# local_signal.time_offset(local_signal.dt)
+			# print min(local_signal.input_signal.time_axis()), max(local_signal.input_signal.time_axis())
+			# print min(local_signal.time_data), max(local_signal.time_data)
+			# if internal_time == 0.:
+			# # 	## !!! TEST - device update times cannot be 0.
+			# 	dt = nest.GetKernelStatus()['resolution']
+			# if internal_time == 0.:
+			local_signal.time_offset(decoder_resolution)
+			enc_layer.update_state(local_signal.input_signal)
+
+		# simulate and extract recordings from devices
+		# if internal_time == 0.:
+		# 	net.simulate(simulation_time + decoder_resolution)
+		# 	reset_decoders(net, enc_layer)
+		# 	net.simulate(encoder_delay)
+		# else:
+		# 	net.simulate(simulation_time - encoder_delay)
+		# 	reset_decoders(net, enc_layer)
+		# 	net.simulate(decoder_resolution)
+
+		if internal_time == 0.:
+			net.simulate(simulation_time + encoder_delay + decoder_delay)
+			reset_decoders(net, enc_layer)
+			net.simulate(decoder_resolution)
+		else:
+			net.simulate(simulation_time - decoder_resolution)
+			reset_decoders(net, enc_layer)
+			net.simulate(decoder_resolution)
+
+		net.extract_population_activity(t_start=stimulus_onset + encoder_delay, t_stop=state_sample_time)
+		net.extract_network_activity()
+		enc_layer.extract_encoder_activity(t_start=stimulus_onset + encoder_delay, t_stop=state_sample_time)
+		if not empty(net.merged_populations):
+			net.merge_population_activity(start=stimulus_onset + encoder_delay, stop=state_sample_time, save=True)
+
+
+		if record: #- TODO FUNCTION
+			# Extract and store state vectors
+			for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
+			                                                   net.populations, enc_layer.encoders]))):
+				if n_pop.decoding_layer is not None:
+
+					# n_pop.decoding_layer.extract_activity(start=stimulus_onset + encoder_delay, stop=state_sample_time)
+					# n_pop.decoding_layer.evaluate_decoding(n_neurons=5, display=display, save=False)
+
+
+					n_pop.decoding_layer.extract_state_vector(time_point=round(state_sample_time, 2), save=True)  ### !!!
+					# n_pop.decoding_layer.reset_states()
+			# clear devices
+			if not store_activity:
+				net.flush_records(decoders=True)
+				enc_layer.flush_records(decoders=True)
+if record:
+	# compile state matrices:
+	for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
+		if n_pop.decoding_layer is not None:
+			n_pop.decoding_layer.compile_state_matrix()
+
+#
+# # TODO FUNCTION
+if store_activity:
+	# store full activity
+	net.extract_population_activity(t_start=t0,
+	                                t_stop=nest.GetKernelStatus()['time'] - time_correction_factor)
+	net.extract_network_activity()
+	enc_layer.extract_encoder_activity(t_start=t0,
+	                                   t_stop=nest.GetKernelStatus()['time'] - time_correction_factor)
+	if not empty(net.merged_populations):
+		net.merge_population_activity(start=t0,
+		                              stop=nest.GetKernelStatus()['time'] - time_correction_factor,
+		                              save=True)
+	for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
+	                                                   net.populations, enc_layer.encoders]))):
+		if n_pop.decoding_layer is not None:
+			n_pop.decoding_layer.extract_activity(start=t0,
+			                                      stop=nest.GetKernelStatus()['time'] - time_correction_factor,
+			                                      save=True)
+
+######################################################################################################
+for n_pop in list(itertools.chain(*[net.merged_populations, net.populations])):
+	if n_pop.decoding_layer is not None:
+		n_pop.decoding_layer.evaluate_decoding(n_neurons=2, display=display, save=paths['figures']+paths['label'])
 
 
 '''
+# ######################################################################################################################
+# Simulate (Full Set)
+# ======================================================================================================================
+iterate_input_sequence(net, enc_layer, parameter_set, stim, inputs, set_name='full', record=True,
+                          store_activity=True)
+# evaluate the decoding methods (only if store_activity was set to True, otherwise no activity remains stored for
+# analysis)
+# if debug:
+for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
+					                net.populations]))):#, enc_layer.encoders]))):
+	if n_pop.decoding_layer is not None:
+		n_pop.decoding_layer.evaluate_decoding(display=display, save=paths['figures']+paths['label'])
+
+
 if stim.transient_set_labels:
 	if not online:
 		print "\nTransient time = {0} ms".format(str(parameter_set.kernel_pars.transient_t))

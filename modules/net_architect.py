@@ -76,7 +76,8 @@ def extract_weights_matrix(src_gids, tgets_gids, progress=True):
 	:param tgets_gids: list or tuple of gids of target neurons
 	:return: len(tgets_gids) x len(src_gids) weight matrix
 	"""
-	print "\n Extracting connectivity (weights) matrix..."
+	if progress:
+		print "\n Extracting connectivity (weights) matrix..."
 	t_start = time.time()
 	w = lil_matrix((len(tgets_gids), len(src_gids)))
 	a = nest.GetConnections(list(np.unique(src_gids)), list(np.unique(tgets_gids)))
@@ -93,8 +94,8 @@ def extract_weights_matrix(src_gids, tgets_gids, progress=True):
 		if progress:
 			visualization.progress_bar(float(nnn+1) / float(len(its)))
 	t_stop = time.time()
-
-	print "Elapsed time: %s" % (str(t_stop - t_start))
+	if progress:
+		print "Elapsed time: %s" % (str(t_stop - t_start))
 	# for consistency with pre_computedW, we transpose this matrix (should be [src X tget])
 	return w.T
 
@@ -106,7 +107,8 @@ def extract_delays_matrix(src_gids, tgets_gids, progress=True):
  	:param tgets_gids: list or tuple of gids of target neurons
  	:return: len(tgets_gids) x len(src_gids) weight matrix
  	"""
-	print "\n Extracting connectivity (delays) matrix..."
+	if progress:
+		print "\n Extracting connectivity (delays) matrix..."
 	t_start = time.time()
 	d = lil_matrix((len(tgets_gids), len(src_gids)))
 	a = nest.GetConnections(list(np.unique(src_gids)), list(np.unique(tgets_gids)))
@@ -123,7 +125,8 @@ def extract_delays_matrix(src_gids, tgets_gids, progress=True):
 		if progress:
 			visualization.progress_bar(float(nnn+1) / float(len(its)))
 	t_stop = time.time()
-	print "Elapsed time: %s" % (str(t_stop - t_start))
+	if progress:
+		print "Elapsed time: %s" % (str(t_stop - t_start))
 	return d
 
 
@@ -182,7 +185,7 @@ class Population(object):
 		 low=-70., high=-55.)
 		"""
 		assert var_name in nest.GetStatus(self.gids)[0].keys(), "Variable name not in object properties"
-		print "- Randomizing {0} state in Population {1}".format(str(var_name), str(self.name))
+		print ("\n- Randomizing {0} state in Population {1}".format(str(var_name), str(self.name)))
 		try:
 			nest.SetStatus(self.gids, var_name, randomization_function(size=len(self.gids), **function_parameters))
 		except:
@@ -273,6 +276,13 @@ class Population(object):
 				else:
 					neuron_ids = data[:, 0]
 					times = data[:, 1]
+					if t_start is not None and t_stop is not None:
+						idx1 = np.where(times >= t_start)[0]
+						idx2 = np.where(times <= t_stop)[0]
+						idxx = np.intersect1d(idx1, idx2)
+						times = times[idxx]
+						neuron_ids = neuron_ids[idxx]
+						data = data[idxx, :]
 					for nn in range(data.shape[1]):
 						if nn > 1:
 							sigs = data[:, nn]
@@ -302,6 +312,12 @@ class Population(object):
 				idxs = np.argsort(times)
 				times = times[idxs]
 				neuron_ids = neuron_ids[idxs]
+				if t_start is not None and t_stop is not None:
+					idx1 = np.where(times >= t_start)[0]
+					idx2 = np.where(times <= t_stop)[0]
+					idxx = np.intersect1d(idx1, idx2)
+					times = times[idxx]
+					neuron_ids = neuron_ids[idxx]
 				rem_keys = ['times', 'senders']
 				new_dict = {k: v[idxs] for k, v in status.iteritems() if k not in rem_keys}
 				self.analog_activity = []
@@ -361,6 +377,7 @@ class Network(object):
 			# specify the keys not to be passed to the population objects
 			not_allowed_keys = ['_url', 'label', 'n_populations', 'parameters', 'names', 'description']
 
+			print ("\nCreating populations:")
 			# iterate through the population list
 			for n in range(net_pars_set.n_populations):
 
@@ -392,7 +409,7 @@ class Network(object):
 							subpop_dict.update({'is_subpop': False, 'gids': gids})
 							populations[n].append(Population(parameters.ParameterSet(subpop_dict)))
 
-						print ("\nCreating population {0!s}, with ids [{1!s}-{2!s}]".format(net_pars_set.pop_names[n][nn],
+						print ("- Population {0!s}, with ids [{1!s}-{2!s}]".format(net_pars_set.pop_names[n][nn],
 																							 min(gids), max(gids)))
 
 				else:
@@ -421,7 +438,7 @@ class Network(object):
 						# set up population objects
 						pop_dict.update({'gids': gids, 'is_subpop': False})
 						populations[n] = Population(parameters.ParameterSet(pop_dict))
-					print ("\nCreating population {0!s}, with ids [{1!s}-{2!s}]".format(net_pars_set.pop_names[n],
+					print ("- Population {0!s}, with ids [{1!s}-{2!s}]".format(net_pars_set.pop_names[n],
 																						 min(gids), max(gids)))
 
 			return populations
@@ -1179,8 +1196,6 @@ class Network(object):
 		properties of the Network object (it may be redundant to maintain both activity sets, and it's only useful in
 		certain situations)
 		"""
-		#TODO Question should we revisit this?
-
 		for n in range(self.n_populations):
 			if isinstance(self.populations[n], list) and self.n_devices[n]:
 				for nn in range(len(self.populations[n])):
@@ -1298,12 +1313,12 @@ class Network(object):
 				extractor_indices.update({n_ext: np.where(np.array(sources) == n_ext)[0]})
 
 			# create decoder parameters dictionary for each source population
-			keys = ['state_specs', 'state_variable']
+			keys = ['state_specs', 'state_variable', 'reset_states', 'average_states']
 			for k, v in extractor_indices.items():
 				decoder_params.update({k: {}})
 				for k1 in keys:
 					decoder_params[k].update({k1: [pars_st[k1][x] for x in v]})
-
+			# print decoder_params
 			if hasattr(decoding_pars, "readout"):
 				pars_rd = decoding_pars.readout
 				for k, v in extractor_indices.items():

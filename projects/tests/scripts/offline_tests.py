@@ -1,13 +1,18 @@
+import itertools
+
 __author__ = 'duarte'
 from modules.parameters import ParameterSet, ParameterSpace, extract_nestvalid_dict
-from modules.input_architect import EncodingLayer
+from modules.input_architect import EncodingLayer, StimulusSet, InputSignalSet
 from modules.net_architect import Network
 from modules.io import set_storage_locations
-from modules.signals import iterate_obj_list
-from modules.analysis import single_neuron_dcresponse
+from modules.signals import iterate_obj_list, empty
+from modules.visualization import set_global_rcParams, InputPlots, extract_encoder_connectivity, TopologyPlots
+from modules.analysis import characterize_population_activity, compute_ainess
+from modules.auxiliary import iterate_input_sequence
 import cPickle as pickle
+import matplotlib.pyplot as pl
 import numpy as np
-import scipy.stats as stats
+import time
 import nest
 
 # ######################################################################################################################
@@ -16,11 +21,14 @@ import nest
 plot = True
 display = True
 save = True
+debug = True
+online = False
 
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/singleneuron_dcinput.py'
+params_file = '../parameters/dc_input.py'
+# params_file = '../parameters/spike_pattern_input.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -35,8 +43,7 @@ if not isinstance(parameter_set, ParameterSet):
 # Setup extra variables and parameters
 # ======================================================================================================================
 if plot:
-	import modules.visualization as vis
-	vis.set_global_rcParams(parameter_set.kernel_pars['mpl_path'])
+	set_global_rcParams(parameter_set.kernel_pars['mpl_path'])
 paths = set_storage_locations(parameter_set, save)
 
 np.random.seed(parameter_set.kernel_pars['np_seed'])
@@ -54,6 +61,7 @@ nest.SetKernelStatus(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(),
 # Build network
 # ======================================================================================================================
 net = Network(parameter_set.net_pars)
+net.merge_subpopulations([net.populations[0], net.populations[1]])
 
 # ######################################################################################################################
 # Randomize initial variable values
@@ -65,69 +73,89 @@ for idx, n in enumerate(list(iterate_obj_list(net.populations))):
 			n.randomize_initial_states(k, randomization_function=v[0], **v[1])
 
 # ######################################################################################################################
+# Connect Network
+# ======================================================================================================================
+# net.connect_populations(parameter_set.connection_pars)
+
+# ######################################################################################################################
 # Build and connect input
 # ======================================================================================================================
-enc_layer = EncodingLayer(parameter_set.encoding_pars)
+# Create StimulusSet
+stim_set_time = time.time()
+stim = StimulusSet(parameter_set, unique_set=True)
+stim.create_set(parameter_set.stim_pars.full_set_length)
+stim.discard_from_set(parameter_set.stim_pars.transient_set_length)
+stim.divide_set(parameter_set.stim_pars.transient_set_length, parameter_set.stim_pars.train_set_length,
+                parameter_set.stim_pars.test_set_length)
+print "- Elapsed Time: {0}".format(str(time.time()-stim_set_time))
+
+# Create InputSignalSet
+input_set_time = time.time()
+inputs = InputSignalSet(parameter_set, stim, online=online)
+
+inputs.generate_full_set(stim)
+if stim.transient_set_labels:
+	inputs.generate_transient_set(stim)
+
+inputs.generate_unique_set(stim)
+inputs.generate_train_set(stim)
+inputs.generate_test_set(stim)
+print "- Elapsed Time: {0}".format(str(time.time() - input_set_time))
+
+# Plot example signal
+if plot and debug and not online:
+	fig_inp = pl.figure()
+	ax1 = fig_inp.add_subplot(211)
+	ax2 = fig_inp.add_subplot(212)
+	fig_inp.suptitle('Input Stimulus / Signal')
+	inp_plot = InputPlots(stim_obj=stim, input_obj=inputs.full_set_signal, noise_obj=inputs.full_set_noise)
+	inp_plot.plot_stimulus_matrix(set='full', ax=ax1, save=False, display=False)
+	inp_plot.plot_input_signal(ax=ax2, save=paths['figures']+paths['label'], display=display)
+	inp_plot.plot_input_signal(save=paths['figures']+paths['label'], display=display)
+	inp_plot.plot_signal_and_noise(save=paths['figures']+paths['label'], display=display)
+# parameter_set.kernel_pars.sim_time = inputs.train_stimulation_time + inputs.test_stimulation_time
+
+if save:
+	stim.save(paths['inputs'])
+	if debug:
+		inputs.save(paths['inputs'])
+
+# ######################################################################################################################
+# Encode Input
+# ======================================================================================================================
+input_signal = inputs.full_set_signal
+
+enc_layer = EncodingLayer(parameter_set.encoding_pars, signal=input_signal, online=online)
 enc_layer.connect(parameter_set.encoding_pars, net)
+
+
+# if plot and debug:
+# 	extract_encoder_connectivity(enc_layer, net, display, save=paths['figures']+paths['label'])
 
 # ######################################################################################################################
 # Set-up Analysis
 # ======================================================================================================================
 net.connect_devices()
+net.connect_decoders(parameter_set.decoding_pars)
 
-# ######################################################################################################################
-# Simulate
-# ======================================================================================================================
-if parameter_set.kernel_pars.transient_t:
-	net.simulate(parameter_set.kernel_pars.transient_t)
-	net.flush_records()
+# Attach decoders to input encoding populations
+if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input_decoder"):
+	enc_layer.connect_decoders(parameter_set.encoding_pars.input_decoder)
 
-net.simulate(parameter_set.kernel_pars.sim_time + nest.GetKernelStatus()['resolution'])
 
-# ######################################################################################################################
-# Extract and store data
-# ======================================================================================================================
-net.extract_population_activity(t_start=parameter_set.kernel_pars.transient_t + nest.GetKernelStatus()['resolution'],
-                                t_stop=parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t)
-net.extract_network_activity()
-net.flush_records()
+enc_layer.extract_connectivity(net)
 
-# ######################################################################################################################
-# Analyse / plot data
-# ======================================================================================================================
-analysis_interval = [parameter_set.kernel_pars.transient_t + nest.GetKernelStatus()['resolution'],
-	                     parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t]
 
-for idd, nam in enumerate(net.population_names):
-	results.update({nam: {}})
-	results[nam] = single_neuron_dcresponse(net.populations[idd],
-	                                        parameter_set, start=analysis_interval[0],
-	                                        stop=analysis_interval[1], plot=plot,
-	                                        display=display, save=paths['figures']+paths['label'])
-	idx = np.min(np.where(results[nam]['output_rate']))
+# determine timing compensations required
+enc_layer.determine_total_delay()
 
-	print "Rate range for neuron {0} = [{1}, {2}] Hz".format(str(nam), str(np.min(results[nam]['output_rate'][
-		                                                     results[nam]['output_rate']>0.])),
-	                                                         str(np.max(results[nam]['output_rate'][
-		                                                     results[nam]['output_rate']>0.])))
-	results[nam].update({'min_rate': np.min(results[nam]['output_rate'][results[nam]['output_rate']>0.]),
-	                     'max_rate': np.max(results[nam]['output_rate'][results[nam]['output_rate']>0.])})
-	print "Rheobase Current for neuron {0} in [{1}, {2}]".format(str(nam), str(results[nam]['input_amplitudes'][
-	                                                    idx - 1]), str(results[nam]['input_amplitudes'][idx]))
 
-	x = np.array(results[nam]['input_amplitudes'])
-	y = np.array(results[nam]['output_rate'])
-	iddxs = np.where(y)
-	slope, intercept, r_value, p_value, std_err = stats.linregress(x[iddxs], y[iddxs])
-	print "fI Slope for neuron {0} = {1} Hz/nA [linreg method]".format(nam, str(slope * 1000.))
+######################################################################################################
+for n_pop in list(itertools.chain(*[net.merged_populations, net.populations])):
+	if n_pop.decoding_layer is not None:
+		n_pop.decoding_layer.determine_total_delay()
 
-	results[nam].update({'fI_slope': slope * 1000., 'I_rh': [results[nam]['input_amplitudes'][idx - 1],
-	                                                           results[nam]['input_amplitudes'][idx]]})
-
-# ######################################################################################################################
-# Save data
-# ======================================================================================================================
-if save:
-	with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
-		pickle.dump(results, f)
-	parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
+fig, ax = pl.subplots()
+ax.plot(nest.GetStatus(enc_layer.generators[0].gids[0])[0]['amplitude_times'], nest.GetStatus(enc_layer.generators[
+	                                                                            0].gids[0])[0]['amplitude_values'])
+pl.show()

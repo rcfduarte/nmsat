@@ -65,8 +65,11 @@ net.merge_subpopulations([net.populations[0], net.populations[1]])
 # ######################################################################################################################
 # Randomize initial variable values
 # ======================================================================================================================
-for n in list(iterate_obj_list(net.populations)):
-	n.randomize_initial_states('V_m', randomization_function=np.random.uniform, low=0.0, high=15.)
+for idx, n in enumerate(list(iterate_obj_list(net.populations))):
+	if hasattr(parameter_set.net_pars, "randomize_neuron_pars"):
+		randomize = parameter_set.net_pars.randomize_neuron_pars[idx]
+		for k, v in randomize.items():
+			n.randomize_initial_states(k, randomization_function=v[0], **v[1])
 
 # ######################################################################################################################
 # Build and connect input
@@ -83,7 +86,14 @@ print "- Elapsed Time: {0}".format(str(time.time()-stim_set_time))
 # Create InputSignalSet
 input_set_time = time.time()
 inputs = InputSignalSet(parameter_set, stim, online=online)
-inputs.generate_datasets(stim)
+
+inputs.generate_full_set(stim)
+if stim.transient_set_labels:
+	inputs.generate_transient_set(stim)
+
+inputs.generate_unique_set(stim)
+inputs.generate_train_set(stim)
+inputs.generate_test_set(stim)
 print "- Elapsed Time: {0}".format(str(time.time() - input_set_time))
 
 # Plot example signal
@@ -130,38 +140,32 @@ if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input
 # ======================================================================================================================
 net.connect_populations(parameter_set.connection_pars)
 
-if plot and debug:
-	fig_W = pl.figure()
-	topology = TopologyPlots(parameter_set.connection_pars, net)
-	topology.print_network(depth=3)
-	ax1 = pl.subplot2grid((6, 6), (0, 0), rowspan=4, colspan=4)
-	ax2 = pl.subplot2grid((6, 6), (5, 0), rowspan=1, colspan=4)
-	ax3 = pl.subplot2grid((6, 6), (0, 5), rowspan=4, colspan=1)
-	ax4 = pl.subplot2grid((6, 6), (5, 5), rowspan=1, colspan=1)
-	topology.plot_connectivity(parameter_set.connection_pars.synapse_types,
- 	                           ax=[ax1, ax3, ax2, ax4], display=display, save=paths['figures']+paths['label'])
+# ######################################################################################################################
+# Simulate (Transient Set)
+# ======================================================================================================================
+
+
+
+
+
 
 # ######################################################################################################################
 # Simulate (Full Set)
 # ======================================================================================================================
-store_activity = False  # put in analysis_pars
 iterate_input_sequence(net, enc_layer, parameter_set, stim, inputs, set_name='full', record=True,
-                       store_activity=store_activity)
-
+                       store_activity=True)
+# evaluate the decoding methods (only if store_activity was set to True, otherwise no activity remains stored for
+# analysis)
+# if debug:
 for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
 					                net.populations]))):#, enc_layer.encoders]))):
 	if n_pop.decoding_layer is not None:
-		if store_activity and debug:
-			n_pop.decoding_layer.evaluate_decoding(n_neurons=10, display=display, save=paths['figures']+paths['label'])
+		n_pop.decoding_layer.evaluate_decoding(n_neurons=10, display=display, save=paths['figures']+paths['label'])
 
-		# parse state variables
+
 		for idx_var, var in enumerate(n_pop.decoding_layer.state_variables):
 			analyse_state_matrix(n_pop.decoding_layer.state_matrix[idx_var], stim.full_set_labels,
 			                     label=n_pop.name+var, plot=plot, display=display, save=paths['figures']+paths['label'])
-
-
-########################################################################################################################
-
 
 '''
 if stim.transient_set_labels:

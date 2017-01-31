@@ -2194,6 +2194,7 @@ def plot_response(population, ids=None, spiking_activity=None, display=True, sav
 	assert (not signals.empty(population.decoding_layer.activity)), "Extract population activity first"
 	fig1 = pl.figure()
 	fig1.suptitle(r"Population {0} activity".format(population.name))
+	dt = population.decoding_layer.activity[0].dt
 
 	for state_idx, n_state in enumerate(population.decoding_layer.state_variables):
 		globals()['ax_{0}'.format(state_idx)] = fig1.add_subplot(len(population.decoding_layer.state_variables),
@@ -2203,6 +2204,8 @@ def plot_response(population, ids=None, spiking_activity=None, display=True, sav
 		divider = make_axes_locatable(globals()['ax_{0}'.format(state_idx)])
 		cax = divider.append_axes("right", "5%", pad="4%")
 		cbar = fig1.colorbar(plt, cax=cax)
+		x_ticks = globals()['ax_{0}'.format(state_idx)].get_xticks()
+		globals()['ax_{0}'.format(state_idx)].set_xticklabels([str(x * dt) for x in x_ticks])
 		globals()['ax_{0}'.format(state_idx)].set_xlabel(r"Time [ms]")
 		globals()['ax_{0}'.format(state_idx)].set_ylabel("Neuron")
 		globals()['ax_{0}'.format(state_idx)].set_title("{0}".format(n_state))
@@ -2232,6 +2235,12 @@ def plot_response(population, ids=None, spiking_activity=None, display=True, sav
 				globals()['ax_1{0}'.format(str(iid))] = globals()['fig_{0}'.format(state_idx)].add_subplot(len(ids),
 				                                                                        1, iid+1)
 				globals()['ax_1{0}'.format(str(iid))].plot(time_axis, activity.as_array()[list_idx[iid], :])
+				if not signals.empty(population.decoding_layer.state_matrix[state_idx]) and not signals.empty(
+						population.decoding_layer.sampled_times):
+					state_mat = population.decoding_layer.state_matrix[state_idx]
+					if isinstance(state_mat, np.ndarray):
+						globals()['ax_1{0}'.format(str(iid))].plot(population.decoding_layer.sampled_times,
+						                                           state_mat[list_idx[iid], :], 'or')
 				ylims = globals()['ax_1{0}'.format(str(iid))].get_ylim()
 				for idxx, n_spk in enumerate(spk.spike_times):
 					globals()['ax_1{0}'.format(str(iid))].vlines(n_spk, ylims[0], ylims[1], lw=2)
