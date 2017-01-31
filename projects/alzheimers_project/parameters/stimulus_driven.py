@@ -60,10 +60,10 @@ def build_parameters():
 	# ##################################################################################################################
 	# Input Parameters
 	# ##################################################################################################################
-	n_trials = 5
-	n_discard = 0
+	n_trials = 500
+	n_discard = 10
 
-	n_stim = 5
+	n_stim = 50
 
 	stim_pars = dict(
 		n_stim=n_stim,
@@ -104,7 +104,7 @@ def build_parameters():
 	# ##################################################################################################################
 	n_afferents = 1250  # number of stimulus-specific afferents (if necessary)
 	n_stim = stim_pars['n_stim']  # number of different input stimuli
-
+	encoder_delay = 0.1
 	w_in = 90.
 
 	# Input connectivity
@@ -115,7 +115,7 @@ def build_parameters():
 		models=['static_synapse'],
 		model_pars=[{}],
 		weight_dist=[w_in],
-		delay_dist=[kernel_pars['resolution']],
+		delay_dist=[encoder_delay],
 		preset_W=[None],
 		gen_to_enc_W=None,
 		jitter=None) # jitter=None or jitter=(value[float], correct_borders[bool])
@@ -127,7 +127,7 @@ def build_parameters():
 	# ##################################################################################################################
 	# Decoding / Readout Parameters
 	# ##################################################################################################################
-	out_resolution = 0.1
+	out_resolution = encoder_delay # advisable!
 	filter_tau = 20.  # time constant of exponential filter (applied to spike trains)
 	state_sampling = None  # 1.(cannot start at 0)
 	readout_labels = ['ridge_classifier', 'pinv_classifier']

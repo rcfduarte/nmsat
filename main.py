@@ -12,6 +12,7 @@ from os import path
 import importlib
 from modules.parameters import ParameterSpace
 
+
 def run_experiment(params_file_full_path, computation_function="noise_driven_dynamics", **parameters):
 	"""
 
@@ -21,8 +22,7 @@ def run_experiment(params_file_full_path, computation_function="noise_driven_dyn
 	:return:
 	"""
 	try:
-		# experiment = importlib.import_module("Computation." + computation_function)
-		# changed this to account for the project folder..
+		# determine the project folder and add it to sys.path..
 		project_dir, _ = path.split(path.split(params_file_full_path)[0])
 		sys.path.append(project_dir)
 		experiment = importlib.import_module("computations." + computation_function)

@@ -7,7 +7,7 @@ from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
 from modules.visualization import set_global_rcParams, InputPlots, extract_encoder_connectivity, TopologyPlots
-from modules.analysis import characterize_population_activity, compute_ainess
+from modules.analysis import analyse_state_matrix
 from modules.auxiliary import iterate_input_sequence
 import cPickle as pickle
 import matplotlib.pyplot as pl
@@ -83,14 +83,7 @@ print "- Elapsed Time: {0}".format(str(time.time()-stim_set_time))
 # Create InputSignalSet
 input_set_time = time.time()
 inputs = InputSignalSet(parameter_set, stim, online=online)
-
-inputs.generate_full_set(stim)
-if stim.transient_set_labels:
-	inputs.generate_transient_set(stim)
-
-inputs.generate_unique_set(stim)
-inputs.generate_train_set(stim)
-inputs.generate_test_set(stim)
+inputs.generate_datasets(stim)
 print "- Elapsed Time: {0}".format(str(time.time() - input_set_time))
 
 # Plot example signal
@@ -151,15 +144,24 @@ if plot and debug:
 # ######################################################################################################################
 # Simulate (Full Set)
 # ======================================================================================================================
+store_activity = False  # put in analysis_pars
 iterate_input_sequence(net, enc_layer, parameter_set, stim, inputs, set_name='full', record=True,
-                       store_activity=True)
-# evaluate the decoding methods (only if store_activity was set to True, otherwise no activity remains stored for
-# analysis)
-# if debug:
+                       store_activity=store_activity)
+
 for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
 					                net.populations]))):#, enc_layer.encoders]))):
 	if n_pop.decoding_layer is not None:
-		n_pop.decoding_layer.evaluate_decoding(n_neurons=10, display=display, save=paths['figures']+paths['label'])
+		if store_activity and debug:
+			n_pop.decoding_layer.evaluate_decoding(n_neurons=10, display=display, save=paths['figures']+paths['label'])
+
+		# parse state variables
+		for idx_var, var in enumerate(n_pop.decoding_layer.state_variables):
+			analyse_state_matrix(n_pop.decoding_layer.state_matrix[idx_var], stim.full_set_labels,
+			                     label=n_pop.name+var, plot=plot, display=display, save=paths['figures']+paths['label'])
+
+
+########################################################################################################################
+
 
 '''
 if stim.transient_set_labels:

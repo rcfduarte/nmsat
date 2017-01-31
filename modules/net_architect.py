@@ -185,7 +185,7 @@ class Population(object):
 		 low=-70., high=-55.)
 		"""
 		assert var_name in nest.GetStatus(self.gids)[0].keys(), "Variable name not in object properties"
-		print "- Randomizing {0} state in Population {1}".format(str(var_name), str(self.name))
+		print ("\n- Randomizing {0} state in Population {1}".format(str(var_name), str(self.name)))
 		try:
 			nest.SetStatus(self.gids, var_name, randomization_function(size=len(self.gids), **function_parameters))
 		except:
@@ -377,6 +377,7 @@ class Network(object):
 			# specify the keys not to be passed to the population objects
 			not_allowed_keys = ['_url', 'label', 'n_populations', 'parameters', 'names', 'description']
 
+			print ("\nCreating populations:")
 			# iterate through the population list
 			for n in range(net_pars_set.n_populations):
 
@@ -408,7 +409,7 @@ class Network(object):
 							subpop_dict.update({'is_subpop': False, 'gids': gids})
 							populations[n].append(Population(parameters.ParameterSet(subpop_dict)))
 
-						print ("\nCreating population {0!s}, with ids [{1!s}-{2!s}]".format(net_pars_set.pop_names[n][nn],
+						print ("- Population {0!s}, with ids [{1!s}-{2!s}]".format(net_pars_set.pop_names[n][nn],
 																							 min(gids), max(gids)))
 
 				else:
@@ -437,7 +438,7 @@ class Network(object):
 						# set up population objects
 						pop_dict.update({'gids': gids, 'is_subpop': False})
 						populations[n] = Population(parameters.ParameterSet(pop_dict))
-					print ("\nCreating population {0!s}, with ids [{1!s}-{2!s}]".format(net_pars_set.pop_names[n],
+					print ("- Population {0!s}, with ids [{1!s}-{2!s}]".format(net_pars_set.pop_names[n],
 																						 min(gids), max(gids)))
 
 			return populations

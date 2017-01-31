@@ -139,8 +139,9 @@ if 'mean_I_ex' in results['analog_activity']['E'].keys():
 	results['analog_activity']['E']['IE_ratios'] = ei_ratios
 
 main_metrics = ['ISI_distance', 'SPIKE_distance', 'ccs_pearson', 'cvs', 'cvs_log', 'd_vp', 'd_vr', 'ents', 'ffs']
-compute_ainess(results, main_metrics, template_duration=analysis_interval[1] - analysis_interval[0],
-               template_resolution=parameter_set.kernel_pars.resolution, **parameter_set.analysis_pars)
+results['ainess'].update(compute_ainess(results, main_metrics, template_duration=analysis_interval[1] -
+                                                                             analysis_interval[0],
+               template_resolution=parameter_set.kernel_pars.resolution, **parameter_set.analysis_pars))
 
 # ######################################################################################################################
 # Save data

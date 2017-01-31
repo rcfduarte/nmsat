@@ -904,7 +904,7 @@ class StimulusSet(object):
 	and corresponding time series
 	"""
 
-	def __init__(self, initializer=None, unique_set=None):
+	def __init__(self, initializer=None, unique_set=False):
 		"""
 		Initialize the StimulusSet object
 		:param initializer: stimulus ParameterSet
@@ -926,7 +926,7 @@ class StimulusSet(object):
 		self.dims = 0
 		self.elements = 0
 		full_parameters = None
-		if unique_set is not None:
+		if unique_set:
 			self.unique_set = None
 			self.unique_set_labels = None
 
@@ -2096,6 +2096,21 @@ class InputSignalSet(object):
 				                          inherit_from=self.test_set_signal)
 					print("- Generating and adding {0}-dimensional input noise (t={1})".format(str(stimulus_set.dims),
 							                                                        str(self.test_stimulation_time)))
+
+	def generate_datasets(self, stim):
+		"""
+		Generate all data sets for all the different phases
+		:param stim: StimulusSet object
+		:return:
+		"""
+		self.generate_full_set(stim)
+		if stim.transient_set_labels:
+			self.generate_transient_set(stim)
+		if hasattr(stim, "unique_set"):
+			self.generate_unique_set(stim)
+		self.generate_train_set(stim)
+		self.generate_test_set(stim)
+
 
 	def time_offset(self, offset_time=0.):
 		"""
