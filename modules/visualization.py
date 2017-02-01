@@ -45,7 +45,7 @@ has_networkx = check_dependency('networkx')
 if has_networkx:
 	import networkx as nx
 has_sklearn = check_dependency('sklearn')
-has_mayavi = check_dependency('mayavi')
+has_mayavi = check_dependency('mayavi.mlab')
 if has_mayavi:
 	from mayavi import mlab
 
@@ -2309,9 +2309,9 @@ def plot_state_matrix(state_mat, stim_labels, ax=None, label='', display=True, s
 		raise ValueError('ax must be matplotlib.axes.Axes instance.')
 	if ax is None:
 		fig, ax = pl.subplots()
-		fig.suptitle(r'{0} - State Matrix'.format(str(label)))
+		fig.suptitle(r'${0}$ - State Matrix'.format(str(label)))
 	else:
-		ax.set_title(r'{0} - State Matrix'.format(str(label)))
+		ax.set_title(r'${0}$ - State Matrix'.format(str(label)))
 
 	xtick_labels = list(signals.iterate_obj_list(stim_labels))
 	#step_size = len(xtick_labels)

@@ -8,10 +8,10 @@ stimulus_driven parameter file
 """
 
 run = 'local'
-data_label = 'AD_StimulusDriven_Comparison'
+data_label = 'AD_StimulusDriven_kEE_test'
 
 
-def build_parameters():
+def build_parameters(kEE, trial):
 	# ##################################################################################################################
 	# System / Kernel Parameters
 	# ##################################################################################################################
@@ -40,7 +40,7 @@ def build_parameters():
 	wE = 32.29
 	wI = -gamma * wE
 
-	kEE = 5
+	# kEE = 5
 
 	recurrent_synapses = dict(
 		connected_populations=[('E', 'E'), ('E', 'I'), ('I', 'E'), ('I', 'I')],
@@ -60,10 +60,10 @@ def build_parameters():
 	# ##################################################################################################################
 	# Input Parameters
 	# ##################################################################################################################
-	n_trials = 50
+	n_trials = 500
 	n_discard = 10
 
-	n_stim = 5
+	n_stim = 50
 
 	stim_pars = dict(
 		n_stim=n_stim,
@@ -142,7 +142,7 @@ def build_parameters():
 		sampling_times=state_sampling,
 		reset_states=[True, False, False],
 		average_states=[True, True, True],
-		standardize=[False, True, False]
+		standardize=[False, False, False]
 	)
 
 	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)
@@ -178,4 +178,6 @@ def build_parameters():
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
+	'kEE': [5., 30., 60., 100.],
+	'trial': np.arange(10)
 }

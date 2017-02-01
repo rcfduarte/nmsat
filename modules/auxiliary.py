@@ -26,8 +26,8 @@ import nest
 ########################################################################################################################
 # Auxiliary Functions
 ########################################################################################################################
-def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_signal_set,
-                           set_name=None, record=True, store_activity=False):
+def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_signal_set, set_name, record=True,
+                           store_activity=False):
 	"""
 	Run simulation sequentiallu, presenting one input stimulus at a time (if input is a discrete stimulus sequence),
 	gathering the population responses in the DecodingLayers
@@ -49,6 +49,8 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 	assert (isinstance(input_signal_set, input_architect.InputSignalSet)), "input_set must be InputSignalSet"
 	assert (isinstance(parameter_set, parameters.ParameterSet)), "incorrect ParameterSet"
 	assert (isinstance(stimulus_set, input_architect.StimulusSet)), "incorrect ParameterSet"
+
+	print "\n\n***** Preparing to simulate {0} set *****".format(set_name)
 
 	# determine timing compensations required
 	enc_layer.determine_total_delay()
@@ -81,13 +83,10 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 	# set state sampling parameters - TODO!! why t_step and t_samp?
 	if sampling_times is None and not input_signal_set.online:
 		t_samp = np.sort(list(signals.iterate_obj_list(input_signal.offset_times)))  # extract stimulus offset times
-	# from input_signal
 	elif sampling_times is None and input_signal_set.online:
-		t_samp = [0.]  # offset times will be specified online, in the main iteration
-
-	## rethink this!!
+		t_samp = [round(nest.GetKernelStatus()['time'])]  # offset times will be specified online, in the main iteration
 	elif sampling_times is not None and input_signal_set.online:
-		t_samp = [0.]
+		t_samp = [round(nest.GetKernelStatus()['time'])]
 		sub_sampling_times = sampling_times
 	else:
 		t_samp = sampling_times
@@ -625,3 +624,47 @@ def compile_results(net, enc_layer, t0, time_correction_factor, record, store_ac
 				n_pop.decoding_layer.extract_activity(start=t0,
 				                                      stop=nest.GetKernelStatus()['time'] - time_correction_factor,
 				                                      save=True)
+
+
+# def process_states(net, enc_layer, parameters, stim, inputs, set_name, target=None):
+#
+# 	target_matrix = stim.full_set.todense()
+# 	for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
+# 	                                                   net.populations]))):  # , enc_layer.encoders]))):
+# 		if n_pop.decoding_layer is not None:
+# 			dec_layer = n_pop.decoding_layer
+# 			if store_activity and debug:
+# 				dec_layer.evaluate_decoding(n_neurons=10, display=display, save=paths['figures'] + paths['label'])
+#
+# 			results['rank'].update({n_pop.name: {}})
+# 			results['performance'].update({n_pop.name: {}})
+#
+# 			# parse state variables
+# 			for idx_var, var in enumerate(dec_layer.state_variables):
+# 				results['performance'][n_pop.name].update({var: {}})
+# 				time_steps = 0
+# 				end_step = 0
+# 				state_matrix = dec_layer.state_matrix[idx_var]
+# 				readouts = dec_layer.readouts[idx_var]
+#
+# 				labels = getattr(stim, "{0}_set_labels".format(stim_set))
+# 				if not empty(labels) and not empty(state_matrix):
+# 					print "Population {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, stim_set,
+# 						                                                          str(state.shape))
+# 					target = target_matrix[:, time_steps:end_step]
+# 						time_steps += len(labels)
+# 						if stim_set == 'unique':
+# 							results['rank'][n_pop.name].update({var + str(idx_var): get_state_rank(state)})
+# 						elif stim_set == 'train':
+# 							for readout in readouts:
+# 								readout_train(readout, state, target=np.array(target), index=None, accepted=None,
+# 								              display=display, plot=plot, save=paths['figures'] + paths['label'])
+# 						elif stim_set == 'test':
+# 							for readout in readouts:
+# 								results['performance'][n_pop.name][var].update(
+# 									{readout.name: readout_test(readout, state,
+# 									                            target=np.array(target), index=None, accepted=None,
+# 									                            display=display)})
+# 						if plot:
+# 							analyse_state_matrix(state_matrix, stim.full_set_labels, label=n_pop.name + var + stim_set,
+# 							                     plot=plot, display=display, save=paths['figures'] + paths['label'])

@@ -293,7 +293,7 @@ class StochasticGenerator:
 			number = min(5 + np.ceil(2 * n), 100)
 
 		if number > 0:
-			isi = self.rng.exponential(1.0 / rate, number) * 1000.0
+			isi = self.rng.exponential(1.0 / rate, int(number)) * 1000.0
 			if number > 1:
 				spikes = np.add.accumulate(isi)
 			else:
