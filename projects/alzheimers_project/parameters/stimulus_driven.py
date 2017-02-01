@@ -178,6 +178,6 @@ def build_parameters(kEE, trial):
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'kEE': [5., 30., 60., 100.],
+	'kEE': [5, 30, 60, 100],
 	'trial': np.arange(10)
 }
