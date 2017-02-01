@@ -1511,6 +1511,8 @@ def extract_results_vector(results_dict, keys):
 	for idx, k in enumerate(valid_keys):
 		if isinstance(results_dict[k], tuple):
 			out[idx] = results_dict[k][0]
+		elif isinstance(results_dict[k], list) or isinstance(results_dict[k], np.ndarray):
+			out[idx] = np.mean(results_dict[k])
 		else:
 			out[idx] = results_dict[k]
 	return out

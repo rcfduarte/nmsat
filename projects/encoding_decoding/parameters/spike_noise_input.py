@@ -11,7 +11,7 @@ spike_noise_input
 - debug with noise_driven_dynamics script
 """
 
-run = 'Jureca'
+run = 'Blaustein'
 data_label = 'ED_spike_noise_input'
 
 
@@ -21,10 +21,10 @@ def build_parameters(g, nu_x):
 	# ##################################################################################################################
 	system = dict(
 		nodes=1,
-		ppn=24,
+		ppn=16,
 		mem=32,
 		walltime='01-00:00:00',
-		queue='batch',
+		queue='defqueue',
 		transient_time=1000.,
 		sim_time=10000.)
 
