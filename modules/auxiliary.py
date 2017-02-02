@@ -114,8 +114,8 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 
 			if idx < set_size:
 				# store and display stimulus information
-				print("\nSimulating step {0} / stimulus {1} [{2} ms]".format(str(idx + 1), str(set_labels[idx]),
-				                                                             str(simulation_time)))
+				print("\nSimulating step {0} / {1} - stimulus {2} [{3} ms]".format(str(idx + 1), str(set_size), str(
+					set_labels[idx]), str(simulation_time)))
 				epochs[set_labels[idx]].append((stimulus_onset, state_sample_time))
 				state_sample_time += encoder_delay  # correct sampling time
 
@@ -138,7 +138,8 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 					net.simulate(decoder_resolution)
 
 				# extract and store activity
-				net.extract_population_activity(t_start=stimulus_onset + encoder_delay, t_stop=state_sample_time)
+				# net.extract_population_activity(t_start=stimulus_onset + encoder_delay, t_stop=state_sample_time)
+				net.extract_population_activity(t_start=internal_time, t_stop=state_sample_time)
 				net.extract_network_activity()
 				enc_layer.extract_encoder_activity(t_start=stimulus_onset + encoder_delay, t_stop=state_sample_time)
 				if not signals.empty(net.merged_populations):

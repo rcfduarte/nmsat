@@ -133,7 +133,7 @@ net.connect_populations(parameter_set.connection_pars)
 # Simulate (Transient Set)
 # ======================================================================================================================
 set_name = 'transient'
-if stim.transient_set_labels:
+if not empty(stim.transient_set_labels):
 	iterate_input_sequence(net, enc_layer, parameter_set, stim, inputs, set_name=set_name, record=True,
 	                       store_activity=False)
 	for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):

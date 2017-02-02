@@ -1007,13 +1007,44 @@ class ParameterSpace:
 					"init, end)\n\tfor n in rang:\n\t\tos.system('scancel '+ str(n))\n\nif "
 					"__name__=='__main__':\n\tcancel_range(int(sys.argv[1]), int(sys.argv[2]))")
 
-	def harvest(self, data_path, result=None, operation=None):
+	def print_stored_keys(self, data_path):
+		"""
+		Print all the nested keys in the results dictionaries for the current data set
+		:param data_path: location of "Results" folder
+		:return:
+		"""
+
+		def pretty(d, indent=0):
+			if isinstance(d, dict):
+				for key, value in d.iteritems():
+					print '  ' * indent + str(key)
+					if isinstance(value, dict):
+						pretty(value, indent + 1)
+
+		pars_labels = [n.label for n in self]
+		# open example data
+		ctr = 0
+		found_ = False
+		while ctr < len(pars_labels) and not found_:
+			try:
+				with open(data_path + 'Results_' + pars_labels[ctr], 'r') as fp:
+					results = pickle.load(fp)
+				print "Loading ParameterSet {0}".format(self.label)
+				found_ = True
+			except:
+				print "Dataset {0} Not Found, skipping".format(pars_labels[ctr])
+				continue
+		print "\n\nResults dictionary structure:"
+		pretty(results)
+
+	def harvest(self, data_path, key_set=None, operation=None):
 		"""
 		Gather stored results data and populate the space spanned by the Parameters with the corresponding results
 		:param data_path: full path to global data folder
-		:param result: specific result to extract from each results dictionary
+		:param key_set: specific result to extract from each results dictionary (nested keys should be specified as
+		'key1/key2/...'
 		:param operation: function to apply to result, if any
-		:return:
+		:return (parameter_labels, results_array):
 		"""
 		if self.parameter_axes:
 			l = ['x', 'y', 'z']
@@ -1026,8 +1057,7 @@ class ParameterSpace:
 			parameters_array = np.empty(tuple(domain_lens), dtype=object)
 
 			assert len(self) == dom_len, "Domain length inconsistent"
-			idx_x = 0; idx_y = 0; idx_z = 0
-			pars_labels = [self.parameter_sets[n].label for n in range(len(self))]
+			pars_labels = [n.label for n in self]
 			for n in range(int(dom_len)):
 				params_label = self.label
 				index = []
@@ -1052,30 +1082,12 @@ class ParameterSpace:
 				except:
 					print "Dataset {0} Not Found, skipping".format(params_label)
 					continue
-				if result:
-					assert isinstance(results, dict), "Results must be dictionary"
-					for k, v in results.items():
-						if k == result:
-							if operation:
-								results_array[tuple(index)] = operation(v)
-							else:
-								results_array[tuple(index)] = v
-						elif isinstance(v, dict):
-							for k1, v1 in v.items():
-								if k1 == result:
-									if operation:
-										results_array[tuple(index)] = operation(v1)
-									else:
-										results_array[tuple(index)] = v1
-								elif isinstance(v1, dict):
-									for k2, v2 in v1.items():
-										if k2 == result:
-											if operation:
-												results_array[tuple(index)] = operation(v2)
-											else:
-												results_array[tuple(index)] = v2
-						else:
-							raise IOError("Provided result not in results dictionary, or at higher depth")
+				if key_set is not None:
+					nested_result = io.NestedDict(results)
+					if operation is not None:
+						results_array[tuple(index)] = operation(nested_result[key_set])
+					else:
+						results_array[tuple(index)] = nested_result[key_set]
 				else:
 					results_array[tuple(index)] = results
 		else:
@@ -1085,362 +1097,19 @@ class ParameterSpace:
 				with open(data_path+'Results_'+self.label, 'r') as fp:
 					results = pickle.load(fp)
 				print "Loading Dataset {0}".format(self.label)
-				if result:
+				if key_set is not None:
+					nested_result = io.NestedDict(results)
 					assert isinstance(results, dict), "Results must be dictionary"
-					for k, v in results:
-						if k == result:
-							if operation:
-								results_array = operation(v)
-							else:
-								results_array = v
-						elif isinstance(v, dict):
-							for k1, v1 in v.items():
-								if k1 == result:
-									if operation:
-										results_array = operation(v1)
-									else:
-										results_array = v1
-								elif isinstance(v1, dict):
-									for k2, v2 in v1.items():
-										if k2 == result:
-											if operation:
-												results_array = operation(v2)
-											else:
-												results_array = v
+					if operation is not None:
+						results_array = operation(nested_result[key_set])
+					else:
+						results_array = nested_result[key_set]
 				else:
 					results_array = results
 			except IOError:
 				print "Dataset {0} Not Found, skipping".format(self.label)
 
 		return parameters_array, results_array
-
-	def harvest_results_from_key(self, data_path, key1=None, key2=None, key3=None, key4=None, operation=None):
-		"""
-		Gather stored results data, reading and storing only specific keys present in the results dictionary (for memory
-		conservation), up to 3 nesting levels, and populate the space spanned by the Parameters with the corresponding
-		results
-		:param data_path: full path to global data folder
-		:param key1: First dictionary key...
-		:param key2: Second dictionary key (if result is nested)
-		:param operation: some operation to perform on the resulting data
-		:return:
-		"""
-		if self.parameter_axes:
-			l = ['x', 'y', 'z']
-			domain_lens = [len(self.parameter_axes[l[idx] + 'ticks']) for idx in range(self.dimensions)]
-			domain_values = [self.parameter_axes[l[idx] + 'ticks'] for idx in range(self.dimensions)]
-			var_names = [self.parameter_axes[l[idx] + 'label'] for idx in range(self.dimensions)]
-			dom_len = np.prod(domain_lens)
-
-			results_array = np.empty(tuple(domain_lens), dtype=object)
-
-			assert len(self) == dom_len, "Domain length inconsistent"
-			for n in range(int(dom_len)):
-				params_label = self.label
-				index = []
-				if self.dimensions >= 1:
-					idx_x = n % domain_lens[0]
-					params_label += '_' + var_names[0] + '=' + str(domain_values[0][idx_x])
-					index.append(idx_x)
-				if self.dimensions >= 2:
-					idx_y = (n // domain_lens[0]) % domain_lens[1]
-					params_label += '_' + var_names[1] + '=' + str(domain_values[1][idx_y])
-					index.append(idx_y)
-				if self.dimensions == 3:
-					idx_z = ((n // domain_lens[0]) // domain_lens[1]) % domain_lens[2]
-					params_label += '_' + var_names[2] + '=' + str(domain_values[2][idx_z])
-					index.append(idx_z)
-
-				try:
-					with open(data_path + 'Results_' + params_label, 'r') as fp:
-						results = pickle.load(fp)
-					print "Loading ParameterSet {0}".format(params_label)
-				except:
-					print "Dataset {0} Not Found, skipping".format(params_label)
-					continue
-				if key1 is None and key2 is None and key3 is None and key4 is None:
-					assert isinstance(results, dict), "Results data must be a dictionary"
-					results_array[tuple(index)] = results
-
-				elif key1 is not None and key2 is None and key3 is None and key4 is None:
-					assert isinstance(results, dict), "Results data must be a dictionary"
-					assert key1 in results, "{0} not in results dictionary".format(key1)
-
-					if operation is None:
-						results_array[tuple(index)] = results[key1]
-					else:
-						results_array[tuple(index)] = operation(results[key1])
-
-				elif key1 is not None and key2 is not None and key3 is None and key4 is None:
-					assert isinstance(results, dict), "Results data must be a dictionary"
-					assert key1 in results, "{0} not in results dictionary".format(key1)
-					assert key2 in results[key1], "{0} not in subfield {1}".format(key2, key1)
-
-					if operation is None:
-						results_array[tuple(index)] = results[key1][key2]
-					else:
-						results_array[tuple(index)] = operation(results[key1][key2])
-
-				elif key1 is not None and key2 is not None and key3 is not None and key4 is None:
-					assert isinstance(results, dict), "Results data must be a dictionary"
-					assert key1 in results, "{0} not in results dictionary".format(key1)
-					assert key2 in results[key1], "{0} not in subfield {1}".format(key2, key1)
-					assert key3 in results[key1][key2], "{0} not in subfield {1}".format(key3, key2)
-
-					if operation is None:
-						results_array[tuple(index)] = results[key1][key2][key3]
-					else:
-						results_array[tuple(index)] = operation(results[key1][key2][key3])
-				elif key1 is not None and key2 is not None and key3 is not None and key4 is not None:
-					assert isinstance(results, dict), "Results data must be a dictionary"
-					assert key1 in results, "{0} not in results dictionary".format(key1)
-					assert key2 in results[key1], "{0} not in subfield {1}".format(key2, key1)
-					assert key3 in results[key1][key2], "{0} not in subfield {1}".format(key3, key2)
-					assert key4 in results[key1][key2][key3], "{0} not in subfield {1}".format(key4, key3)
-					if operation is None:
-						results_array[tuple(index)] = results[key1][key2][key3][key4]
-					else:
-						results_array[tuple(index)] = operation(results[key1][key2][key3][key4])
-		else:
-			results_array = []
-			try:
-				with open(data_path+'Results_'+self.label, 'r') as fp:
-					results = pickle.load(fp)
-				print "Loading Dataset {0}".format(self.label)
-			except:
-				raise IOError("Dataset {0} Not Found".format(self.label))
-
-			if key1 is not None and key2 is None and key3 is None:
-				assert isinstance(results, dict), "Results data must be a dictionary"
-				assert key1 in results, "{0} not in results dictionary".format(key1)
-
-				if operation is None:
-					results_array = results[key1]
-				else:
-					results_array = operation(results[key1])
-
-			elif key1 is not None and key2 is not None and key3 is None:
-				assert isinstance(results, dict), "Results data must be a dictionary"
-				assert key1 in results, "{0} not in results dictionary".format(key1)
-				assert key2 in results[key1], "{0} not in subfield {1}".format(key2, key1)
-
-				if operation is None:
-					results_array = results[key1][key2]
-				else:
-					results_array = operation(results[key1][key2])
-
-			elif key1 is not None and key2 is not None and key3 is not None:
-				assert isinstance(results, dict), "Results data must be a dictionary"
-				assert key1 in results, "{0} not in results dictionary".format(key1)
-				assert key2 in results[key1], "{0} not in subfield {1}".format(key2, key1)
-				assert key3 in results[key1][key2], "{0} not in subfield {1}".format(key3, key2)
-
-				if operation is None:
-					results_array = results[key1][key2][key3]
-				else:
-					results_array = operation(results[key1][key2][key3])
-			elif key1 is not None and key2 is not None and key3 is not None and key4 is not None:
-				assert isinstance(results, dict), "Results data must be a dictionary"
-				assert key1 in results, "{0} not in results dictionary".format(key1)
-				assert key2 in results[key1], "{0} not in subfield {1}".format(key2, key1)
-				assert key3 in results[key1][key2], "{0} not in subfield {1}".format(key3, key2)
-				assert key4 in results[key1][key2][key3], "{0} not in subfield {1}".format(key4, key3)
-				if operation is None:
-					results_array = results[key1][key2][key3][key4]
-				else:
-					results_array = operation(results[key1][key2][key3][key4])
-
-		return results_array #.astype(float)
-
-	def harvest_results_from_keylists(self, data_path, key1=[], key2=None, key3=None, operation=None):
-		"""
-
-		:return:
-		"""
-		if self.parameter_axes:
-			l = ['x', 'y', 'z']
-			domain_lens = [len(self.parameter_axes[l[idx] + 'ticks']) for idx in range(self.dimensions)]
-			domain_values = [self.parameter_axes[l[idx] + 'ticks'] for idx in range(self.dimensions)]
-			var_names = [self.parameter_axes[l[idx] + 'label'] for idx in range(self.dimensions)]
-			dom_len = np.prod(domain_lens)
-
-			if isinstance(key1, list):
-				for n_key in key1:
-					globals()['results_{0}'.format(n_key)] = np.empty(tuple(domain_lens))
-			elif isinstance(key2, list):
-				for n_key in key1:
-					globals()['results_{0}'.format(n_key)] = np.empty(tuple(domain_lens))
-			elif isinstance(key3, list):
-				for n_key in key3:
-					globals()['results_{0}'.format(n_key)] = np.empty(tuple(domain_lens))
-
-			#results_array = np.empty(tuple(domain_lens))#, dtype=object)
-
-			assert len(self) == dom_len, "Domain length inconsistent"
-			for n in range(int(dom_len)):
-				params_label = self.label
-				index = []
-				if self.dimensions >= 1:
-					idx_x = n % domain_lens[0]
-					params_label += '_' + var_names[0] + '=' + str(domain_values[0][idx_x])
-					index.append(idx_x)
-				if self.dimensions >= 2:
-					idx_y = (n // domain_lens[0]) % domain_lens[1]
-					params_label += '_' + var_names[1] + '=' + str(domain_values[1][idx_y])
-					index.append(idx_y)
-				if self.dimensions == 3:
-					idx_z = ((n // domain_lens[0]) // domain_lens[1]) % domain_lens[2]
-					params_label += '_' + var_names[2] + '=' + str(domain_values[2][idx_z])
-					index.append(idx_z)
-
-				try:
-					with open(data_path + 'Results_' + params_label, 'r') as fp:
-						results = pickle.load(fp)
-					print "Loading ParameterSet {0}".format(params_label)
-				except:
-					print "Dataset {0} Not Found, skipping".format(params_label)
-					continue
-
-				if key1 is not None and key2 is None and key3 is None:
-
-					try:
-						if isinstance(results, dict) and isinstance(key1, list):
-							#assert isinstance(results, dict), "Results data must be a dictionary"
-							#assert isinstance(key1, list), "Please provide a list of keys"
-
-							list_len = len(key1)
-							results_out = [[] for _ in range(list_len)]
-
-							for iid, n_value in enumerate(key1):
-								assert n_value in results, "{0} not in results dictionary".format(n_value)
-
-								if operation is None:
-									results_array = results[n_value]
-								else:
-									results_array = operation(results[n_value])
-
-								globals()['results_{0}'.format(n_value)][tuple(index)] = results_array
-
-								results_out[iid] = (globals()['results_{0}'.format(n_value)]).astype(float)
-					except:
-						print "Dataset {0} Not complying, skipping".format(params_label)
-
-				elif key1 is not None and key2 is not None and key3 is None:
-					#assert isinstance(results, dict), "Results data must be a dictionary"
-					#assert key1 in results, "{0} not in results dictionary".format(key1)
-					#assert isinstance(key2, list), "Please provide a list of keys"
-
-					try:
-						if isinstance(results, dict) and (key1 in results) and isinstance(key2, list):
-							list_len = len(key2)
-							results_out = [[] for _ in range(list_len)]
-
-							for iid, n_value in enumerate(key2):
-								assert n_value in results[key1], "{0} not in subfield {1}".format(n_value, key1)
-
-								if operation is None:
-									results_array = results[key1][n_value]
-								else:
-									results_array = operation(results[key1][n_value])
-
-								globals()['results_{0}'.format(n_value)][tuple(index)] = results_array
-
-								results_out[iid] = globals()['results_{0}'.format(n_value)] # (globals()['results_{
-							# 0}'.format(n_value)]).astype(float)
-					except:
-						print "Dataset {0} Not complying, skipping".format(params_label)
-
-				elif key1 is not None and key2 is not None and key3 is not None:
-					#assert isinstance(results, dict), "Results data must be a dictionary"
-					#assert key1 in results, "{0} not in results dictionary".format(key1)
-					#assert key2 in results[key1], "{0} not in subfield {1}".format(key2, key1)
-					#assert isinstance(key3, list), "Please provide a list of keys"
-
-					try:
-						if isinstance(results, dict) and (key1 in results) and (key2 in results[key1]) and \
-								isinstance(key3, list):
-							list_len = len(key3)
-							results_out = [[] for _ in range(list_len)]
-
-							for iid, n_value in enumerate(key3):
-								assert n_value in results[key1][key2], "{0} not in subfield {1}".format(n_value, key2)
-
-								if operation is None:
-									results_array = results[key1][key2][n_value]
-								else:
-									results_array = operation(results[key1][key2][n_value])
-
-								globals()['results_{0}'.format(n_value)][tuple(index)] = results_array
-
-								results_out[iid] = (globals()['results_{0}'.format(n_value)]).astype(float)
-
-								#results_out[iid] = results_array.astype(float)
-					except:
-						print "Dataset {0} Not complying, skipping".format(params_label)
-		else:
-			results_array = []
-			try:
-				with open(data_path + 'Results_' + self.label, 'r') as fp:
-					results = pickle.load(fp)
-				print "Loading Dataset {0}".format(self.label)
-			except:
-				raise IOError("Dataset {0} Not Found".format(self.label))
-
-			if key1 is not None and key2 is None and key3 is None:
-				assert isinstance(results, dict), "Results data must be a dictionary"
-				assert isinstance(key1, list), "Please provide a list of keys"
-
-				list_len = len(key1)
-				results_out = [[] for _ in range(list_len)]
-
-				for iid, n_value in enumerate(key1):
-					assert n_value in results, "{0} not in results dictionary".format(n_value)
-
-					if operation is None:
-						results_array = results[n_value]
-					else:
-						results_array = operation(results[n_value])
-					results_out[iid] = results_array.astype(float)
-
-			elif key1 is not None and key2 is not None and key3 is None:
-				assert isinstance(results, dict), "Results data must be a dictionary"
-				assert key1 in results, "{0} not in results dictionary".format(key1)
-
-				assert isinstance(key2, list), "Please provide a list of keys"
-
-				list_len = len(key2)
-				results_out = [[] for _ in range(list_len)]
-
-				for iid, n_value in enumerate(key2):
-					assert n_value in results[key1], "{0} not in subfield {1}".format(n_value, key1)
-
-					if operation is None:
-						results_array = results[key1][n_value]
-					else:
-						results_array = operation(results[key1][n_value])
-					results_out[iid] = results_array.astype(float)
-
-			elif key1 is not None and key2 is not None and key3 is not None:
-				assert isinstance(results, dict), "Results data must be a dictionary"
-				assert key1 in results, "{0} not in results dictionary".format(key1)
-				assert key2 in results[key1], "{0} not in subfield {1}".format(key2, key1)
-
-				assert isinstance(key3, list), "Please provide a list of keys"
-
-				list_len = len(key3)
-				results_out = [[] for _ in range(list_len)]
-
-				for iid, n_value in enumerate(key3):
-					assert n_value in results[key1][key2], "{0} not in subfield {1}".format(n_value, key2)
-
-					if operation is None:
-						results_array = results[key1][key2][n_value]
-					else:
-						results_array = operation(results[key1][key2][n_value])
-
-					results_out[iid] = results_array.astype(float)
-		#print results_out
-		return results_out
 
 	@staticmethod
 	def extract_result_from_array(results_array, field, operation=None):

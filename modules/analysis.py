@@ -3604,20 +3604,20 @@ class DecodingLayer(object):
 					self.state_variables[idx])
 
 				net_to_decneurons = net_architect.extract_delays_matrix(src_gids=self.source_population.gids,
-				                                                        tgets_gids=tget_gids, progress=False)
+				                                                        tgets_gids=tget_gids, progress=True)
 				net_to_decneurons_delay = np.unique(np.array(net_to_decneurons[net_to_decneurons.nonzero()].todense()))
 				assert (len(net_to_decneurons_delay) == 1), "Heterogeneous delays in decoding layer are not supported.."
 
-				decneurons_to_mm = net_architect.extract_delays_matrix(src_gids=extractor_id, tgets_gids=tget_gids, progress=False)
-				decneurons_to_mm_delay = np.unique(np.array(decneurons_to_mm[decneurons_to_mm.nonzero()].todense()))
-				assert (len(decneurons_to_mm_delay) == 1), "Heterogeneous delays in decoding layer are not " \
-				                                            "supported.."
+				# decneurons_to_mm = net_architect.extract_delays_matrix(src_gids=extractor_id, tgets_gids=tget_gids, progress=False)
+				# decneurons_to_mm_delay = np.unique(np.array(decneurons_to_mm[decneurons_to_mm.nonzero()].todense()))
+				# assert (len(decneurons_to_mm_delay) == 1), "Heterogeneous delays in decoding layer are not " \
+				#                                             "supported.."
 
 				self.total_delays[idx] = float(net_to_decneurons_delay)# + decneurons_to_mm_delay)
 			else:
-				delays = net_architect.extract_delays_matrix(src_gids=extractor_id, tgets_gids=tget_gids, progress=False)
-				delay = np.unique(np.array(delays[delays.nonzero()].todense()))
-				assert (len(delay) == 1), "Heterogeneous delays in decoding layer are not supported.."
+				# delays = net_architect.extract_delays_matrix(src_gids=extractor_id, tgets_gids=tget_gids, progress=False)
+				# delay = np.unique(np.array(delays[delays.nonzero()].todense()))
+				# assert (len(delay) == 1), "Heterogeneous delays in decoding layer are not supported.."
 				self.total_delays[idx] = 0.#0.float(delay)
 		print("\nTotal delays in Population {0} DecodingLayer {1}: {2} ms".format(str(self.source_population.name),
 		                                                                          str(self.state_variables),

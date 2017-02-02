@@ -194,12 +194,16 @@ def build_parameters():
 	# Specify readouts
 	decoders = dict(
 		N=len(readout_labels),
-		decoded_population=['E', 'E', ['E', 'I'], ['E', 'I']],
-		state_variable=['V_m', 'spikes', 'V_m', 'spikes'],
+		decoded_population=[['E', 'I'], ['E', 'I']],
+		state_variable=['V_m', 'spikes'],
 		filter_time=filter_tau,
 		readouts=readout_labels,
 		readout_algorithms=readout_algorithms,
-		sampling_times=state_sampling)
+		sampling_times=state_sampling,
+		reset_states=[False, False],
+		average_states=[False, False],
+		standardize=[False, False]
+	)
 
 	decoding_pars = set_decoding_defaults(output_resolution=1., to_memory=True, kernel_pars=kernel_pars,
 	                                      **decoders)

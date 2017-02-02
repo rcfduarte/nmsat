@@ -1598,11 +1598,16 @@ class InputSignal(object):
 		for nn in range(stim_seq.shape[1]):
 			in_vec = stim_seq.todense()[:, nn]
 			idx = np.where(in_vec)[0]
-			amp = amplitudes[idx].pop(0)
-			dur = durations[idx].pop(0)
-
-			on = onsets[idx].pop(0)
-			off = offsets[idx].pop(0)
+			if not isinstance(idx, int):
+				amp = np.array(amplitudes)[idx][0].pop(0)
+				dur = np.array(durations)[idx][0].pop(0)
+				on = np.array(onsets)[idx][0].pop(0)
+				off = np.array(offsets)[idx][0].pop(0)
+			else:
+				amp = amplitudes[idx].pop(0)
+				dur = durations[idx].pop(0)
+				on = onsets[idx].pop(0)
+				off = offsets[idx].pop(0)
 
 			time_data = np.arange(on, off, self.dt)
 			signal = np.zeros((N, len(time_data)))

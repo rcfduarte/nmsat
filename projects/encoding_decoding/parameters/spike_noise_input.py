@@ -22,7 +22,7 @@ def build_parameters(g, nu_x):
 	system = dict(
 		nodes=1,
 		ppn=16,
-		mem=32000,
+		mem=64000,
 		walltime='01-00:00:00',
 		queue='defqueue',
 		transient_time=1000.,

@@ -30,7 +30,7 @@ def build_parameters():
 	# ##################################################################################################################
 	# Neuron, Synapse and Network Parameters
 	# ##################################################################################################################
-	N = 10
+	N = 10000
 	nE = 0.8 * N
 	nI = 0.2 * N
 	dE = 1.0
@@ -73,22 +73,44 @@ def build_parameters():
 	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': ''}), {}]
 
 	# ######################################################################################################################
-	# Stimulus Parameters
+	# Task and Stimulus Parameters
 	# ######################################################################################################################
-	n_trials = 5
-	n_discard = 0
+	task = 1  # Accepted tasks:
+	# - identity mapping (1);
+	# - delayed identity mapping (2);
+	# - delayed identity mapping with distractors (3);
+	# - adjacent dependencies (4);
+	# - non-adjacent dependencies (5);
+	# - pattern mapping with cross dependencies (6);
+	# - hierarchical dependencies (7);
 
-	n_stim = 5
+	lexicon_size = 100
+	n_distractors = 0  # (if applicable)
+	T = 500
+	T_discard = 10  # number of elements to discard (>=1, for some weird reasons..)
+
+	random_dt = False  # if True, dt becomes maximum distance (?)
+	dt = 3  # delay (if applicable)
+
+	pause_t = 1  # pause between 2 items
+
+	C_len = 2  # length of patterns (if applicable) - only 2! (?)
+
+	task_pars = {'task': task,
+	             'lexicon_size': lexicon_size,
+	             'T': T + T_discard,
+	             'random_dt': random_dt,
+	             'dt': dt,
+	             'pause_t': pause_t,
+	             'C_len': C_len,
+	             'n_distractors': n_distractors}
 
 	stim_pars = dict(
-		n_stim=n_stim,
-		elements=np.arange(0, n_stim, 1).astype(int),
-		grammar=None,
-		full_set_length=int(n_trials + n_discard),
-		transient_set_length=int(n_discard),
-		train_set_length=int(n_trials * 0.8),
-		test_set_length=int(n_trials * 0.2),
-	)
+		n_stim=lexicon_size,
+		full_set_length=int(T + T_discard),
+		transient_set_length=int(T_discard),
+		train_set_length=int(0.8 * T),
+		test_set_length=int(0.2 * T))
 
 	# ######################################################################################################################
 	# Input Parameters
@@ -98,17 +120,16 @@ def build_parameters():
 	inp_duration = 200.
 	inter_stim_interval = 0.
 
-	input_pars = {
-		'signal': {
-			'N': n_stim,
-			'durations': [inp_duration],
-			'i_stim_i': [inter_stim_interval],
-			'kernel': ('box', {}),
-			'start_time': 0.,
-			'stop_time': sys.float_info.max,
-			'max_amplitude': [inp_amplitude],
-			'min_amplitude': 0.,
-			'resolution': inp_resolution},
+	input_pars = {'signal': {
+		'N': lexicon_size,
+		'durations': [inp_duration],
+		'i_stim_i': [inter_stim_interval],
+		'kernel': ('box', {}),
+		'start_time': 0.,
+		'stop_time': sys.float_info.max,
+		'max_amplitude': [inp_amplitude],
+		'min_amplitude': 0.,
+		'resolution': inp_resolution},
 		# 'noise': {
 		# 	'N': 0,
 		# 	'noise_source': ['GWN'],
@@ -155,14 +176,15 @@ def build_parameters():
 	readout_algorithms = ['ridge', 'pinv']
 
 	decoders = dict(
-		decoded_population=[['E', 'I'], ['E', 'I'], 'E'],
-		state_variable=['spikes', 'V_m', 'spikes'],
+		decoded_population=[['E', 'I'], ['E', 'I']],
+		state_variable=['spikes', 'V_m'],
 		filter_time=filter_tau,
 		readouts=readout_labels,
 		readout_algorithms=readout_algorithms,
 		sampling_times=state_sampling,
-		reset_states=[True, False, False],
-		average_states=[True, True, True]
+		reset_states=[False, False],
+		average_states=[False, False],
+		standardize=[False, False]
 	)
 
 	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)
@@ -176,6 +198,7 @@ def build_parameters():
 	             ('encoding_pars', encoding_pars),
 	             ('connection_pars', connection_pars),
 	             ('input_pars', input_pars),
+	             ('task_pars', task_pars),
 	             ('decoding_pars', decoding_pars),
 	             ('stim_pars', stim_pars)])
 
