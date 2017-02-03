@@ -2074,7 +2074,7 @@ class ActivityIllustrator(object):
 		self.ids 			= ids
 
 
-	def __anim_frame_raster(self, ax=None, start=None, stop=None, colors='b', shift_only=False, ax_props={}):
+	def __anim_frame_raster(self, ax=None, start=None, stop=None, colors=['b'], shift_only=False, ax_props={}):
 		"""
 		Display the contents of the spike list for the chosen neurons as a raster plot.
 
@@ -2096,7 +2096,7 @@ class ActivityIllustrator(object):
 				times 	= tt.raw_data()[:, 0]
 				neurons = tt.raw_data()[:, 1]
 				ax.plot(times, neurons, '.', color=colors[0])
-				self.raster_fr_data.append((times, neurons, '.', colors))
+				self.raster_fr_data.append((times, neurons, '.', colors[0]))
 			else:
 				assert isinstance(self.ids, list), "Gids should be a list"
 				for n, group_ids in enumerate(self.ids):
@@ -2115,7 +2115,7 @@ class ActivityIllustrator(object):
 		ax.set_xlim([start, stop])
 		ax.set(**ax_props)
 
-	def __anim_frame_mean_rate(self, ax=None, start=None, stop=None, colors='b', shift_only=False, dt=1., ax_props={}):
+	def __anim_frame_mean_rate(self, ax=None, start=None, stop=None, colors=['b'], shift_only=False, dt=1., ax_props={}):
 		"""
 
 		:param ax:
@@ -2142,7 +2142,7 @@ class ActivityIllustrator(object):
 				time = tt.time_axis(dt)[:-1]
 				rate = tt.firing_rate(dt, average=True)
 				ax.plot(time, rate, color=colors[0])
-				self.rate_fr_data.append((time, rate, colors))
+				self.rate_fr_data.append((time, rate, colors[0]))
 			else:
 				assert isinstance(self.ids, list), "Gids should be a list"
 				for n, group_ids in enumerate(self.ids):
