@@ -11,18 +11,18 @@ dc_noise_input
 - debug with noise_driven_dynamics script
 """
 
-run = 'local'
-data_label = 'ED_DCNoise_global_stats'
+run = 'Blaustein'
+data_label = 'ED_dcnoise_input'
 
 
-def build_parameters():
+def build_parameters(g, ro_in):
 	# ##################################################################################################################
 	# System / Kernel Parameters
 	# ##################################################################################################################
 	system = dict(
 		nodes=1,
-		ppn=8,
-		mem=32,
+		ppn=16,
+		mem=32000,
 		walltime='01-00:00:00',
 		queue='defqueue',
 		transient_time=1000.,
@@ -46,7 +46,7 @@ def build_parameters():
 	pII = 0.2
 
 	# connection weights
-	g = 13.5
+	# g = 13.5
 	wE = 1.2
 	wI = -g * wE
 
@@ -72,12 +72,12 @@ def build_parameters():
 
 	net_pars['record_analogs'] = [True, False]
 	multimeter = rec_device_defaults(device_type='multimeter')
-	multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1})
+	multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 100})
 	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': ''}), {}]
 	# ##################################################################################################################
 	# Input Parameters
 	# ##################################################################################################################
-	ro_in = 1100
+	# ro_in = 1100
 
 	input_pars = {'noise':
 		                {'N': 1,
@@ -129,7 +129,7 @@ def build_parameters():
 	                 'n_pairs': 500,        # number of spike train pairs to consider in correlation coefficient
 	                 'tau': 20.,            # time constant of exponential filter (van Rossum distance)
 	                 'window_len': 100,     # length of sliding time window (for time_resolved analysis)
-	                 'summary_only': False, # how to save the data (only mean and std - True) or entire data set (False)
+	                 'summary_only': True, # how to save the data (only mean and std - True) or entire data set (False)
 	                 'complete': True,      # use all existing measures or just the fastest / simplest ones
 	                 'time_resolved': False}# perform time-resolved analysis
 
@@ -148,4 +148,6 @@ def build_parameters():
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
+	'g': np.arange(4, 25.5, 0.5),
+	'ro_in': np.arange(300., 1800., 100.)
 }

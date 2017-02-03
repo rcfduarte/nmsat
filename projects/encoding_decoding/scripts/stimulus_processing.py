@@ -1,5 +1,3 @@
-import itertools
-
 __author__ = 'duarte'
 from modules.parameters import ParameterSet, ParameterSpace, extract_nestvalid_dict
 from modules.input_architect import EncodingLayer, StimulusSet, InputSignalSet
@@ -7,13 +5,18 @@ from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
 from modules.visualization import set_global_rcParams, InputPlots, extract_encoder_connectivity, TopologyPlots
-from modules.analysis import analyse_state_matrix
+from modules.analysis import analyse_state_matrix, get_state_rank, readout_train, readout_test
 from modules.auxiliary import iterate_input_sequence
 import cPickle as pickle
 import matplotlib.pyplot as pl
 import numpy as np
 import time
+import itertools
+import sys
 import nest
+# specific to this project..
+sys.path.append('../')
+from stimulus_generator import StimulusPattern
 
 # ######################################################################################################################
 # Experiment options
@@ -27,7 +30,7 @@ online = True
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/stimulus_driven.py'
+params_file = '../parameters/dc_stimulus_input.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -46,7 +49,7 @@ if plot:
 paths = set_storage_locations(parameter_set, save)
 
 np.random.seed(parameter_set.kernel_pars['np_seed'])
-results = dict()
+results = dict(rank={}, performance={})
 
 # ######################################################################################################################
 # Set kernel and simulation parameters
@@ -60,7 +63,7 @@ nest.SetKernelStatus(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(),
 # Build network
 # ======================================================================================================================
 net = Network(parameter_set.net_pars)
-net.merge_subpopulations([net.populations[0], net.populations[1]])
+net.merge_subpopulations([net.populations[0], net.populations[1]], name='EI')
 
 # ######################################################################################################################
 # Randomize initial variable values
@@ -71,30 +74,50 @@ for idx, n in enumerate(list(iterate_obj_list(net.populations))):
 		for k, v in randomize.items():
 			n.randomize_initial_states(k, randomization_function=v[0], **v[1])
 
-# ######################################################################################################################
-# Build and connect input
-# ======================================================================================================================
-# Create StimulusSet
-stim_set_time = time.time()
-stim = StimulusSet(parameter_set, unique_set=True)
-stim.create_set(parameter_set.stim_pars.full_set_length)
-stim.discard_from_set(parameter_set.stim_pars.transient_set_length)
-stim.divide_set(parameter_set.stim_pars.transient_set_length, parameter_set.stim_pars.train_set_length,
-                parameter_set.stim_pars.test_set_length)
-print "- Elapsed Time: {0}".format(str(time.time()-stim_set_time))
+###################################################################################
+# Build Stimulus Set
+# =================================================================================
+stim_set_startbuild = time.time()
+
+# Create or Load StimulusPattern
+stim_pattern = StimulusPattern(parameter_set.task_pars)
+stim_pattern.generate()
+
+input_sequence, output_sequence = stim_pattern.as_index()
+
+# Convert to StimulusSet object
+stim_set = StimulusSet(unique_set=False)
+stim_set.load_data(input_sequence, type='full_set_labels')
+stim_set.discard_from_set(parameter_set.stim_pars.transient_set_length)
+stim_set.divide_set(parameter_set.stim_pars.transient_set_length, parameter_set.stim_pars.train_set_length,
+                    parameter_set.stim_pars.test_set_length)
+
+# Specify target and convert to StimulusSet object
+target_set = StimulusSet(unique_set=False)
+target_set.load_data(output_sequence, type='full_set_labels')
+target_set.discard_from_set(parameter_set.stim_pars.transient_set_length)
+target_set.divide_set(parameter_set.stim_pars.transient_set_length, parameter_set.stim_pars.train_set_length,
+                    parameter_set.stim_pars.test_set_length)
+
+print "- Elapsed Time: {0}".format(str(time.time()-stim_set_startbuild))
+stim_set_buildtime = time.time()-stim_set_startbuild
+
+###################################################################################
+# Build Input Signal Set
+# =================================================================================
+input_set_time = time.time()
+parameter_set.input_pars.signal.N = len(np.unique(input_sequence))
 
 # Create InputSignalSet
-input_set_time = time.time()
-inputs = InputSignalSet(parameter_set, stim, online=online)
-
-inputs.generate_full_set(stim)
-if stim.transient_set_labels:
-	inputs.generate_transient_set(stim)
-
-inputs.generate_unique_set(stim)
-inputs.generate_train_set(stim)
-inputs.generate_test_set(stim)
-print "- Elapsed Time: {0}".format(str(time.time() - input_set_time))
+inputs = InputSignalSet(parameter_set, stim_set, online=online)
+if not empty(stim_set.transient_set_labels):
+	inputs.generate_transient_set(stim_set)
+	parameter_set.kernel_pars.transient_t = inputs.transient_stimulation_time
+if not online:
+	inputs.generate_full_set(stim_set)
+#inputs.generate_unique_set(stim)
+inputs.generate_train_set(stim_set)
+inputs.generate_test_set(stim_set)
 
 # Plot example signal
 if plot and debug and not online:
@@ -102,17 +125,21 @@ if plot and debug and not online:
 	ax1 = fig_inp.add_subplot(211)
 	ax2 = fig_inp.add_subplot(212)
 	fig_inp.suptitle('Input Stimulus / Signal')
-	inp_plot = InputPlots(stim_obj=stim, input_obj=inputs.train_set_signal, noise_obj=inputs.train_set_noise)
-	inp_plot.plot_stimulus_matrix(set='train', ax=ax1, save=False, display=False)
+	inp_plot = InputPlots(stim_obj=stim_set, input_obj=inputs.test_set_signal, noise_obj=inputs.test_set_noise)
+	inp_plot.plot_stimulus_matrix(set='test', ax=ax1, save=False, display=False)
 	inp_plot.plot_input_signal(ax=ax2, save=paths['figures']+paths['label'], display=display)
 	inp_plot.plot_input_signal(save=paths['figures']+paths['label'], display=display)
 	inp_plot.plot_signal_and_noise(save=paths['figures']+paths['label'], display=display)
 parameter_set.kernel_pars.sim_time = inputs.train_stimulation_time + inputs.test_stimulation_time
 
 if save:
-	stim.save(paths['inputs'])
+	stim_pattern.save(paths['inputs'])
+	stim_set.save(paths['inputs'])
 	if debug:
 		inputs.save(paths['inputs'])
+
+print "- Elapsed Time: {0}".format(str(time.time() - input_set_time))
+inputs_build_time = time.time() - input_set_time
 
 # ######################################################################################################################
 # Encode Input
@@ -143,129 +170,120 @@ net.connect_populations(parameter_set.connection_pars)
 # ######################################################################################################################
 # Simulate (Transient Set)
 # ======================================================================================================================
-
-
-
-
-
+set_name = 'transient'
+if not empty(stim_set.transient_set_labels):
+	iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name=set_name, record=True,
+	                       store_activity=False)
+	for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
+		if n_pop.decoding_layer is not None:
+			n_pop.decoding_layer.flush_states()
 
 # ######################################################################################################################
-# Simulate (Full Set)
+# Simulate (Unique Set)
 # ======================================================================================================================
-iterate_input_sequence(net, enc_layer, parameter_set, stim, inputs, set_name='full', record=True,
-                       store_activity=True)
-# evaluate the decoding methods (only if store_activity was set to True, otherwise no activity remains stored for
-# analysis)
-# if debug:
-for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
-					                net.populations]))):#, enc_layer.encoders]))):
+if hasattr(stim_set, "unique_set"):
+	set_name = 'unique'
+	iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name=set_name, record=True,
+	                       store_activity=False)
+
+	# compute ranks
+	for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
+		if n_pop.decoding_layer is not None:
+			dec_layer = n_pop.decoding_layer
+			labels = getattr(stim_set, "{0}_set_labels".format(set_name))
+
+			results['rank'].update({n_pop.name: {}})
+			for idx_var, var in enumerate(dec_layer.state_variables):
+				state_matrix = dec_layer.state_matrix[idx_var]
+
+				if not empty(labels) and not empty(state_matrix):
+					print "Population {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
+					                                                          str(state_matrix.shape))
+					results['rank'][n_pop.name].update({var + str(idx_var): get_state_rank(state_matrix)})
+
+					if save:
+						np.save(paths['activity']+paths['label']+'_population{0}_state{1}_{2}.npy'.format(n_pop.name,
+						                                                    var, set_name), state_matrix)
+					analyse_state_matrix(state_matrix, labels, label=n_pop.name+var+set_name,
+					                     plot=plot, display=display, save=paths['figures']+paths['label'])
+			dec_layer.flush_states()
+
+# ######################################################################################################################
+# Simulate (Train Set)
+# ======================================================================================================================
+set_name = 'train'
+iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name=set_name, record=True,
+                       store_activity=False)
+
+accept_idx = np.where(np.array(stim_pattern.Output['Accepted']) == 'A')[0]
+print accept_idx
+
+# train readouts
+for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
 	if n_pop.decoding_layer is not None:
-		n_pop.decoding_layer.evaluate_decoding(n_neurons=10, display=display, save=paths['figures']+paths['label'])
+		dec_layer = n_pop.decoding_layer
+		labels = getattr(target_set, "{0}_set_labels".format(set_name))
+		target = np.array(getattr(target_set, "{0}_set".format(set_name)).todense())
 
+		train_idx = []
+		for idx in accept_idx:
+			if idx >= parameter_set.stim_pars.transient_set_length and idx <= parameter_set.stim_pars.train_set_length:
+				train_idx.append(idx - parameter_set.stim_pars.transient_set_length)
+		# print train_idx
 
-		for idx_var, var in enumerate(n_pop.decoding_layer.state_variables):
-			analyse_state_matrix(n_pop.decoding_layer.state_matrix[idx_var], stim.full_set_labels,
-			                     label=n_pop.name+var, plot=plot, display=display, save=paths['figures']+paths['label'])
-
-'''
-if stim.transient_set_labels:
-	if not online:
-		print "\nTransient time = {0} ms".format(str(parameter_set.kernel_pars.transient_t))
-
-
-	iterate_input_sequence(net, inputs.transient_set_signal, enc_layer, sampling_times=None,
-	                       sampling_lag=2., stim_set=stim, input_set=inputs, set_name='transient',
-	                       store_responses=False, record=False,
-	                       jitter=parameter_set.encoding_pars.generator.jitter)
-	parameter_set.kernel_pars.transient_t = nest.GetKernelStatus()['time']
-	net.extract_population_activity(t_start=0., t_stop=parameter_set.kernel_pars.transient_t -
-	                                                   parameter_set.kernel_pars.resolution)
-	net.extract_network_activity()
-
-	# sanity check
-	activity = []
-	for spikes in net.spiking_activity:
-		activity.append(spikes.mean_rate())
-	if not np.mean(activity) > 0:
-		raise ValueError("No activity recorded in main network! Stopping simulation..")
-
-	if parameter_set.kernel_pars.transient_t > 1000.:
-		analysis_interval = [1000, parameter_set.kernel_pars.transient_t]
-		results['population_activity'] = population_state(net, parameter_set=parameter_set,
-		                                                  nPairs=500, time_bin=1.,
-		                                                  start=analysis_interval[0],
-		                                                  stop=analysis_interval[1] -
-		                                                       parameter_set.kernel_pars.resolution,
-		                                                  plot=plot, display=display,
-		                                                  save=paths['figures']+paths['label'])
-		enc_layer.extract_encoder_activity()
-		# results.update(evaluate_encoding(enc_layer, parameter_set, analysis_interval,
-		#                                  inputs.transient_set_signal, plot=plot, display=display,
-		#                                  save=paths['figures']+paths['label']))
-
-	net.flush_records()
-	enc_layer.flush_records()
-
+		for idx_var, var in enumerate(dec_layer.state_variables):
+			readouts = dec_layer.readouts[idx_var]
+			state_matrix = dec_layer.state_matrix[idx_var]
+			if not empty(labels) and not empty(state_matrix):
+				print "Population {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
+				                                                          str(state_matrix.shape))
+				for readout in readouts:
+					readout_train(readout, state_matrix, target=target, index=None, accepted=train_idx,
+					              display=display, plot=plot, save=paths['figures']+paths['label'])
+					# TODO store norm_wOut
+				if save:
+					np.save(paths['activity']+paths['label']+'_population{0}_state{1}_{2}.npy'.format(n_pop.name,
+					                                                    var, set_name), state_matrix)
+				analyse_state_matrix(state_matrix, labels, label=n_pop.name + var + set_name,
+				                     plot=plot, display=display, save=paths['figures'] + paths['label'])
+		dec_layer.flush_states()
 # ######################################################################################################################
-# Simulate (Unique Sequence)
+# Simulate (Test Set)
 # ======================================================================================================================
-if not online:
-	print "\nUnique Sequence time = {0} ms".format(str(inputs.unique_stimulation_time))
+set_name = 'test'
+iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name=set_name, record=True,
+                       store_activity=False)
 
-iterate_input_sequence(net, inputs.unique_set_signal, enc_layer,
-                       sampling_times=parameter_set.decoding_pars.global_sampling_times,
-                       sampling_lag=2., stim_set=stim, input_set=inputs,
-                       set_name='unique', store_responses=False,
-                       jitter=parameter_set.encoding_pars.generator.jitter)
-results['rank'] = get_state_rank(net)
-n_stim = len(stim.elements)
-print "State Rank: {0} / {1}".format(str(results['rank']), str(n_stim))
-for n_pop in list(itertools.chain(*[net.populations, net.merged_populations])):
-	if not empty(n_pop.state_matrix):
-		n_pop.flush_states()
-for n_enc in enc_layer.encoders:
-	if not empty(n_enc.state_matrix):
-		n_enc.flush_states()
+# test readouts
+for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
+	if n_pop.decoding_layer is not None:
+		dec_layer = n_pop.decoding_layer
+		labels = getattr(target_set, "{0}_set_labels".format(set_name))
+		target = np.array(getattr(target_set, "{0}_set".format(set_name)).todense())
 
-# ######################################################################################################################
-# Simulate (Train period)
-# ======================================================================================================================
-if not online:
-	print "\nTrain time = {0} ms".format(str(inputs.train_stimulation_time))
-iterate_input_sequence(net, inputs.train_set_signal, enc_layer,
-                       sampling_times=parameter_set.decoding_pars.global_sampling_times,
-                       sampling_lag=2., stim_set=stim, input_set=inputs,
-                       set_name='train', store_responses=False,
-                       jitter=parameter_set.encoding_pars.generator.jitter)
+		test_idx = []
+		start_t = parameter_set.stim_pars.transient_set_length + parameter_set.stim_pars.train_set_length
+		for idx in accept_idx:
+			if idx >= start_t:
+				test_idx.append(idx - start_t)
 
-# ######################################################################################################################
-# Train Readouts
-# ======================================================================================================================
-train_all_readouts(parameter_set, net, stim, inputs.train_set_signal, encoding_layer=enc_layer, flush=True, debug=debug,
-                   plot=plot, display=display, save=paths)
-
-# ######################################################################################################################
-# Simulate (Test period)
-# ======================================================================================================================
-if not online:
-	print "\nTest time = {0} ms".format(str(inputs.test_stimulation_time))
-iterate_input_sequence(net, inputs.test_set_signal, enc_layer,
-                       sampling_times=parameter_set.decoding_pars.global_sampling_times,
-                       sampling_lag=2., stim_set=stim, input_set=inputs, set_name='test',
-                       store_responses=False, #paths['activity'],
-                       jitter=parameter_set.encoding_pars.generator.jitter)
-
-# ######################################################################################################################
-# Test Readouts
-# ======================================================================================================================
-test_all_readouts(parameter_set, net, stim, inputs.test_set_signal, encoding_layer=enc_layer, flush=False, debug=debug,
-                  plot=plot, display=display, save=paths)
-
-results['Performance'] = {}
-results['Performance'].update(analyse_performance_results(net, enc_layer, plot=plot, display=display, save=paths[
-	                                                                                                  'figures']+paths[
-	'label']))
-
+		for idx_var, var in enumerate(dec_layer.state_variables):
+			results['performance'].update({n_pop.name: {var + str(idx_var): {}}})
+			readouts = dec_layer.readouts[idx_var]
+			state_matrix = dec_layer.state_matrix[idx_var]
+			if not empty(labels) and not empty(state_matrix):
+				print "Population {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
+				                                                          str(state_matrix.shape))
+				for readout in readouts:
+					results['performance'][n_pop.name][var + str(idx_var)].update({readout.name: readout_test(readout,
+					                                state_matrix, target=target, index=None, accepted=test_idx,
+					                                display=display)})
+				if save:
+					np.save(paths['activity']+paths['label']+'_population{0}_state{1}_{2}.npy'.format(n_pop.name,
+					                                                    var, set_name), state_matrix)
+				analyse_state_matrix(state_matrix, labels, label=n_pop.name + var + set_name,
+					                     plot=plot, display=display, save=paths['figures'] + paths['label'])
+		dec_layer.flush_states()
 # ######################################################################################################################
 # Save data
 # ======================================================================================================================
@@ -274,4 +292,5 @@ if save:
 		pickle.dump(results, f)
 	parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
 
-'''
+
+########################################################################################################################

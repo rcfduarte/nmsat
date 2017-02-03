@@ -9,6 +9,7 @@ from modules.analysis import characterize_population_activity, compute_ainess
 import cPickle as pickle
 import numpy as np
 import nest
+import time
 
 
 def run(parameter_set, plot=False, display=False, save=True):
@@ -98,7 +99,7 @@ def run(parameter_set, plot=False, display=False, save=True):
 		net.simulate(parameter_set.kernel_pars.transient_t)
 		net.flush_records()
 
-	net.simulate(parameter_set.kernel_pars.sim_time)  # +.1 to acquire last step...
+	net.simulate(parameter_set.kernel_pars.sim_time)
 
 	# ######################################################################################################################
 	# Extract and store data
@@ -112,29 +113,30 @@ def run(parameter_set, plot=False, display=False, save=True):
 	# ======================================================================================================================
 	analysis_interval = [parameter_set.kernel_pars.transient_t,
 	                     parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t]
-
+	parameter_set.analysis_pars.pop('label')
+	start_analysis = time.time()
 	results.update(characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
 	                                                color_map='jet', plot=plot,
 	                                                display=display, save=paths['figures'] + paths['label'],
 	                                                **parameter_set.analysis_pars))
+	print "\nElapsed time (state characterization): {0}".format(str(time.time() - start_analysis))
 
-	# if 'I_ex' in results['analog_activity']['E'].keys():
-	# 	I_ex = results['analog_activity']['E']['I_ex']
-	# 	I_in = results['analog_activity']['E']['I_in']
-	# 	time_axis = np.arange(analysis_interval[0], analysis_interval[1], 0.1)
-	# 	plot_synaptic_currents(I_ex, I_in, time_axis)
-	# 	xcorr = cross_correlogram(I_ex, I_in)
 	if 'mean_I_ex' in results['analog_activity']['E'].keys():
 		inh = np.array(results['analog_activity']['E']['mean_I_in'])
 		exc = np.array(results['analog_activity']['E']['mean_I_ex'])
 		ei_ratios = np.abs(np.abs(inh) - np.abs(exc))
+		ei_ratios_corrected = np.abs(np.abs(inh - np.mean(inh)) - np.abs(exc - np.mean(exc)))
 		print "EI amplitude difference: {0} +- {1}".format(str(np.mean(ei_ratios)), str(np.std(ei_ratios)))
+		print "EI amplitude difference (amplitude corrected): {0} +- {1}".format(str(np.mean(ei_ratios_corrected)),
+		                                                                         str(np.std(ei_ratios_corrected)))
 		results['analog_activity']['E']['IE_ratio'] = np.mean(ei_ratios)
-		results['analog_activity']['E']['IE_ratios'] = ei_ratios
+		results['analog_activity']['E']['IE_ratio_corrected'] = np.mean(ei_ratios_corrected)
 
 	main_metrics = ['ISI_distance', 'SPIKE_distance', 'ccs_pearson', 'cvs', 'cvs_log', 'd_vp', 'd_vr', 'ents', 'ffs']
-	compute_ainess(results, main_metrics, template_duration=analysis_interval[1] - analysis_interval[0],
-	               template_resolution=parameter_set.kernel_pars.resolution, **parameter_set.analysis_pars)
+	results.update({'ainess': compute_ainess(results, main_metrics, template_duration=analysis_interval[1] -
+	                                                                                  analysis_interval[0],
+	                                         template_resolution=parameter_set.kernel_pars.resolution,
+	                                         **parameter_set.analysis_pars)})
 
 	# ######################################################################################################################
 	# Save data

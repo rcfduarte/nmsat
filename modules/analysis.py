@@ -53,6 +53,7 @@ import sklearn.metrics as met
 from sklearn.metrics.pairwise import pairwise_distances
 import sklearn.manifold as man
 import scipy.stats.mstats as mst
+from sklearn.preprocessing import StandardScaler
 import nest
 np.seterr(all='ignore')
 
@@ -1510,6 +1511,8 @@ def extract_results_vector(results_dict, keys):
 	for idx, k in enumerate(valid_keys):
 		if isinstance(results_dict[k], tuple):
 			out[idx] = results_dict[k][0]
+		elif isinstance(results_dict[k], list) or isinstance(results_dict[k], np.ndarray):
+			out[idx] = np.mean(results_dict[k])
 		else:
 			out[idx] = results_dict[k]
 	return out
@@ -1575,7 +1578,7 @@ def compute_ainess(results, keys, pop=None, template_duration=10000., template_r
 			try:
 				result[population].update({
 					metric: pairwise_distances(result_vector.reshape(1, -1), result_template.reshape(1, -1),
-					                           metric=metric, n_jobs=-1)})
+					                           metric=metric, n_jobs=-1)[0][0]})
 			except:
 				continue
 	return result
@@ -2277,27 +2280,43 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 		return results
 
 
-def discrete_readout_train(state, target, readout, index):
+def readout_train(readout, state, target, index=None, accepted=None, display=True, plot=False, save=False):
 	"""
+	Train readout object
+	:param readout: Readout object
+	:param state: np.ndarray state matrix
+	:param target: np.ndarray target_matrix
+	:param index: time_shift state and target
+	:param accepted: indices of accepted time steps
+	:return norm_wout: norm of readout weights, weights are stored in Readout object
+	"""
+	assert (isinstance(state, np.ndarray)), "Provide state matrix as array"
+	assert (isinstance(target, np.ndarray)), "Provide target matrix as array"
+	assert (isinstance(readout, Readout)), "Provide Readout object"
 
-	:return:
-	"""
-	if index < 0:
+	if accepted is not None:
+		state = state[:, accepted]
+		target = target[:, accepted]
+
+	if index is not None and index < 0:
 		index = -index
 		state = state[:, index:]
 		target = target[:, :-index]
-	elif index > 0:
+	elif index is not None and index > 0:
 		state = state[:, :-index]
 		target = target[:, index:]
 
 	readout.train(state, target)
 	norm_wout = readout.measure_stability()
-	print "|W_out| [{0}] = {1}".format(readout.name, str(norm_wout))
+	if display:
+		print "|W_out| [{0}] = {1}".format(readout.name, str(norm_wout))
+	if plot:
+		readout.plot_weights(display=display, save=save)
 
 	return norm_wout
 
 
-def discrete_readout_test(state, target, readout, index):
+def readout_test(readout, state, target, index=None, accepted=None, display=True, plot=False, save=False):
 	"""
 
 	:param state:
@@ -2306,236 +2325,244 @@ def discrete_readout_test(state, target, readout, index):
 	:param index:
 	:return:
 	"""
-	if index < 0:
+	assert (isinstance(state, np.ndarray)), "Provide state matrix as array"
+	assert (isinstance(target, np.ndarray)), "Provide target matrix as array"
+	assert (isinstance(readout, Readout)), "Provide Readout object"
+
+	if accepted is not None:
+		state = state[:, accepted]
+		target = target[:, accepted]
+
+	if index is not None and index < 0:
 		index = -index
 		state = state[:, index:]
 		target = target[:, :-index]
-	elif index > 0:
+	elif index is not None and index > 0:
 		state = state[:, :-index]
 		target = target[:, index:]
 
 	readout.test(state)
-	performance = readout.measure_performance(target, labeled=True)
+	performance = readout.measure_performance(target, display=display)
 	return performance
 
 
-def train_all_readouts(parameters, net, stim, input_signal, encoding_layer, flush=False, debug=False, plot=True,
-					   display=True, save=False):
-	"""
-		Train all readouts attached to network object
-	:param parameters:
-	:return:
-	"""
-	from modules.net_architect import Network
-	from modules.input_architect import InputSignal
-	from modules.signals import empty
-	assert(isinstance(net, Network)), "Please provide Network object"
-	assert(isinstance(parameters, prs.ParameterSet)), "parameters must be a ParameterSet object"
-	assert(isinstance(input_signal, InputSignal) or isinstance(input_signal, np.ndarray)), \
-		"input_signal must be an InputSignal object or numpy array / matrix"
-
-	sampling_rate = parameters.decoding_pars.global_sampling_times
-	if isinstance(input_signal, np.ndarray):
-		target 		= input_signal
-		set_labels 	= stim.train_set_labels
-	elif sampling_rate is None or isinstance(sampling_rate, list) or isinstance(sampling_rate, np.ndarray):
-		target 		= stim.train_set.todense()
-		set_labels 	= stim.train_set_labels
-	else:
-		unfold_n = int(round(sampling_rate ** (-1)))
-		if input_signal.online:
-			if not isinstance(input_signal.duration_parameters[0], float) or not isinstance(
-					input_signal.interval_parameters[0], float):
-				# TODO - implement other variants
-				raise NotImplementedError("Input signal duration has to be constant.. Variants are not implemented yet")
-			else:
-				total_samples = (input_signal.duration_parameters[0] + input_signal.interval_parameters[0]) * len(
-					stim.train_set_labels)
-				step_size = input_signal.duration_parameters[0] + input_signal.interval_parameters[0]
-				target = np.repeat(stim.train_set.todense(), step_size, axis=1)
-				assert(target.shape[1] == total_samples), "Inconsistent dimensions in setting continuous targets"
-		else:
-			target = input_signal.generate_square_signal()[:, ::int(unfold_n)]
-		onset_idx = [[] for _ in range(target.shape[0])]
-		offset_idx = [[] for _ in range(target.shape[0])]
-		labels = []
-		set_labels = {}
-		for k in range(target.shape[0]):
-			stim_idx = np.where(stim.train_set.todense()[k, :])[1]
-			if stim_idx.shape[1]:
-				labels.append(np.unique(np.array(stim.train_set_labels)[stim_idx])[0])
-				if input_signal.online:
-					iddxs = np.array(np.where(target[k, :])[1])
-				else:
-					iddxs = np.array(np.where(target[k, :])[0])
-				idx_diff = np.array(np.diff(iddxs))
-				if len(idx_diff.shape) > 1:
-					idx_diff = idx_diff[0]
-					iddxs = iddxs[0]
-				onset_idx[k] = [x for idd, x in enumerate(iddxs) if idx_diff[idd-1] > 1 or x == 0]
-				offset_idx[k] = [x for idd, x in enumerate(iddxs) if idd<len(iddxs)-1 and (idx_diff[idd] > 1 or x == len(
-					target[k, :]))]
-				offset_idx.append(iddxs[-1])
-		set_labels.update({'dimensions': target.shape[0], 'labels': labels, 'onset_idx': onset_idx, 'offset_idx':
-			offset_idx})
-
-	if isinstance(save, dict):
-		if save['label']:
-			paths = save
-			save = True
-		else:
-			save = False
-
-	# read from all state matrices
-	for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations, net.populations,
-													   encoding_layer.encoders]))):
-		if not empty(n_pop.state_matrix):
-			state_dimensions = np.array(n_pop.state_matrix).shape
-			population_readouts = n_pop.readouts
-			chunker = lambda lst, sz: [lst[i:i + sz] for i in range(0, len(lst), sz)]
-			n_pop.readouts = chunker(population_readouts, len(population_readouts) / state_dimensions[0])
-			# copy readouts for each state matrix
-			if n_pop.state_sample_times:
-				n_copies = len(n_pop.state_sample_times)
-				all_readouts = n_pop.copy_readout_set(n_copies)
-				n_pop.readouts = all_readouts
-
-			for idx_state, n_state in enumerate(n_pop.state_matrix):
-				if not isinstance(n_state, list):
-					print("\nTraining {0} readouts from Population {1}".format(str(n_pop.decoding_pars['readout'][
-																					   'N']), str(n_pop.name)))
-					label = n_pop.name + '-Train-StateVar{0}'.format(str(idx_state))
-					if save:
-						np.save(paths['activity'] + label, n_state)
-					if debug:
-						if save:
-							save_path = paths['figures'] + label
-						else:
-							save_path = False
-						analyse_state_matrix(n_state, set_labels, label=label, plot=plot, display=display,
-											 save=save_path)
-					for readout in n_pop.readouts[idx_state]:
-						readout.set_index()
-						discrete_readout_train(n_state, target, readout, readout.index)
-				else:
-					for iddx_state, nn_state in enumerate(n_state):
-						readout_set = n_pop.readouts[iddx_state]
-						print("\nTraining {0} readouts from Population {1} [t = {2}]".format(
-							str(n_pop.decoding_pars['readout']['N']), str(n_pop.name), str(n_pop.state_sample_times[iddx_state])))
-						label = n_pop.name + '-Train-StateVar{0}-sample{1}'.format(str(idx_state),
-																				   str(iddx_state))
-						if save:
-							np.save(paths['activity'] + label, n_state)
-						if debug:
-							if save:
-								save_path = paths['figures'] + label
-							else:
-								save_path = False
-							analyse_state_matrix(nn_state, stim.train_set_labels, label=label, plot=plot,
-												 display=display,
-												 save=save_path)
-						for readout in readout_set[idx_state]:
-							readout.set_index()
-							discrete_readout_train(nn_state, target, readout, readout.index)
-				if flush:
-					n_pop.flush_states()
-
-
-def test_all_readouts(parameters, net, stim, input_signal, encoding_layer=None, flush=False, debug=False, plot=True,
-					  display=True, save=False):
-	"""
-	Test and measure performance of all readouts attached to Network object
-	:param net:
-	:param stim:
-	:param flush:
-	:return:
-	"""
-	assert (isinstance(net, net_architect.Network)), "Please provide Network object"
-	assert (isinstance(parameters, prs.ParameterSet)), "parameters must be a ParameterSet object"
-	assert (isinstance(input_signal, ips.InputSignal) or isinstance(input_signal, np.ndarray)), \
-		"input_signal must be an InputSignal object or numpy array / matrix"
-
-	sampling_rate = parameters.decoding_pars.global_sampling_times
-	if isinstance(input_signal, np.ndarray):
-		# if a custom training target was provided
-		target 		= input_signal
-		set_labels 	= stim.test_set_labels
-	elif sampling_rate is None or isinstance(sampling_rate, list) or isinstance(sampling_rate, np.ndarray):
-		target 		= stim.test_set.todense()
-		set_labels 	= stim.test_set_labels
-	else:
-		unfold_n 	= int(round(sampling_rate ** (-1)))
-		target 		= input_signal.generate_square_signal()[:, ::int(unfold_n)]
-		onset_idx 	= [[] for _ in range(target.shape[0])]
-		offset_idx 	= [[] for _ in range(target.shape[0])]
-		labels 		= []
-		set_labels 	= {}
-		for k in range(target.shape[0]):
-			stim_idx = np.where(stim.test_set.todense()[k, :])[1]
-			if stim_idx.shape[1]:
-				labels.append(np.unique(np.array(stim.test_set_labels)[stim_idx])[0])
-				iddxs 		  = np.where(target[k, :])[0]
-				idx_diff 	  = np.diff(iddxs)
-				onset_idx[k]  = [x for idd, x in enumerate(iddxs) if idx_diff[idd - 1] > 1 or x == 0]
-				offset_idx[k] = [x for idd, x in enumerate(iddxs) if
-								 idd < len(iddxs) - 1 and (idx_diff[idd] > 1 or x == len(target[k, :]))]
-				offset_idx.append(iddxs[-1])
-		set_labels.update({'dimensions': target.shape[0], 'labels': labels, 'onset_idx': onset_idx,
-						   'offset_idx': offset_idx})
-
-	if isinstance(save, dict):
-		if save['label']:
-			paths = save
-			save = True
-		else:
-			save = False
-
-	# state of merged populations
-	if encoding_layer is not None:
-		all_populations = list(itertools.chain(*[net.merged_populations, net.populations, encoding_layer.encoders]))
-	else:
-		all_populations = list(itertools.chain(*[net.merged_populations, net.populations]))
-
-	for ctr, n_pop in enumerate(all_populations):
-		if not sg.empty(n_pop.state_matrix):
-			for idx_state, n_state in enumerate(n_pop.state_matrix):
-				if not isinstance(n_state, list):
-					print("\nTesting {0} readouts from Population {1} [{2}]".format(str(n_pop.decoding_pars['readout'][
-												'N']), str(n_pop.name), str(n_pop.state_variables[idx_state])))
-					label = n_pop.name + '-Test-StateVar{0}'.format(str(idx_state))
-					if save:
-						np.save(paths['activity'] + label, n_state)
-					if debug:
-						if save:
-							save_path = paths['figures'] + label
-						else:
-							save_path = False
-						analyse_state_matrix(n_state, set_labels, label=label, plot=plot, display=display,
-											 save=save_path)
-					for readout in n_pop.readouts[idx_state]:
-						discrete_readout_test(n_state, target, readout, readout.index)
-				else:
-					for iddx_state, nn_state in enumerate(n_state):
-						readout_set = n_pop.readouts[iddx_state]
-						print("\nTesting {0} readouts from Population {1} [t = {2}]".format(
-							str(n_pop.decoding_pars['readout'][
-									'N']), str(n_pop.name), str(n_pop.state_sample_times[iddx_state])))
-						label = n_pop.name + '-Test-StateVar{0}-sample{1}'.format(str(idx_state),
-																				  str(iddx_state))
-						if save:
-							np.save(paths['activity'] + label, n_state)
-						if debug:
-							if save:
-								save_path = paths['figures'] + label
-							else:
-								save_path = False
-							analyse_state_matrix(nn_state, set_labels, label=label, plot=plot,
-												 display=display,
-												 save=save_path)
-						for readout in readout_set[idx_state]:
-							discrete_readout_test(nn_state, target, readout, readout.index)
-			if flush:
-				n_pop.flush_states()
+# def train_all_readouts(parameters, net, stim, input_signal, encoding_layer, flush=False, debug=False, plot=True,
+# 					   display=True, save=False):
+# 	"""
+# 		Train all readouts attached to network object
+# 	:param parameters:
+# 	:return:
+# 	"""
+# 	from modules.net_architect import Network
+# 	from modules.input_architect import InputSignal
+# 	from modules.signals import empty
+# 	assert(isinstance(net, Network)), "Please provide Network object"
+# 	assert(isinstance(parameters, prs.ParameterSet)), "parameters must be a ParameterSet object"
+# 	assert(isinstance(input_signal, InputSignal) or isinstance(input_signal, np.ndarray)), \
+# 		"input_signal must be an InputSignal object or numpy array / matrix"
+#
+# 	sampling_rate = parameters.decoding_pars.global_sampling_times
+# 	if isinstance(input_signal, np.ndarray):
+# 		target 		= input_signal
+# 		set_labels 	= stim.train_set_labels
+# 	elif sampling_rate is None or isinstance(sampling_rate, list) or isinstance(sampling_rate, np.ndarray):
+# 		target 		= stim.train_set.todense()
+# 		set_labels 	= stim.train_set_labels
+# 	else:
+# 		unfold_n = int(round(sampling_rate ** (-1)))
+# 		if input_signal.online:
+# 			if not isinstance(input_signal.duration_parameters[0], float) or not isinstance(
+# 					input_signal.interval_parameters[0], float):
+# 				# TODO - implement other variants
+# 				raise NotImplementedError("Input signal duration has to be constant.. Variants are not implemented yet")
+# 			else:
+# 				total_samples = (input_signal.duration_parameters[0] + input_signal.interval_parameters[0]) * len(
+# 					stim.train_set_labels)
+# 				step_size = input_signal.duration_parameters[0] + input_signal.interval_parameters[0]
+# 				target = np.repeat(stim.train_set.todense(), step_size, axis=1)
+# 				assert(target.shape[1] == total_samples), "Inconsistent dimensions in setting continuous targets"
+# 		else:
+# 			target = input_signal.generate_square_signal()[:, ::int(unfold_n)]
+# 		onset_idx = [[] for _ in range(target.shape[0])]
+# 		offset_idx = [[] for _ in range(target.shape[0])]
+# 		labels = []
+# 		set_labels = {}
+# 		for k in range(target.shape[0]):
+# 			stim_idx = np.where(stim.train_set.todense()[k, :])[1]
+# 			if stim_idx.shape[1]:
+# 				labels.append(np.unique(np.array(stim.train_set_labels)[stim_idx])[0])
+# 				if input_signal.online:
+# 					iddxs = np.array(np.where(target[k, :])[1])
+# 				else:
+# 					iddxs = np.array(np.where(target[k, :])[0])
+# 				idx_diff = np.array(np.diff(iddxs))
+# 				if len(idx_diff.shape) > 1:
+# 					idx_diff = idx_diff[0]
+# 					iddxs = iddxs[0]
+# 				onset_idx[k] = [x for idd, x in enumerate(iddxs) if idx_diff[idd-1] > 1 or x == 0]
+# 				offset_idx[k] = [x for idd, x in enumerate(iddxs) if idd<len(iddxs)-1 and (idx_diff[idd] > 1 or x == len(
+# 					target[k, :]))]
+# 				offset_idx.append(iddxs[-1])
+# 		set_labels.update({'dimensions': target.shape[0], 'labels': labels, 'onset_idx': onset_idx, 'offset_idx':
+# 			offset_idx})
+#
+# 	if isinstance(save, dict):
+# 		if save['label']:
+# 			paths = save
+# 			save = True
+# 		else:
+# 			save = False
+#
+# 	# read from all state matrices
+# 	for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations, net.populations,
+# 													   encoding_layer.encoders]))):
+# 		if not empty(n_pop.state_matrix):
+# 			state_dimensions = np.array(n_pop.state_matrix).shape
+# 			population_readouts = n_pop.readouts
+# 			chunker = lambda lst, sz: [lst[i:i + sz] for i in range(0, len(lst), sz)]
+# 			n_pop.readouts = chunker(population_readouts, len(population_readouts) / state_dimensions[0])
+# 			# copy readouts for each state matrix
+# 			if n_pop.state_sample_times:
+# 				n_copies = len(n_pop.state_sample_times)
+# 				all_readouts = n_pop.copy_readout_set(n_copies)
+# 				n_pop.readouts = all_readouts
+#
+# 			for idx_state, n_state in enumerate(n_pop.state_matrix):
+# 				if not isinstance(n_state, list):
+# 					print("\nTraining {0} readouts from Population {1}".format(str(n_pop.decoding_pars['readout'][
+# 																					   'N']), str(n_pop.name)))
+# 					label = n_pop.name + '-Train-StateVar{0}'.format(str(idx_state))
+# 					if save:
+# 						np.save(paths['activity'] + label, n_state)
+# 					if debug:
+# 						if save:
+# 							save_path = paths['figures'] + label
+# 						else:
+# 							save_path = False
+# 						analyse_state_matrix(n_state, set_labels, label=label, plot=plot, display=display,
+# 											 save=save_path)
+# 					for readout in n_pop.readouts[idx_state]:
+# 						readout.set_index()
+# 						discrete_readout_train(n_state, target, readout, readout.index)
+# 				else:
+# 					for iddx_state, nn_state in enumerate(n_state):
+# 						readout_set = n_pop.readouts[iddx_state]
+# 						print("\nTraining {0} readouts from Population {1} [t = {2}]".format(
+# 							str(n_pop.decoding_pars['readout']['N']), str(n_pop.name), str(n_pop.state_sample_times[iddx_state])))
+# 						label = n_pop.name + '-Train-StateVar{0}-sample{1}'.format(str(idx_state),
+# 																				   str(iddx_state))
+# 						if save:
+# 							np.save(paths['activity'] + label, n_state)
+# 						if debug:
+# 							if save:
+# 								save_path = paths['figures'] + label
+# 							else:
+# 								save_path = False
+# 							analyse_state_matrix(nn_state, stim.train_set_labels, label=label, plot=plot,
+# 												 display=display,
+# 												 save=save_path)
+# 						for readout in readout_set[idx_state]:
+# 							readout.set_index()
+# 							discrete_readout_train(nn_state, target, readout, readout.index)
+# 				if flush:
+# 					n_pop.flush_states()
+#
+#
+# def test_all_readouts(parameters, net, stim, input_signal, encoding_layer=None, flush=False, debug=False, plot=True,
+# 					  display=True, save=False):
+# 	"""
+# 	Test and measure performance of all readouts attached to Network object
+# 	:param net:
+# 	:param stim:
+# 	:param flush:
+# 	:return:
+# 	"""
+# 	assert (isinstance(net, net_architect.Network)), "Please provide Network object"
+# 	assert (isinstance(parameters, prs.ParameterSet)), "parameters must be a ParameterSet object"
+# 	assert (isinstance(input_signal, ips.InputSignal) or isinstance(input_signal, np.ndarray)), \
+# 		"input_signal must be an InputSignal object or numpy array / matrix"
+#
+# 	sampling_rate = parameters.decoding_pars.global_sampling_times
+# 	if isinstance(input_signal, np.ndarray):
+# 		# if a custom training target was provided
+# 		target 		= input_signal
+# 		set_labels 	= stim.test_set_labels
+# 	elif sampling_rate is None or isinstance(sampling_rate, list) or isinstance(sampling_rate, np.ndarray):
+# 		target 		= stim.test_set.todense()
+# 		set_labels 	= stim.test_set_labels
+# 	else:
+# 		unfold_n 	= int(round(sampling_rate ** (-1)))
+# 		target 		= input_signal.generate_square_signal()[:, ::int(unfold_n)]
+# 		onset_idx 	= [[] for _ in range(target.shape[0])]
+# 		offset_idx 	= [[] for _ in range(target.shape[0])]
+# 		labels 		= []
+# 		set_labels 	= {}
+# 		for k in range(target.shape[0]):
+# 			stim_idx = np.where(stim.test_set.todense()[k, :])[1]
+# 			if stim_idx.shape[1]:
+# 				labels.append(np.unique(np.array(stim.test_set_labels)[stim_idx])[0])
+# 				iddxs 		  = np.where(target[k, :])[0]
+# 				idx_diff 	  = np.diff(iddxs)
+# 				onset_idx[k]  = [x for idd, x in enumerate(iddxs) if idx_diff[idd - 1] > 1 or x == 0]
+# 				offset_idx[k] = [x for idd, x in enumerate(iddxs) if
+# 								 idd < len(iddxs) - 1 and (idx_diff[idd] > 1 or x == len(target[k, :]))]
+# 				offset_idx.append(iddxs[-1])
+# 		set_labels.update({'dimensions': target.shape[0], 'labels': labels, 'onset_idx': onset_idx,
+# 						   'offset_idx': offset_idx})
+#
+# 	if isinstance(save, dict):
+# 		if save['label']:
+# 			paths = save
+# 			save = True
+# 		else:
+# 			save = False
+#
+# 	# state of merged populations
+# 	if encoding_layer is not None:
+# 		all_populations = list(itertools.chain(*[net.merged_populations, net.populations, encoding_layer.encoders]))
+# 	else:
+# 		all_populations = list(itertools.chain(*[net.merged_populations, net.populations]))
+#
+# 	for ctr, n_pop in enumerate(all_populations):
+# 		if not sg.empty(n_pop.state_matrix):
+# 			for idx_state, n_state in enumerate(n_pop.state_matrix):
+# 				if not isinstance(n_state, list):
+# 					print("\nTesting {0} readouts from Population {1} [{2}]".format(str(n_pop.decoding_pars['readout'][
+# 												'N']), str(n_pop.name), str(n_pop.state_variables[idx_state])))
+# 					label = n_pop.name + '-Test-StateVar{0}'.format(str(idx_state))
+# 					if save:
+# 						np.save(paths['activity'] + label, n_state)
+# 					if debug:
+# 						if save:
+# 							save_path = paths['figures'] + label
+# 						else:
+# 							save_path = False
+# 						analyse_state_matrix(n_state, set_labels, label=label, plot=plot, display=display,
+# 											 save=save_path)
+# 					for readout in n_pop.readouts[idx_state]:
+# 						discrete_readout_test(n_state, target, readout, readout.index)
+# 				else:
+# 					for iddx_state, nn_state in enumerate(n_state):
+# 						readout_set = n_pop.readouts[iddx_state]
+# 						print("\nTesting {0} readouts from Population {1} [t = {2}]".format(
+# 							str(n_pop.decoding_pars['readout'][
+# 									'N']), str(n_pop.name), str(n_pop.state_sample_times[iddx_state])))
+# 						label = n_pop.name + '-Test-StateVar{0}-sample{1}'.format(str(idx_state),
+# 																				  str(iddx_state))
+# 						if save:
+# 							np.save(paths['activity'] + label, n_state)
+# 						if debug:
+# 							if save:
+# 								save_path = paths['figures'] + label
+# 							else:
+# 								save_path = False
+# 							analyse_state_matrix(nn_state, set_labels, label=label, plot=plot,
+# 												 display=display,
+# 												 save=save_path)
+# 						for readout in readout_set[idx_state]:
+# 							discrete_readout_test(nn_state, target, readout, readout.index)
+# 			if flush:
+# 				n_pop.flush_states()
 
 
 def analyse_state_matrix(state, stim_labels, label='', plot=True, display=True, save=False):
@@ -2574,7 +2601,7 @@ def analyse_state_matrix(state, stim_labels, label='', plot=True, display=True, 
 				locals()['sc_{0}'.format(str(index))] = ax2.scatter(X_r[np.where(np.array(list(itertools.chain(
 					label_seq))) == index)[0], 0], X_r[np.where(np.array(list(itertools.chain(label_seq))) == index)[
 								0],  1], X_r[np.where(np.array(list(itertools.chain(label_seq))) == index)[0], 2],
-																	s=150, c=color, label=lab)
+																	s=50, c=color, label=lab)
 			scatters = [locals()['sc_{0}'.format(str(ind))] for ind in n_elements]
 			#pl.legend(tuple(scatters), tuple(n_elements))
 			pl.legend(loc=0, handles=scatters)
@@ -2726,21 +2753,21 @@ def analyse_performance_results(net, enc_layer=None, plot=True, display=True, sa
 																		  state_variable=pop_state_variables[n_state])
 
 	if plot:
-		from modules.visualization import plot_readout_performance
-		plot_readout_performance(results, display=display, save=save)
+		visualization.plot_readout_performance(results, display=display, save=save)
 	return results
 
 
 def compile_performance_results(readout_set, state_variable=''):
 	"""
 	"""
-	from modules.signals import empty
 	results = {
-		'performance': np.array([n.performance['label']['performance'] for n in readout_set]),
+		'accuracy': np.array([n.performance['label']['performance'] for n in readout_set]),
+		'performance': np.array([n.performance['max']['performance'] for n in readout_set if not sg.empty(
+			n.performance['max'])]),
 		'hamming_loss': np.array([n.performance['label']['hamm_loss'] for n in readout_set]),
-		'MSE': np.array([n.performance['max']['MSE'] for n in readout_set]),
-		'pb_cc': [n.performance['raw']['point_bisserial'] for n in readout_set if not empty(n.performance['raw'])],
-		'raw_MAE': np.array([n.performance['raw']['MAE'] for n in readout_set if not empty(n.performance['raw'])]),
+		'MSE': np.array([n.performance['max']['MSE'] for n in readout_set if not sg.empty(n.performance['max'])]),
+		'pb_cc': [n.performance['raw']['point_bisserial'] for n in readout_set if not sg.empty(n.performance['raw'])],
+		'raw_MAE': np.array([n.performance['raw']['MAE'] for n in readout_set if not sg.empty(n.performance['raw'])]),
 		'precision': np.array([n.performance['label']['precision'] for n in readout_set]),
 		'f1_score': np.array([n.performance['label']['f1_score'] for n in readout_set]),
 		'recall': np.array([n.performance['label']['recall'] for n in readout_set]),
@@ -2905,10 +2932,10 @@ def analyse_state_divergence(parameter_set, net, clone, plot=True, display=True,
 	return results
 
 
-def get_state_rank(network):
+def calculate_ranks(network):
 	"""
-	Calculate the rank of all state matrices
-	:return:
+	Calculate the rank of all state matrices stored in the population's decoding_layers
+	:return dict: {population_name: {state_variable: rank}}
 	"""
 	results = dict()
 	for ctr, n_pop in enumerate(list(itertools.chain(*[network.merged_populations, network.populations]))):
@@ -2923,10 +2950,17 @@ def get_state_rank(network):
 				states = n_pop.decoding_layer.state_matrix
 
 		for idx_state, n_state in enumerate(states):
-			results[n_pop.name].update({n_pop.decoding_layer.state_variables[idx_state]: np.linalg.matrix_rank(
-				n_state)})
+			results[n_pop.name].update({n_pop.decoding_layer.state_variables[idx_state]: get_state_rank(n_state)})
 
 	return results
+
+
+def get_state_rank(matrix):
+	"""
+	Calculate the rank of all state matrices
+	:return:
+	"""
+	return np.linalg.matrix_rank(matrix)
 
 
 ########################################################################################################################
@@ -2951,8 +2985,7 @@ class Readout(object):
 
 	def set_index(self):
 		"""
-
-		:return:
+		For a specific case, in which the readout name contains a time index..
 		"""
 		index = int(self.name[-1])
 		if self.name[:3] == 'mem':
@@ -2966,8 +2999,10 @@ class Readout(object):
 		if display:
 			print("\nTraining Readout {0} [{1}]".format(str(self.name), str(self.rule)))
 		if self.rule == 'pinv':
-			self.weights = np.dot(np.linalg.pinv(np.transpose(state_train)), np.transpose(target_train))
-			self.fit_obj = []
+			reg = lm.LinearRegression(fit_intercept=False)
+			reg.fit(state_train.T, target_train.T)
+			self.weights = reg.coef_#np.dot(np.linalg.pinv(np.transpose(state_train)), np.transpose(target_train))
+			self.fit_obj = reg #[]
 
 		elif self.rule == 'ridge':
 			# Get w_out by ridge regression:
@@ -3047,103 +3082,71 @@ class Readout(object):
 		if display:
 			print "\nTesting Readout {0}".format(str(self.name))
 		self.output = None
-		# Question: how comes we are not sure whether the shapes of weight and states matrices match?
-		if self.rule == 'pinv':
-			# TODO remove False here, just debugging
-			if np.shape(self.weights)[1] == np.shape(state_test)[0] and \
-				np.shape(self.weights)[0] != np.shape(state_test)[0]:
-				self.output = np.dot(self.weights, state_test)
-			elif np.shape(self.weights)[0] == np.shape(state_test)[0]:
-				self.output = np.dot(np.transpose(self.weights), state_test)
-		else:
-			self.output = self.fit_obj.predict(state_test.T)
+		self.output = self.fit_obj.predict(state_test.T)
 
 		return self.output
 
 	@staticmethod
-	def performance_identity(output, target, is_binary_output, is_binary_target):
-		k = target.shape[0]
-		T = target.shape[1]
-
-		if len(output.shape) > 1:
-			output_labels = np.argmax(output, np.where(np.array(output.shape) == k)[0][0])
-
-			if not is_binary_output:
-				binary_output = np.zeros((k, T))
-				for kk in range(T):
-					binary_output[np.argmax(output[:, kk]), kk] = 1.
-			else:
-				binary_output = output
-		else:
-			output_labels = output
-			binary_output = np.zeros((k, T))
-			for kk in range(T):
-				binary_output[output[kk], kk] = 1.
-
-		if len(target.shape) > 1:
-			target_labels = np.argmax(target, 0)
-			if not is_binary_target:
-				binary_target = np.zeros((k, T))
-				for kk in range(T):
-					binary_target[np.argmax(target[:, kk]), kk] = 1.
-			else:
-				binary_target = target
-		else:
-			target_labels = target
-			binary_target = np.zeros((k, T))
-			for kk in range(T):
-				binary_target[target[kk], kk] = 1.
-		return binary_output, binary_target, output_labels, target_labels
-
-	@staticmethod
-	def performance_custom(output, target, is_binary_output, is_binary_target):
+	def parse_outputs(output, target, dimensions, set_size, method='WTA', k=1):
 		"""
-		Function to process custom target
-		:param output:
-		:param target:
-		:param is_binary_output:
-		:param is_binary_target:
+
+		:param self:
 		:return:
 		"""
-		k = target.shape[0]
-		T = target.shape[1]
+		is_binary_target = np.all(np.unique(target) == [0., 1.])
+		is_binary_output = np.all(np.unique(output) == [0., 1.])
+		is_labeled_target = (len(target.shape) == 1)
+		is_labeled_output = (len(output.shape) == 1)
 
-		if len(output.shape) > 1:
-			# we don't actually care about labels here, but whatever
-			output_labels = np.argmax(output, np.where(np.array(output.shape) == k)[0][0])
+		# select correct dimensions:
+		if not is_labeled_target:
+			assert (target.shape[0] == dimensions and target.shape[1] == set_size), \
+				"Incorrect target dimensions ({0})".format(str(target.shape))
+		else:
+			assert (target.shape[0] == set_size), \
+				"Incorrect target dimensions ({0})".format(str(target.shape))
 
-			if not is_binary_output:
-				binary_output = np.zeros((k, T))
-				for kk in range(T):
-					# NOTE: this is the key point, we're doing replacing 0s with 1s IFF w.x >= 0
-					# binary_output[np.where(output[:, kk]), kk] = 1.
-					binary_output[np.where(output[:, kk] >= 0), kk] = 1.
+		if not is_labeled_output:
+			assert (output.shape[0] == dimensions and output.shape[1] == set_size), \
+				"Incorrect output dimensions ({0})".format(str(output.shape))
+		else:
+			assert (output.shape[0] == set_size), \
+				"Incorrect output dimensions ({0})".format(str(output.shape))
+
+		# set binary_output and output_labels
+		if not is_binary_output:
+			binary_output = np.zeros((dimensions, set_size))
+			if method == 'WTA':
+				for kk in range(output.shape[1]):
+					args = np.argsort(output[:, kk])[-k:]
+					binary_output[args, kk] = 1.
 			else:
-				binary_output = output
+				for kk in range(output.shape[1]):
+					binary_output[np.where(output[:, kk] >= 0), kk] = 1.
+		else:
+			binary_output = output
+		if not is_labeled_output:
+			output_labels = np.argmax(output, 0)
 		else:
 			output_labels = output
-			binary_output = np.zeros((k, T))
-			for kk in range(T):
-				# NOTE: this is the key point, we're doing replacing 0s with 1s IFF w.x >= 0
-				# binary_output[output[kk], kk] = 1.
-				binary_output[np.where(output[kk] >= 0), kk] = 1.
 
-		if len(target.shape) > 1:
+		# set binary_target and target_labels
+		if not is_binary_target:
+			binary_target = np.zeros((target.shape[0], target.shape[1]))
+			if method == 'WTA':
+				for kk in range(target.shape[1]):
+					args = np.argsort(target[:, kk])[-k:]
+					binary_target[args, kk] = 1.
+		else:
+			binary_target = target
+		if not is_labeled_target:
 			target_labels = np.argmax(target, 0)
-			if not is_binary_target:
-				binary_target = np.zeros((k, T))
-				for kk in range(T):
-					binary_target[np.argmax(target[:, kk]), kk] = 1.
-			else:
-				binary_target = target
 		else:
 			target_labels = target
-			binary_target = np.zeros((k, T))
-			for kk in range(T):
-				binary_target[target[kk], kk] = 1.
-		return binary_output, binary_target, output_labels, target_labels
 
-	def measure_performance(self, target, output=None, labeled=False, comparison_function=None):
+		return binary_output, output_labels, binary_target, target_labels
+
+	def measure_performance(self, target, output=None, comparison_function=None, display=True):
 		"""
 		Compute readout performance according to different metrics.
 		:param target: target output [numpy.array (binary or real-valued) or list (labels)]
@@ -3151,60 +3154,70 @@ class Readout(object):
 		:param labeled:
 		:return:
 		"""
+		assert (isinstance(target, np.ndarray)), "Provide target matrix as array"
+
 		if output is None:
 			output = self.output
 
-		# is_binary_target = all(np.unique([np.unique(target) == [0., 1.]]))
-		# is_binary_output = all(np.unique([np.unique(output) == [0., 1.]]))
-		is_binary_target = np.mean(np.unique(np.array(list(sg.iterate_obj_list(target.tolist())))) == [0., 1.]).astype(
-								   bool)
-		is_binary_output = np.mean(np.unique(np.array(list(sg.iterate_obj_list(output.tolist())))) == [0., 1.]).astype(
-								   bool)
+		# check what type of data is provided
+		is_binary_target = np.all(np.unique(target) == [0., 1.])
+		is_binary_output = np.all(np.unique(output) == [0., 1.])
+		is_labeled_target = (len(target.shape) == 1)
+		is_labeled_output = (len(output.shape) == 1)
 
-		if output.shape != target.shape and len(output.shape) > 1:
+		if output.shape != target.shape and not is_labeled_output:
 			output = output.T
+
+		# set dimensions
+		if not is_labeled_target:
+			n_out = target.shape[0]
+			test_steps = target.shape[1]
+		elif not is_labeled_output:
+			n_out = output.shape[0]
+			test_steps = output.shape[1]
+		else:
+			raise TypeError("Incorrect data shapes")
+
+		if comparison_function is None:
+			binary_output, output_labels, binary_target, target_labels = self.parse_outputs(output, target,
+			                                                    dimensions=n_out, set_size=test_steps, k=1)
+		else:
+			binary_output, output_labels, binary_target, target_labels = self.parse_outputs(output, target,
+			                                                    dimensions=n_out, set_size=test_steps,
+			                                                    method=comparison_function)
+
+		# initialize results dictionary - raw takes the direct readout output, max the binarized output and label the
+		#  labels of each step
 		performance = {'raw': {}, 'max': {}, 'label': {}}
 
-		if len(output.shape) > 1:
+		if not is_labeled_output:  # some readouts just provide class labels
+			# Raw performance measures
 			performance['raw']['MSE'] = met.mean_squared_error(target, output)
 			performance['raw']['MAE'] = met.mean_absolute_error(target, output)
-			print "Readout {0}: \n  - MSE = {1}".format(str(self.name), str(performance['raw']['MSE']))
-
-		if labeled:
-			k = target.shape[0]
-			T = target.shape[1]
-
-			if comparison_function is None:
-				# this is the original function here in measure_performance
-				binary_output, binary_target, output_labels, target_labels = \
-					self.performance_identity(output, target, is_binary_output, is_binary_target)
-			elif comparison_function == "custom":
-				binary_output, binary_target, output_labels, target_labels = \
-					self.performance_custom(output, target, is_binary_output, is_binary_target)
-
-			# point-biserial CC
+			print "Readout {0} [raw ouput]: \n  - MSE = {1}".format(str(self.name), str(performance['raw']['MSE']))
 			if is_binary_target and not is_binary_output and len(output.shape) > 1:
 				pb_cc = []
-				for n in range(k):
+				for n in range(target.shape[0]):
 					pb_cc.append(mst.pointbiserialr(np.array(target)[n, :], np.array(output)[n, :])[0])
-
 				performance['raw']['point_bisserial'] = pb_cc
 
+			# Max performance measures
 			performance['max']['MSE'] = met.mean_squared_error(binary_target, binary_output)
 			performance['max']['MAE'] = met.mean_absolute_error(binary_target, binary_output)
+			performance['max']['performance'] = 1. - np.mean(binary_target - binary_output)
 
-			if len(target_labels) == len(output_labels):
-				if len(target_labels.shape) > 1:
-					target_labels = np.array(target_labels)[0]
-				else:
-					target_labels = np.array(target_labels)
-				if len(output_labels.shape) > 1:
-					output_labels = np.array(output_labels)[0]
-				else:
-					output_labels = np.array(output_labels)
-			else:
-				target_labels = np.array(target_labels)[0]
-				output_labels = np.array(output_labels)
+			# if len(target_labels) == len(output_labels): No idea what this is for???
+			# 	if len(target_labels.shape) > 1:
+			# 		target_labels = np.array(target_labels)[0]
+			# 	else:
+			# 		target_labels = np.array(target_labels)
+			# 	if len(output_labels.shape) > 1:
+			# 		output_labels = np.array(output_labels)[0]
+			# 	else:
+			# 		output_labels = np.array(output_labels)
+			# else:
+			# 	target_labels = np.array(target_labels)[0]
+			# 	output_labels = np.array(output_labels)
 
 			performance['label']['performance'] = met.accuracy_score(target_labels, output_labels)
 			performance['label']['hamm_loss'] 	= met.hamming_loss(target_labels, output_labels)
@@ -3216,10 +3229,11 @@ class Readout(object):
 			performance['label']['jaccard'] 	= met.jaccard_similarity_score(target_labels, output_labels)
 			performance['label']['class_support'] = met.precision_recall_fscore_support(target_labels, output_labels)
 
-			print "Readout {0}: \n  - Max MSE = {1} \n  - Accuracy = {2}".format(str(self.name),
-																				 str(performance['max']['MSE']),
+			print "Readout {0} Performance: \n  - Max = {1} \n  - Labels = {2}".format(str(self.name),
+																				 str(performance['max']['performance']),
 																				 str(performance['label']['performance']))
-			print met.classification_report(target_labels, output_labels)
+			if display:
+				print met.classification_report(target_labels, output_labels)
 
 		self.performance = performance
 		return performance
@@ -3228,6 +3242,7 @@ class Readout(object):
 		"""
 		Determine the stability of the solution (norm of weights)
 		"""
+		self.norm_wout = np.linalg.norm(self.weights)
 		return np.linalg.norm(self.weights)
 
 	def copy(self):
@@ -3287,6 +3302,7 @@ class DecodingLayer(object):
 		self.state_sample_times = None
 		self.sampled_times = []
 		self.extractor_resolution = [[] for _ in range(len(self.state_variables))]
+		self.standardize_states = initializer.standardize
 
 		for state_idx, state_variable in enumerate(self.state_variables):
 			state_specs = initializer.state_specs[state_idx]
@@ -3376,7 +3392,7 @@ class DecodingLayer(object):
 		Clear all data
 		:return:
 		"""
-		print("\n-Deleting state and activity data from all decoders attached to {0}".format(str(
+		print("\n- Deleting state and activity data from all decoders attached to {0}".format(str(
 			self.source_population.name)))
 		self.activity = [None for _ in range(len(self.state_variables))]
 		self.state_matrix = [[] for _ in range(len(self.state_variables))]
@@ -3500,21 +3516,36 @@ class DecodingLayer(object):
 		if len(self.state_matrix) > 1 and sampling_times is None:
 			states = []
 			for n_idx, n_state in enumerate(self.state_matrix):
-				states.append(np.array(n_state).T)
+				st = np.array(n_state).T
+				if self.standardize_states[n_idx]:
+					st = StandardScaler().fit_transform(st.T).T
+				states.append(st)
 			self.state_matrix = states
 		elif len(self.state_matrix) > 1 and sampling_times is not None:
 			for n_idx, n_state in enumerate(self.state_matrix):
 				states = []
 				for idx_state, n_state_mat in enumerate(n_state):
-					states.append(np.array(n_state_mat).T)
+					st = np.array(n_state_mat).T
+					if self.standardize_states[n_idx]:
+						st = StandardScaler().fit_transform(st.T).T
+					states.append(st)
+					# states.append(np.array(n_state_mat).T)
 				self.state_matrix[n_idx] = states
 		elif len(self.state_matrix) == 1 and sampling_times is not None:
 			states = []
 			for idx_state, n_state_mat in enumerate(self.state_matrix[0]):
-				states.append(np.array(n_state_mat).T)
+				st = np.array(n_state_mat).T
+				if self.standardize_states[idx_state]:
+					st = StandardScaler().fit_transform(st.T).T
+				states.append(st)
+				# states.append(np.array(n_state_mat).T)
 			self.state_matrix[0] = states
 		else:
-			states.append(np.array(self.state_matrix[0]).T)
+			st = np.array(self.state_matrix[0]).T
+			if self.standardize_states[0]:
+				st = StandardScaler().fit_transform(st.T).T
+			states.append(st)
+			# states.append(st)
 			self.state_matrix = states
 
 	def evaluate_decoding(self, n_neurons=10, display=False, save=False):
@@ -3573,20 +3604,20 @@ class DecodingLayer(object):
 					self.state_variables[idx])
 
 				net_to_decneurons = net_architect.extract_delays_matrix(src_gids=self.source_population.gids,
-				                                                        tgets_gids=tget_gids, progress=False)
+				                                                        tgets_gids=tget_gids, progress=True)
 				net_to_decneurons_delay = np.unique(np.array(net_to_decneurons[net_to_decneurons.nonzero()].todense()))
 				assert (len(net_to_decneurons_delay) == 1), "Heterogeneous delays in decoding layer are not supported.."
 
-				decneurons_to_mm = net_architect.extract_delays_matrix(src_gids=extractor_id, tgets_gids=tget_gids, progress=False)
-				decneurons_to_mm_delay = np.unique(np.array(decneurons_to_mm[decneurons_to_mm.nonzero()].todense()))
-				assert (len(decneurons_to_mm_delay) == 1), "Heterogeneous delays in decoding layer are not " \
-				                                            "supported.."
+				# decneurons_to_mm = net_architect.extract_delays_matrix(src_gids=extractor_id, tgets_gids=tget_gids, progress=False)
+				# decneurons_to_mm_delay = np.unique(np.array(decneurons_to_mm[decneurons_to_mm.nonzero()].todense()))
+				# assert (len(decneurons_to_mm_delay) == 1), "Heterogeneous delays in decoding layer are not " \
+				#                                             "supported.."
 
 				self.total_delays[idx] = float(net_to_decneurons_delay)# + decneurons_to_mm_delay)
 			else:
-				delays = net_architect.extract_delays_matrix(src_gids=extractor_id, tgets_gids=tget_gids, progress=False)
-				delay = np.unique(np.array(delays[delays.nonzero()].todense()))
-				assert (len(delay) == 1), "Heterogeneous delays in decoding layer are not supported.."
+				# delays = net_architect.extract_delays_matrix(src_gids=extractor_id, tgets_gids=tget_gids, progress=False)
+				# delay = np.unique(np.array(delays[delays.nonzero()].todense()))
+				# assert (len(delay) == 1), "Heterogeneous delays in decoding layer are not supported.."
 				self.total_delays[idx] = 0.#0.float(delay)
 		print("\nTotal delays in Population {0} DecodingLayer {1}: {2} ms".format(str(self.source_population.name),
 		                                                                          str(self.state_variables),

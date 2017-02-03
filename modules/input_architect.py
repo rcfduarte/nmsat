@@ -293,7 +293,7 @@ class StochasticGenerator:
 			number = min(5 + np.ceil(2 * n), 100)
 
 		if number > 0:
-			isi = self.rng.exponential(1.0 / rate, number) * 1000.0
+			isi = self.rng.exponential(1.0 / rate, int(number)) * 1000.0
 			if number > 1:
 				spikes = np.add.accumulate(isi)
 			else:
@@ -1598,11 +1598,16 @@ class InputSignal(object):
 		for nn in range(stim_seq.shape[1]):
 			in_vec = stim_seq.todense()[:, nn]
 			idx = np.where(in_vec)[0]
-			amp = amplitudes[idx].pop(0)
-			dur = durations[idx].pop(0)
-
-			on = onsets[idx].pop(0)
-			off = offsets[idx].pop(0)
+			if not isinstance(idx, int):
+				amp = np.array(amplitudes)[idx][0].pop(0)
+				dur = np.array(durations)[idx][0].pop(0)
+				on = np.array(onsets)[idx][0].pop(0)
+				off = np.array(offsets)[idx][0].pop(0)
+			else:
+				amp = amplitudes[idx].pop(0)
+				dur = durations[idx].pop(0)
+				on = onsets[idx].pop(0)
+				off = offsets[idx].pop(0)
 
 			time_data = np.arange(on, off, self.dt)
 			signal = np.zeros((N, len(time_data)))
@@ -3143,7 +3148,8 @@ class EncodingLayer:
 				decoder_params.update({'state_variable': pars_st.state_variable,
 			                           'state_specs': pars_st.state_specs,
 				                       'reset_states': pars_st.reset_states,
-				                       'average_states': pars_st.average_states})
+				                       'average_states': pars_st.average_states,
+				                       'standardize': pars_st.standardize})
 
 				if hasattr(decoding_pars, "readout"):
 					pars_readout = decoding_pars.readout
