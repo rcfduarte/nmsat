@@ -11,18 +11,18 @@ spike_noise_input
 - debug with noise_driven_dynamics script
 """
 
-run = 'local'
-data_label = 'ED_SpikeNoise_global_stats'
+run = 'Blaustein'
+data_label = 'ED_spike_noise_input'
 
 
-def build_parameters():
+def build_parameters(g, nu_x):
 	# ##################################################################################################################
 	# System / Kernel Parameters
 	# ##################################################################################################################
 	system = dict(
 		nodes=1,
-		ppn=8,
-		mem=32,
+		ppn=16,
+		mem=64000,
 		walltime='01-00:00:00',
 		queue='defqueue',
 		transient_time=1000.,
@@ -46,7 +46,7 @@ def build_parameters():
 	pII = 0.2
 
 	# connection weights
-	g = 13.5
+	# g = 13.5
 	wE = 1.2
 	wI = -g * wE
 
@@ -72,12 +72,12 @@ def build_parameters():
 
 	net_pars['record_analogs'] = [True, False]
 	multimeter = rec_device_defaults(device_type='multimeter')
-	multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1000})
+	multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 100})
 	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': ''}), {}]
 	# ######################################################################################################################
 	# Encoding Parameters
 	# ######################################################################################################################
-	nu_x = 20.
+	# nu_x = 20.
 	k_x = pEE * nE
 	w_in = 1.
 
@@ -120,7 +120,7 @@ def build_parameters():
 	                 'tau': 20.,            # time constant of exponential filter (van Rossum distance)
 	                 'window_len': 100,     # length of sliding time window (for time_resolved analysis)
 	                 'summary_only': True, # how to save the data (only mean and std - True) or entire data set (False)
-	                 'complete': False,      # use all existing measures or just the fastest / simplest ones
+	                 'complete': True,      # use all existing measures or just the fastest / simplest ones
 	                 'time_resolved': False}# perform time-resolved analysis
 
 	# ##################################################################################################################
@@ -137,4 +137,6 @@ def build_parameters():
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
+	'g': np.arange(4., 25.5, 0.2),
+	'nu_x': np.arange(2, 21, 1)
 }

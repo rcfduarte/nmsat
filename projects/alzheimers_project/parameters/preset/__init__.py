@@ -324,7 +324,7 @@ def set_decoding_defaults(output_resolution=1., to_memory=True, **decoder_pars):
 	:return:
 	"""
 	keys = ['decoded_population', 'state_variable', 'filter_time', 'readouts', 'sampling_times', 'reset_states',
-	        'average_states']
+	        'average_states', 'standardize']
 	if not all([n in decoder_pars.keys() for n in keys]) or len(decoder_pars['decoded_population']) != \
 			len(decoder_pars['state_variable']):
 		raise TypeError("Incorrect Decoder Parameters")
@@ -364,7 +364,8 @@ def set_decoding_defaults(output_resolution=1., to_memory=True, **decoder_pars):
 			'state_variable': dec_pars.state_variable,
 			'state_specs': state_specs,
 			'reset_states': dec_pars.reset_states,
-			'average_states': dec_pars.average_states},
+			'average_states': dec_pars.average_states,
+			'standardize': dec_pars.standardize},
 		'readout': readouts,
 		'sampling_times': dec_pars.sampling_times,
 		'output_resolution': output_resolution

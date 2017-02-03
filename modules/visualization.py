@@ -45,7 +45,7 @@ has_networkx = check_dependency('networkx')
 if has_networkx:
 	import networkx as nx
 has_sklearn = check_dependency('sklearn')
-has_mayavi = check_dependency('mayavi')
+has_mayavi = check_dependency('mayavi.mlab')
 if has_mayavi:
 	from mayavi import mlab
 import math
@@ -875,7 +875,7 @@ def plot_w_out(w_out, label, display=True, save=False):
 	Creates a histogram of the readout weights
 	"""
 	fig1, ax1 = pl.subplots()
-	fig1.suptitle("{0} - Biclustering W out".format(str(label)))
+	fig1.suptitle(r"${0}$ - Biclustering W out".format(str(label)))
 	n_clusters = np.min(w_out.shape)
 	n_bars = np.max(w_out.shape)
 	model = SpectralBiclustering(n_clusters=n_clusters, method='log',
@@ -895,7 +895,8 @@ def plot_w_out(w_out, label, display=True, save=False):
 		locals()['ax_{0}'.format(str(n))] = fig.add_subplot(1, n_clusters, n+1)
 		locals()['ax_{0}'.format(str(n))].barh(range(n_bars), w_out[:, n], height=1.0, linewidth=0, alpha=0.8)
 		locals()['ax_{0}'.format(str(n))].set_ylim([0, w_out.shape[0]])
-		# locals()['ax_{0}'.format(str(n))].set_xlim([0, w_out.shape[0]])
+		locals()['ax_{0}'.format(str(n))].set_xticklabels([])
+		locals()['ax_{0}'.format(str(n))].set_yticklabels([])
 	if save:
 		assert isinstance(save, str), "Please provide filename"
 		fig1.savefig(save+'W_out_Biclustering.pdf')
@@ -2481,9 +2482,9 @@ def plot_state_matrix(state_mat, stim_labels, ax=None, label='', display=True, s
 		raise ValueError('ax must be matplotlib.axes.Axes instance.')
 	if ax is None:
 		fig, ax = pl.subplots()
-		fig.suptitle(r'{0} - State Matrix'.format(str(label)))
+		fig.suptitle(r'${0}$ - State Matrix'.format(str(label)))
 	else:
-		ax.set_title(r'{0} - State Matrix'.format(str(label)))
+		ax.set_title(r'${0}$ - State Matrix'.format(str(label)))
 
 	xtick_labels = list(signals.iterate_obj_list(stim_labels))
 	#step_size = len(xtick_labels)

@@ -42,7 +42,7 @@ import io
 import itertools
 import cPickle as pickle
 import matplotlib.pyplot as pl
-
+from sys import exit
 has_pyspike = check_dependency('pyspike')
 if has_pyspike:
 	import pyspike as spk
@@ -984,13 +984,18 @@ class SpikeTrain(object):
 		isi = self.isi()
 		if not empty(self.isi()):
 			log_isi = np.log(isi)
+			log_isi = np.extract(np.logical_not(np.isnan(log_isi)), log_isi)
+			log_isi = np.extract(np.logical_not(np.isinf(log_isi)), log_isi)
+
 			weights = np.ones_like(log_isi) / len(log_isi)
-			# TODO @barni ValueError here, range parameter must be finite
+
 			try:
 				n, bins = np.histogram(log_isi, n_bins, weights=weights)  # , normed=True)
 			except ValueError as e:
 				print str(e)
 				exit(-1)
+
+			# n, bins = np.histogram(log_isi, n_bins, weights=weights)
 			ent = []
 			for prob_mass in n:
 				ent.append(prob_mass * np.log2(prob_mass))
@@ -2717,10 +2722,8 @@ class AnalogSignal(object):
 		self.t_stop = float(t_stop)
 		self.signal_length = len(signal)
 		self.closed_time_interval = False # to allow signals that include the last time step or not.. (dirty fix)
-		# print self.signal_length
 		if self.t_stop is not None:
 			t_axis = np.arange(self.t_start, self.t_stop + 0.0001, self.dt)
-			# print len(t_axis[:-1])
 			if len(self.signal) == len(t_axis):
 				self.closed_time_interval = True
 			elif len(self.signal) == len(t_axis[:-1]):

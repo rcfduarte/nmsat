@@ -29,6 +29,7 @@ imperfect and prone to errors...
 Optional (add functionality):
 * [PySpike](http://mariomulansky.github.io/PySpike/) version 0.5.1
 * h5py version 2.2.1 or higher
+* mayavi 
 
 #### Installing
 
