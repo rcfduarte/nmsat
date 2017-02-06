@@ -181,6 +181,25 @@ def shotnoise_fromspikes(spike_train, q, tau, dt=0.1, t_start=None, t_stop=None,
 		>> st = stg.poisson_generator(10.0,0.0,1000.0)
 		>> g_e = shotnoise_fromspikes(st,2.0,10.0,dt=0.1)
 	"""
+	def spike_index_search(t_steps, spike_times):
+		"""
+		For each spike, assign an index on the window timeline (t_steps)
+		:param t_steps: numpy array with time points representing the binning of the time window by dt
+		:param spike_times: numpy array with spike times of a spike train
+		:return:
+		"""
+		result_ = []
+		spike_times.sort()
+		cnt = 0
+		for idx_, val in enumerate(t_steps):
+			if cnt >= len(spike_times):
+				break
+			# check for approximate equality due to floating point fluctuations
+			if np.isclose(val, spike_times[cnt], atol=0.099999):
+				result_.append(idx_)
+				cnt += 1
+		return result_
+
 	st = spike_train
 	if t_start is not None and t_stop is not None:
 		assert t_stop > t_start, "t_stop must be larger than t_start"
@@ -192,8 +211,7 @@ def shotnoise_fromspikes(spike_train, q, tau, dt=0.1, t_start=None, t_stop=None,
 		t_stop = st.t_stop
 
 	# need to be clever with start time because we want to take spikes into account which occurred in
-	# spikes_times
-	#  before t_start
+	# spikes_times before t_start
 	if t_start is None:
 		t_start = st.t_start
 		window_start = st.t_start
@@ -202,18 +220,23 @@ def shotnoise_fromspikes(spike_train, q, tau, dt=0.1, t_start=None, t_stop=None,
 		if t_start > st.t_start:
 			t_start = st.t_start
 
-	t = np.arange(t_start, t_stop, dt)
+	t_size = int(np.round((t_stop - t_start) / dt))
+	t = np.linspace(t_start, t_stop, num=t_size, endpoint=False)
 	kern = q * np.exp(-np.arange(0.0, vs_t, dt) / tau)
-	idx = np.clip(np.searchsorted(t, st.spike_times, 'right') - 1, 0, len(t) - 1)
-	a = np.zeros(np.shape(t), float)
 
-	a[idx] = 1.0
+	spike_t_idx = spike_index_search(t, st.spike_times)
+
+	idx = np.clip(spike_t_idx, 0, len(t) - 1)
+	a 	= np.zeros(np.shape(t), float)
+	if len(spike_t_idx) > 0:
+		a[idx] = 1.0
 	y = np.convolve(a, kern)[0:len(t)]
 
 	if array:
-		signal_t = np.arange(window_start, t_stop, dt)
-		signal_y = y[-len(t):]
-		return (signal_y, signal_t)
+		signal_t_size = int(np.round((t_stop - window_start) / dt))
+		signal_t = np.linspace(window_start, t_stop, num=signal_t_size, endpoint=False) #np.arange(window_start, t_stop, dt)
+		signal_y = y[-len(signal_t):]  # was y[-len(t):] !!! leads to an error, len(signal_t) == len(signal_y) should hold!
+		return signal_y, signal_t
 	else:
 		result = AnalogSignal(y, dt, t_start=0.0, t_stop=t_stop - t_start)
 		result.time_offset(t_start)
@@ -1082,11 +1105,12 @@ class SpikeTrain(object):
 			start = self.t_start
 		if stop is None:
 			stop = self.t_stop
-		SpkTimes = np.round(self.spike_times, 1)
+		# WARNING! this doesn't work at all as expected due to floating point arithmetic!!
+		spike_times = np.round(self.spike_times, 1)
 
-		if not empty(SpkTimes):
-			(States, TimeVec) = shotnoise_fromspikes(self, 1., tau, dt, t_start=start, t_stop=stop, array=True)
-			return States
+		if not empty(spike_times):
+			states, time_vec = shotnoise_fromspikes(self, 1., tau, dt, t_start=start, t_stop=stop, array=True)
+			return states
 
 	def spikes_to_states_binary(self, dt, start=None, stop=None):
 		"""
@@ -1167,6 +1191,7 @@ class SpikeList(object):
 
 		if not isinstance(spikes, np.ndarray):
 			spikes = np.array(spikes, np.float32)
+			# circumvents numpy floating point magic that leads to filtering errors..
 		N = len(spikes)
 
 		if N > 0:
@@ -2647,7 +2672,9 @@ class SpikeList(object):
 		if N is None:
 			N = len(self.id_list)
 
-		t = np.arange(start, stop, dt)
+		# t = np.arange(start, stop, dt)
+		t_size = int(np.round((stop - start) / dt))
+		t = np.linspace(start, stop, num=t_size, endpoint=False)
 		if display:
 			print("\nCompiling activity matrix from SpikeList")
 		state_mat = np.zeros((N, len(t)))
@@ -2658,6 +2685,8 @@ class SpikeList(object):
 
 		for idx, nn in enumerate(id_list):
 			sk_train = self.spiketrains[int(self.id_list[idx])]
+			# TODO why are we saving the whole matrix and not just the last column? real life case only requires
+			# TODO last column...
 			state_mat[int(nn), :] = sk_train.exponential_filter(dt, tau, start, stop)
 			if display:
 				visualization.progress_bar(float(idx)/float(len(id_list)))
