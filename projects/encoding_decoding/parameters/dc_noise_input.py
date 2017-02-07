@@ -12,7 +12,7 @@ dc_noise_input
 """
 
 run = 'local'
-data_label = 'ED_dcnoise_response_example2'
+data_label = 'ED_dcnoise_response_example0'
 
 
 def build_parameters(g, ro_in):
@@ -72,7 +72,7 @@ def build_parameters(g, ro_in):
 
 	net_pars['record_analogs'] = [True, False]
 	multimeter = rec_device_defaults(device_type='multimeter')
-	multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1000})
+	multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1})
 	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': ''}), {}]
 	# ##################################################################################################################
 	# Input Parameters

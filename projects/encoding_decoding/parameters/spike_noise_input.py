@@ -12,7 +12,7 @@ spike_noise_input
 """
 
 run = 'local'
-data_label = 'ED_spikenoise_response_example1'
+data_label = 'ED_spikenoise_response_example0'
 
 
 def build_parameters(g, nu_x):
@@ -120,6 +120,6 @@ def build_parameters(g, nu_x):
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'g': [23.],
-	'nu_x': [10.]
+	'g': [11.],
+	'nu_x': [14.]
 }

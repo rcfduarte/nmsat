@@ -3629,8 +3629,8 @@ class DecodingLayer(object):
 					"No connections to {0} extractor".format(
 					self.state_variables[idx])
 
-				net_to_decneurons = net_architect.extract_delays_matrix(src_gids=self.source_population.gids,
-				                                                        tgets_gids=tget_gids, progress=True)
+				net_to_decneurons = net_architect.extract_delays_matrix(src_gids=self.source_population.gids[:10],
+				                                                        tgets_gids=tget_gids, progress=False)
 				net_to_decneurons_delay = np.unique(np.array(net_to_decneurons[net_to_decneurons.nonzero()].todense()))
 				assert (len(net_to_decneurons_delay) == 1), "Heterogeneous delays in decoding layer are not supported.."
 

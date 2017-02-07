@@ -31,8 +31,8 @@ online = True
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/dc_stimulus_input.py'
-# params_file = '../parameters/spike_stimulus_input.py'
+# params_file = '../parameters/dc_stimulus_input.py'
+params_file = '../parameters/spike_pattern_input.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -259,7 +259,8 @@ epochs_test = iterate_input_sequence(net, enc_layer, parameter_set, stim_set, in
 # characterize population activity
 if parameter_set.analysis_pars.store_activity:
 	start_analysis = time.time()
-	analysis_interval = [epochs_test['analysis_start'], nest.GetKernelStatus()['time']]
+	analysis_interval = [epochs_test['analysis_start'], nest.GetKernelStatus()['time'] - nest.GetKernelStatus()[
+		'resolution']]
 	results.update(characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
 	                                                color_map='jet', plot=plot,
 	                                                display=display, save=paths['figures']+paths['label'],

@@ -2593,7 +2593,7 @@ class EncodingLayer:
 
 		################################################################################
 		if online:
-			if hasattr(initializer, 'encoder'):
+			if hasattr(initializer, 'encoder') and initializer.encoder.N:
 				self.encoders, self.encoder_names = create_encoders(initializer.encoder)
 			if hasattr(initializer, 'generator') and signal is not None:
 				self.generators, self.generator_names = create_generators(initializer,
