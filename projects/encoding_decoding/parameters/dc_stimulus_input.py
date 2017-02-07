@@ -9,7 +9,8 @@ dc_input
 """
 
 run = 'local'
-data_label = 'ED_DCNoise_global_stats'
+data_label = 'ED_DCInput_processing_test1'
+
 
 def build_parameters():
 	# ######################################################################################################################
@@ -69,7 +70,7 @@ def build_parameters():
 
 	net_pars['record_analogs'] = [True, False]
 	multimeter = rec_device_defaults(device_type='multimeter')
-	multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1})
+	multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1000})
 	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': ''}), {}]
 
 	# ######################################################################################################################
@@ -84,10 +85,10 @@ def build_parameters():
 	# - pattern mapping with cross dependencies (6);
 	# - hierarchical dependencies (7);
 
-	lexicon_size = 100
+	lexicon_size = 4
 	n_distractors = 0  # (if applicable)
-	T = 500
-	T_discard = 10  # number of elements to discard (>=1, for some weird reasons..)
+	T = 10
+	T_discard = 2  # number of elements to discard (>=1, for some weird reasons..)
 
 	random_dt = False  # if True, dt becomes maximum distance (?)
 	dt = 3  # delay (if applicable)
@@ -190,6 +191,24 @@ def build_parameters():
 	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)
 
 	# ##################################################################################################################
+	# Extra analysis parameters (specific for this experiment)
+	# ==================================================================================================================
+	analysis_pars = {
+		'store_activity': 2,       # [bool or int] - store all population activity in the last n steps of the test
+									# phase; if set True the entire test phase will be stored;
+
+		'population_state': {       # if the activity is stored, these are the parameters for the state characterization
+			'time_bin': 1.,         # bin width for spike counts, fano factors and correlation coefficients
+			'n_pairs': 500,         # number of spike train pairs to consider in correlation coefficient
+			'tau': 20.,             # time constant of exponential filter (van Rossum distance)
+			'window_len': 100,      # length of sliding time window (for time_resolved analysis)
+			'summary_only': True,   # how to save the data (only mean and std - True) or entire data set (False)
+			'complete': True,      # use all existing measures or just the fastest / simplest ones
+			'time_resolved': False},
+
+
+	}
+	# ##################################################################################################################
 	# RETURN dictionary of Parameters dictionaries
 	# ==================================================================================================================
 	return dict([('kernel_pars', kernel_pars),
@@ -200,7 +219,8 @@ def build_parameters():
 	             ('input_pars', input_pars),
 	             ('task_pars', task_pars),
 	             ('decoding_pars', decoding_pars),
-	             ('stim_pars', stim_pars)])
+	             ('stim_pars', stim_pars),
+	             ('analysis_pars', analysis_pars)])
 
 
 # ######################################################################################################################

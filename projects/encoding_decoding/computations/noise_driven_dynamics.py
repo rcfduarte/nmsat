@@ -5,7 +5,7 @@ from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list
 from modules.visualization import set_global_rcParams, InputPlots
-from modules.analysis import characterize_population_activity, compute_ainess
+from modules.analysis import characterize_population_activity
 import cPickle as pickle
 import numpy as np
 import nest
@@ -131,12 +131,6 @@ def run(parameter_set, plot=False, display=False, save=True):
 		                                                                         str(np.std(ei_ratios_corrected)))
 		results['analog_activity']['E']['IE_ratio'] = np.mean(ei_ratios)
 		results['analog_activity']['E']['IE_ratio_corrected'] = np.mean(ei_ratios_corrected)
-
-	main_metrics = ['ISI_distance', 'SPIKE_distance', 'ccs_pearson', 'cvs', 'cvs_log', 'd_vp', 'd_vr', 'ents', 'ffs']
-	results.update({'ainess': compute_ainess(results, main_metrics, template_duration=analysis_interval[1] -
-	                                                                                  analysis_interval[0],
-	                                         template_resolution=parameter_set.kernel_pars.resolution,
-	                                         **parameter_set.analysis_pars)})
 
 	# ######################################################################################################################
 	# Save data

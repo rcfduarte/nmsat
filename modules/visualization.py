@@ -754,17 +754,18 @@ def scatter_variability(variable, ax):
 
 def plot_2d_parscans(image_arrays=[], axis=[], fig_handle=None, labels=[], cmap='jet', boundaries=[], **kwargs):
 	"""
+	Plots a list of arrays as images in the corresponding axis with the corresponding colorbar
 
 	:return:
 	"""
-	assert len(image_arrays) == len(axis), "Number of provided arrays mus match number of axes"
+	assert len(image_arrays) == len(axis), "Number of provided arrays must match number of axes"
 
 	origin = 'upper'
 	for idx, ax in enumerate(axis):
 		if not isinstance(ax, mpl.axes.Axes):
 			raise ValueError('ax must be matplotlib.axes.Axes instance.')
 		else:
-			plt1 = ax.imshow(image_arrays[idx], aspect='auto', interpolation='nearest', origin=origin, cmap=cmap)
+			plt1 = ax.imshow(image_arrays[idx], aspect='auto', origin=origin, cmap=cmap) #  interpolation='nearest',
 
 			if boundaries:
 				cont = ax.contour(image_arrays[idx], boundaries[idx], origin='lower', colors='k', linewidths=2)
@@ -884,9 +885,10 @@ def plot_w_out(w_out, label, display=True, save=False):
 	fit_data = w_out[np.argsort(model.row_labels_)]
 	fit_data = fit_data[:, np.argsort(model.column_labels_)]
 	ax1.matshow(fit_data, cmap=pl.cm.Blues, aspect='auto')
+	ax1.set_yticks(range(len(model.row_labels_)))
 	ax1.set_yticklabels(np.argsort(model.row_labels_))
-	ax1.set_ylabel("Neuron")
-	ax1.set_xlabel("Out")
+	ax1.set_ylabel("Out")
+	ax1.set_xlabel("Neuron")
 
 	if np.argmin(w_out.shape) == 0:
 		w_out = w_out.copy().T

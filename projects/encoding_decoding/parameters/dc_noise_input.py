@@ -11,8 +11,8 @@ dc_noise_input
 - debug with noise_driven_dynamics script
 """
 
-run = 'Blaustein'
-data_label = 'ED_dcnoise_input'
+run = 'local'
+data_label = 'ED_dcnoise_response_example2'
 
 
 def build_parameters(g, ro_in):
@@ -26,7 +26,7 @@ def build_parameters(g, ro_in):
 		walltime='01-00:00:00',
 		queue='defqueue',
 		transient_time=1000.,
-		sim_time=10000.)
+		sim_time=1000.)
 
 	kernel_pars = set_kernel_defaults(run_type=run, data_label=data_label, **system)
 	np.random.seed(kernel_pars['np_seed'])
@@ -72,7 +72,7 @@ def build_parameters(g, ro_in):
 
 	net_pars['record_analogs'] = [True, False]
 	multimeter = rec_device_defaults(device_type='multimeter')
-	multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 100})
+	multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1000})
 	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': ''}), {}]
 	# ##################################################################################################################
 	# Input Parameters
@@ -106,22 +106,6 @@ def build_parameters(g, ro_in):
 
 	encoding_pars = set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=0., **input_synapses)
 
-	# nu_x = 10.
-	# k_x = pEE * nE
-	# w_in = 1.
-	#
-	# background_noise = dict(
-	# 	start=0., stop=sys.float_info.max, origin=0.,
-	# 	rate=nu_x*k_x, target_population_names=['E', 'I'],
-	# 	additional_parameters={
-	# 		'syn_specs': {},
-	# 		'models': 'static_synapse',
-	# 		'model_pars': {},
-	# 		'weight_dist': {'distribution': 'normal_clipped', 'mu': w_in, 'sigma': 0.5*w_in, 'low': 0.0001,
-	# 		                'high': 10.*w_in},
-	# 		'delay_dist': 0.1})
-	# add_background_noise(encoding_pars, background_noise)
-
 	# ##################################################################################################################
 	# Extra analysis parameters (specific for this experiment)
 	# ==================================================================================================================
@@ -148,6 +132,6 @@ def build_parameters(g, ro_in):
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'g': np.arange(4, 25.5, 0.5),
-	'ro_in': np.arange(300., 1800., 100.)
+	'g': [15.],
+	'ro_in': [1500.]
 }
