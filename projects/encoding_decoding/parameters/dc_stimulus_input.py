@@ -8,7 +8,7 @@ dc_input
 - test dc_input stimulus processing
 """
 
-run = 'local'#''Blaustein'
+run = 'Jureca'
 data_label = 'ED_dcinput_training_parameters'
 
 
@@ -18,10 +18,10 @@ def build_parameters(lexicon_size, T):
 	# ######################################################################################################################
 	system = dict(
 		nodes=1,
-		ppn=16,
-		mem=32000,
+		ppn=24,
+		mem=48,
 		walltime='01-00:00:00',
-		queue='defqueue',
+		queue='batch',
 		transient_time=1000.,
 		sim_time=1000.)
 

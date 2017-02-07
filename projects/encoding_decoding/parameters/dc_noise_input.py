@@ -26,7 +26,7 @@ def build_parameters(g, ro_in):
 		walltime='01-00:00:00',
 		queue='defqueue',
 		transient_time=1000.,
-		sim_time=1000.)
+		sim_time=500.)
 
 	kernel_pars = set_kernel_defaults(run_type=run, data_label=data_label, **system)
 	np.random.seed(kernel_pars['np_seed'])

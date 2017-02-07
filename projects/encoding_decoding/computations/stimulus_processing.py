@@ -145,7 +145,7 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 		input_signal = inputs.transient_set_signal
 	enc_layer = EncodingLayer(parameter_set.encoding_pars, signal=input_signal, online=online)
 	enc_layer.connect(parameter_set.encoding_pars, net)
-	enc_layer.extract_connectivity(net)
+	enc_layer.extract_connectivity(net, sub_set=True, progress=True)
 
 	# ######################################################################################################################
 	# Set-up Analysis

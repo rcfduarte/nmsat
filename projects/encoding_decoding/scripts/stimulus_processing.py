@@ -37,6 +37,7 @@ params_file = '../parameters/spike_pattern_input.py'
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
 
+parameter_set.encoding_pars.encoder.N = 0 # avoid connecting the parrots..
 if not isinstance(parameter_set, ParameterSet):
 	if isinstance(parameter_set, basestring) or isinstance(parameter_set, dict):
 		parameter_set = ParameterSet(parameter_set)
@@ -152,7 +153,7 @@ else:
 	input_signal = inputs.transient_set_signal
 enc_layer = EncodingLayer(parameter_set.encoding_pars, signal=input_signal, online=online)
 enc_layer.connect(parameter_set.encoding_pars, net)
-enc_layer.extract_connectivity(net)
+enc_layer.extract_connectivity(net, sub_set=True, progress=True)
 
 # ######################################################################################################################
 # Set-up Analysis
