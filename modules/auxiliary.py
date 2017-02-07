@@ -29,8 +29,9 @@ import nest
 def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_signal_set, set_name, record=True,
                            store_activity=False):
 	"""
-	Run simulation sequentiallu, presenting one input stimulus at a time (if input is a discrete stimulus sequence),
+	Run simulation sequentially, presenting one input stimulus at a time (if input is a discrete stimulus sequence),
 	gathering the population responses in the DecodingLayers
+
 	:param net: Network object
 	:param enc_layer: EncodingLayer
 	:param sampling_times: parameter specifying how to sample the population state (either at the end of each
@@ -41,8 +42,6 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 	:param set_name: string with the name of the current set ('transient', 'unique', 'train', 'test')
 	:param record: [bool] - acquire and store state matrices (according to sampling_times and state characteristics)
 	:param store_activity: [bool] - record population activity for the entire simulation time (memory!)
-	:param jitter: if input is spike pattern, add jitter
-	:param average: [bool] - if True, state vector is average of subsampled activity vectors
 	"""
 	assert (isinstance(net, net_architect.Network)), "Please provide a Network object"
 	assert (isinstance(enc_layer, input_architect.EncodingLayer)), "Please provide an EncodingLayer object"
@@ -66,7 +65,7 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 	decoder_resolution = min(list(itertools.chain(*decoder_resolutions)))
 	time_correction_factor = encoder_delay + decoder_resolution
 	if decoder_resolution != encoder_delay:
-		print "To avoid errors in the delay compensation, it is advisable to set the ouput resolution to be the same " \
+		print "To avoid errors in the delay compensation, it is advisable to set the output resolution to be the same " \
 		      "as the encoder delays" # because the state resolution won't be enough to capture the time compensation..
 
 	# extract important parameters:
