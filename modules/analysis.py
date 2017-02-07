@@ -614,63 +614,63 @@ def mse(input_signal, target_signal):
 	return error.mean()
 
 
-def loss_01(input_signal, target_signal):
-	"""
-	(from Oger)
-	Returns the fraction of timesteps where input_signal is unequal to target_signal
-	:param input_signal: array
-	:param target_signal: array
-	:return: loss
-	"""
-	check_signal_dimensions(input_signal, target_signal)
-	return np.mean(np.any(input_signal != target_signal, 1))
+# def loss_01(input_signal, target_signal):
+# 	"""
+# 	(from Oger)
+# 	Returns the fraction of timesteps where input_signal is unequal to target_signal
+# 	:param input_signal: array
+# 	:param target_signal: array
+# 	:return: loss
+# 	"""
+# 	check_signal_dimensions(input_signal, target_signal)
+# 	return np.mean(np.any(input_signal != target_signal, 1))
 
 
-def cosine(input_signal, target_signal):
-	"""
-	(from Oger)
-	Compute cosine of the angle between two vectors. This error measure measures the extent to which two vectors
-	point in the same direction. A value of 1 means complete alignment, a value of 0 means the vectors are orthogonal.
-	:param input_signal: array
-	:param target_signal: array
-	:return: cos
-	"""
-	check_signal_dimensions(input_signal, target_signal)
-	return float(np.dot(input_signal, target_signal)) / (np.linalg.norm(input_signal) * np.linalg.norm(
-			target_signal))
+# def cosine(input_signal, target_signal):
+# 	"""
+# 	(from Oger)
+# 	Compute cosine of the angle between two vectors. This error measure measures the extent to which two vectors
+# 	point in the same direction. A value of 1 means complete alignment, a value of 0 means the vectors are orthogonal.
+# 	:param input_signal: array
+# 	:param target_signal: array
+# 	:return: cos
+# 	"""
+# 	check_signal_dimensions(input_signal, target_signal)
+# 	return float(np.dot(input_signal, target_signal)) / (np.linalg.norm(input_signal) * np.linalg.norm(
+# 			target_signal))
 
 
-def ce(input_signal, target_signal):
-	"""
-	(from Oger)
-	Compute cross-entropy loss function. Returns the negative log-likelyhood of the target_signal labels as predicted by
-	the input_signal values.
-	:param input_signal: array
-	:param target_signal: array
-	:return:
-	"""
-	check_signal_dimensions(input_signal, target_signal)
-
-	if np.rank(target_signal)>1 and target_signal.shape[1] > 1:
-		error = np.sum(-np.log(input_signal[target_signal == 1]))
-
-		if np.isnan(error):
-			inp = input_signal[target_signal == 1]
-			inp[inp == 0] = float(np.finfo(input_signal.dtype).tiny)
-			error = -np.sum(np.log(inp))
-	else:
-		error = -np.sum(np.log(input_signal[target_signal == 1]))
-		error -= np.sum(np.log(1 - input_signal[target_signal == 0]))
-
-		if np.isnan(error):
-			inp = input_signal[target_signal == 1]
-			inp[inp == 0] = float(np.finfo(input_signal.dtype).tiny)
-			error = -np.sum(np.log(inp))
-			inp = 1 - input_signal[target_signal == 0]
-			inp[inp == 0] = float(np.finfo(input_signal.dtype).tiny)
-			error -= np.sum(np.log(inp))
-
-	return error
+# def ce(input_signal, target_signal):
+# 	"""
+# 	(from Oger)
+# 	Compute cross-entropy loss function. Returns the negative log-likelyhood of the target_signal labels as predicted by
+# 	the input_signal values.
+# 	:param input_signal: array
+# 	:param target_signal: array
+# 	:return:
+# 	"""
+# 	check_signal_dimensions(input_signal, target_signal)
+#
+# 	if np.rank(target_signal)>1 and target_signal.shape[1] > 1:
+# 		error = np.sum(-np.log(input_signal[target_signal == 1]))
+#
+# 		if np.isnan(error):
+# 			inp = input_signal[target_signal == 1]
+# 			inp[inp == 0] = float(np.finfo(input_signal.dtype).tiny)
+# 			error = -np.sum(np.log(inp))
+# 	else:
+# 		error = -np.sum(np.log(input_signal[target_signal == 1]))
+# 		error -= np.sum(np.log(1 - input_signal[target_signal == 0]))
+#
+# 		if np.isnan(error):
+# 			inp = input_signal[target_signal == 1]
+# 			inp[inp == 0] = float(np.finfo(input_signal.dtype).tiny)
+# 			error = -np.sum(np.log(inp))
+# 			inp = 1 - input_signal[target_signal == 0]
+# 			inp[inp == 0] = float(np.finfo(input_signal.dtype).tiny)
+# 			error -= np.sum(np.log(inp))
+#
+# 	return error
 
 
 def compute_isi_stats_new(spike_list, depth=1, display=True):
@@ -993,7 +993,7 @@ def compute_synchrony(spike_list, n_pairs=500, bin=1., tau=20., time_resolved=Fa
 			results['SPIKE_sync_matrix'] 		= spk.spike_sync_matrix(spike_trains)
 			results['ISI_distance'] 			= spk.isi_distance(spike_trains)
 			results['SPIKE_distance'] 			= spk.spike_distance(spike_trains)
-			results['SPIKE_sync'] 				= spk.spike_sync(spike_trains)
+			results['SPIKE_sync_distance'] 		= spk.spike_sync(spike_trains)
 	if display:
 		print "Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3)))
 	return results
@@ -1284,12 +1284,12 @@ def characterize_population_activity_new(population_object, parameter_set, analy
 		print "# TODO give a WARNING / ERROR here, the network is not spiking..."
 		pass
 
-	########################################################################################################
-	# AIness
-	if population_object.spiking_activity and ap.stats.ainess is not None:
-		ainess_result = compute_ainess_new(results, prng=prng, template_resolution=parameter_set.kernel_pars.resolution,
-										   template_duration=analysis_interval[0] - analysis_interval[1],
-										   analysis_pars=analysis_pars)
+	# ########################################################################################################
+	# # AIness
+	# if population_object.spiking_activity and ap.stats.ainess is not None:
+	# 	ainess_result = compute_ainess_new(results, prng=prng, template_resolution=parameter_set.kernel_pars.resolution,
+	# 									   template_duration=analysis_interval[0] - analysis_interval[1],
+	# 									   analysis_pars=analysis_pars)
 
 	########################################################################################################
 	# Analog activity analysis
@@ -1311,65 +1311,64 @@ def characterize_population_activity_new(population_object, parameter_set, analy
 										  display=ap.meta.display, save=ap.meta.save_path)
 	return results
 
-def compute_ainess_new(results, pop=None, prng=None, template_duration=10000., template_resolution=0.1,
-					   analysis_pars=None):
-	"""
-	:return:
-	"""
-	ap = analysis_pars
-
-	# TODO remove this requirement and adapt the function to deal with the case when no sub-populations are analyzed!
-	if ap.depth < 3:
-		print ("AIness currently requires an analysis depth of minimum 3 (for the analysis of subpopulations)."
-			   "Returning None.")
-		return None
-
-	if isinstance(ap.stats.ainess, basestring):
-		raise TypeError('AIness parameter must be a list!')
-
-	result 	= {}
-	keys 	= ap.stats.ainess
-	if pop is not None:
-		results = {'metadata': results['metadata'], 'spiking_activity': {pop: results['spiking_activity'][pop]}}
-
-	for population in results['spiking_activity'].keys():
-		if population in results['metadata']['sub_population_names']:
-			pop_idx = results['metadata']['sub_population_names'].index(population)
-			neurons = results['metadata']['sub_population_gids'][pop_idx]
-		else:
-			neurons = list(itertools.chain(*results['metadata']['sub_population_gids']))
-		rate = results['spiking_activity'][population]['mean_rates'][0]
-
-		# retrieve vector of results from population
-		result_vector = extract_results_vector(results['spiking_activity'][population], keys)
-
-		# generate Poisson template with same rate, number of spiking neurons and resolution
-		template = ips.generate_template(len(neurons), rate, duration=template_duration+2000.,
-		                                 resolution=template_resolution, rng=prng,
-		                                 store=False).time_slice(1000., template_duration+1000.)
-
-		template_measurements = compute_spikelist_metrics_new(template, 'template', time_bin=ap.numerics.time_bin,
-															  n_pairs=ap.numerics.n_pairs, tau=ap.numerics.tau,
-														  	  depth=ap.depth, time_resolved=ap.stats.time_resolved)
-
-		# retrieve vector of results from template
-		result_template = extract_results_vector(template_measurements['template'], keys)
-
-		while np.isnan(result_template).any():
-			idx = np.where(np.isnan(result_template))[0][0]
-			print("Removing key {0}".format(str(keys[idx])))
-			result_vector = np.delete(result_vector, idx)
-			result_template = np.delete(result_template, idx)
-
-		# compute distance
-		ai_ness = cosine(result_vector, result_template)
-		print("\nPopulation {0} AIness = {1}".format(str(population), str(ai_ness)))
-
-		# store
-		result.update({population: ai_ness})
-
-	return result
-
+# def compute_ainess_new(results, pop=None, prng=None, template_duration=10000., template_resolution=0.1,
+# 					   analysis_pars=None):
+# 	"""
+# 	:return:
+# 	"""
+# 	ap = analysis_pars
+#
+# 	# TODO remove this requirement and adapt the function to deal with the case when no sub-populations are analyzed!
+# 	if ap.depth < 3:
+# 		print ("AIness currently requires an analysis depth of minimum 3 (for the analysis of subpopulations)."
+# 			   "Returning None.")
+# 		return None
+#
+# 	if isinstance(ap.stats.ainess, basestring):
+# 		raise TypeError('AIness parameter must be a list!')
+#
+# 	result 	= {}
+# 	keys 	= ap.stats.ainess
+# 	if pop is not None:
+# 		results = {'metadata': results['metadata'], 'spiking_activity': {pop: results['spiking_activity'][pop]}}
+#
+# 	for population in results['spiking_activity'].keys():
+# 		if population in results['metadata']['sub_population_names']:
+# 			pop_idx = results['metadata']['sub_population_names'].index(population)
+# 			neurons = results['metadata']['sub_population_gids'][pop_idx]
+# 		else:
+# 			neurons = list(itertools.chain(*results['metadata']['sub_population_gids']))
+# 		rate = results['spiking_activity'][population]['mean_rates'][0]
+#
+# 		# retrieve vector of results from population
+# 		result_vector = extract_results_vector(results['spiking_activity'][population], keys)
+#
+# 		# generate Poisson template with same rate, number of spiking neurons and resolution
+# 		template = ips.generate_template(len(neurons), rate, duration=template_duration+2000.,
+# 		                                 resolution=template_resolution, rng=prng,
+# 		                                 store=False).time_slice(1000., template_duration+1000.)
+#
+# 		template_measurements = compute_spikelist_metrics_new(template, 'template', time_bin=ap.numerics.time_bin,
+# 															  n_pairs=ap.numerics.n_pairs, tau=ap.numerics.tau,
+# 														  	  depth=ap.depth, time_resolved=ap.stats.time_resolved)
+#
+# 		# retrieve vector of results from template
+# 		result_template = extract_results_vector(template_measurements['template'], keys)
+#
+# 		while np.isnan(result_template).any():
+# 			idx = np.where(np.isnan(result_template))[0][0]
+# 			print("Removing key {0}".format(str(keys[idx])))
+# 			result_vector = np.delete(result_vector, idx)
+# 			result_template = np.delete(result_template, idx)
+#
+# 		# compute distance
+# 		ai_ness = cosine(result_vector, result_template)
+# 		print("\nPopulation {0} AIness = {1}".format(str(population), str(ai_ness)))
+#
+# 		# store
+# 		result.update({population: ai_ness})
+#
+# 	return result
 
 
 def characterize_population_activity(population_object, parameter_set, analysis_interval, epochs=None,
@@ -1497,91 +1496,102 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 	return results
 
 
-def extract_results_vector(results_dict, keys):
-	"""
-	Retrieves an ordered vector whose entries correspond to the provided dictionary keys
-	:param results_dict: low-level dictionary
-	:param keys: list
-	:return:
-	"""
-	# reduce(getitem, keys, results_dict)
-	valid_keys = [k for k in keys if k in results_dict.keys()]
-	# assert(all([k in results_dict.keys() for k in keys])), "Key `{0}`not in dictionary".format(k)
-	out = np.empty((len(valid_keys)))
-	for idx, k in enumerate(valid_keys):
-		if isinstance(results_dict[k], tuple):
-			out[idx] = results_dict[k][0]
-		elif isinstance(results_dict[k], list) or isinstance(results_dict[k], np.ndarray):
-			out[idx] = np.mean(results_dict[k])
-		else:
-			out[idx] = results_dict[k]
-	return out
+# def extract_results_vector(results_dict, keys):
+# 	"""
+# 	Retrieves an ordered vector whose entries correspond to the provided dictionary keys
+# 	:param results_dict: low-level dictionary
+# 	:param keys: list
+# 	:return:
+# 	"""
+# 	# reduce(getitem, keys, results_dict)
+# 	valid_keys = [k for k in keys if k in results_dict.keys()]
+# 	# assert(all([k in results_dict.keys() for k in keys])), "Key `{0}`not in dictionary".format(k)
+# 	out_mean = np.empty((len(valid_keys)))
+# 	out_var = np.empty((len(valid_keys)))
+# 	for idx, k in enumerate(valid_keys):
+# 		if isinstance(results_dict[k], tuple):
+# 			out_mean[idx] = results_dict[k][0]
+# 			out_var[idx] = results_dict[k][0]
+# 		elif isinstance(results_dict[k], list) or isinstance(results_dict[k], np.ndarray):
+# 			out_mean[idx] = np.mean(results_dict[k])
+# 			out_var[idx] = np.var(results_dict[k])
+# 		else:
+# 			out_mean[idx] = results_dict[k]
+# 			out_var[idx] = 0.
+# 	return out_mean, out_var
 
 
-def compute_ainess(results, keys, pop=None, template_duration=10000., template_resolution=0.1, prng=None,
-                   **analysis_parameters):
-	"""
-	Determine the level of asynchronous, irregular population activity as the normalized Euclidean distance between
-	the results obtained for keys and those obtained for a Poisson process, with the same mean rate
-
-	:param results: results dictionary
-	:param keys:
-	:param pop: None (analyses all results) or str with the name of population to analyse
-	:param template_duration:
-	:param template_resolution:
-	:param prng: numpy.random object for reproducing experiments
-	:return:
-	"""
-	result = {}
-	if pop is not None:
-		results = {'metadata': results['metadata'], 'spiking_activity': {pop: results['spiking_activity'][pop]}}
-
-	for population in results['spiking_activity'].keys():
-
-		if 'sub_population_names' in results['metadata'].keys():
-			if population in results['metadata']['sub_population_names']:
-				pop_idx = results['metadata']['sub_population_names'].index(population)
-				neurons = results['metadata']['sub_population_gids'][pop_idx]
-			else:
-				neurons = list(itertools.chain(*results['metadata']['sub_population_gids']))
-		else:
-			neurons = results['metadata']['spike_list'].id_list
-		rate = results['spiking_activity'][population]['mean_rates'][0]
-
-		# retrieve vector of results from population
-		result_vector = extract_results_vector(results['spiking_activity'][population], keys)
-
-		# generate Poisson template with same rate, number of spiking neurons and resolution
-		template = ips.generate_template(len(neurons), rate, duration=template_duration+2000.,
-		                                 resolution=template_resolution, rng=prng,
-		                                 store=False).time_slice(1000., template_duration+1000.)
-
-		analysis_pars = {k: v for k, v in analysis_parameters.items() if k in ['time_bin', 'n_pairs', 'tau',
-		                                                                       'summary_only', 'complete',
-		                                                                       'time_resolved']}
-		template_measurements = compute_spikelist_metrics(template, 'template', **analysis_pars)
-
-		# retrieve vector of results from template
-		result_template = extract_results_vector(template_measurements['template'], keys)
-
-		while np.isnan(result_template).any():
-			idx = np.where(np.isnan(result_template))[0][0]
-			print("Removing key {0}".format(str(keys[idx])))
-			result_vector = np.delete(result_vector, idx)
-			result_template = np.delete(result_template, idx)
-
-		# compute distance - use various metrics to test...
-		test_distances = ['cosine', 'euclidean', 'manhattan', 'mahalanobis', 'seuclidean', 'minkowski']
-		result.update({population: {}})
-
-		for metric in test_distances:
-			try:
-				result[population].update({
-					metric: pairwise_distances(result_vector.reshape(1, -1), result_template.reshape(1, -1),
-					                           metric=metric, n_jobs=-1)[0][0]})
-			except:
-				continue
-	return result
+# def compute_ainess(results, keys, pop=None, template_duration=10000., template_resolution=0.1, prng=None,
+#                    **analysis_parameters):
+# 	"""
+# 	Determine the level of asynchronous, irregular population activity as the normalized Euclidean distance between
+# 	the results obtained for keys and those obtained for a Poisson process, with the same mean rate
+#
+# 	:param results: results dictionary
+# 	:param keys:
+# 	:param pop: None (analyses all results) or str with the name of population to analyse
+# 	:param template_duration:
+# 	:param template_resolution:
+# 	:param prng: numpy.random object for reproducing experiments
+# 	:return:
+# 	"""
+# 	result = {}
+# 	if pop is not None:
+# 		results = {'metadata': results['metadata'], 'spiking_activity': {pop: results['spiking_activity'][pop]}}
+#
+# 	for population in results['spiking_activity'].keys():
+#
+# 		if 'sub_population_names' in results['metadata'].keys():
+# 			if population in results['metadata']['sub_population_names']:
+# 				pop_idx = results['metadata']['sub_population_names'].index(population)
+# 				neurons = results['metadata']['sub_population_gids'][pop_idx]
+# 			else:
+# 				neurons = list(itertools.chain(*results['metadata']['sub_population_gids']))
+# 		else:
+# 			neurons = results['metadata']['spike_list'].id_list
+# 		rate = results['spiking_activity'][population]['mean_rates'][0]
+#
+# 		# retrieve vector of results from population
+# 		result_vector, result_variance = extract_results_vector(results['spiking_activity'][population], keys)
+#
+# 		# generate Poisson template with same rate, number of spiking neurons and resolution
+# 		template = ips.generate_template(len(neurons), rate, duration=template_duration+2000.,
+# 		                                 resolution=template_resolution, rng=prng,
+# 		                                 store=False).time_slice(1000., template_duration+1000.)
+#
+# 		analysis_pars = {k: v for k, v in analysis_parameters.items() if k in ['time_bin', 'n_pairs', 'tau',
+# 		                                                                       'summary_only', 'complete',
+# 		                                                                       'time_resolved']}
+# 		template_measurements = compute_spikelist_metrics(template, 'template', **analysis_pars)
+#
+# 		# retrieve vector of results from template
+# 		result_template, _ = extract_results_vector(template_measurements['template'], keys)
+#
+# 		weights = result_variance
+# 		while np.isnan(result_template).any():
+# 			idx = np.where(np.isnan(result_template))[0][0]
+# 			print("Removing key {0}".format(str(keys[idx])))
+# 			result_vector = np.delete(result_vector, idx)
+# 			result_template = np.delete(result_template, idx)
+# 			weights = np.delete(weights, idx)
+#
+# 		# compute distance - use various metrics to test...
+# 		test_distances = ['cosine', 'euclidean', 'seuclidean']
+# 		result.update({population: {}})
+#
+# 		for metric in test_distances:
+# 			try:
+# 				if metric == 'seuclidean':
+# 					result[population].update({
+# 						metric: pairwise_distances(result_vector.reshape(1, -1), result_template.reshape(1, -1),
+# 						                           metric=metric, n_jobs=-1, V=weights)[0][0]})
+# 				else:
+# 					result[population].update({
+# 						metric: pairwise_distances(result_vector.reshape(1, -1), result_template.reshape(1, -1),
+# 						                           metric=metric, n_jobs=-1)[0][0]})
+# 			except:
+# 				continue
+# 	return result
 
 
 def epoch_based_analysis(population_object, epochs):
@@ -3603,8 +3613,8 @@ class DecodingLayer(object):
 					"No connections to {0} extractor".format(
 					self.state_variables[idx])
 
-				net_to_decneurons = net_architect.extract_delays_matrix(src_gids=self.source_population.gids,
-				                                                        tgets_gids=tget_gids, progress=True)
+				net_to_decneurons = net_architect.extract_delays_matrix(src_gids=self.source_population.gids[:10],
+				                                                        tgets_gids=tget_gids, progress=False)
 				net_to_decneurons_delay = np.unique(np.array(net_to_decneurons[net_to_decneurons.nonzero()].todense()))
 				assert (len(net_to_decneurons_delay) == 1), "Heterogeneous delays in decoding layer are not supported.."
 

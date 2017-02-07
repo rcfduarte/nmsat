@@ -4,8 +4,9 @@ from modules.input_architect import EncodingLayer, StimulusSet, InputSignalSet
 from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
-from modules.visualization import set_global_rcParams, InputPlots, extract_encoder_connectivity, TopologyPlots
-from modules.analysis import analyse_state_matrix, get_state_rank, readout_train, readout_test
+from modules.visualization import set_global_rcParams, InputPlots
+from modules.analysis import compute_dimensionality, analyse_state_matrix, get_state_rank, readout_train, \
+	readout_test, characterize_population_activity
 from modules.auxiliary import iterate_input_sequence
 import cPickle as pickle
 import matplotlib.pyplot as pl
@@ -21,9 +22,9 @@ from stimulus_generator import StimulusPattern
 # ######################################################################################################################
 # Experiment options
 # ======================================================================================================================
-plot = True
+plot = False
 display = True
-save = False
+save = True
 debug = False
 online = True
 
@@ -31,6 +32,7 @@ online = True
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
 params_file = '../parameters/dc_stimulus_input.py'
+# params_file = '../parameters/spike_stimulus_input.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -49,7 +51,7 @@ if plot:
 paths = set_storage_locations(parameter_set, save)
 
 np.random.seed(parameter_set.kernel_pars['np_seed'])
-results = dict(rank={}, performance={})
+results = dict(rank={}, performance={}, dimensionality={})
 
 # ######################################################################################################################
 # Set kernel and simulation parameters
@@ -172,8 +174,8 @@ net.connect_populations(parameter_set.connection_pars)
 # ======================================================================================================================
 set_name = 'transient'
 if not empty(stim_set.transient_set_labels):
-	iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name=set_name, record=True,
-	                       store_activity=False)
+	epochs_transient = iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name=set_name,
+	                                     record=True, store_activity=False)
 	for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
 		if n_pop.decoding_layer is not None:
 			n_pop.decoding_layer.flush_states()
@@ -183,8 +185,8 @@ if not empty(stim_set.transient_set_labels):
 # ======================================================================================================================
 if hasattr(stim_set, "unique_set"):
 	set_name = 'unique'
-	iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name=set_name, record=True,
-	                       store_activity=False)
+	epochs_unique = iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name=set_name,
+	                                     record=True, store_activity=False)
 
 	# compute ranks
 	for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
@@ -197,7 +199,7 @@ if hasattr(stim_set, "unique_set"):
 				state_matrix = dec_layer.state_matrix[idx_var]
 
 				if not empty(labels) and not empty(state_matrix):
-					print "Population {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
+					print "\nPopulation {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
 					                                                          str(state_matrix.shape))
 					results['rank'][n_pop.name].update({var + str(idx_var): get_state_rank(state_matrix)})
 
@@ -212,11 +214,11 @@ if hasattr(stim_set, "unique_set"):
 # Simulate (Train Set)
 # ======================================================================================================================
 set_name = 'train'
-iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name=set_name, record=True,
+epochs_train = iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name=set_name, record=True,
                        store_activity=False)
 
 accept_idx = np.where(np.array(stim_pattern.Output['Accepted']) == 'A')[0]
-print accept_idx
+# print accept_idx
 
 # train readouts
 for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
@@ -235,7 +237,7 @@ for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc
 			readouts = dec_layer.readouts[idx_var]
 			state_matrix = dec_layer.state_matrix[idx_var]
 			if not empty(labels) and not empty(state_matrix):
-				print "Population {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
+				print "\nPopulation {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
 				                                                          str(state_matrix.shape))
 				for readout in readouts:
 					readout_train(readout, state_matrix, target=target, index=None, accepted=train_idx,
@@ -251,13 +253,44 @@ for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc
 # Simulate (Test Set)
 # ======================================================================================================================
 set_name = 'test'
-iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name=set_name, record=True,
-                       store_activity=False)
+epochs_test = iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name=set_name, record=True,
+                       store_activity=parameter_set.analysis_pars.store_activity)
 
-# test readouts
+# characterize population activity
+if parameter_set.analysis_pars.store_activity:
+	start_analysis = time.time()
+	analysis_interval = [epochs_test['analysis_start'], nest.GetKernelStatus()['time']]
+	results.update(characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
+	                                                color_map='jet', plot=plot,
+	                                                display=display, save=paths['figures']+paths['label'],
+	                                                **parameter_set.analysis_pars.population_state))
+	print "\nElapsed time (state characterization): {0}".format(str(time.time() - start_analysis))
+
+	if not empty(results['analog_activity']) and 'mean_I_ex' in results['analog_activity']['E'].keys():
+		inh = np.array(results['analog_activity']['E']['mean_I_in'])
+		exc = np.array(results['analog_activity']['E']['mean_I_ex'])
+		ei_ratios = np.abs(np.abs(inh) - np.abs(exc))
+		ei_ratios_corrected = np.abs(np.abs(inh - np.mean(inh)) - np.abs(exc - np.mean(exc)))
+		print "EI amplitude difference: {0} +- {1}".format(str(np.mean(ei_ratios)), str(np.std(ei_ratios)))
+		print "EI amplitude difference (amplitude corrected): {0} +- {1}".format(str(np.mean(ei_ratios_corrected)),
+		                                                                         str(np.std(ei_ratios_corrected)))
+		results['analog_activity']['E']['IE_ratio'] = np.mean(ei_ratios)
+		results['analog_activity']['E']['IE_ratio_corrected'] = np.mean(ei_ratios_corrected)
+
+# test readouts and analyse state matrix
 for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
 	if n_pop.decoding_layer is not None:
 		dec_layer = n_pop.decoding_layer
+		results['performance'].update({n_pop.name: {}})
+		results['dimensionality'].update({n_pop.name: {}})
+		if parameter_set.analysis_pars.store_activity:
+			if isinstance(parameter_set.analysis_pars.store_activity, int) and \
+					parameter_set.analysis_pars.store_activity <= parameter_set.stim_pars.test_set_length:
+				dec_layer.sampled_times = dec_layer.sampled_times[-parameter_set.analysis_pars.store_activity:]
+			else:
+				dec_layer.sampled_times = dec_layer.sampled_times[-parameter_set.stim_pars.test_set_length:]
+			dec_layer.evaluate_decoding(n_neurons=10, display=display, save=paths['figures'] + paths['label'])
+
 		labels = getattr(target_set, "{0}_set_labels".format(set_name))
 		target = np.array(getattr(target_set, "{0}_set".format(set_name)).todense())
 
@@ -268,12 +301,15 @@ for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc
 				test_idx.append(idx - start_t)
 
 		for idx_var, var in enumerate(dec_layer.state_variables):
-			results['performance'].update({n_pop.name: {var + str(idx_var): {}}})
+			results['performance'][n_pop.name].update({var + str(idx_var): {}})
 			readouts = dec_layer.readouts[idx_var]
 			state_matrix = dec_layer.state_matrix[idx_var]
+
 			if not empty(labels) and not empty(state_matrix):
-				print "Population {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
+				print "\nPopulation {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
 				                                                          str(state_matrix.shape))
+				results['dimensionality'][n_pop.name].update({var + str(idx_var): compute_dimensionality(
+					state_matrix)})
 				for readout in readouts:
 					results['performance'][n_pop.name][var + str(idx_var)].update({readout.name: readout_test(readout,
 					                                state_matrix, target=target, index=None, accepted=test_idx,
