@@ -27,6 +27,8 @@ noise_driven_dynamics
 """
 import sys
 import numpy as np
+from copy_reg import pickle
+
 import parameters as prs
 import input_architect as ips
 import visualization
@@ -47,6 +49,7 @@ import scipy.integrate as integ
 import sklearn.decomposition as sk
 import sklearn.linear_model as lm
 import sklearn.svm as svm
+from modules.visualization import ActivityIllustrator
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import GridSearchCV
 import sklearn.metrics as met
@@ -920,6 +923,7 @@ def compute_synchrony_new(spike_list, n_pairs=500, time_bin=1., tau=20., time_re
 		results['ccs_pearson'] 	= spike_list.pairwise_pearson_corrcoeff(n_pairs, time_bin=time_bin, all_coef=False)
 		ccs 					= spike_list.pairwise_cc(n_pairs, time_bin=time_bin)
 		results['ccs'] 			= (np.mean(ccs), np.var(ccs))
+
 		if depth >= 3:
 			results['d_vp'] = spike_list.distance_victorpurpura(n_pairs, cost=0.5)
 			results['d_vr'] = np.mean(spike_list.distance_van_rossum(tau=tau))
@@ -930,16 +934,17 @@ def compute_synchrony_new(spike_list, n_pairs=500, time_bin=1., tau=20., time_re
 	else:
 		results['ccs_pearson'] 	= spike_list.pairwise_pearson_corrcoeff(n_pairs, time_bin=time_bin, all_coef=True)
 		results['ccs'] 			= spike_list.pairwise_cc(n_pairs, time_bin=time_bin)
-		results['d_vp'] 		= spike_list.distance_victorpurpura(n_pairs, cost=0.5)
-		results['d_vr'] 		= spike_list.distance_van_rossum(tau=tau)
-		if has_pyspike:
-			results['ISI_distance_matrix'] 		= spk.isi_distance_matrix(spike_trains)
-			results['SPIKE_distance_matrix'] 	= spk.spike_distance_matrix(spike_trains)
-			results['SPIKE_sync_matrix'] 		= spk.spike_sync_matrix(spike_trains)
-			results['ISI_distance'] 			= spk.isi_distance(spike_trains)
-			results['SPIKE_distance'] 			= spk.spike_distance(spike_trains)
-			# @barni this was changed from SPIKE_sync to SPIKE_sync_distance, in accordance with the above code
-			results['SPIKE_sync_distance']		= spk.spike_sync(spike_trains)
+
+		if depth >= 3:
+			results['d_vp'] 		= spike_list.distance_victorpurpura(n_pairs, cost=0.5)
+			results['d_vr'] 		= spike_list.distance_van_rossum(tau=tau)
+			if has_pyspike:
+				results['ISI_distance_matrix'] 		= spk.isi_distance_matrix(spike_trains)
+				results['SPIKE_distance_matrix'] 	= spk.spike_distance_matrix(spike_trains)
+				results['SPIKE_sync_matrix'] 		= spk.spike_sync_matrix(spike_trains)
+				results['ISI_distance'] 			= spk.isi_distance(spike_trains)
+				results['SPIKE_distance'] 			= spk.spike_distance(spike_trains)
+				results['SPIKE_sync_distance']		= spk.spike_sync(spike_trains)
 
 	if display:
 		print "Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3)))
@@ -1229,6 +1234,10 @@ def characterize_population_activity_new(population_object, parameter_set, analy
 		assert isinstance(spike_list, sg.SpikeList), "Spiking activity should be SpikeList object"
 		spike_list = spike_list.time_slice(analysis_interval[0], analysis_interval[1])
 
+		ai = ActivityIllustrator(spike_list, populations=population_object, ids=gids, vm_list=[])
+		# ai.animate_activity(time_window=100, save=True)
+		print ("gonna animate raster plot... @done")
+
 		results['spiking_activity'].update(compute_spikelist_metrics_new(spike_list, population_object.name,
 		                                        time_bin=ap.numerics.time_bin, n_pairs=ap.numerics.n_pairs,
 												tau=ap.numerics.tau, depth=ap.depth,
@@ -1361,12 +1370,19 @@ def characterize_population_activity_new(population_object, parameter_set, analy
 # 			result_vector = np.delete(result_vector, idx)
 # 			result_template = np.delete(result_template, idx)
 #
-# 		# compute distance
-# 		ai_ness = cosine(result_vector, result_template)
-# 		print("\nPopulation {0} AIness = {1}".format(str(population), str(ai_ness)))
 #
-# 		# store
-# 		result.update({population: ai_ness})
+# 		# compute distance - use various metrics to test...
+# 		test_distances = ['cosine', 'euclidean', 'manhattan', 'mahalanobis', 'seuclidean', 'minkowski']
+# 		result.update({population: {}})
+#
+# 		for metric in test_distances:
+# 			try:
+# 				result[population].update({
+# 					metric: pairwise_distances(result_vector.reshape(1, -1), result_template.reshape(1, -1),
+# 					                           metric=metric, n_jobs=-1)})
+# 				print("\nPopulation {0} AIness for metric {1} = {2}".format(str(population), metric, str(result[population][metric])))
+# 			except:
+# 				continue
 #
 # 	return result
 
@@ -3613,8 +3629,8 @@ class DecodingLayer(object):
 					"No connections to {0} extractor".format(
 					self.state_variables[idx])
 
-				net_to_decneurons = net_architect.extract_delays_matrix(src_gids=self.source_population.gids[:10],
-				                                                        tgets_gids=tget_gids, progress=False)
+				net_to_decneurons = net_architect.extract_delays_matrix(src_gids=self.source_population.gids,
+				                                                        tgets_gids=tget_gids, progress=True)
 				net_to_decneurons_delay = np.unique(np.array(net_to_decneurons[net_to_decneurons.nonzero()].todense()))
 				assert (len(net_to_decneurons_delay) == 1), "Heterogeneous delays in decoding layer are not supported.."
 
