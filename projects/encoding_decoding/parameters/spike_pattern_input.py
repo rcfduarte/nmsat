@@ -88,7 +88,7 @@ def build_parameters(lexicon_size, T):
 	# lexicon_size = 4
 	n_distractors = 0  # (if applicable)
 	# T = 10
-	T_discard = 2  # number of elements to discard (>=1, for some weird reasons..)
+	T_discard = 10  # number of elements to discard (>=1, for some weird reasons..)
 
 	random_dt = False  # if True, dt becomes maximum distance (?)
 	dt = 3  # delay (if applicable)
