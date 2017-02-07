@@ -1,3 +1,4 @@
+__author__ = 'duarte'
 from modules.parameters import ParameterSpace, copy_dict
 from modules.signals import empty
 from modules.visualization import *
@@ -6,20 +7,20 @@ from defaults.paths import paths
 import matplotlib.pyplot as pl
 
 """
-noise_driven_dynamics_singletrial
+noise_driven_dynamics_trialaverage
 - read and plot data recorded from noise_driven_dynamics experiment with 2 parameters (2d ParameterSpace)
-- one trial per condition
+- multiple trials per condition, results show the average across trials
 - data stored with summary_only=True (only the means are read out here)
 """
 
 # data parameters
 project = 'encoding_decoding'
-data_type = 'SpikeNoise'  # 'SpikeNoise'
-trial = 0
+data_type = 'SpikeNoise' # 'SpikeNoise'
+trials = 3
 population_of_interest = 'E'  # results are provided for only one population (choose Global to get the totals)
 data_path = '/home/neuro/Desktop/MANUSCRIPTS/in_preparation/Encoding_Decoding/data/noise_driven_dynamics' \
             '/{0}Input/'.format(data_type)
-data_label = 'ED_{0}Input_ParSpace_trial{1}'.format(data_type, str(trial))
+data_label = 'ED_{0}Input_ParSpace_trial0'.format(data_type)  # read trial0 to extract data structure
 
 # set defaults and paths
 set_project_paths(project)
@@ -51,47 +52,68 @@ expected_values = {'activity': {'ffs': 1., 'mean_rates': 5.},
                   'synchrony': {'ISI_distance': 0.5, 'SPIKE_distance': 0.3, 'SPIKE_sync_distance': 0.25},
                   'analogs': {'EI_CC': -1., 'IE_ratio': 0.}}
 
-for x_value in pars.parameter_axes['xticks']:
-	for y_value in pars.parameter_axes['yticks']:
-		label = data_label + '_' + pars.parameter_axes['xlabel'] + '={0}_'.format(str(x_value)) + \
-		        pars.parameter_axes['ylabel'] + '={0}'.format(str(y_value))
-		idx = np.where(results[0] == label)
-		d = results[1][idx][0]
-		print label, idx
+mean_results = copy_dict(results_arrays)
 
-		if d is not None and bool(d['spiking_activity']):
-			metrics = d['spiking_activity'][population_of_interest].keys()
-			for x in results_arrays['activity'].keys():
-				if x in metrics:
-					if not empty(d['spiking_activity'][population_of_interest][x]):
-						if not isinstance(d['spiking_activity'][population_of_interest][x], float):
-							results_arrays['activity'][x][idx] = d['spiking_activity'][population_of_interest][x][0]
-						else:
-							results_arrays['activity'][x][idx] = d['spiking_activity'][population_of_interest][x]
+all_results = []
+for trial in range(trials):
+	data_label = 'ED_{0}Input_ParSpace_trial{1}'.format(data_type, str(trial))
+	pars_file = data_path + data_label + '_ParameterSpace.py'
+	pars = ParameterSpace(pars_file)
+	results = pars.harvest(data_path + data_label + '/')
 
-			for x in results_arrays['regularity'].keys():
-				if x in metrics:
-					if not empty(d['spiking_activity'][population_of_interest][x]):
-						if not isinstance(d['spiking_activity'][population_of_interest][x], float):
-							results_arrays['regularity'][x][idx] = d['spiking_activity'][
-								population_of_interest][x][0]
-						else:
-							results_arrays['regularity'][x][idx] = d['spiking_activity'][population_of_interest][x]
+	trial_results = copy_dict(results_arrays)
 
-			for x in results_arrays['synchrony'].keys():
-				if x in metrics:
-					if not empty(d['spiking_activity'][population_of_interest][x]):
-						if not isinstance(d['spiking_activity'][population_of_interest][x], float):
-							results_arrays['synchrony'][x][idx] = d['spiking_activity'][population_of_interest][x][0]
-						else:
-							results_arrays['synchrony'][x][idx] = d['spiking_activity'][population_of_interest][x]
+	for x_value in pars.parameter_axes['xticks']:
+		for y_value in pars.parameter_axes['yticks']:
+			label = data_label + '_' + pars.parameter_axes['xlabel'] + '={0}_'.format(str(x_value)) + \
+			        pars.parameter_axes['ylabel'] + '={0}'.format(str(y_value))
+			idx = np.where(results[0] == label)
+			d = results[1][idx][0]
+			print label, idx
 
-		if d is not None and bool(d['analog_activity']) and population_of_interest in d['analog_activity'].keys():
+			if d is not None and bool(d['spiking_activity']):
+				metrics = d['spiking_activity'][population_of_interest].keys()
+				for x in trial_results['activity'].keys():
+					if x in metrics:
+						if not empty(d['spiking_activity'][population_of_interest][x]):
+							if not isinstance(d['spiking_activity'][population_of_interest][x], float):
+								trial_results['activity'][x][idx] = d['spiking_activity'][population_of_interest][
+									x][0]
+							else:
+								trial_results['activity'][x][idx] = d['spiking_activity'][population_of_interest][x]
+
+				for x in trial_results['regularity'].keys():
+					if x in metrics:
+						if not empty(d['spiking_activity'][population_of_interest][x]):
+							if not isinstance(d['spiking_activity'][population_of_interest][x], float):
+								trial_results['regularity'][x][idx] = d['spiking_activity'][
+									population_of_interest][x][0]
+							else:
+								trial_results['regularity'][x][idx] = d['spiking_activity'][population_of_interest][x]
+
+				for x in trial_results['synchrony'].keys():
+					if x in metrics:
+						if not empty(d['spiking_activity'][population_of_interest][x]):
+							if not isinstance(d['spiking_activity'][population_of_interest][x], float):
+								trial_results['synchrony'][x][idx] = d['spiking_activity'][population_of_interest][x][
+									0]
+							else:
+								trial_results['synchrony'][x][idx] = d['spiking_activity'][population_of_interest][x]
+
+			if d is not None and bool(d['analog_activity']) and population_of_interest in d['analog_activity'].keys():
 				metrics = d['analog_activity'][population_of_interest].keys()
-				for x in results_arrays['analogs'].keys():
+				for x in trial_results['analogs'].keys():
 					if x in metrics:
 						if not empty(d['analog_activity'][population_of_interest][x]):
-							results_arrays['analogs'][x][idx] = np.mean(d['analog_activity'][population_of_interest][x])
+							trial_results['analogs'][x][idx] = np.mean(d['analog_activity'][population_of_interest][x])
+
+	all_results.append(trial_results)
+
+# average results
+for k, v in mean_results.items():
+	for k1, v1 in v.items():
+		arrays = [f[k][k1] for f in all_results]
+		mean_results[k][k1] = np.mean(np.array(arrays), 0)
 
 ########################################################################################################################
 # Plot
@@ -113,14 +135,14 @@ ax16 = fig1.add_subplot(246)
 ax17 = fig1.add_subplot(247)
 ax18 = fig1.add_subplot(248)
 
-image_arrays = [x.astype(float) for x in results_arrays['regularity'].values()]
+image_arrays = [x.astype(float) for x in mean_results['regularity'].values()]
 boundaries = []
-for x in results_arrays['regularity'].keys():
+for x in mean_results['regularity'].keys():
 	if x in expected_values['regularity'].keys():
 		boundaries.append([expected_values['regularity'][x]])
 	else:
 		boundaries.append([None])
-labels = [r'$'+x+'$' for x in results_arrays['regularity'].keys()]
+labels = [r'$'+x+'$' for x in mean_results['regularity'].keys()]
 plot_2d_parscans(image_arrays=image_arrays, axis=[ax11, ax12, ax13, ax14, ax15, ax16, ax17, ax18],
                  fig_handle=fig1, labels=labels, cmap='jet', boundaries=boundaries, **pl_props)
 
@@ -134,14 +156,14 @@ ax25 = fig2.add_subplot(245)
 ax26 = fig2.add_subplot(246)
 ax27 = fig2.add_subplot(247)
 
-image_arrays = [x.astype(float) for x in results_arrays['synchrony'].values()]
+image_arrays = [x.astype(float) for x in mean_results['synchrony'].values()]
 boundaries = []
-for x in results_arrays['synchrony'].keys():
+for x in mean_results['synchrony'].keys():
 	if x in expected_values['synchrony'].keys():
 		boundaries.append([expected_values['synchrony'][x]])
 	else:
 		boundaries.append([None])
-labels = [r'$'+x+'$' for x in results_arrays['synchrony'].keys()]
+labels = [r'$'+x+'$' for x in mean_results['synchrony'].keys()]
 plot_2d_parscans(image_arrays=image_arrays, axis=[ax21, ax22, ax23, ax24, ax25, ax26, ax27],#, ax18],
                  fig_handle=fig2, labels=labels, cmap='jet', boundaries=boundaries, **pl_props)
 
@@ -149,14 +171,14 @@ fig3 = pl.figure()
 fig3.suptitle('Activity metrics')
 ax31 = fig3.add_subplot(121)
 ax32 = fig3.add_subplot(122)
-image_arrays = [x.astype(float) for x in results_arrays['activity'].values()]
+image_arrays = [x.astype(float) for x in mean_results['activity'].values()]
 boundaries = []
-for x in results_arrays['activity'].keys():
+for x in mean_results['activity'].keys():
 	if x in expected_values['activity'].keys():
 		boundaries.append([expected_values['activity'][x]])
 	else:
 		boundaries.append([None])
-labels = [r'$'+x+'$' for x in results_arrays['activity'].keys()]
+labels = [r'$'+x+'$' for x in mean_results['activity'].keys()]
 plot_2d_parscans(image_arrays=image_arrays, axis=[ax31, ax32],
                  fig_handle=fig3, labels=labels, cmap='jet', boundaries=boundaries, **pl_props)
 
@@ -171,9 +193,9 @@ ax45 = fig4.add_subplot(235)
 use_keys = ['mean_V_m', 'mean_I_ex', 'mean_I_in', 'IE_ratio', 'EI_CC']
 labels = ['$\langle V_{m} \rangle$', '$\langle I_{E} \rangle$', '$\langle I_{I} \rangle$',
           '$\langle I_{I}-I_{E} \rangle$', '$CC_{EI}$']
-image_arrays = [x.astype(float) for k, x in results_arrays['analogs'].items() if k in use_keys]
+image_arrays = [x.astype(float) for k, x in mean_results['analogs'].items() if k in use_keys]
 boundaries = []
-for x in results_arrays['analogs'].keys():
+for x in mean_results['analogs'].keys():
 	if x in expected_values['analogs'].keys():
 		boundaries.append([expected_values['analogs'][x]])
 	else:
@@ -194,7 +216,7 @@ for k, v in expected_values.items():
 	summary_result = np.zeros_like(results[0])
 	labels.append(k)
 	for idx, _ in np.ndenumerate(np.zeros_like(results[0])):
-		result_vector = [results_arrays[k][k1][idx] for k1, v1 in v.items()]
+		result_vector = [mean_results[k][k1][idx] for k1, v1 in v.items()]
 		target_vector = [v1 for k1, v1 in v.items()]
 		dist = [((x - target_vector[idd])**2) for idd, x in enumerate(result_vector)]
 		summary_result[idx] = np.mean(dist)

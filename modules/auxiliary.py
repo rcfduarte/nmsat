@@ -96,7 +96,13 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 	if not record:
 		print("\n!!! No population activity will be stored !!!")
 	if store_activity:
-		print("\n\n!!! All responses will be stored !!!")
+		if isinstance(store_activity, int):
+			store = False
+		else:
+			store = True
+		print("\n\n!!! Responses will be stored !!!")
+	else:
+		store = store_activity
 
 	####################################################################################################################
 	if sampling_times is None:  # one sample for each stimulus (acquired at the last time point of each stimulus)
@@ -146,10 +152,14 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 					net.merge_population_activity(start=stimulus_onset + encoder_delay, stop=state_sample_time,
 					                              save=True)
 				# sample population activity
+				if isinstance(store_activity, int) and set_size-idx == store_activity:
+						store = True
+						t0 = nest.GetKernelStatus()['time']
+						epochs.update({'analysis_start': t0})
 				if record:
-					extract_state_vectors(net, enc_layer, state_sample_time, store_activity)
+					extract_state_vectors(net, enc_layer, state_sample_time, store)
 
-		compile_results(net, enc_layer, t0, time_correction_factor, record, store_activity)
+		compile_results(net, enc_layer, t0, time_correction_factor, record, store)
 
 	####################################################################################################################
 	elif (sampling_times is not None) and (isinstance(sub_sampling_times, list) or isinstance(sub_sampling_times, np.ndarray)):  # multiple
@@ -507,8 +517,7 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 	else:
 		raise NotImplementedError("Specify sampling times as None (last step sample), list or array of times, or float")
 
-	if store_activity:
-		return epochs
+	return epochs
 
 
 def retrieve_data_set(set_name, stimulus_set, input_signal_set):

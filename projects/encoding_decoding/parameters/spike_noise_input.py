@@ -11,8 +11,8 @@ spike_noise_input
 - debug with noise_driven_dynamics script
 """
 
-run = 'Blaustein'
-data_label = 'ED_spike_noise_input'
+run = 'local'
+data_label = 'ED_spikenoise_response_example1'
 
 
 def build_parameters(g, nu_x):
@@ -26,7 +26,7 @@ def build_parameters(g, nu_x):
 		walltime='01-00:00:00',
 		queue='defqueue',
 		transient_time=1000.,
-		sim_time=10000.)
+		sim_time=500.)
 
 	kernel_pars = set_kernel_defaults(run_type=run, data_label=data_label, **system)
 	np.random.seed(kernel_pars['np_seed'])
@@ -72,7 +72,7 @@ def build_parameters(g, nu_x):
 
 	net_pars['record_analogs'] = [True, False]
 	multimeter = rec_device_defaults(device_type='multimeter')
-	multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 100})
+	multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1})
 	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': ''}), {}]
 	# ######################################################################################################################
 	# Encoding Parameters
@@ -94,23 +94,6 @@ def build_parameters(g, nu_x):
 			                'high': 10.*w_in},
 			'delay_dist': 0.1})
 	add_background_noise(encoding_pars, background_noise)
-
-	# nu_x = 12.
-	# k_x = pEE * nE
-	# w_in = 1.
-	#
-	# background_noise2 = dict(
-	# 	start=0., stop=sys.float_info.max, origin=0.,
-	# 	rate=nu_x*k_x, target_population_names=['E', 'I'],
-	# 	generator_label='background',
-	# 	additional_parameters={
-	# 		'syn_specs': {},
-	# 		'models': 'static_synapse',
-	# 		'model_pars': {},
-	# 		'weight_dist': {'distribution': 'normal_clipped', 'mu': w_in, 'sigma': 0.5*w_in, 'low': 0.0001,
-	# 		                'high': 10.*w_in},
-	# 		'delay_dist': 0.1})
-	# add_background_noise(encoding_pars, background_noise2)
 
 	# ##################################################################################################################
 	# Extra analysis parameters (specific for this experiment)
@@ -137,6 +120,6 @@ def build_parameters(g, nu_x):
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'g': np.arange(4., 25.5, 0.2),
-	'nu_x': np.arange(2, 21, 1)
+	'g': [23.],
+	'nu_x': [10.]
 }
