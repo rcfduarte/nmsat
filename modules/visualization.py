@@ -1076,7 +1076,7 @@ class SpikePlots(object):
 				tt1 = self.spikelist.time_slice(self.start, self.stop).id_slice(list(ids))
 				times = tt1.raw_data()[:, 0]
 				neurons = tt1.raw_data()[:, 1]
-				ax.plot(times, neurons, '.', color=colors[n])
+				ax1.plot(times, neurons, '.', color=colors[n])
 
 		# set axis range here, it might still be overwritten below
 		ax1.set(ylim=[min(self.spikelist.id_list), max(self.spikelist.id_list)], xlim=[self.start, self.stop])
