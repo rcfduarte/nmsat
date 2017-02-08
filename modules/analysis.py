@@ -49,7 +49,7 @@ import scipy.integrate as integ
 import sklearn.decomposition as sk
 import sklearn.linear_model as lm
 import sklearn.svm as svm
-from modules.visualization import ActivityIllustrator
+from modules.visualization import ActivityAnimator
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import GridSearchCV
 import sklearn.metrics as met
@@ -738,7 +738,6 @@ def compute_isi_stats(spike_list, summary_only=False, display=True):
 		t_start = time.time()
 	results = dict()
 
-	# TODO make it nicer: compute everything anyway, and if summary_only=True then do a mean and var on the results
 	if not summary_only:
 		results['isi'] 		= np.array(list(itertools.chain(*spike_list.isi())))
 		results['cvs'] 		= spike_list.cv_isi(float_only=True)
@@ -1234,7 +1233,7 @@ def characterize_population_activity_new(population_object, parameter_set, analy
 		assert isinstance(spike_list, sg.SpikeList), "Spiking activity should be SpikeList object"
 		spike_list = spike_list.time_slice(analysis_interval[0], analysis_interval[1])
 
-		ai = ActivityIllustrator(spike_list, populations=population_object, ids=gids, vm_list=[])
+		ai = ActivityAnimator(spike_list, populations=population_object, ids=gids, vm_list=[])
 		# ai.animate_activity(time_window=100, save=True)
 		print ("gonna animate raster plot... @done")
 
@@ -1390,7 +1389,8 @@ def characterize_population_activity_new(population_object, parameter_set, analy
 def characterize_population_activity(population_object, parameter_set, analysis_interval, epochs=None,
 									 time_bin=1., n_pairs=500, tau=20., window_len=100,
 									 color_map='jet', summary_only=False, complete=True, time_resolved=True,
-									 plot=True, display=True, save=False, prng=None, label="global"):
+									 plot=True, display=True, save=False, prng=None, label="global",
+									 color_subpop=False):
 	"""
 	Compute all the relevant metrics of recorded activity (spiking and analog signals), providing
 	a thorough characterization and quantification of population dynamics
@@ -1465,9 +1465,11 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 		if plot:
 			results['metadata']['spike_list'] = spike_list
 
-		if gids and complete:
+		if color_subpop:
 			results['metadata'].update({'sub_population_names': subpop_names, 'sub_population_gids': gids,
-										'spike_data_file': ''})
+									'spike_data_file': ''})
+
+		if gids and complete:
 			if len(gids) == 2:
 				locations = [-1, 1]
 			else:
@@ -1507,8 +1509,8 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 				results['analog_activity'][pop.name].update(compute_analog_stats(pop, parameter_set, variable_names,
 				                                                                 analysis_interval, plot))
 	if plot:
-		visualization.plot_state_analysis(parameter_set, results, summary_only, start=analysis_interval[0], stop=analysis_interval[1],
-		                    display=display, save=save)
+		visualization.plot_state_analysis(parameter_set, results, summary_only, start=analysis_interval[0],
+										  stop=analysis_interval[1], display=display, save=save)
 	return results
 
 
@@ -2684,10 +2686,6 @@ def evaluate_encoding(enc_layer, parameter_set, analysis_interval, input_signal,
 				inp_responses = n_enc.decoding_layer.extract_activity(start=analysis_interval[0],
 				                                                      stop=analysis_interval[1], save=False,
 				                                                      reset=False)[0]
-				# TODO remove, debug only
-				inp_responses_tmp = inp_spikes.filter_spiketrains(dt=input_signal.dt,
-															  tau=tau, start=analysis_interval[0],
-															  stop=analysis_interval[1], N=n_input_neurons)
 				inp_readout_pars = prs.copy_dict(n_enc.decoding_layer.decoding_pars.readout[0])
 			else:
 				# TEST!!

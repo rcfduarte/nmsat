@@ -446,7 +446,7 @@ def plot_state_analysis(parameter_set, results, summary_only=False, start=None, 
 			                         results=results['spiking_activity'][results['metadata']['population_name']])
 		plot_props = {'xlabel': 'Time [ms]', 'ylabel': 'Neuron', 'color': 'b', 'linewidth': 1.0,
 		              'linestyle': '-'}
-		if len(pop_names) > 1:
+		if len(pop_names) > 1 or 'sub_population_names' in results['metadata'].keys():
 			gids = results['metadata']['sub_population_gids']
 			rp.dot_display(gids=gids, colors=colors[:len(gids)], ax=[ax1, ax2], with_rate=True, display=False,
 			               save=False, **plot_props)
@@ -1082,10 +1082,17 @@ class SpikePlots(object):
 		ax1.set(ylim=[min(self.spikelist.id_list), max(self.spikelist.id_list)], xlim=[self.start, self.stop])
 
 		if with_rate:
-			time = tt.time_axis(dt)[:-1]
-			rate = tt.firing_rate(dt, average=True)
-			ax2.plot(time, rate, **pl_props)
-			ax2.set(ylim=[min(rate)-1, max(rate)+1], xlim=[self.start, self.stop])
+			global_rate = tt.firing_rate(dt, average=True)
+			if gids is None:
+				time = tt.time_axis(dt)[:-1]
+				ax2.plot(time, global_rate, **pl_props)
+			else:
+				for n, ids in enumerate(gids):
+					tt1 = self.spikelist.time_slice(self.start, self.stop).id_slice(list(ids))
+					time = tt1.time_axis(dt)[:-1]
+					rate = tt1.firing_rate(dt, average=True)
+					ax2.plot(time, rate, color=colors[n], linewidth=1.0)
+			ax2.set(ylim=[min(global_rate) - 1, max(global_rate) + 1], xlim=[self.start, self.stop])
 		else:
 			ax1.set(**ax_props)
 
