@@ -8,7 +8,7 @@ dc_input
 - test dc_input stimulus processing
 """
 
-run = 'Jureca'
+run = 'local'
 data_label = 'ED_dcinput_training_parameters'
 
 
@@ -227,6 +227,6 @@ def build_parameters(lexicon_size, T):
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'lexicon_size': np.arange(10, 510, 10),
-	'T': [10, 100, 1000, 10000]
+	'lexicon_size': [20],
+	'T': [100]
 }

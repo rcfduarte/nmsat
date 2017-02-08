@@ -224,8 +224,10 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 
 			train_idx = []
 			for idx in accept_idx:
-				if idx >= parameter_set.stim_pars.transient_set_length and idx <= parameter_set.stim_pars.train_set_length:
+				stop = parameter_set.stim_pars.train_set_length + parameter_set.stim_pars.transient_set_length
+				if idx >= parameter_set.stim_pars.transient_set_length and idx < stop:
 					train_idx.append(idx - parameter_set.stim_pars.transient_set_length)
+			assert (len(train_idx) == target.shape[1]), "Incorrect train labels"
 			# print train_idx
 
 			for idx_var, var in enumerate(dec_layer.state_variables):
@@ -237,7 +239,6 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 					for readout in readouts:
 						readout_train(readout, state_matrix, target=target, index=None, accepted=train_idx,
 						              display=display, plot=plot, save=paths['figures'] + paths['label'])
-					# TODO store norm_wOut
 					if save:
 						np.save(
 							paths['activity'] + paths['label'] + '_population{0}_state{1}_{2}.npy'.format(n_pop.name,
@@ -299,6 +300,7 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 			for idx in accept_idx:
 				if idx >= start_t:
 					test_idx.append(idx - start_t)
+			assert (len(test_idx) == target.shape[1]), "Incorrect test labels"
 
 			for idx_var, var in enumerate(dec_layer.state_variables):
 				results['performance'][n_pop.name].update({var + str(idx_var): {}})
@@ -315,6 +317,8 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 							{readout.name: readout_test(readout,
 							                            state_matrix, target=target, index=None, accepted=test_idx,
 							                            display=display)})
+						results['performance'][n_pop.name][var + str(idx_var)][readout.name].update({'norm_wOut':
+							                                                                             readout.norm_wout})
 					if save:
 						np.save(
 							paths['activity'] + paths['label'] + '_population{0}_state{1}_{2}.npy'.format(n_pop.name,

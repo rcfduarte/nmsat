@@ -462,7 +462,7 @@ def plot_state_analysis(parameter_set, results, summary_only=False, start=None, 
 			ax21 = pl.subplot2grid((9, 14), loc=(0, 0), rowspan=4, colspan=4)
 			ax22 = pl.subplot2grid((9, 14), loc=(0, 5), rowspan=4, colspan=4)
 			ax23 = pl.subplot2grid((9, 14), loc=(0, 10), rowspan=4, colspan=4)
-			ax24 = pl.subplot2grid((9, 14), loc=(5, 3), rowspan=4, colspan=4)
+			ax24 = pl.subplot2grcid((9, 14), loc=(5, 3), rowspan=4, colspan=4)
 			ax25 = pl.subplot2grid((9, 14), loc=(5, 8), rowspan=4, colspan=4)
 
 			for indice, name in enumerate(pop_names):
@@ -1010,7 +1010,6 @@ class SpikePlots(object):
 		if N is None:
 			self.N = len(self.spikelist.id_list)
 
-
 	def dot_display(self, gids=None, colors=None, with_rate=True, dt=1.0, display=True, ax=None, fig=None, save=False,
 					**kwargs):
 		"""
@@ -1052,6 +1051,7 @@ class SpikePlots(object):
 				ax2 = ax[1]
 			else:
 				ax1 = ax
+		print ax1
 
 		if 'suptitle' in kwargs and fig is not None:
 			fig.suptitle(kwargs['suptitle'])
@@ -1076,11 +1076,7 @@ class SpikePlots(object):
 				tt1 = self.spikelist.time_slice(self.start, self.stop).id_slice(list(ids))
 				times = tt1.raw_data()[:, 0]
 				neurons = tt1.raw_data()[:, 1]
-				ax.plot(times, neurons, '.', color=colors[n])
-
-		# set axis range here, it might still be overwritten below
-		ax1.set(ylim=[min(self.spikelist.id_list), max(self.spikelist.id_list)], xlim=[self.start, self.stop])
-
+				ax1.plot(times, neurons, '.', color=colors[n])
 		if with_rate:
 			time = tt.time_axis(dt)[:-1]
 			rate = tt.firing_rate(dt, average=True)
@@ -1088,7 +1084,7 @@ class SpikePlots(object):
 			ax2.set(ylim=[min(rate)-1, max(rate)+1], xlim=[self.start, self.stop])
 		else:
 			ax1.set(**ax_props)
-
+			ax.set(ylim=[min(self.spikelist.id_list), max(self.spikelist.id_list)], xlim=[self.start, self.stop])
 		if save:
 			assert isinstance(save, str), "Please provide filename"
 			pl.savefig(save)
@@ -2074,7 +2070,6 @@ class ActivityIllustrator(object):
 		self.vm_list 		= vm_list
 		self.populations 	= populations
 		self.ids 			= ids
-
 
 	def __anim_frame_raster(self, ax=None, start=None, stop=None, colors=['b'], shift_only=False, ax_props={}):
 		"""
