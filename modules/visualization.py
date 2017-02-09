@@ -1010,7 +1010,6 @@ class SpikePlots(object):
 		if N is None:
 			self.N = len(self.spikelist.id_list)
 
-
 	def dot_display(self, gids=None, colors=None, with_rate=True, dt=1.0, display=True, ax=None, fig=None, save=False,
 					**kwargs):
 		"""
@@ -1095,7 +1094,7 @@ class SpikePlots(object):
 			ax2.set(ylim=[min(global_rate) - 1, max(global_rate) + 1], xlim=[self.start, self.stop])
 		else:
 			ax1.set(**ax_props)
-
+			ax.set(ylim=[min(self.spikelist.id_list), max(self.spikelist.id_list)], xlim=[self.start, self.stop])
 		if save:
 			assert isinstance(save, str), "Please provide filename"
 			pl.savefig(save)
@@ -2081,7 +2080,6 @@ class ActivityAnimator(object):
 		self.vm_list 		= vm_list
 		self.populations 	= populations
 		self.ids 			= ids
-
 
 	def __anim_frame_raster(self, ax=None, start=None, stop=None, colors=['b'], shift_only=False, ax_props={}):
 		"""

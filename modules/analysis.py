@@ -3213,7 +3213,7 @@ class Readout(object):
 			binary_output, output_labels, binary_target, target_labels = self.parse_outputs(output, target,
 			                                                    dimensions=n_out, set_size=test_steps,
 			                                                    method=comparison_function)
-
+		# print binary_output.todense(), output_labels
 		# initialize results dictionary - raw takes the direct readout output, max the binarized output and label the
 		#  labels of each step
 		performance = {'raw': {}, 'max': {}, 'label': {}}
@@ -3232,20 +3232,7 @@ class Readout(object):
 			# Max performance measures
 			performance['max']['MSE'] = met.mean_squared_error(binary_target, binary_output)
 			performance['max']['MAE'] = met.mean_absolute_error(binary_target, binary_output)
-			performance['max']['performance'] = 1. - np.mean(binary_target - binary_output)
-
-			# if len(target_labels) == len(output_labels): No idea what this is for???
-			# 	if len(target_labels.shape) > 1:
-			# 		target_labels = np.array(target_labels)[0]
-			# 	else:
-			# 		target_labels = np.array(target_labels)
-			# 	if len(output_labels.shape) > 1:
-			# 		output_labels = np.array(output_labels)[0]
-			# 	else:
-			# 		output_labels = np.array(output_labels)
-			# else:
-			# 	target_labels = np.array(target_labels)[0]
-			# 	output_labels = np.array(output_labels)
+			# performance['max']['performance'] = 1. - np.mean(np.abs(binary_target - binary_output))
 
 			performance['label']['performance'] = met.accuracy_score(target_labels, output_labels)
 			performance['label']['hamm_loss'] 	= met.hamming_loss(target_labels, output_labels)
@@ -3257,9 +3244,8 @@ class Readout(object):
 			performance['label']['jaccard'] 	= met.jaccard_similarity_score(target_labels, output_labels)
 			performance['label']['class_support'] = met.precision_recall_fscore_support(target_labels, output_labels)
 
-			print "Readout {0} Performance: \n  - Max = {1} \n  - Labels = {2}".format(str(self.name),
-																				 str(performance['max']['performance']),
-																				 str(performance['label']['performance']))
+			print "Readout {0} Performance: \n  - Labels = {1}".format(str(self.name), str(performance['label'][
+				'performance']))
 			if display:
 				print met.classification_report(target_labels, output_labels)
 
@@ -3661,8 +3647,8 @@ class DecodingLayer(object):
 					"No connections to {0} extractor".format(
 					self.state_variables[idx])
 
-				net_to_decneurons = net_architect.extract_delays_matrix(src_gids=self.source_population.gids,
-				                                                        tgets_gids=tget_gids, progress=True)
+				net_to_decneurons = net_architect.extract_delays_matrix(src_gids=self.source_population.gids[:10],
+				                                                        tgets_gids=tget_gids, progress=False)
 				net_to_decneurons_delay = np.unique(np.array(net_to_decneurons[net_to_decneurons.nonzero()].todense()))
 				assert (len(net_to_decneurons_delay) == 1), "Heterogeneous delays in decoding layer are not supported.."
 

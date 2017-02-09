@@ -9,7 +9,7 @@ dc_input
 """
 
 run = 'local'
-data_label = 'ED_dcinput_training_parameters'
+data_label = 'ED_spikepatterninput_training_parameters'
 
 
 def build_parameters(lexicon_size, T):
@@ -19,9 +19,9 @@ def build_parameters(lexicon_size, T):
 	system = dict(
 		nodes=1,
 		ppn=24,
-		mem=48,
+		mem=48000,
 		walltime='01-00:00:00',
-		queue='batch',
+		queue='defqueue',
 		transient_time=1000.,
 		sim_time=1000.)
 
@@ -44,7 +44,7 @@ def build_parameters(lexicon_size, T):
 	pII = 0.2
 
 	# connection weights
-	g = 15.
+	g = 11.
 	wE = 1.2
 	wI = -g * wE
 
@@ -117,7 +117,7 @@ def build_parameters(lexicon_size, T):
 	# Input Parameters
 	# ######################################################################################################################
 	inp_resolution = 0.1
-	inp_amplitude = 1500.
+	inp_amplitude = 14.
 	inp_duration = 200.
 	inter_stim_interval = 0.
 
@@ -144,6 +144,10 @@ def build_parameters(lexicon_size, T):
 	# ######################################################################################################################
 	# Encoding Parameters
 	# ######################################################################################################################
+	n_afferents = int(nE)  # number of stimulus-specific afferents (if necessary)
+	n_stim = lexicon_size  # number of different input stimuli
+
+	# wIn structure
 	gamma_in = pEE
 	r = 0.5
 	w_in = 1.
@@ -162,19 +166,20 @@ def build_parameters(lexicon_size, T):
 			{'distribution': 'normal_clipped', 'mu': w_in, 'sigma': 0.5 * w_in, 'low': 0.0001, 'high': 10. * w_in}],
 		delay_dist=[0.1, 0.1],
 		preset_W=[None, None],
-		gen_to_enc_W=None)
+		gen_to_enc_W=None,
+		jitter=None)
 
-	encoding_pars = set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=0.,
+	encoding_pars = set_encoding_defaults(default_set=4, input_dimensions=n_stim, n_encoding_neurons=n_afferents,
 	                                      **input_synapses)
-
+	add_parrots(encoding_pars, n_afferents, decode=True, **{}) # encoder parrots are necessary
 	# ##################################################################################################################
 	# Decoding / Readout Parameters
 	# ##################################################################################################################
 	out_resolution = 0.1
 	filter_tau = 20.  # time constant of exponential filter (applied to spike trains)
 	state_sampling = None  # 1.(cannot start at 0)
-	readout_labels = ['ridge_classifier', 'pinv_classifier']
-	readout_algorithms = ['ridge', 'pinv']
+	readout_labels = ['pinv_classifier']
+	readout_algorithms = ['pinv']
 
 	decoders = dict(
 		decoded_population=[['E', 'I']],
@@ -190,6 +195,20 @@ def build_parameters(lexicon_size, T):
 
 	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)
 
+	## Set decoders for input population (if applicable)
+	input_decoder = dict(
+		state_variable=['spikes'],
+		filter_time=filter_tau,
+		readouts=readout_labels,
+		readout_algorithms=readout_algorithms,
+		output_resolution=out_resolution,
+		sampling_times=state_sampling,
+		reset_states=[True],
+		average_states=[True],
+		standardize=[False]
+	)
+
+	encoding_pars = add_input_decoders(encoding_pars, input_decoder, kernel_pars)
 	# ##################################################################################################################
 	# Extra analysis parameters (specific for this experiment)
 	# ==================================================================================================================
@@ -227,6 +246,6 @@ def build_parameters(lexicon_size, T):
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'lexicon_size': [20],
-	'T': [100]
+	'lexicon_size': [200],
+	'T': [20000]
 }

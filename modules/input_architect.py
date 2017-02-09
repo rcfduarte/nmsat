@@ -2593,7 +2593,7 @@ class EncodingLayer:
 
 		################################################################################
 		if online:
-			if hasattr(initializer, 'encoder'):
+			if hasattr(initializer, 'encoder') and initializer.encoder.N:
 				self.encoders, self.encoder_names = create_encoders(initializer.encoder)
 			if hasattr(initializer, 'generator') and signal is not None:
 				self.generators, self.generator_names = create_generators(initializer,
@@ -2639,6 +2639,9 @@ class EncodingLayer:
 			tget_name = nn[0]
 			#print "    - %s [%s]" % (nn, conn_pars.models[idx])
 			# determine the type of the connecting populations and their parameters
+			if (src_name in encoding_pars.encoder.labels) or (tget_name in encoding_pars.encoder.labels) and \
+					not encoding_pars.encoder.N:
+				continue
 			if hasattr(encoding_pars, 'encoder') and (src_name in encoding_pars.encoder.labels):
 				src_type = 'encoder'
 				src_id = encoding_pars.encoder.labels.index(src_name)
@@ -3260,11 +3263,17 @@ class EncodingLayer:
 		for n_gen in self.generators:
 			n_gen.update_state(signal)
 
-	def extract_connectivity(self, net, progress=False):
+	def extract_connectivity(self, net, sub_set=False, progress=False):
 		"""
 		Extract encoding layer connections
 		"""
-		if len(np.unique(self.connection_types)) == 1:
+		if sub_set:
+			tgets = list(signals.iterate_obj_list([list(signals.iterate_obj_list(n.gids)) for n in
+			                                       net.populations]))[:10]
+			srces = list(itertools.chain(*[n.gids for n in self.generators][0]))[:10]
+			self.extract_synaptic_weights(srces, tgets, syn_name='Gen_Net', progress=progress)
+			self.extract_synaptic_delays(srces, tgets, syn_name='Gen_Net', progress=progress)
+		elif len(np.unique(self.connection_types)) == 1:
 			tgets = list(signals.iterate_obj_list([list(signals.iterate_obj_list(n.gids)) for n in net.populations]))
 			srces = list(itertools.chain(*[n.gids for n in self.generators][0]))
 			self.extract_synaptic_weights(srces, tgets, syn_name='Gen_Net', progress=progress)

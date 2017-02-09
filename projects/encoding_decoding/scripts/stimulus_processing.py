@@ -31,12 +31,13 @@ online = True
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/dc_stimulus_input.py'
-# params_file = '../parameters/spike_stimulus_input.py'
+# params_file = '../parameters/dc_stimulus_input.py'
+params_file = '../parameters/spike_pattern_input.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
 
+# parameter_set.encoding_pars.encoder.N = 0 # avoid connecting the parrots..
 if not isinstance(parameter_set, ParameterSet):
 	if isinstance(parameter_set, basestring) or isinstance(parameter_set, dict):
 		parameter_set = ParameterSet(parameter_set)
@@ -152,7 +153,7 @@ else:
 	input_signal = inputs.transient_set_signal
 enc_layer = EncodingLayer(parameter_set.encoding_pars, signal=input_signal, online=online)
 enc_layer.connect(parameter_set.encoding_pars, net)
-enc_layer.extract_connectivity(net)
+enc_layer.extract_connectivity(net, sub_set=True, progress=True)
 
 # ######################################################################################################################
 # Set-up Analysis
@@ -229,8 +230,10 @@ for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc
 
 		train_idx = []
 		for idx in accept_idx:
-			if idx >= parameter_set.stim_pars.transient_set_length and idx <= parameter_set.stim_pars.train_set_length:
+			stop =  parameter_set.stim_pars.train_set_length +  parameter_set.stim_pars.transient_set_length
+			if idx >= parameter_set.stim_pars.transient_set_length and idx < stop:
 				train_idx.append(idx - parameter_set.stim_pars.transient_set_length)
+		assert (len(train_idx) == target.shape[1]), "Incorrect train labels"
 		# print train_idx
 
 		for idx_var, var in enumerate(dec_layer.state_variables):
@@ -242,7 +245,6 @@ for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc
 				for readout in readouts:
 					readout_train(readout, state_matrix, target=target, index=None, accepted=train_idx,
 					              display=display, plot=plot, save=paths['figures']+paths['label'])
-					# TODO store norm_wOut
 				if save:
 					np.save(paths['activity']+paths['label']+'_population{0}_state{1}_{2}.npy'.format(n_pop.name,
 					                                                    var, set_name), state_matrix)
@@ -259,7 +261,8 @@ epochs_test = iterate_input_sequence(net, enc_layer, parameter_set, stim_set, in
 # characterize population activity
 if parameter_set.analysis_pars.store_activity:
 	start_analysis = time.time()
-	analysis_interval = [epochs_test['analysis_start'], nest.GetKernelStatus()['time']]
+	analysis_interval = [epochs_test['analysis_start'], nest.GetKernelStatus()['time'] - nest.GetKernelStatus()[
+		'resolution']]
 	results.update(characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
 	                                                color_map='jet', plot=plot,
 	                                                display=display, save=paths['figures']+paths['label'],
@@ -299,6 +302,7 @@ for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc
 		for idx in accept_idx:
 			if idx >= start_t:
 				test_idx.append(idx - start_t)
+		assert (len(test_idx) == target.shape[1]), "Incorrect test labels"
 
 		for idx_var, var in enumerate(dec_layer.state_variables):
 			results['performance'][n_pop.name].update({var + str(idx_var): {}})
@@ -314,6 +318,8 @@ for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc
 					results['performance'][n_pop.name][var + str(idx_var)].update({readout.name: readout_test(readout,
 					                                state_matrix, target=target, index=None, accepted=test_idx,
 					                                display=display)})
+					results['performance'][n_pop.name][var + str(idx_var)][readout.name].update({'norm_wOut':
+						                                                                             readout.norm_wout})
 				if save:
 					np.save(paths['activity']+paths['label']+'_population{0}_state{1}_{2}.npy'.format(n_pop.name,
 					                                                    var, set_name), state_matrix)

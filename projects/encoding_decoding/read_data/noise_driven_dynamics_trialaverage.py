@@ -47,8 +47,8 @@ results_arrays = {'activity': {'mean_rates': np.zeros_like(results[0]), 'ffs': n
                            'std_V_m': np.zeros_like(results[0]), 'mean_I_ex': np.zeros_like(results[0]),
                            'std_I_ex': np.zeros_like(results[0]), 'mean_I_in': np.zeros_like(results[0]),
                            'std_I_in': np.zeros_like(results[0]), 'IE_ratio': np.zeros_like(results[0])}}
-expected_values = {'activity': {'ffs': 1., 'mean_rates': 5.},
-                  'regularity': {'cvs': 1., 'lvs': 1., 'cvs_log': 0.25},
+expected_values = {'activity': {'mean_rates': 5.},
+                  'regularity': {'lvs': 1., 'cvs': 1.}, # 'cvs': 1.,
                   'synchrony': {'ISI_distance': 0.5, 'SPIKE_distance': 0.3, 'SPIKE_sync_distance': 0.25},
                   'analogs': {'EI_CC': -1., 'IE_ratio': 0.}}
 
@@ -218,8 +218,9 @@ for k, v in expected_values.items():
 	for idx, _ in np.ndenumerate(np.zeros_like(results[0])):
 		result_vector = [mean_results[k][k1][idx] for k1, v1 in v.items()]
 		target_vector = [v1 for k1, v1 in v.items()]
-		dist = [((x - target_vector[idd])**2) for idd, x in enumerate(result_vector)]
+		dist = [abs(x - target_vector[idd]) for idd, x in enumerate(result_vector)]
 		summary_result[idx] = np.mean(dist)
+	# summary_result = (summary_result - np.min(summary_result)) / (np.max(summary_result) - np.min(summary_result))
 	image_arrays.append(summary_result.astype(float))
 
 plot_2d_parscans(image_arrays=image_arrays, axis=[ax51, ax52, ax53, ax54],
@@ -263,8 +264,8 @@ ax61.grid(False)
 fig7 = pl.figure()
 fig7.suptitle("All constraints")
 ax71 = fig7.add_subplot(111)
-
-values = ((sync_summary + reg_summary + activity_summary + analogs_summary) / 4.)
+#+ analogs_summary
+values = ((sync_summary + reg_summary + activity_summary) / 3.)
 plot_2d_parscans(image_arrays=[values.astype(float)], axis=[ax71],
                  fig_handle=fig7, labels=[], cmap='jet', boundaries=[], **{}) # coolwarm, rainbow
 
