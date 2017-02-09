@@ -49,7 +49,7 @@ import scipy.integrate as integ
 import sklearn.decomposition as sk
 import sklearn.linear_model as lm
 import sklearn.svm as svm
-from modules.visualization import ActivityIllustrator
+from modules.visualization import ActivityAnimator
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import GridSearchCV
 import sklearn.metrics as met
@@ -738,7 +738,6 @@ def compute_isi_stats(spike_list, summary_only=False, display=True):
 		t_start = time.time()
 	results = dict()
 
-	# TODO make it nicer: compute everything anyway, and if summary_only=True then do a mean and var on the results
 	if not summary_only:
 		results['isi'] 		= np.array(list(itertools.chain(*spike_list.isi())))
 		results['cvs'] 		= spike_list.cv_isi(float_only=True)
@@ -1234,7 +1233,7 @@ def characterize_population_activity_new(population_object, parameter_set, analy
 		assert isinstance(spike_list, sg.SpikeList), "Spiking activity should be SpikeList object"
 		spike_list = spike_list.time_slice(analysis_interval[0], analysis_interval[1])
 
-		ai = ActivityIllustrator(spike_list, populations=population_object, ids=gids, vm_list=[])
+		ai = ActivityAnimator(spike_list, populations=population_object, ids=gids, vm_list=[])
 		# ai.animate_activity(time_window=100, save=True)
 		print ("gonna animate raster plot... @done")
 
@@ -1390,7 +1389,8 @@ def characterize_population_activity_new(population_object, parameter_set, analy
 def characterize_population_activity(population_object, parameter_set, analysis_interval, epochs=None,
 									 time_bin=1., n_pairs=500, tau=20., window_len=100,
 									 color_map='jet', summary_only=False, complete=True, time_resolved=True,
-									 plot=True, display=True, save=False, prng=None, label="global"):
+									 plot=True, display=True, save=False, prng=None, label="global",
+									 color_subpop=False):
 	"""
 	Compute all the relevant metrics of recorded activity (spiking and analog signals), providing
 	a thorough characterization and quantification of population dynamics
@@ -1465,9 +1465,11 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 		if plot:
 			results['metadata']['spike_list'] = spike_list
 
-		if gids and complete:
+		if color_subpop:
 			results['metadata'].update({'sub_population_names': subpop_names, 'sub_population_gids': gids,
-										'spike_data_file': ''})
+									'spike_data_file': ''})
+
+		if gids and complete:
 			if len(gids) == 2:
 				locations = [-1, 1]
 			else:
@@ -1507,8 +1509,8 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 				results['analog_activity'][pop.name].update(compute_analog_stats(pop, parameter_set, variable_names,
 				                                                                 analysis_interval, plot))
 	if plot:
-		visualization.plot_state_analysis(parameter_set, results, summary_only, start=analysis_interval[0], stop=analysis_interval[1],
-		                    display=display, save=save)
+		visualization.plot_state_analysis(parameter_set, results, summary_only, start=analysis_interval[0],
+										  stop=analysis_interval[1], display=display, save=save)
 	return results
 
 
@@ -3289,17 +3291,19 @@ class Readout(object):
 class DecodingLayer(object):
 	"""
 	The Decoder reads population activity in response to patterned inputs,
-	extracts the network state (according to specifications) and trains
-	readout weights
+	extracts the network state (according to specifications) and trains readout weights
 	"""
 	def __init__(self, initializer, population):
 		"""
 		Create and connect decoders to population
+
+		:param initializer: ParameterSet object or dictionary specifying decoding parameters
+		:param population:
 		"""
 		if isinstance(initializer, dict):
 			initializer = prs.ParameterSet(initializer)
 		assert isinstance(initializer, prs.ParameterSet), "StateExtractor must be initialized with ParameterSet or " \
-													  "dictionary"
+														  "dictionary"
 		self.decoding_pars = initializer
 		self.state_variables = initializer.state_variable
 		self.reset_state_variables = initializer.reset_states
@@ -3458,13 +3462,14 @@ class DecodingLayer(object):
 								tmp = [(neuron_ids[n], sigs[n]) for n in range(len(neuron_ids))]
 								responses = sg.AnalogSignalList(tmp, np.unique(neuron_ids).tolist(), times=times,
 								                                t_start=start, t_stop=stop)
-
+			# TODO comment, what are the two cases?
 			elif isinstance(initializer, tuple) or isinstance(initializer, int):
 				status_dict = nest.GetStatus(initializer)[0]['events']
 				times = status_dict['times']
+
 				if self.state_variables[idx] == 'spikes':
 					times -= time_shift
-				dt = np.diff(np.sort(np.unique(times)))
+
 				if start is not None and stop is not None:
 					idx1 = np.where(times >= start - 0.001)[0]
 					idx2 = np.where(times <= stop + 0.001)[0]
@@ -3474,7 +3479,28 @@ class DecodingLayer(object):
 					status_dict['senders'] = status_dict['senders'][idxx]
 				tmp = [(status_dict['senders'][n], status_dict['V_m'][n]) for n in range(len(status_dict['senders']))]
 				responses = sg.AnalogSignalList(tmp, np.unique(status_dict['senders']).tolist(), times=times,
-				                                dt=self.extractor_resolution[idx], t_start=start, t_stop=stop)
+												dt=self.extractor_resolution[idx], t_start=start, t_stop=stop)
+
+				# ############# DEBUG ##################################################################################
+				# dbg_status_dict = nest.GetStatus(initializer)[0]['events']
+				# print "\n\n ----  DEBUGGING  ----- \n"
+				# n_id, n_as = responses.analog_signals.iteritems().next()
+				# assert n_id == 154 # iaf_psc_delta neuron attached to neuron 0
+				#
+				# print "\n@spikelist.spiketrains[0]: {0}".format(self.source_population.spiking_activity.spiketrains[1])
+				#
+				# dbg_vms = [t for idx, t in enumerate(dbg_status_dict['V_m']) if dbg_status_dict['senders'][idx] == 154]
+				# print "\n\narray idx -- time point -- vm\n"
+				# for idx, vm in enumerate(dbg_vms):
+				# 	if idx > 0 and vm > dbg_vms[idx - 1]:
+				# 		print "{0}, {1}, {2}".format(idx, idx - 1, vm)
+				#
+				# sml = self.source_population.spiking_activity.filter_spiketrains(dt=0.1, tau=20., start=0.1, stop=200.1)[0].tolist()
+				# print "\n\n@filtered spikes [(arr index, aligned time, V_m)]"
+				# for idx, val in enumerate(sml):
+				# 	if idx > 0 and val > sml[idx - 1]:
+				# 		print idx, idx + 1, val
+				# exit(0)
 			else:
 				raise TypeError("Incorrect Decoder ID")
 
@@ -3492,6 +3518,7 @@ class DecodingLayer(object):
 		:param time_point: in ms
 		:param lag: length of local time window = [time_point-lag, time_point]
 		:param save: bool - store state vectors in the decoding layer or return them
+		:param reset:
 		:return:
 		"""
 		# set the lag to  be == 2*resolution
@@ -3501,6 +3528,8 @@ class DecodingLayer(object):
 			responses = self.activity
 		else:
 			responses = self.extract_activity(start=time_point-lag, stop=time_point, save=False)
+
+		state_vectors = []
 		if save and (isinstance(responses, list) and len(self.state_matrix) != len(responses)):
 			self.state_matrix = [[] for _ in range(len(responses))]
 		elif not save and (isinstance(responses, list)):
@@ -3521,6 +3550,8 @@ class DecodingLayer(object):
 	def compile_state_matrix(self, sampling_times=None):
 		"""
 		After gathering all state vectors, compile a standard state matrix
+
+		:param sampling_times:
 		:return:
 		"""
 		assert self.state_matrix, "State matrix elements need to be stored before calling this function"
@@ -3563,6 +3594,7 @@ class DecodingLayer(object):
 	def evaluate_decoding(self, n_neurons=10, display=False, save=False):
 		"""
 		Make sure the state extraction process is consistent
+
 		:param spike_list: raw spiking activity data for this population
 		:param n_neurons: choose n random neurons to plot
 		:return:

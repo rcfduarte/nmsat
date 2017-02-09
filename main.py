@@ -2,12 +2,11 @@
 import sys
 import copy
 
-# this is currently to bypass the sys.argv pollution in PyNEST
-cmdl_args = copy.copy(sys.argv)
+cmdl_parse = copy.copy(sys.argv)
 
 import matplotlib
 matplotlib.use('Agg')
-from optparse import OptionParser
+from argparse import ArgumentParser
 from os import path
 import importlib
 from modules.parameters import ParameterSpace
@@ -47,11 +46,13 @@ def run_experiment(params_file_full_path, computation_function="noise_driven_dyn
 
 
 def create_parser():
-	parser_ = OptionParser()
-	parser_.add_option("-f", "--filename", type="string", action="store", dest="p_file", default=None, help="parameter file")
-	parser_.add_option("-c", "--computation-function", action="store", dest="c_function", type="string", default=None,
-					   help="computation function to execute")
-
+	parser_ = ArgumentParser(prog="main.py")
+	parser_.add_argument("-f", dest="p_file", nargs=1, default=None, metavar="parameter_file",
+					  help="absolute path to parameter file", required=True)
+	parser_.add_argument("-c", dest="c_function", nargs=1, default=None, metavar="computation_function",
+					   help="computation function to execute", required=True)
+	parser_.add_argument("--cluster", dest="cluster", nargs=1, default=None, metavar="Blaustein",
+					   help="name of cluster entry in default paths dictionary")
 	return parser_
 
 
@@ -68,20 +69,15 @@ NO WARRANTY. See the file LICENSE for details.
 
 if __name__ == "__main__":
 	print_welcome_message()
-	(options, args) = create_parser().parse_args(cmdl_args)
+	args = create_parser().parse_args(cmdl_parse[1:])  # avoids pynest sys.argv pollution
 
-	# we need minimum 2 arguments (3 including the script)
-	if len(cmdl_args) < 3 or options.p_file is None or options.c_function is None:
-		print("At least two arguments (parameter file and computation function) are required! Exiting..")
-		exit(-1)
-
-	# TODO do we allow random arguments or should we include all possible params as options, would be nice in the help
-	d = dict([arg.split('=', 1) for arg in args[1:]])
-	for k, v in d.items():
-		if v == 'False':
-			d.update({k: False})
-		elif v == 'True':
-			d.update({k: True})
-		elif v == 'None':
-			d.update({k: None})
-	run_experiment(options.p_file, computation_function=options.c_function, **d)
+	# # TODO do we allow random arguments or should we include all possible params as options, would be nice in the help
+	# d = dict([arg.split('=', 1) for arg in args[1:]])
+	# for k, v in d.items():
+	# 	if v == 'False':
+	# 		d.update({k: False})
+	# 	elif v == 'True':
+	# 		d.update({k: True})
+	# 	elif v == 'None':
+	# 		d.update({k: None})
+	run_experiment(args.p_file[0], computation_function=args.c_function[0])

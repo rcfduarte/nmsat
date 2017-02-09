@@ -1171,8 +1171,6 @@ class SpikeList(object):
 	## Constructor and key methods to manipulate the SpikeList objects   ##
 	#######################################################################
 	def __init__(self, spikes, id_list, t_start=None, t_stop=None, dims=None):
-		#TODO is it not better if there are 2, corresponding lists, [spk_time] and [ids]? seems more efficient
-		# yes, this is a legacy issue.. But modifying this now would be too complex, as this is used throughout the code
 		"""
 		Constructor of the SpikeList object
 

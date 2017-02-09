@@ -2382,16 +2382,17 @@ class EncodingLayer:
 	"""
 	Wrapper for all the encoders and generators involved in the input conversion process
 	"""
-
-	def __init__(self, initializer=None, signal=None, stim_seq=None, online=False):
+	# TODO create all instances using a prng
+	def __init__(self, initializer=None, signal=None, stim_seq=None, online=False, prng=None):
 		"""
 
-		:param initializer: ParameterSet or dictionary with all parameters for
-		Encoders and Generators
+		:param initializer: ParameterSet or dictionary with all parameters for Encoders and Generators
 		:param signal: signal object to be converted
-		:param stim: [list of str] - stimulus sequence to be converted (only if input is a fixed spatiotemporal spike
-		sequence)
+		:param stim_seq: [list of str] - stimulus sequence to be converted (only if input is a fixed spatiotemporal
+		spike sequence)
+		:param prng: random number generator for reproducibility (numpy.random)
 		"""
+		self.prng = prng
 		self.total_delay = 0.
 		if initializer is not None:
 			if isinstance(initializer, dict):
@@ -2451,8 +2452,7 @@ class EncodingLayer:
 
 			encoder_labels = []
 			encoders = []
-			# TODO this is not reproducible any more!
-			st_gen = StochasticGenerator()
+			st_gen = StochasticGenerator(self.prng)
 			for nn in range(encoder_pars.N):
 				encoder_labels.append(encoder_pars.labels[nn])
 				enc_pop_dict = {'pop_names': encoder_pars.labels[nn],

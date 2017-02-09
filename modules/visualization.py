@@ -160,96 +160,96 @@ def plot_mask(src_gid, mask=None, ax=None, color='r'):
 	pl.draw()
 
 
-def dot_display(spikelist, gids=None, colors=None, with_rate=True, dt=1.0, start=None, stop=None, display=True,
-                ax=None, fig=None, save=False, **kwargs):
-	"""
-	Simplest case, dot display
-	:param gids: [list] if some ids should be highlighted in a different color, this should be specified by
-	providing a list of gids and a list of corresponding colors, if None, no ids are differentiated
-	:param colors: [list] - list of colors corresponding to the specified gids, if None all neurons are plotted
-	in the same color (blue)
-	:param with_rate: [bool] - whether to display psth or not
-	:param dt: [float] - delta t for the psth
-	:param display: [bool] - display the figure
-	:param ax: [axes handle] - axes on which to display the figure
-	:param save: [bool] - save the figure
-	:param kwargs: [key=value pairs] axes properties
-	"""
-	# TODO: add event highlight...
-	if (ax is not None) and (not isinstance(ax, mpl.axes.Axes) or not isinstance(ax[0], mpl.axes.Axes)):
-		raise ValueError('ax must be matplotlib.axes.Axes instance.')
+# def dot_display(spikelist, gids=None, colors=None, with_rate=True, dt=1.0, start=None, stop=None, display=True,
+#                 ax=None, fig=None, save=False, **kwargs):
+# 	"""
+# 	Simplest case, dot display
+# 	:param gids: [list] if some ids should be highlighted in a different color, this should be specified by
+# 	providing a list of gids and a list of corresponding colors, if None, no ids are differentiated
+# 	:param colors: [list] - list of colors corresponding to the specified gids, if None all neurons are plotted
+# 	in the same color (blue)
+# 	:param with_rate: [bool] - whether to display psth or not
+# 	:param dt: [float] - delta t for the psth
+# 	:param display: [bool] - display the figure
+# 	:param ax: [axes handle] - axes on which to display the figure
+# 	:param save: [bool] - save the figure
+# 	:param kwargs: [key=value pairs] axes properties
+# 	"""
+# 	# TODO: add event highlight...
+# 	if (ax is not None) and (not isinstance(ax, mpl.axes.Axes) or not isinstance(ax[0], mpl.axes.Axes)):
+# 		raise ValueError('ax must be matplotlib.axes.Axes instance.')
+#
+# 	if ax is None:
+# 		fig = pl.figure()
+# 		if with_rate:
+# 			ax = pl.subplot2grid((30, 1), (0, 0), rowspan=23, colspan=1)
+# 			ax2 = pl.subplot2grid((30, 1), (24, 0), rowspan=5, colspan=1, sharex=ax)
+# 			ax2.set(xlabel='Time [ms]', ylabel='Rate')
+# 			ax.set(ylabel='Neuron')
+# 		else:
+# 			ax = fig.add_subplot(111)
+# 	else:
+# 		if with_rate:
+# 			assert isinstance(ax, list), "Incompatible properties... (with_rate requires two axes provided or None)"
+# 			ax = ax[0]
+# 			ax2 = ax[1]
+#
+# 	if 'suptitle' in kwargs and fig is not None:
+# 		fig.suptitle(kwargs['suptitle'])
+# 		kwargs.pop('suptitle')
+#
+# 	if colors is None:
+# 		colors = 'b'
+# 	# extract properties from kwargs and divide them into axes properties and others
+# 	ax_props = {k: v for k, v in kwargs.iteritems() if k in ax.properties()}
+# 	pl_props = {k: v for k, v in kwargs.iteritems() if k not in ax.properties()}  # TODO: improve
+#
+# 	tt = spikelist.time_slice(start, stop)
+#
+# 	if gids is None:
+# 		times = tt.raw_data()[:, 0]
+# 		neurons = tt.raw_data()[:, 1]
+# 		ax.plot(times, neurons, '.', color=colors)
+# 	else:
+# 		assert isinstance(gids, list), "Gids should be a list"
+# 		for n, ids in enumerate(gids):
+# 			tt1 = spikelist.time_slice(start, stop).id_slice(list(ids))
+# 			times = tt1.raw_data()[:, 0]
+# 			neurons = tt1.raw_data()[:, 1]
+# 			ax.plot(times, neurons, '.', color=colors[n])
+# 	if with_rate:
+# 		time = tt.time_axis(dt)[:-1]
+# 		rate = tt.firing_rate(dt, average=True)
+# 		ax2.plot(time, rate, **pl_props)
+# 		ax.set(**ax_props)
+# 		ax.set(ylim=[min(spikelist.id_list), max(spikelist.id_list)], xlim=[start, stop])
+# 		ax2.set(xlim=[start, stop])
+# 	else:
+# 		ax.set(**ax_props)
+# 		ax.set(ylim=[min(spikelist.id_list), max(spikelist.id_list)], xlim=[start, stop])
+#
+# 	if save:
+# 		assert isinstance(save, str), "Please provide filename"
+# 		pl.savefig(save)
+#
+# 	if display:
+# 		pl.show(False)
 
-	if ax is None:
-		fig = pl.figure()
-		if with_rate:
-			ax = pl.subplot2grid((30, 1), (0, 0), rowspan=23, colspan=1)
-			ax2 = pl.subplot2grid((30, 1), (24, 0), rowspan=5, colspan=1, sharex=ax)
-			ax2.set(xlabel='Time [ms]', ylabel='Rate')
-			ax.set(ylabel='Neuron')
-		else:
-			ax = fig.add_subplot(111)
-	else:
-		if with_rate:
-			assert isinstance(ax, list), "Incompatible properties... (with_rate requires two axes provided or None)"
-			ax = ax[0]
-			ax2 = ax[1]
 
-	if 'suptitle' in kwargs and fig is not None:
-		fig.suptitle(kwargs['suptitle'])
-		kwargs.pop('suptitle')
-
-	if colors is None:
-		colors = 'b'
-	# extract properties from kwargs and divide them into axes properties and others
-	ax_props = {k: v for k, v in kwargs.iteritems() if k in ax.properties()}
-	pl_props = {k: v for k, v in kwargs.iteritems() if k not in ax.properties()}  # TODO: improve
-
-	tt = spikelist.time_slice(start, stop)
-
-	if gids is None:
-		times = tt.raw_data()[:, 0]
-		neurons = tt.raw_data()[:, 1]
-		ax.plot(times, neurons, '.', color=colors)
-	else:
-		assert isinstance(gids, list), "Gids should be a list"
-		for n, ids in enumerate(gids):
-			tt1 = spikelist.time_slice(start, stop).id_slice(list(ids))
-			times = tt1.raw_data()[:, 0]
-			neurons = tt1.raw_data()[:, 1]
-			ax.plot(times, neurons, '.', color=colors[n])
-	if with_rate:
-		time = tt.time_axis(dt)[:-1]
-		rate = tt.firing_rate(dt, average=True)
-		ax2.plot(time, rate, **pl_props)
-		ax.set(**ax_props)
-		ax.set(ylim=[min(spikelist.id_list), max(spikelist.id_list)], xlim=[start, stop])
-		ax2.set(xlim=[start, stop])
-	else:
-		ax.set(**ax_props)
-		ax.set(ylim=[min(spikelist.id_list), max(spikelist.id_list)], xlim=[start, stop])
-
-	if save:
-		assert isinstance(save, str), "Please provide filename"
-		pl.savefig(save)
-
-	if display:
-		pl.show(False)
-
-
-def simple_raster(spk_times, spk_ids, neuron_ids, ax, **kwargs):
-	"""
-    Create a simple line raster plot
-	"""
-	if min(neuron_ids) == 0:
-		new_spk_ids = spk_ids - min(neuron_ids)
-	else:
-		new_spk_ids = spk_ids - min(neuron_ids)
-		new_spk_ids -= min(new_spk_ids)
-		for idx, n in enumerate(spk_times):
-			ax.vlines(n, new_spk_ids[idx]-0.5, new_spk_ids[idx]+0.5, **kwargs)
-		ax.set_ylim(min(new_spk_ids)-0.5, max(new_spk_ids)+0.5)
-
-	return new_spk_ids, ax
+# def simple_raster(spk_times, spk_ids, neuron_ids, ax, **kwargs):
+# 	"""
+#     Create a simple line raster plot
+# 	"""
+# 	if min(neuron_ids) == 0:
+# 		new_spk_ids = spk_ids - min(neuron_ids)
+# 	else:
+# 		new_spk_ids = spk_ids - min(neuron_ids)
+# 		new_spk_ids -= min(new_spk_ids)
+# 		for idx, n in enumerate(spk_times):
+# 			ax.vlines(n, new_spk_ids[idx]-0.5, new_spk_ids[idx]+0.5, **kwargs)
+# 		ax.set_ylim(min(new_spk_ids)-0.5, max(new_spk_ids)+0.5)
+#
+# 	return new_spk_ids, ax
 
 
 def plot_histogram(tmpa, nbins, norm=True, mark_mean=True, ax=None, color='b', display=True, save=False, **kwargs):
@@ -446,7 +446,7 @@ def plot_state_analysis(parameter_set, results, summary_only=False, start=None, 
 			                         results=results['spiking_activity'][results['metadata']['population_name']])
 		plot_props = {'xlabel': 'Time [ms]', 'ylabel': 'Neuron', 'color': 'b', 'linewidth': 1.0,
 		              'linestyle': '-'}
-		if len(pop_names) > 1:
+		if len(pop_names) > 1 or 'sub_population_names' in results['metadata'].keys():
 			gids = results['metadata']['sub_population_gids']
 			rp.dot_display(gids=gids, colors=colors[:len(gids)], ax=[ax1, ax2], with_rate=True, display=False,
 			               save=False, **plot_props)
@@ -462,7 +462,7 @@ def plot_state_analysis(parameter_set, results, summary_only=False, start=None, 
 			ax21 = pl.subplot2grid((9, 14), loc=(0, 0), rowspan=4, colspan=4)
 			ax22 = pl.subplot2grid((9, 14), loc=(0, 5), rowspan=4, colspan=4)
 			ax23 = pl.subplot2grid((9, 14), loc=(0, 10), rowspan=4, colspan=4)
-			ax24 = pl.subplot2grcid((9, 14), loc=(5, 3), rowspan=4, colspan=4)
+			ax24 = pl.subplot2grid((9, 14), loc=(5, 3), rowspan=4, colspan=4)
 			ax25 = pl.subplot2grid((9, 14), loc=(5, 8), rowspan=4, colspan=4)
 
 			for indice, name in enumerate(pop_names):
@@ -1051,7 +1051,6 @@ class SpikePlots(object):
 				ax2 = ax[1]
 			else:
 				ax1 = ax
-		print ax1
 
 		if 'suptitle' in kwargs and fig is not None:
 			fig.suptitle(kwargs['suptitle'])
@@ -1077,11 +1076,22 @@ class SpikePlots(object):
 				times = tt1.raw_data()[:, 0]
 				neurons = tt1.raw_data()[:, 1]
 				ax1.plot(times, neurons, '.', color=colors[n])
+
+		# set axis range here, it might still be overwritten below
+		ax1.set(ylim=[min(self.spikelist.id_list), max(self.spikelist.id_list)], xlim=[self.start, self.stop])
+
 		if with_rate:
-			time = tt.time_axis(dt)[:-1]
-			rate = tt.firing_rate(dt, average=True)
-			ax2.plot(time, rate, **pl_props)
-			ax2.set(ylim=[min(rate)-1, max(rate)+1], xlim=[self.start, self.stop])
+			global_rate = tt.firing_rate(dt, average=True)
+			if gids is None:
+				time = tt.time_axis(dt)[:-1]
+				ax2.plot(time, global_rate, **pl_props)
+			else:
+				for n, ids in enumerate(gids):
+					tt1 = self.spikelist.time_slice(self.start, self.stop).id_slice(list(ids))
+					time = tt1.time_axis(dt)[:-1]
+					rate = tt1.firing_rate(dt, average=True)
+					ax2.plot(time, rate, color=colors[n], linewidth=1.0)
+			ax2.set(ylim=[min(global_rate) - 1, max(global_rate) + 1], xlim=[self.start, self.stop])
 		else:
 			ax1.set(**ax_props)
 			ax.set(ylim=[min(self.spikelist.id_list), max(self.spikelist.id_list)], xlim=[self.start, self.stop])
@@ -2041,7 +2051,7 @@ class InputPlots(object):
 
 
 ########################################################################################################################
-class ActivityIllustrator(object):
+class ActivityAnimator(object):
 	"""
 	ActivityIllustrator(spike_list, vm_list=None, populations=None, ids=None)
 	Class for animating various spiking activities of SpikeList objects or populations.
@@ -2166,6 +2176,25 @@ class ActivityIllustrator(object):
 
 	def __plot_trajectory(self, variable=None):
 		pass
+	# def animate_trajectory(response_matrix, pca_fit_obj, interval=100, label='', ax=None, fig=None, display=True,
+	# 					   save=False):
+	#
+	# 	if ax is None and fig is None:
+	# 		fig = pl.figure()
+	# 		ax = fig.add_subplot(111, projection='3d')
+	# 		ax.grid(False)
+	#
+	# 	def animate(i):
+	# 		X = pca_fit_obj.transform(response_matrix.as_array()[:, :i + 1].transpose())
+	#
+	# 		ax.clear()
+	# 		ax.plot(X[:, 0], X[:, 1], X[:, 2], color='r', lw=2)
+	# 		ax.set_title(label + r'$ - t = {0}$ / (3PCs) $= {1}$'.format(str(i),
+	# 																	 str(round(np.sum(
+	# 																		 pca_fit_obj.explained_variance_ratio_[:3]),
+	# 																			   1))))
+	#
+	# 	ani = animation.FuncAnimation(fig, animate, interval=10)
 
 	def __has_activity(self, activities, key):
 		return bool(activities is not None and key in activities)
@@ -2243,55 +2272,54 @@ class ActivityIllustrator(object):
 			pl.show(False)
 
 
-def plot_vm(vm, times, ax, color, lw=1, v_reset=-70., v_th=-50.):
-	"""
+# def plot_vm(vm, times, ax, color, lw=1, v_reset=-70., v_th=-50.):
+# 	"""
+#
+# 	:param vm:
+# 	:param times:
+# 	:param ax:
+# 	:param color:
+# 	:param lw:
+# 	:param v_reset:
+# 	:param v_th:
+# 	:return:
+# 	"""
+# 	ax.plot(times, vm, c=color)
+# 	#ax.set_xlabel('Time [ms]')
+# 	ax.set_ylabel(r'$V_{m}$')
+# 	idxs = vm.argsort()
+# 	possible_spike_times = [t for t in idxs if (t < len(vm) - 1) and (vm[t + 1] == v_reset) and (vm[t] != v_reset)]
+# 	ax.vlines(times[possible_spike_times], v_th, 50., color='k')
+# 	ax.set_ylim(min(vm) - 5., 10.)
 
-	:param vm:
-	:param times:
-	:param ax:
-	:param color:
-	:param lw:
-	:param v_reset:
-	:param v_th:
-	:return:
-	"""
-	ax.plot(times, vm, c=color)
-	#ax.set_xlabel('Time [ms]')
-	ax.set_ylabel(r'$V_{m}$')
-	idxs = vm.argsort()
-	possible_spike_times = [t for t in idxs if (t < len(vm) - 1) and (vm[t + 1] == v_reset) and (vm[t] != v_reset)]
-	ax.vlines(times[possible_spike_times], v_th, 50., color='k')
-	ax.set_ylim(min(vm) - 5., 10.)
-
-# TODO REMOVE
-def animate_raster(spike_list, gids, window_size, display=False, save=False):
-	"""
-
-	:param spike_list:
-	:param gids:
-	:param window_size:
-	:return:
-	"""
-	time_axis = spike_list.time_axis(time_bin=1.)
-	mw = signals.moving_window(time_axis, window_size)
-	fig = pl.figure()
-	ax1 = pl.subplot2grid((30, 1), (0, 0), rowspan=23, colspan=1)
-	ax2 = pl.subplot2grid((30, 1), (24, 0), rowspan=5, colspan=1, sharex=ax1)
-
-	def animate(i):
-		ax1.clear()
-		ax2.clear()
-		time_window = mw.next()
-		spike_plot = SpikePlots(spike_list, start=min(time_window), stop=max(time_window), N=10000)
-		spike_plot.dot_display(gids=gids, colors=['b', 'r'], with_rate=True, dt=1.0, display=False, ax=[ax1, ax2],
-		                       fig=fig, save=False)
-
-	ani = animation.FuncAnimation(fig, animate, interval=10)
-
-	if display:
-		pl.show(False)
-	if save:
-		ani.save('{0}_animation.gif'.format(save), fps=1000)
+# def animate_raster(spike_list, gids, window_size, display=False, save=False):
+# 	"""
+#
+# 	:param spike_list:
+# 	:param gids:
+# 	:param window_size:
+# 	:return:
+# 	"""
+# 	time_axis = spike_list.time_axis(time_bin=1.)
+# 	mw = signals.moving_window(time_axis, window_size)
+# 	fig = pl.figure()
+# 	ax1 = pl.subplot2grid((30, 1), (0, 0), rowspan=23, colspan=1)
+# 	ax2 = pl.subplot2grid((30, 1), (24, 0), rowspan=5, colspan=1, sharex=ax1)
+#
+# 	def animate(i):
+# 		ax1.clear()
+# 		ax2.clear()
+# 		time_window = mw.next()
+# 		spike_plot = SpikePlots(spike_list, start=min(time_window), stop=max(time_window), N=10000)
+# 		spike_plot.dot_display(gids=gids, colors=['b', 'r'], with_rate=True, dt=1.0, display=False, ax=[ax1, ax2],
+# 		                       fig=fig, save=False)
+#
+# 	ani = animation.FuncAnimation(fig, animate, interval=10)
+#
+# 	if display:
+# 		pl.show(False)
+# 	if save:
+# 		ani.save('{0}_animation.gif'.format(save), fps=1000)
 
 
 def plot_trajectory(response_matrix, pca_fit_obj=None, label='', color='r', ax=None, display=True, save=False):
@@ -2327,28 +2355,28 @@ def plot_trajectory(response_matrix, pca_fit_obj=None, label='', color='r', ax=N
 		pl.savefig('{0}_trajectory.pdf'.format(save))
 
 
-def animate_trajectory(response_matrix, pca_fit_obj, interval=100, label='', ax=None, fig=None, display=True,
-                       save=False):
-
-	if ax is None and fig is None:
-		fig = pl.figure()
-		ax = fig.add_subplot(111, projection='3d')
-		ax.grid(False)
-
-	def animate(i):
-		X = pca_fit_obj.transform(response_matrix.as_array()[:, :i+1].transpose())
-
-		ax.clear()
-		ax.plot(X[:, 0], X[:, 1], X[:, 2], color='r', lw=2)
-		ax.set_title(label + r'$ - t = {0}$ / (3PCs) $= {1}$'.format(str(i),
-                    str(round(np.sum(pca_fit_obj.explained_variance_ratio_[:3]), 1))))
-
-	ani = animation.FuncAnimation(fig, animate, interval=10)
-
-	if display:
-		pl.show(False)
-	if save:
-		ani.save('{0}_animation.gif'.format(save), fps=1000)
+# def animate_trajectory(response_matrix, pca_fit_obj, interval=100, label='', ax=None, fig=None, display=True,
+#                        save=False):
+#
+# 	if ax is None and fig is None:
+# 		fig = pl.figure()
+# 		ax = fig.add_subplot(111, projection='3d')
+# 		ax.grid(False)
+#
+# 	def animate(i):
+# 		X = pca_fit_obj.transform(response_matrix.as_array()[:, :i+1].transpose())
+#
+# 		ax.clear()
+# 		ax.plot(X[:, 0], X[:, 1], X[:, 2], color='r', lw=2)
+# 		ax.set_title(label + r'$ - t = {0}$ / (3PCs) $= {1}$'.format(str(i),
+#                     str(round(np.sum(pca_fit_obj.explained_variance_ratio_[:3]), 1))))
+#
+# 	ani = animation.FuncAnimation(fig, animate, interval=10)
+#
+# 	if display:
+# 		pl.show(False)
+# 	if save:
+# 		ani.save('{0}_animation.gif'.format(save), fps=1000)
 
 
 def plot_response(population, ids=None, spiking_activity=None, display=True, save=False):
