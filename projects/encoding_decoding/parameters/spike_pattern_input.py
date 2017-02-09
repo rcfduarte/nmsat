@@ -246,6 +246,6 @@ def build_parameters(lexicon_size, T):
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'lexicon_size': [20],
-	'T': [100]
+	'lexicon_size': [200],
+	'T': [20000]
 }
