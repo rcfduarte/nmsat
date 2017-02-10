@@ -31,8 +31,8 @@ online = True
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-# params_file = '../parameters/dc_stimulus_input.py'
-params_file = '../parameters/spike_pattern_input.py'
+params_file = '../parameters/dc_stimulus_input.py'
+# params_file = '../parameters/spike_pattern_input.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -176,7 +176,7 @@ net.connect_populations(parameter_set.connection_pars)
 set_name = 'transient'
 if not empty(stim_set.transient_set_labels):
 	epochs_transient = iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name=set_name,
-	                                     record=True, store_activity=False)
+	                                     record=True, store_activity=False) # TODO set record to False
 	for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
 		if n_pop.decoding_layer is not None:
 			n_pop.decoding_layer.flush_states()

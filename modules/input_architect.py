@@ -32,6 +32,7 @@ import bisect
 import itertools
 import time
 import collections
+from decimal import Decimal
 from scipy.sparse import coo_matrix, lil_matrix
 from scipy.signal import fftconvolve
 import copy
@@ -147,12 +148,13 @@ def generate_template(n_neurons, rate, duration, resolution=0.01, rng=None, stor
 	gen 	= StochasticGenerator(rng=rng)
 	times 	= []
 	ids 	= []
+	rounding_precision = signals.determine_decimal_digits(resolution)
 	for n in range(n_neurons):
 		spk_times = gen.poisson_generator(rate, t_start=resolution, t_stop=duration, array=True)
 		times.append(list(spk_times))
 		ids.append(list(n * np.ones_like(times[-1])))
 	ids = list(signals.iterate_obj_list(ids))
-	tmp = [(ids[idx], round(n, 2)) for idx, n in enumerate(list(signals.iterate_obj_list(times)))]
+	tmp = [(ids[idx], round(n, rounding_precision)) for idx, n in enumerate(list(signals.iterate_obj_list(times)))]
 
 	sl = signals.SpikeList(tmp, list(np.unique(ids)), t_start=resolution, t_stop=duration)
 	sl.round_times(resolution)
@@ -2348,9 +2350,12 @@ class Generator:
 		be updated
 		"""
 		if isinstance(signal, signals.SpikeList):
+			# TODO - check spike_generator properties; if allow_offgrid_spikes, there's no need to round.. (the spike
+			#  times
+			rounding_precision = signals.determine_decimal_digits(signal.raw_data()[:, 0][0])
 			for nn in signal.id_list:
-				spk_times = [round(n, 2) for n in signal[nn].spike_times]  # to make sure
-				nest.SetStatus(self.gids[nn], {'spike_times': spk_times})
+				spk_times = [round(n, rounding_precision) for n in signal[nn].spike_times]  # to be sure
+				nest.SetStatus(self.gids[nn], {'spike_times': np.round(spk_times, rounding_precision)}) # to be double sure
 		else:
 			if isinstance(signal, InputSignal):
 				signal = signal.input_signal

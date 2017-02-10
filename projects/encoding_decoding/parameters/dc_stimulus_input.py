@@ -68,6 +68,8 @@ def build_parameters(lexicon_size, T):
 		syn_specs=[{}, {}, {}, {}])
 	neuron_pars, net_pars, connection_pars = set_network_defaults(N=N, **recurrent_synapses)
 
+	net_pars['record_spikes'] = [False, False]
+
 	# net_pars['record_analogs'] = [True, False]
 	# multimeter = rec_device_defaults(device_type='multimeter')
 	# multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1000})
@@ -228,5 +230,5 @@ def build_parameters(lexicon_size, T):
 # ======================================================================================================================
 parameter_range = {
 	'lexicon_size': [20],
-	'T': [100]
+	'T': [20000]
 }

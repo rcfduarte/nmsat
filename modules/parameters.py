@@ -1033,6 +1033,7 @@ class ParameterSpace:
 				found_ = True
 			except:
 				print "Dataset {0} Not Found, skipping".format(pars_labels[ctr])
+				ctr += 1
 				continue
 		print "\n\nResults dictionary structure:"
 		pretty(results)
