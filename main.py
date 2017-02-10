@@ -53,6 +53,8 @@ def create_parser():
 					   help="computation function to execute", required=True)
 	parser_.add_argument("--cluster", dest="cluster", nargs=1, default=None, metavar="Blaustein",
 					   help="name of cluster entry in default paths dictionary")
+	parser_.add_argument("--extra", dest="extra", nargs='*', default=None, metavar="extra arguments",
+					   help="extra arguments for the computation function")
 	return parser_
 
 
@@ -71,13 +73,13 @@ if __name__ == "__main__":
 	print_welcome_message()
 	args = create_parser().parse_args(cmdl_parse[1:])  # avoids pynest sys.argv pollution
 
-	# # TODO do we allow random arguments or should we include all possible params as options, would be nice in the help
-	# d = dict([arg.split('=', 1) for arg in args[1:]])
-	# for k, v in d.items():
-	# 	if v == 'False':
-	# 		d.update({k: False})
-	# 	elif v == 'True':
-	# 		d.update({k: True})
-	# 	elif v == 'None':
-	# 		d.update({k: None})
-	run_experiment(args.p_file[0], computation_function=args.c_function[0])
+	# TODO do we allow random arguments or should we include all possible params as options, would be nice in the help
+	d = dict([arg.split('=', 1) for arg in args.extra])
+	for k, v in d.items():
+		if v == 'False':
+			d.update({k: False})
+		elif v == 'True':
+			d.update({k: True})
+		elif v == 'None':
+			d.update({k: None})
+	run_experiment(args.p_file[0], computation_function=args.c_function[0], **d)
