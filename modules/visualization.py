@@ -965,8 +965,8 @@ def plot_raster(spike_list, dt, ax, **kwargs):
 	ax.grid(False)
 	ax.set_ylabel(r'Neuron')
 	ax.set_xlabel(r'Time $[\mathrm{ms}]$')
-	ax1a.plot(spike_list.time_axis(dt)[:-1], spike_list.firing_rate(dt, average=True), 'k', lw=1, alpha=0.1)
-	ax1a.plot(spike_list.time_axis(50)[:-1], spike_list.firing_rate(50, average=True), 'r', lw=3.)
+	ax1a.plot(spike_list.time_axis(dt)[:-1], spike_list.firing_rate(dt, average=True), 'k', lw=1., alpha=0.7)
+	ax1a.plot(spike_list.time_axis(10.)[:-1], spike_list.firing_rate(10., average=True), 'r', lw=2.)
 	ax1a.grid(False)
 	ax1a.set_ylabel(r'Rate $[\mathrm{sps}/s]$')
 
@@ -976,7 +976,7 @@ def mark_epochs(ax, epochs, cmap='jet'):
 	cm = get_cmap(len(labels), cmap)
 	for k, v in epochs.items():
 		label_index = np.where(k == labels)[0][0]
-		ax.fill_betweenx(np.arange(ax.get_ylim()[0], ax.get_ylim()[1], 1.), v[0], v[1],
+		ax.fill_betweenx(np.arange(ax.get_ylim()[0], ax.get_ylim()[1], 0.1), v[0], v[1],
 		                 facecolor=cm(label_index), alpha=0.2)
 
 
@@ -2918,8 +2918,7 @@ def plot_averaged_time_resolved(results, spike_list, label='', epochs=None, colo
 	# time resolved regularity
 	fig5 = pl.figure()
 	fig5.suptitle('{0} - Time-resolved regularity'.format(str(label)))
-	stats = ['isi_5p_profile', 'cvs_profile', 'ai_profile', 'cvs_log_profile', 'lvs_profile',
-	         'lvRs_profile', 'iR_profile']
+	stats = ['isi_5p_profile', 'cvs_profile', 'cvs_log_profile', 'lvs_profile', 'iR_profile', 'ents_profile']
 	cm = get_cmap(len(stats), color_map)
 	for idx, n in enumerate(stats):
 		globals()['ax5{0}'.format(str(idx))] = fig5.add_subplot(len(stats), 1, idx + 1)
@@ -2945,7 +2944,7 @@ def plot_averaged_time_resolved(results, spike_list, label='', epochs=None, colo
 		ax61 = pl.subplot2grid((24, 1), (0, 0), rowspan=20, colspan=1)
 		ax62 = pl.subplot2grid((24, 1), (20, 0), rowspan=2, colspan=1, sharex=ax61)
 		ax63 = pl.subplot2grid((24, 1), (22, 0), rowspan=2, colspan=1, sharex=ax61)
-	plot_raster(spike_list, 1., ax61, **{'color': 'k', 'alpha': 0.4, 'marker': '.', 'markersize': 2})
+	plot_raster(spike_list, 1., ax61, **{'color': 'k', 'alpha': 0.8, 'marker': '|', 'markersize': 2})
 	stats = ['ffs_profile']
 	if "dimensionality_profile" in results.keys():
 		stats.append("dimensionality_profile")

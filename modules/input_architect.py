@@ -2118,7 +2118,6 @@ class InputSignalSet(object):
 		self.generate_train_set(stim)
 		self.generate_test_set(stim)
 
-
 	def time_offset(self, offset_time=0.):
 		"""
 		Offset the global set time (shifts all signals by offset_time)

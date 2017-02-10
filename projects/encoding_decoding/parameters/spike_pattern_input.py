@@ -246,6 +246,6 @@ def build_parameters(lexicon_size, T):
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'lexicon_size': np.arange(10, 1010, 10),
-	'T': np.arange(100, 600, 100)
+	'lexicon_size': np.arange(5, 505, 5),
+	'T': np.arange(10, 1100, 100)
 }
