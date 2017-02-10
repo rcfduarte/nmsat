@@ -203,7 +203,8 @@ if hasattr(stim_set, "unique_set"):
 				if not empty(labels) and not empty(state_matrix):
 					print "\nPopulation {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
 					                                                          str(state_matrix.shape))
-					results['rank'][n_pop.name].update({var + str(idx_var): get_state_rank(state_matrix)})
+					results['rank'][n_pop.name].update({var + str(idx_var) + '_{0}'.format(set_name): get_state_rank(
+						state_matrix)})
 
 					if save:
 						np.save(paths['activity']+paths['label']+'_population{0}_state{1}_{2}.npy'.format(n_pop.name,
@@ -243,6 +244,8 @@ for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc
 			if not empty(labels) and not empty(state_matrix):
 				print "\nPopulation {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
 				                                                          str(state_matrix.shape))
+				results['rank'][n_pop.name].update({var + str(idx_var) + '_{0}'.format(set_name): get_state_rank(
+					state_matrix)})
 				for readout in readouts:
 					readout_train(readout, state_matrix, target=target, index=None, accepted=train_idx,
 					              display=display, plot=plot, save=paths['figures']+paths['label'])
@@ -313,6 +316,8 @@ for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc
 			if not empty(labels) and not empty(state_matrix):
 				print "\nPopulation {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
 				                                                          str(state_matrix.shape))
+				results['rank'][n_pop.name].update({var + str(idx_var) + '_{0}'.format(set_name): get_state_rank(
+					state_matrix)})
 				results['dimensionality'][n_pop.name].update({var + str(idx_var): compute_dimensionality(
 					state_matrix)})
 				for readout in readouts:

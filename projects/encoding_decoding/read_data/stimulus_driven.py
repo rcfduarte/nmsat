@@ -38,14 +38,16 @@ pars.print_stored_keys(results_path)
 # harvest specific results (specifying the list of keys necessary to reach the data)
 analysis = {
 	'title': 'Performance',
-	'labels': ['Vm ridge', 'Vm pinv'],
-	'variable_names': ['vm_ridge', 'vm_pinv'],
-	'key_sets': ['performance/EI/V_m0/ridge_classifier/label/performance',
+	'labels': ['Vm pinv'],
+	'variable_names': ['vm_pinv'],
+	'key_sets': [#'performance/EI/V_m0/ridge_classifier/label/performance',
 	             'performance/EI/V_m0/pinv_classifier/label/performance',],
 	'plot_properties': []}
 
-fig = pl.figure()
-ax1 = fig.add_subplot(111, projection='3d')
+# plot performance results surface
+fig1 = pl.figure()
+fig1.suptitle(analysis['title'])
+ax1 = fig1.add_subplot(111, projection='3d')
 
 for var_id, variable_name in enumerate(analysis['variable_names']):
 	globals()[variable_name] = pars.harvest(results_path, key_set=analysis['key_sets'][var_id])[1]
@@ -56,13 +58,19 @@ for var_id, variable_name in enumerate(analysis['variable_names']):
 	Z = globals()[variable_name].astype(float)
 
 	ax1.plot_surface(X, Y, Z, rstride=1, cstride=1, alpha=0.3)
-
 	# cset = ax1.contourf(X, Y, Z, zdir='z', cmap=cm.coolwarm)
 	# cset = ax1.contourf(X, Y, Z, zdir='x', cmap=cm.coolwarm)
 	# cset = ax1.contourf(X, Y, Z, zdir='y', cmap=cm.coolwarm)
-
-	ax1.set_xlabel(pars.parameter_axes['xlabel'])
+	ax1.set_xlabel(pars.parameter_axes['ylabel'])
+	ax1.set_ylabel(pars.parameter_axes['xlabel'])
 	ax1.set_zlabel('Performance')
 
 pl.show()
 
+
+# plot 2d arrays
+fig2 = pl.figure()
+analysis = {'title': 'All',
+            'labels': [],
+            'variable_names': [],
+            'key_sets': []}
