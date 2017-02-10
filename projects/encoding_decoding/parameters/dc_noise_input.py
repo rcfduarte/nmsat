@@ -114,7 +114,7 @@ def build_parameters(g, ro_in):
 	                 'tau': 20.,            # time constant of exponential filter (van Rossum distance)
 	                 'window_len': 100,     # length of sliding time window (for time_resolved analysis)
 	                 'summary_only': True, # how to save the data (only mean and std - True) or entire data set (False)
-	                 'complete': True,      # use all existing measures or just the fastest / simplest ones
+	                 'complete': False,      # use all existing measures or just the fastest / simplest ones
 	                 'time_resolved': False}# perform time-resolved analysis
 
 	# ##################################################################################################################

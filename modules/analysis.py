@@ -1433,7 +1433,7 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 		population_object 		= new_population
 	else:
 		raise TypeError("Incorrect population object. Must be Population or Network object")
-
+	spike_list = None
 	results = {'spiking_activity': {}, 'analog_activity': {}, 'metadata': {'population_name': population_object.name}}
 
 	########################################################################################################
@@ -1505,7 +1505,6 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 				if parameter_set.net_pars.analog_device_pars[pop_idx] is None:
 					break
 				variable_names = list(np.copy(parameter_set.net_pars.analog_device_pars[pop_idx]['record_from']))
-
 				results['analog_activity'][pop.name].update(compute_analog_stats(pop, parameter_set, variable_names,
 				                                                                 analysis_interval, plot))
 	if plot:

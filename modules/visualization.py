@@ -1091,6 +1091,7 @@ class SpikePlots(object):
 					time = tt1.time_axis(dt)[:-1]
 					rate = tt1.firing_rate(dt, average=True)
 					ax2.plot(time, rate, color=colors[n], linewidth=1.0)
+			ax2.plot(time, global_rate, 'k', linewidth=1.0)
 			ax2.set(ylim=[min(global_rate) - 1, max(global_rate) + 1], xlim=[self.start, self.stop])
 		else:
 			ax1.set(**ax_props)
