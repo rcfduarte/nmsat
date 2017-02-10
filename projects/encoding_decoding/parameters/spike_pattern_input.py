@@ -4,11 +4,11 @@ from preset import *
 import numpy as np
 
 """
-dc_input
-- test dc_input stimulus processing
+spike_pattern_input
+- main spike_input stimulus processing
 """
 
-run = 'local'
+run = 'Blaustein'
 data_label = 'ED_spikepatterninput_training_parameters'
 
 
@@ -67,7 +67,7 @@ def build_parameters(lexicon_size, T):
 		            {'rule': 'pairwise_bernoulli', 'p': pII}],
 		syn_specs=[{}, {}, {}, {}])
 	neuron_pars, net_pars, connection_pars = set_network_defaults(N=N, **recurrent_synapses)
-
+	net_pars['record_spikes'] = [False, False]
 	# net_pars['record_analogs'] = [True, False]
 	# multimeter = rec_device_defaults(device_type='multimeter')
 	# multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1000})
@@ -171,8 +171,8 @@ def build_parameters(lexicon_size, T):
 
 	encoding_pars = set_encoding_defaults(default_set=4, input_dimensions=n_stim, n_encoding_neurons=n_afferents,
 	                                      **input_synapses)
-	add_parrots(encoding_pars, n_afferents, decode=True, **{}) # encoder parrots are necessary
-	# ##################################################################################################################
+	add_parrots(encoding_pars, n_afferents, decode=False, **{}) # encoder parrots are necessary
+	# #################################################################################################################
 	# Decoding / Readout Parameters
 	# ##################################################################################################################
 	out_resolution = 0.1
@@ -196,19 +196,19 @@ def build_parameters(lexicon_size, T):
 	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)
 
 	## Set decoders for input population (if applicable)
-	input_decoder = dict(
-		state_variable=['spikes'],
-		filter_time=filter_tau,
-		readouts=readout_labels,
-		readout_algorithms=readout_algorithms,
-		output_resolution=out_resolution,
-		sampling_times=state_sampling,
-		reset_states=[True],
-		average_states=[True],
-		standardize=[False]
-	)
-
-	encoding_pars = add_input_decoders(encoding_pars, input_decoder, kernel_pars)
+	# input_decoder = dict(
+	# 	state_variable=['spikes'],
+	# 	filter_time=filter_tau,
+	# 	readouts=readout_labels,
+	# 	readout_algorithms=readout_algorithms,
+	# 	output_resolution=out_resolution,
+	# 	sampling_times=state_sampling,
+	# 	reset_states=[True],
+	# 	average_states=[True],
+	# 	standardize=[False]
+	# )
+	#
+	# encoding_pars = add_input_decoders(encoding_pars, input_decoder, kernel_pars)
 	# ##################################################################################################################
 	# Extra analysis parameters (specific for this experiment)
 	# ==================================================================================================================
@@ -246,6 +246,6 @@ def build_parameters(lexicon_size, T):
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'lexicon_size': [200],
-	'T': [20000]
+	'lexicon_size': np.arange(10, 1010, 10),
+	'T': np.arange(100, 600, 100)
 }

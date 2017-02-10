@@ -8,7 +8,7 @@ dc_input
 - test dc_input stimulus processing
 """
 
-run = 'local'
+run = 'Blaustein'
 data_label = 'ED_dcinput_training_parameters'
 
 
@@ -18,10 +18,10 @@ def build_parameters(lexicon_size, T):
 	# ######################################################################################################################
 	system = dict(
 		nodes=1,
-		ppn=24,
-		mem=48,
+		ppn=4,
+		mem=8000,
 		walltime='01-00:00:00',
-		queue='batch',
+		queue='defqueue',
 		transient_time=1000.,
 		sim_time=1000.)
 
@@ -229,6 +229,6 @@ def build_parameters(lexicon_size, T):
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'lexicon_size': [20],
-	'T': [20000]
+	'lexicon_size': np.arange(10, 1010, 10),
+	'T': np.arange(100, 600, 100)
 }

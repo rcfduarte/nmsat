@@ -507,7 +507,7 @@ def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=
 				'weight_dist': syn_pars.weight_dist,
 				'delay_dist': syn_pars.delay_dist,
 				'preset_W': syn_pars.preset_W},
-			'input_decoder': {}
+			'input_decoder': None#{}
 		}
 
 	else:
