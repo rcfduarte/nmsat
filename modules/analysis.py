@@ -1433,7 +1433,7 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 		population_object 		= new_population
 	else:
 		raise TypeError("Incorrect population object. Must be Population or Network object")
-
+	spike_list = None
 	results = {'spiking_activity': {}, 'analog_activity': {}, 'metadata': {'population_name': population_object.name}}
 
 	########################################################################################################
@@ -1505,7 +1505,6 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 				if parameter_set.net_pars.analog_device_pars[pop_idx] is None:
 					break
 				variable_names = list(np.copy(parameter_set.net_pars.analog_device_pars[pop_idx]['record_from']))
-
 				results['analog_activity'][pop.name].update(compute_analog_stats(pop, parameter_set, variable_names,
 				                                                                 analysis_interval, plot))
 	if plot:
@@ -3437,7 +3436,9 @@ class DecodingLayer(object):
 					self.determine_total_delay()
 				time_shift = self.total_delays[idx] #self.extractor_resolution[idx] #
 
-			if isinstance(initializer, basestring) or isinstance(initializer, list):
+			if isinstance(initializer, basestring) or isinstance(initializer, list) or (isinstance(initializer,
+			                                                        tuple) and isinstance(initializer[0], basestring)):
+				# read data from file
 				data = io.extract_data_fromfile(initializer)
 				if data is not None:
 					if len(data.shape) != 2:
@@ -3462,8 +3463,8 @@ class DecodingLayer(object):
 								tmp = [(neuron_ids[n], sigs[n]) for n in range(len(neuron_ids))]
 								responses = sg.AnalogSignalList(tmp, np.unique(neuron_ids).tolist(), times=times,
 								                                t_start=start, t_stop=stop)
-			# TODO comment, what are the two cases?
 			elif isinstance(initializer, tuple) or isinstance(initializer, int):
+				# read data in memory
 				status_dict = nest.GetStatus(initializer)[0]['events']
 				times = status_dict['times']
 
@@ -3471,9 +3472,7 @@ class DecodingLayer(object):
 					times -= time_shift
 
 				if start is not None and stop is not None:
-					idx1 = np.where(times >= start - 0.001)[0]
-					idx2 = np.where(times <= stop + 0.001)[0]
-					idxx = np.intersect1d(idx1, idx2)
+					idxx = np.where((times >= start - 0.00001) & (times <= stop + 0.000001))[0]
 					times = times[idxx]
 					status_dict['V_m'] = status_dict['V_m'][idxx]
 					status_dict['senders'] = status_dict['senders'][idxx]
@@ -3522,7 +3521,7 @@ class DecodingLayer(object):
 		:return:
 		"""
 		# set the lag to  be == 2*resolution
-		lag = np.unique(self.extractor_resolution)[0] * 2.
+		lag = np.unique(self.extractor_resolution)[0] #* 2.
 		self.sampled_times.append(time_point)
 		if not sg.empty(self.activity):
 			responses = self.activity

@@ -7,7 +7,7 @@ from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
 from modules.visualization import set_global_rcParams, InputPlots, extract_encoder_connectivity
-from modules.analysis import characterize_population_activity, compute_ainess
+from modules.analysis import characterize_population_activity
 from stimulus_generator import StimulusPattern
 import cPickle as pickle
 import numpy as np
@@ -211,7 +211,8 @@ analysis_pars = {'time_bin': 1.,
                  'window_len': 100,
                  'summary_only': False,
                  'complete': True,
-                 'time_resolved': True}
+                 'time_resolved': True,
+                 'color_subpop': True}
 epochs = {'ongoing': (analysis_interval[0], parameter_set.kernel_pars.transient_t),
           'evoked': (parameter_set.kernel_pars.transient_t, analysis_interval[1])}
 results['transition'] = characterize_population_activity(net, parameter_set, analysis_interval, epochs=epochs,

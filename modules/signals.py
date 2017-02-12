@@ -42,6 +42,7 @@ import io
 import itertools
 import cPickle as pickle
 import matplotlib.pyplot as pl
+from functools import partial
 from sys import exit
 has_pyspike = check_dependency('pyspike')
 if has_pyspike:
@@ -291,6 +292,19 @@ def convert_array(array, id_list, dt=None, start=None, stop=None):
 		except Exception:
 			print "id %d is not in the source AnalogSignalList" % id
 	return new_AnalogSignalList
+
+
+#####################################################################################
+def determine_decimal_digits(x):
+	"""
+	Simple function to determine the number of digits after the decimal point
+	:param n:
+	:return:
+	"""
+	s = str(x)
+	if not '.' in s:
+		return 0
+	return len(s) - s.index('.') - 1
 
 
 ######################################################################################################
@@ -3165,22 +3179,26 @@ class AnalogSignalList(object):
 
 		signals = np.array(signals)
 
-		lens = []
-		for id in id_list:
-			signal = np.transpose(signals[signals[:, 0] == id, :])[1]
-			lens.append(len(signal))
-		lens = np.array(lens)
+		signal_ids = [np.transpose(signals[signals[:, 0] == id, :])[1] for id in id_list]
+		lens = np.array(map(len, signal_ids))
 
-		for id in id_list:
-			signal = np.transpose(signals[signals[:, 0] == id, :])[1]
-			if len(signal) > 0 and len(signal) == max(lens):
-				self.analog_signals[id] = AnalogSignal(signal, self.dt, self.t_start, self.t_stop)
-			elif len(signal) > 0 and len(signal) != max(lens):
-				sig = np.zeros(max(lens))
-				sig[:len(signal)] = signal.copy()
-				steps_left = max(lens) - len(signal)
-				sig[len(signal):] = np.ones(steps_left) * signal[-1]
-				self.analog_signals[id] = AnalogSignal(sig, self.dt, self.t_start, self.t_stop)
+		# lens = []
+		# for id in id_list:
+		# 	signal = np.transpose(signals[signals[:, 0] == id, :])[1]
+		# 	lens.append(len(signal))
+		# lens = np.array(lens)
+
+		for id, signal in zip(id_list, signal_ids):
+			# signal = np.transpose(signals[signals[:, 0] == id, :])[1]
+			self.organize_analogs(signal, id, lens) # trying to speed up...
+			# if len(signal) > 0 and len(signal) == max(lens):
+			# 	self.analog_signals[id] = AnalogSignal(signal, self.dt, self.t_start, self.t_stop)
+			# elif len(signal) > 0 and len(signal) != max(lens):
+			# 	sig = np.zeros(max(lens))
+			# 	sig[:len(signal)] = signal.copy()
+			# 	steps_left = max(lens) - len(signal)
+			# 	sig[len(signal):] = np.ones(steps_left) * signal[-1]
+			# 	self.analog_signals[id] = AnalogSignal(sig, self.dt, self.t_start, self.t_stop)
 
 		signals = self.analog_signals.values()
 		if signals:
@@ -3191,6 +3209,16 @@ class AnalogSignalList(object):
 
 		if t_stop is None:
 			self.t_stop = self.t_start + self.signal_length * self.dt
+
+	def organize_analogs(self, signal, id, lens):
+		if len(signal) > 0 and len(signal) == max(lens):
+			self.analog_signals[id] = AnalogSignal(signal, self.dt, self.t_start, self.t_stop)
+		elif len(signal) > 0 and len(signal) != max(lens):
+			sig = np.zeros(max(lens))
+			sig[:len(signal)] = signal.copy()
+			steps_left = max(lens) - len(signal)
+			sig[len(signal):] = np.ones(steps_left) * signal[-1]
+			self.analog_signals[id] = AnalogSignal(sig, self.dt, self.t_start, self.t_stop)
 
 	def id_list(self):
 		"""

@@ -4,6 +4,8 @@ from modules.visualization import *
 from modules.io import set_project_paths
 from defaults.paths import paths
 import matplotlib.pyplot as pl
+from matplotlib.mlab import griddata
+from matplotlib import cm
 from os import environ, system
 import sys
 
@@ -14,7 +16,7 @@ stimulus_processing
 
 # data parameters
 project = 'encoding_decoding'
-data_type = 'dcinput' # 'spiketemplate'
+data_type = 'spikepatterninput' #'dcinput' # 'spiketemplate'
 #population_of_interest = 'E'  # results are provided for only one population (choose Global to get the totals)
 data_path = '/home/neuro/Desktop/MANUSCRIPTS/in_preparation/Encoding_Decoding/data/training_parameters/'
 data_label = 'ED_{0}_training_parameters'.format(data_type)  # read trial0 to extract data structure
@@ -28,37 +30,72 @@ set_global_rcParams(paths['local']['matplotlib_rc'])
 pars_file = data_path + data_label + '_ParameterSpace.py'
 pars = ParameterSpace(pars_file)
 
-# harvest data
-# results = pars.harvest(data_path+data_label+'/')
-
-
-# print the full nested structure of the results dictionaries
+# print the full nested structure of the results dictionaries (to harvest only specific results)
 pars.print_stored_keys(results_path)
 
 # harvest the whole data set - returns a tuple with the data labels and the complete results dictionaries
 # results = pars.harvest(data_path+data_label+'/Results/')
 
 # harvest specific results (specifying the list of keys necessary to reach the data)
-# analysis = {
-# 	'title': 'Performance [max]',
-# 	'labels': ['Vm ridge', 'spikes ridge', 'Vm pinv', 'spikes pinv'],
-# 	'variable_names': ['vm_ridge', 'spikes_ridge', 'vm_pinv', 'spikes_pinv'],
-# 	'key_sets': ['performance/EI/V_m/ridge_classifier/max/performance',
-# 	             'performance/EI/V_m/pinv_classifier/max/performance',],
-# 	'plot_properties': []}
-#
-# fig = pl.figure()
-# ax1 = fig.add_subplot(111)
-#
-# for var_id, variable_name in enumerate(analysis['labels']):
-# 	globals()[variable_name] = pars.harvest(results_path, key_set=analysis['key_sets'][var_id])[1]
-#
-# 	ax1.plot(pars.parameter_axes['xticks'], np.mean(globals()[variable_name].astype(float), 1), label=analysis[
-# 		'labels'][var_id])
-# 	ax1.errorbar(pars.parameter_axes['xticks'], np.mean(globals()[variable_name].astype(float), 1), yerr=np.std(
-# 		globals()[variable_name].astype(float), 1))
-# 	ax1.set_xlabel(pars.parameter_axes['xlabel'])
-# 	ax1.set_ylabel('Performance')
-#
-# pl.show()
+analysis = {
+	'title': 'Performance',
+	'labels': ['Vm pinv'],
+	'variable_names': ['vm_pinv'],
+	'key_sets': [#'performance/EI/V_m0/ridge_classifier/label/performance',
+	             'performance/EI/V_m0/pinv_classifier/label/performance',],
+	'plot_properties': []}
 
+# plot performance results surface
+fig1 = pl.figure()
+fig1.suptitle(analysis['title'])
+ax1 = fig1.add_subplot(111, projection='3d')
+
+for var_id, variable_name in enumerate(analysis['variable_names']):
+	globals()[variable_name] = pars.harvest(results_path, key_set=analysis['key_sets'][var_id])[1]
+
+	x = pars.parameter_axes['xticks']
+	y = pars.parameter_axes['yticks']
+	X, Y = np.meshgrid(y, x)
+	Z = globals()[variable_name].astype(float)
+
+	ax1.plot_surface(X, Y, Z, rstride=1, cstride=1, alpha=0.3)
+	# cset = ax1.contourf(X, Y, Z, zdir='z', cmap=cm.coolwarm)
+	# cset = ax1.contourf(X, Y, Z, zdir='x', cmap=cm.coolwarm)
+	# cset = ax1.contourf(X, Y, Z, zdir='y', cmap=cm.coolwarm)
+	ax1.set_xlabel(pars.parameter_axes['ylabel'])
+	ax1.set_ylabel(pars.parameter_axes['xlabel'])
+	ax1.set_zlabel('Performance')
+
+pl.show()
+
+
+# plot 2d arrays
+fig2 = pl.figure()
+ax = Axes3D(fig2)
+# try the interpolation
+
+
+x = pars.parameter_axes['xticks']
+y = pars.parameter_axes['yticks']
+z = vm_pinv.astype(float)
+
+point_coordinates = [(k, v) for k in x for v in y]
+x_vals = np.array([xx[0] for xx in point_coordinates])
+y_vals = np.array([xx[1] for xx in point_coordinates])
+z_vals = z.flatten()
+
+
+xi = np.linspace(min(x), max(x))
+yi = np.linspace(min(y), max(y))
+X, Y = np.meshgrid(xi, yi)
+z = vm_pinv.astype(float)
+Z = griddata(x_vals, y_vals, z_vals, xi, yi)
+
+# ax.scatter3D(x_vals, y_vals, z_vals, c=z_vals, cmap=cm.jet)
+ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=cm.jet, linewidth=1, antialiased=True)
+
+ax.set_xlabel(pars.parameter_axes['xlabel'])
+ax.set_ylabel(pars.parameter_axes['ylabel'])
+ax.set_zlabel('Performance')
+
+pl.show()

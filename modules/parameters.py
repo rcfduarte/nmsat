@@ -1033,6 +1033,7 @@ class ParameterSpace:
 				found_ = True
 			except:
 				print "Dataset {0} Not Found, skipping".format(pars_labels[ctr])
+				ctr += 1
 				continue
 		print "\n\nResults dictionary structure:"
 		pretty(results)
@@ -1078,7 +1079,7 @@ class ParameterSpace:
 				try:
 					with open(data_path+'Results_'+params_label, 'r') as fp:
 						results = pickle.load(fp)
-					print "Loading ParameterSet {0}".format(self.label)
+					print "Loading ParameterSet {0}".format(params_label)
 				except:
 					print "Dataset {0} Not Found, skipping".format(params_label)
 					continue

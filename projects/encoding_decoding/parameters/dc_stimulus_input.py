@@ -8,7 +8,7 @@ dc_input
 - test dc_input stimulus processing
 """
 
-run = 'local'
+run = 'Jureca'
 data_label = 'ED_dcinput_training_parameters'
 
 
@@ -18,8 +18,8 @@ def build_parameters(lexicon_size, T):
 	# ######################################################################################################################
 	system = dict(
 		nodes=1,
-		ppn=24,
-		mem=48,
+		ppn=4,
+		mem=8,
 		walltime='01-00:00:00',
 		queue='batch',
 		transient_time=1000.,
@@ -67,6 +67,8 @@ def build_parameters(lexicon_size, T):
 		            {'rule': 'pairwise_bernoulli', 'p': pII}],
 		syn_specs=[{}, {}, {}, {}])
 	neuron_pars, net_pars, connection_pars = set_network_defaults(N=N, **recurrent_synapses)
+
+	net_pars['record_spikes'] = [False, False]
 
 	# net_pars['record_analogs'] = [True, False]
 	# multimeter = rec_device_defaults(device_type='multimeter')
@@ -227,6 +229,6 @@ def build_parameters(lexicon_size, T):
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'lexicon_size': [20],
-	'T': [100]
+	'lexicon_size': np.arange(5, 505, 5),
+	'T': np.arange(100, 1100, 100)
 }

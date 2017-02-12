@@ -20,6 +20,7 @@ import visualization
 import analysis
 import numpy as np
 import itertools
+import time
 import nest
 
 
@@ -103,15 +104,17 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 	else:
 		store = store_activity
 
+	start_time = time.time()
 	####################################################################################################################
 	if sampling_times is None:  # one sample for each stimulus (acquired at the last time point of each stimulus)
-		print("\nSimulating {0} steps".format(str(set_size)))
+		print("\n\nSimulating {0} steps".format(str(set_size)))
 
 		# ################################ Main Loop ###################################
 		for idx, state_sample_time in enumerate(t_samp):
 
 			# internal time
 			internal_time = nest.GetKernelStatus()['time']
+			stim_start = time.time()
 
 			# determine simulation time for current stimulus
 			local_signal, stimulus_duration, stimulus_onset, t_samp,  state_sample_time, simulation_time = \
@@ -119,7 +122,7 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 
 			if idx < set_size:
 				# store and display stimulus information
-				print("\nSimulating step {0} / {1} - stimulus {2} [{3} ms]".format(str(idx + 1), str(set_size), str(
+				print("\n\nSimulating step {0} / {1} - stimulus {2} [{3} ms]".format(str(idx + 1), str(set_size), str(
 					set_labels[idx]), str(simulation_time)))
 				epochs[set_labels[idx]].append((stimulus_onset, state_sample_time))
 				state_sample_time += encoder_delay  # correct sampling time
@@ -143,20 +146,23 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 					net.simulate(decoder_resolution)
 
 				# extract and store activity
-				# net.extract_population_activity(t_start=stimulus_onset + encoder_delay, t_stop=state_sample_time)
-				net.extract_population_activity(t_start=internal_time, t_stop=state_sample_time)
-				net.extract_network_activity()
-				enc_layer.extract_encoder_activity(t_start=stimulus_onset + encoder_delay, t_stop=state_sample_time)
-				if not signals.empty(net.merged_populations):
-					net.merge_population_activity(start=stimulus_onset + encoder_delay, stop=state_sample_time,
-					                              save=True)
+				# net.extract_population_activity(t_start=internal_time, t_stop=state_sample_time)
+				# net.extract_network_activity()
+				# enc_layer.extract_encoder_activity(t_start=stimulus_onset + encoder_delay, t_stop=state_sample_time)
+				# if not signals.empty(net.merged_populations):
+				# 	net.merge_population_activity(start=stimulus_onset + encoder_delay, stop=state_sample_time,
+				# 	                              save=True)
 				# sample population activity
 				if isinstance(store_activity, int) and set_size-idx == store_activity:
-						store = True
-						t0 = nest.GetKernelStatus()['time']
-						epochs.update({'analysis_start': t0})
+					store = True
+					t0 = nest.GetKernelStatus()['time']
+					epochs.update({'analysis_start': t0})
 				if record:
 					extract_state_vectors(net, enc_layer, state_sample_time, store)
+				if not store_activity:
+					flush(net, enc_layer)
+
+				time_keep(start_time, idx, set_size, stim_start)
 
 		compile_results(net, enc_layer, t0, time_correction_factor, record, store)
 
@@ -603,11 +609,13 @@ def extract_state_vectors(net, enc_layer, sample_time, store_activity):
 	for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
 	                                                   net.populations, enc_layer.encoders]))):
 		if n_pop.decoding_layer is not None:
-			n_pop.decoding_layer.extract_state_vector(time_point=round(sample_time, 2), save=True)
+			n_pop.decoding_layer.extract_state_vector(time_point=round(sample_time, 2), save=True) # TODO- choose
+		# round precision
+
+def flush(net, enc_layer):
 	# clear devices
-	if not store_activity:
-		net.flush_records(decoders=True)
-		enc_layer.flush_records(decoders=True)
+	net.flush_records(decoders=True)
+	enc_layer.flush_records(decoders=True)
 
 
 def compile_results(net, enc_layer, t0, time_correction_factor, record, store_activity):
@@ -634,6 +642,22 @@ def compile_results(net, enc_layer, t0, time_correction_factor, record, store_ac
 				                                      stop=nest.GetKernelStatus()['time'] - time_correction_factor,
 				                                      save=True)
 
+
+def time_keep(start_time, idx, set_size, t1):
+	"""
+	Measure current elapsed time and remaining time
+	:return:
+	"""
+	t2 = time.time()
+	total_time_elapsed = t2 - start_time
+	cycle_count = idx + 1
+	avg_cycle_time = total_time_elapsed / cycle_count
+	cycles_remaining = set_size - cycle_count
+	time_remaining = avg_cycle_time * cycles_remaining
+	print "\nTime information: "
+	print "- Current step time: %.2f mins." % ((t2 - t1) / 60.)
+	print "- Total elapsed time: %.2f mins." % (total_time_elapsed / 60.)
+	print "- Estimated time remaining: %.2f mins." % (time_remaining / 60.)
 
 # def process_states(net, enc_layer, parameters, stim, inputs, set_name, target=None):
 #

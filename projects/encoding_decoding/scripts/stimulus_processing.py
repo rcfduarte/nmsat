@@ -22,7 +22,7 @@ from stimulus_generator import StimulusPattern
 # ######################################################################################################################
 # Experiment options
 # ======================================================================================================================
-plot = False
+plot = True
 display = True
 save = True
 debug = False
@@ -162,7 +162,8 @@ net.connect_devices()
 net.connect_decoders(parameter_set.decoding_pars)
 
 # Attach decoders to input encoding populations
-if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input_decoder"):
+if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input_decoder") and \
+				parameter_set.encoding_pars.input_decoder is not None:
 	enc_layer.connect_decoders(parameter_set.encoding_pars.input_decoder)
 
 # ######################################################################################################################
@@ -176,7 +177,7 @@ net.connect_populations(parameter_set.connection_pars)
 set_name = 'transient'
 if not empty(stim_set.transient_set_labels):
 	epochs_transient = iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name=set_name,
-	                                     record=True, store_activity=False)
+	                                     record=False, store_activity=False)
 	for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
 		if n_pop.decoding_layer is not None:
 			n_pop.decoding_layer.flush_states()
@@ -202,7 +203,8 @@ if hasattr(stim_set, "unique_set"):
 				if not empty(labels) and not empty(state_matrix):
 					print "\nPopulation {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
 					                                                          str(state_matrix.shape))
-					results['rank'][n_pop.name].update({var + str(idx_var): get_state_rank(state_matrix)})
+					results['rank'][n_pop.name].update({var + str(idx_var) + '_{0}'.format(set_name): get_state_rank(
+						state_matrix)})
 
 					if save:
 						np.save(paths['activity']+paths['label']+'_population{0}_state{1}_{2}.npy'.format(n_pop.name,
@@ -242,6 +244,8 @@ for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc
 			if not empty(labels) and not empty(state_matrix):
 				print "\nPopulation {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
 				                                                          str(state_matrix.shape))
+				# results['rank'][n_pop.name].update({var + str(idx_var) + '_{0}'.format(set_name): get_state_rank(
+				# 	state_matrix)})
 				for readout in readouts:
 					readout_train(readout, state_matrix, target=target, index=None, accepted=train_idx,
 					              display=display, plot=plot, save=paths['figures']+paths['label'])
@@ -292,7 +296,7 @@ for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc
 				dec_layer.sampled_times = dec_layer.sampled_times[-parameter_set.analysis_pars.store_activity:]
 			else:
 				dec_layer.sampled_times = dec_layer.sampled_times[-parameter_set.stim_pars.test_set_length:]
-			dec_layer.evaluate_decoding(n_neurons=10, display=display, save=paths['figures'] + paths['label'])
+			dec_layer.evaluate_decoding(n_neurons=50, display=display, save=paths['figures'] + paths['label'])
 
 		labels = getattr(target_set, "{0}_set_labels".format(set_name))
 		target = np.array(getattr(target_set, "{0}_set".format(set_name)).todense())
@@ -312,6 +316,8 @@ for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc
 			if not empty(labels) and not empty(state_matrix):
 				print "\nPopulation {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
 				                                                          str(state_matrix.shape))
+				# results['rank'][n_pop.name].update({var + str(idx_var) + '_{0}'.format(set_name): get_state_rank(
+				# 	state_matrix)})
 				results['dimensionality'][n_pop.name].update({var + str(idx_var): compute_dimensionality(
 					state_matrix)})
 				for readout in readouts:

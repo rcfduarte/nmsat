@@ -154,7 +154,8 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 	net.connect_decoders(parameter_set.decoding_pars)
 
 	# Attach decoders to input encoding populations
-	if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input_decoder"):
+	if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input_decoder") and \
+			parameter_set.encoding_pars.input_decoder is not None:
 		enc_layer.connect_decoders(parameter_set.encoding_pars.input_decoder)
 
 	# ######################################################################################################################
@@ -168,7 +169,7 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 	set_name = 'transient'
 	if not empty(stim_set.transient_set_labels):
 		epochs_transient = iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name=set_name,
-		                                          record=True, store_activity=False)
+		                                          record=False, store_activity=False)
 		for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
 			if n_pop.decoding_layer is not None:
 				n_pop.decoding_layer.flush_states()
@@ -335,3 +336,4 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 		with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
 			pickle.dump(results, f)
 		parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
+
