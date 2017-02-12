@@ -4,6 +4,7 @@ from modules.visualization import *
 from modules.io import set_project_paths
 from defaults.paths import paths
 import matplotlib.pyplot as pl
+from matplotlib.mlab import griddata
 from matplotlib import cm
 from os import environ, system
 import sys
@@ -15,7 +16,7 @@ stimulus_processing
 
 # data parameters
 project = 'encoding_decoding'
-data_type = 'dcinput' # 'spiketemplate'
+data_type = 'spikepatterninput' #'dcinput' # 'spiketemplate'
 #population_of_interest = 'E'  # results are provided for only one population (choose Global to get the totals)
 data_path = '/home/neuro/Desktop/MANUSCRIPTS/in_preparation/Encoding_Decoding/data/training_parameters/'
 data_label = 'ED_{0}_training_parameters'.format(data_type)  # read trial0 to extract data structure
@@ -70,7 +71,31 @@ pl.show()
 
 # plot 2d arrays
 fig2 = pl.figure()
-analysis = {'title': 'All',
-            'labels': [],
-            'variable_names': [],
-            'key_sets': []}
+ax = Axes3D(fig2)
+# try the interpolation
+
+
+x = pars.parameter_axes['xticks']
+y = pars.parameter_axes['yticks']
+z = vm_pinv.astype(float)
+
+point_coordinates = [(k, v) for k in x for v in y]
+x_vals = np.array([xx[0] for xx in point_coordinates])
+y_vals = np.array([xx[1] for xx in point_coordinates])
+z_vals = z.flatten()
+
+
+xi = np.linspace(min(x), max(x))
+yi = np.linspace(min(y), max(y))
+X, Y = np.meshgrid(xi, yi)
+z = vm_pinv.astype(float)
+Z = griddata(x_vals, y_vals, z_vals, xi, yi)
+
+# ax.scatter3D(x_vals, y_vals, z_vals, c=z_vals, cmap=cm.jet)
+ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=cm.jet, linewidth=1, antialiased=True)
+
+ax.set_xlabel(pars.parameter_axes['xlabel'])
+ax.set_ylabel(pars.parameter_axes['ylabel'])
+ax.set_zlabel('Performance')
+
+pl.show()

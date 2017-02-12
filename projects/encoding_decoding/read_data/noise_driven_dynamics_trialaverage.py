@@ -48,9 +48,10 @@ results_arrays = {'activity': {'mean_rates': np.zeros_like(results[0]), 'ffs': n
                            'std_I_ex': np.zeros_like(results[0]), 'mean_I_in': np.zeros_like(results[0]),
                            'std_I_in': np.zeros_like(results[0]), 'IE_ratio': np.zeros_like(results[0])}}
 expected_values = {'activity': {'mean_rates': 5.},
-                  'regularity': {'lvs': 1., 'cvs': 1.}, # 'cvs': 1.,
+                  'regularity': {'cvs': 1., 'lvs': 1.}, # 'cvs': 1., 'lvs': 1.,
                   'synchrony': {'ISI_distance': 0.5, 'SPIKE_distance': 0.3, 'SPIKE_sync_distance': 0.25},
-                  'analogs': {'EI_CC': -1., 'IE_ratio': 0.}}
+                   #'ISI_distance': 0.5, 'SPIKE_distance': 0.3,
+                  'analogs': {'EI_CC': -1., 'IE_ratio': 0.}} # 'EI_CC': -1.,
 
 mean_results = copy_dict(results_arrays)
 
@@ -265,9 +266,9 @@ fig7 = pl.figure()
 fig7.suptitle("All constraints")
 ax71 = fig7.add_subplot(111)
 #+ analogs_summary
-values = ((sync_summary + reg_summary + activity_summary) / 3.)
+values = ((sync_summary + reg_summary + activity_summary + analogs_summary) / 4.)
 plot_2d_parscans(image_arrays=[values.astype(float)], axis=[ax71],
-                 fig_handle=fig7, labels=[], cmap='jet', boundaries=[], **{}) # coolwarm, rainbow
+                 fig_handle=fig7, labels=[], cmap='coolwarm', boundaries=[], **{}) # coolwarm, rainbow
 
 ax71.scatter(np.where(values == values.min())[1][0], np.where(values == values.min())[0][0], s=20, c='red',
              marker='o')

@@ -406,13 +406,13 @@ def plot_histograms(ax_list, data_list, n_bins, args_list, cmap='hsv'):
 	counter = range(len(ax_list))
 	for ax, data, c in zip(ax_list, data_list, counter):
 		n, bins = plot_histogram(data, n_bins[c], ax=ax, color=colors(c), **{'histtype': 'stepfilled', 'alpha': 0.6})
-		# approximate_pdf_isi = st.kde.gaussian_kde(data)
-		# x = np.linspace(np.min(data), np.max(data), n_bins[c])
-		# y = approximate_pdf_isi(x)
-		# y /= np.sum(y)
-		# ax.plot(x, y, color=colors(c), lw=2)
+		approximate_pdf_isi = st.kde.gaussian_kde(data)
+		x = np.linspace(np.min(data), np.max(data), n_bins[c])
+		y = approximate_pdf_isi(x)
+		y /= np.sum(y)
+		ax.plot(x, y, color=colors(c), lw=2)
 		ax.set(**args_list[c])
-		#ax.set_ylim([0., np.max(n)])
+		ax.set_ylim([0., np.max(n)])
 
 
 def plot_state_analysis(parameter_set, results, summary_only=False, start=None, stop=None, display=True, save=False):
@@ -452,7 +452,8 @@ def plot_state_analysis(parameter_set, results, summary_only=False, start=None, 
 			               save=False, **plot_props)
 		else:
 			rp.dot_display(ax=[ax1, ax2], with_rate=True, display=False, save=False, **plot_props)
-		
+		ax2.set_ylabel(r'$\mathrm{\bar{r}(t)} \mathrm{[sps]}$')
+		ax1.set_ylabel(r'$\mathrm{Neuron}$')
 		#################
 		if not summary_only:
 			fig2 = pl.figure()
@@ -548,7 +549,7 @@ def plot_state_analysis(parameter_set, results, summary_only=False, start=None, 
 					ax4.vlines(times[possible_spike_times], v_th, 50., lw=1)
 
 				ax4.set_ylim(min(vm) - 5., 10.)
-
+				ax4.set_ylabel(r'$\mathrm{V_{m} [mV]}$')
 				ax3.set_title('Neuron {0}'.format(str(idx)))
 				currents = [x for x in results['analog_activity'][name].keys() if x[0] == 'I']
 
@@ -557,7 +558,7 @@ def plot_state_analysis(parameter_set, results, summary_only=False, start=None, 
 					for iiddxx, nn_curr in enumerate(currents):
 						ax3.plot(times, results['analog_activity'][name][nn_curr], c=cl[iiddxx], lw=1)
 					ax3.set_xlim(min(times), max(times))
-					ax3.set_ylabel(r'$I_{syn} [nA]$')
+					ax3.set_ylabel(r'$\mathrm{I^{syn}} \mathrm{[nA]}$')
 				else:
 					irrelevant_keys = ['single_Vm', 'single_idx']
 					other_variables = [x for x in results['analog_activity'][name].keys() if x[:6] == 'single' and x
@@ -1082,6 +1083,7 @@ class SpikePlots(object):
 
 		if with_rate:
 			global_rate = tt.firing_rate(dt, average=True)
+			mean_rate = tt.firing_rate(10., average=True)
 			if gids is None:
 				time = tt.time_axis(dt)[:-1]
 				ax2.plot(time, global_rate, **pl_props)
@@ -1090,8 +1092,8 @@ class SpikePlots(object):
 					tt1 = self.spikelist.time_slice(self.start, self.stop).id_slice(list(ids))
 					time = tt1.time_axis(dt)[:-1]
 					rate = tt1.firing_rate(dt, average=True)
-					ax2.plot(time, rate, color=colors[n], linewidth=1.0)
-			ax2.plot(time, global_rate, 'k', linewidth=1.0)
+					ax2.plot(time, rate, color=colors[n], linewidth=1.0, alpha=0.8)
+			ax2.plot(tt.time_axis(10.)[:-1], mean_rate, 'k', linewidth=1.5)
 			ax2.set(ylim=[min(global_rate) - 1, max(global_rate) + 1], xlim=[self.start, self.stop])
 		else:
 			ax1.set(**ax_props)
@@ -3010,3 +3012,51 @@ def plot_synaptic_currents(I_ex, I_in, time_axis):
 	ax.plot(time_axis, np.mean(I_in) * np.ones_like(I_in), 'r--')
 	ax.plot(time_axis, np.abs(I_ex) - np.abs(I_in), c='gray')
 	ax.plot(time_axis, np.mean(np.abs(I_ex) - np.abs(I_in))*np.ones_like(I_ex), '--', c='gray')
+
+
+def pretty_raster(global_spike_list, analysis_interval, sub_pop_gids=None, n_total_neurons=10):
+	"""
+	Simple line raster to plot a subset of the populations (for publication)
+	:return:
+	"""
+	plot_list = global_spike_list.time_slice(t_start=analysis_interval[0], t_stop=analysis_interval[1])
+	new_ids = np.intersect1d(plot_list.select_ids("cell.mean_rate() > 0"),
+	                         plot_list.select_ids("cell.mean_rate() < 100"))
+
+	fig = pl.figure()
+	# pl.axis('off')
+	ax = fig.add_subplot(111)#, frameon=False)
+	if sub_pop_gids is not None:
+		assert (isinstance(sub_pop_gids, list)), "Provide a list of lists of gids"
+		assert (len(sub_pop_gids) == 2), "Only 2 populations are currently covered"
+		lenghts = map(len, sub_pop_gids)
+		sample_neurons = [(n_total_neurons * n) / np.sum(lenghts) for n in lenghts]
+		# id_ratios = float(min(lenghts)) / float(max(lenghts))
+		# sample_neurons = [n_total_neurons * id_ratios, n_total_neurons * (1 - id_ratios)]
+
+		neurons_1 = []
+		neurons_2 = []
+		while len(neurons_1) != sample_neurons[0] or len(neurons_2) != sample_neurons[1]:
+			chosen = np.random.choice(new_ids, size=n_total_neurons, replace=False)
+			neurons_1 = [x for x in chosen if x in sub_pop_gids[0]]
+			neurons_2 = [x for x in chosen if x in sub_pop_gids[1]]
+			if len(neurons_1) > sample_neurons[0]:
+				neurons_1 = neurons_1[:sample_neurons[0]]
+			if len(neurons_2) > sample_neurons[1]:
+				neurons_2 = neurons_2[:sample_neurons[1]]
+
+	else:
+		chosen_ids = np.random.permutation(new_ids)[:n_total_neurons]
+		new_list = plot_list.id_slice(chosen_ids)
+
+		neuron_ids = [np.where(x == np.unique(new_list.raw_data()[:, 1]))[0][0] for x in new_list.raw_data()[:, 1]]
+		tmp = [(neuron_ids[idx], time) for idx, time in enumerate(new_list.raw_data()[:, 0])]
+
+	for idx, n in enumerate(tmp):
+		ax.vlines(n[1] - analysis_interval[0], n[0] - 0.5, n[0] + 0.5, **{'color': 'k', 'lw': 1.})
+	ax.set_ylim(-0.5, n_total_neurons - 0.5)
+	ax.set_xlim(0., analysis_interval[1] - analysis_interval[0])
+	ax.grid(False)
+	# ax.set_xticks([])
+	# ax.set_yticks([])
+	pl.show()
