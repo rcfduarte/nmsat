@@ -446,7 +446,7 @@ def plot_state_analysis(parameter_set, results, summary_only=False, start=None, 
 			                         results=results['spiking_activity'][results['metadata']['population_name']])
 		plot_props = {'xlabel': 'Time [ms]', 'ylabel': 'Neuron', 'color': 'b', 'linewidth': 1.0,
 		              'linestyle': '-'}
-		if len(pop_names) > 1 or 'sub_population_names' in results['metadata'].keys():
+		if len(pop_names) > 1 and 'sub_population_names' in results['metadata'].keys():
 			gids = results['metadata']['sub_population_gids']
 			rp.dot_display(gids=gids, colors=colors[:len(gids)], ax=[ax1, ax2], with_rate=True, display=False,
 			               save=False, **plot_props)
@@ -2442,7 +2442,8 @@ def plot_response(population, ids=None, spiking_activity=None, display=True, sav
 					state_mat = population.decoding_layer.state_matrix[state_idx]
 					if isinstance(state_mat, np.ndarray):
 						globals()['ax_1{0}'.format(str(iid))].plot(population.decoding_layer.sampled_times,
-						                                           state_mat[list_idx[iid], :], 'or')
+						                                           state_mat[list_idx[iid],
+						                                           -len(population.decoding_layer.sampled_times):], 'or')
 				ylims = globals()['ax_1{0}'.format(str(iid))].get_ylim()
 				for idxx, n_spk in enumerate(spk.spike_times):
 					globals()['ax_1{0}'.format(str(iid))].vlines(n_spk, ylims[0], ylims[1], lw=2)

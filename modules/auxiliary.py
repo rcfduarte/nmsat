@@ -154,9 +154,9 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 				# 	                              save=True)
 				# sample population activity
 				if isinstance(store_activity, int) and set_size-idx == store_activity:
-						store = True
-						t0 = nest.GetKernelStatus()['time']
-						epochs.update({'analysis_start': t0})
+					store = True
+					t0 = nest.GetKernelStatus()['time']
+					epochs.update({'analysis_start': t0})
 				if record:
 					extract_state_vectors(net, enc_layer, state_sample_time, store)
 				if not store_activity:

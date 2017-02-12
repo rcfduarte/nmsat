@@ -8,7 +8,7 @@ spike_pattern_input
 - main spike_input stimulus processing
 """
 
-run = 'Blaustein'
+run = 'local'
 data_label = 'ED_spikepatterninput_training_parameters'
 
 
@@ -18,7 +18,7 @@ def build_parameters(lexicon_size, T):
 	# ######################################################################################################################
 	system = dict(
 		nodes=1,
-		ppn=24,
+		ppn=16,
 		mem=48000,
 		walltime='01-00:00:00',
 		queue='defqueue',
@@ -67,11 +67,11 @@ def build_parameters(lexicon_size, T):
 		            {'rule': 'pairwise_bernoulli', 'p': pII}],
 		syn_specs=[{}, {}, {}, {}])
 	neuron_pars, net_pars, connection_pars = set_network_defaults(N=N, **recurrent_synapses)
-	net_pars['record_spikes'] = [False, False]
-	# net_pars['record_analogs'] = [True, False]
-	# multimeter = rec_device_defaults(device_type='multimeter')
-	# multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1000})
-	# net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': ''}), {}]
+	net_pars['record_spikes'] = [True, True]
+	net_pars['record_analogs'] = [True, False]
+	multimeter = rec_device_defaults(device_type='multimeter')
+	multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1000})
+	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': ''}), {}]
 
 	# ######################################################################################################################
 	# Task and Stimulus Parameters
@@ -213,7 +213,7 @@ def build_parameters(lexicon_size, T):
 	# Extra analysis parameters (specific for this experiment)
 	# ==================================================================================================================
 	analysis_pars = {
-		'store_activity': False,       # [bool or int] - store all population activity in the last n steps of the test
+		'store_activity': 5,       # [bool or int] - store all population activity in the last n steps of the test
 									# phase; if set True the entire test phase will be stored;
 
 		'population_state': {       # if the activity is stored, these are the parameters for the state characterization
@@ -246,6 +246,6 @@ def build_parameters(lexicon_size, T):
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'lexicon_size': np.arange(5, 505, 5),
-	'T': np.arange(100, 1100, 100)
+	'lexicon_size': [40],
+	'T': [50]
 }

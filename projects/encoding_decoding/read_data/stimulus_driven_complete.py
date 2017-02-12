@@ -73,31 +73,31 @@ for idx, var in enumerate(analysis['variable_names']):
 
 plot_2d_parscans(arrays, axis=axes, fig_handle=fig, labels=analysis['variable_names'], **pl_props)
 
-analysis2 = {
-	'title': 'Ridge classifier',
-	'variable_names': [r'$Accuracy$', r'$Precision$',  r'$Recall$', r'$rawMSE$',
-	                   r'$maxMSE$', r'$|W_{\mathrm{out}}|$'],
-	'key_sets': ['performance/EI/V_m0/ridge_classifier/label/performance',
-				 'performance/EI/V_m0/ridge_classifier/label/precision',
-				 'performance/EI/V_m0/ridge_classifier/label/recall',
-				 'performance/EI/V_m0/ridge_classifier/raw/MSE',
-	             'performance/EI/V_m0/ridge_classifier/max/MSE',
-	             'performance/EI/V_m0/ridge_classifier/norm_wOut',],}
-##
-fig2 = pl.figure()
-fig2.suptitle(analysis2['title'])
-n_subplots = len(analysis2['variable_names'])
-axes = []
-arrays = []
-for idx, var in enumerate(analysis2['variable_names']):
-	globals()['ax{0}'.format(idx)] = fig2.add_subplot(int(np.floor(np.sqrt(n_subplots))), int(np.ceil(np.sqrt(
-		n_subplots))), idx+1)
-	array = pars.harvest(results_path, key_set=analysis2['key_sets'][idx])[1]
-
-	axes.append(globals()['ax{0}'.format(idx)])
-	arrays.append(array.astype(float))
-
-plot_2d_parscans(arrays, axis=axes, fig_handle=fig2, labels=analysis2['variable_names'], **pl_props)
+# analysis2 = {
+# 	'title': 'Ridge classifier',
+# 	'variable_names': [r'$Accuracy$', r'$Precision$',  r'$Recall$', r'$rawMSE$',
+# 	                   r'$maxMSE$', r'$|W_{\mathrm{out}}|$'],
+# 	'key_sets': ['performance/EI/V_m0/ridge_classifier/label/performance',
+# 				 'performance/EI/V_m0/ridge_classifier/label/precision',
+# 				 'performance/EI/V_m0/ridge_classifier/label/recall',
+# 				 'performance/EI/V_m0/ridge_classifier/raw/MSE',
+# 	             'performance/EI/V_m0/ridge_classifier/max/MSE',
+# 	             'performance/EI/V_m0/ridge_classifier/norm_wOut',],}
+# ##
+# fig2 = pl.figure()
+# fig2.suptitle(analysis2['title'])
+# n_subplots = len(analysis2['variable_names'])
+# axes = []
+# arrays = []
+# for idx, var in enumerate(analysis2['variable_names']):
+# 	globals()['ax{0}'.format(idx)] = fig2.add_subplot(int(np.floor(np.sqrt(n_subplots))), int(np.ceil(np.sqrt(
+# 		n_subplots))), idx+1)
+# 	array = pars.harvest(results_path, key_set=analysis2['key_sets'][idx])[1]
+#
+# 	axes.append(globals()['ax{0}'.format(idx)])
+# 	arrays.append(array.astype(float))
+#
+# plot_2d_parscans(arrays, axis=axes, fig_handle=fig2, labels=analysis2['variable_names'], **pl_props)
 
 analysis3 = {
 	'title': 'Dimensionality',

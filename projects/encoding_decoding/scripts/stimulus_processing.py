@@ -22,7 +22,7 @@ from stimulus_generator import StimulusPattern
 # ######################################################################################################################
 # Experiment options
 # ======================================================================================================================
-plot = False
+plot = True
 display = True
 save = True
 debug = False
@@ -244,8 +244,8 @@ for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc
 			if not empty(labels) and not empty(state_matrix):
 				print "\nPopulation {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
 				                                                          str(state_matrix.shape))
-				results['rank'][n_pop.name].update({var + str(idx_var) + '_{0}'.format(set_name): get_state_rank(
-					state_matrix)})
+				# results['rank'][n_pop.name].update({var + str(idx_var) + '_{0}'.format(set_name): get_state_rank(
+				# 	state_matrix)})
 				for readout in readouts:
 					readout_train(readout, state_matrix, target=target, index=None, accepted=train_idx,
 					              display=display, plot=plot, save=paths['figures']+paths['label'])
@@ -296,7 +296,7 @@ for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc
 				dec_layer.sampled_times = dec_layer.sampled_times[-parameter_set.analysis_pars.store_activity:]
 			else:
 				dec_layer.sampled_times = dec_layer.sampled_times[-parameter_set.stim_pars.test_set_length:]
-			dec_layer.evaluate_decoding(n_neurons=10, display=display, save=paths['figures'] + paths['label'])
+			dec_layer.evaluate_decoding(n_neurons=50, display=display, save=paths['figures'] + paths['label'])
 
 		labels = getattr(target_set, "{0}_set_labels".format(set_name))
 		target = np.array(getattr(target_set, "{0}_set".format(set_name)).todense())
@@ -316,8 +316,8 @@ for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc
 			if not empty(labels) and not empty(state_matrix):
 				print "\nPopulation {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
 				                                                          str(state_matrix.shape))
-				results['rank'][n_pop.name].update({var + str(idx_var) + '_{0}'.format(set_name): get_state_rank(
-					state_matrix)})
+				# results['rank'][n_pop.name].update({var + str(idx_var) + '_{0}'.format(set_name): get_state_rank(
+				# 	state_matrix)})
 				results['dimensionality'][n_pop.name].update({var + str(idx_var): compute_dimensionality(
 					state_matrix)})
 				for readout in readouts:
