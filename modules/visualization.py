@@ -279,11 +279,11 @@ def plot_histogram(tmpa, nbins, norm=True, mark_mean=True, ax=None, color='b', d
 	tmpa = tmpa[tmpa != 0]
 	if tmpa[np.isnan(tmpa)]:
 		tmp = list(tmpa)
-		print "Removing {0}".format(str(tmp.pop(np.where(np.isnan(tmpa))[0][0])))
+		print("Removing {0}".format(str(tmp.pop(np.where(np.isnan(tmpa))[0][0]))))
 		tmpa = np.array(tmp)
 	if tmpa[np.isinf(tmpa)]:
 		tmp = list(tmpa)
-		print "Removing {0}".format(str(tmp.pop(np.where(np.isinf(tmpa))[0][0])))
+		print("Removing {0}".format(str(tmp.pop(np.where(np.isinf(tmpa))[0][0]))))
 		tmpa = np.array(tmp)
 
 	n = 0
@@ -1151,45 +1151,45 @@ class SpikePlots(object):
 		else:
 			stats = results
 
-		print '\n###################################################################'
-		print ' Activity recorded in [%s - %s] ms, from population %s ' % (str(self.start), str(self.stop), str(label))
-		print '###################################################################'
-		print 'Spiking Neurons: {0}/{1}'.format(str(len(np.nonzero(tt.mean_rates())[0])), str(self.N))
-		print 'Average Firing Rate: %.2f / %.2f Hz' % (np.mean(np.array(tt.mean_rates())[np.nonzero(tt.mean_rates())[0]]),
-		                                               np.mean(tt.mean_rates()))
+		print('\n###################################################################')
+		print(' Activity recorded in [%s - %s] ms, from population %s ' % (str(self.start), str(self.stop), str(label)))
+		print('###################################################################')
+		print('Spiking Neurons: {0}/{1}'.format(str(len(np.nonzero(tt.mean_rates())[0])), str(self.N)))
+		print('Average Firing Rate: %.2f / %.2f Hz' % (np.mean(np.array(tt.mean_rates())[np.nonzero(tt.mean_rates())[0]]),
+		                                               np.mean(tt.mean_rates())))
 		# print 'Average Firing Rate (normalized by N): %.2f Hz' % (np.mean(tt.mean_rates()) * len(tt.id_list)) / self.N
-		print 'Fano Factor: %.2f' % stats['ffs'][0]
-		print '*********************************\n\tISI metrics:\n*********************************'
+		print('Fano Factor: %.2f' % stats['ffs'][0])
+		print('*********************************\n\tISI metrics:\n*********************************')
 		if 'lvs' in stats.keys():
-			print '\t- CV: %.2f / - LV: %.2f / - LVR: %.2f / - IR: %.2f' % (stats['cvs'][0], stats['lvs'][0],
-			                                                                stats['lvRs'][0], stats['iR'][0])
-			print '\t- CVlog: %.2f / - H: %.2f [bits/spike]' % (stats['cvs_log'][0], stats['ents'][0])
-			print '\t- 5p: %.2f ms' % stats['isi_5p'][0]
+			print('\t- CV: %.2f / - LV: %.2f / - LVR: %.2f / - IR: %.2f' % (stats['cvs'][0], stats['lvs'][0],
+			                                                                stats['lvRs'][0], stats['iR'][0]))
+			print('\t- CVlog: %.2f / - H: %.2f [bits/spike]' % (stats['cvs_log'][0], stats['ents'][0]))
+			print('\t- 5p: %.2f ms' % stats['isi_5p'][0])
 		else:
-			print '\t- CV: %.2f' % np.mean(stats['cvs'])
+			print('\t- CV: %.2f' % np.mean(stats['cvs']))
 
-		print '*********************************\n\tSynchrony metrics:\n*********************************'
+		print('*********************************\n\tSynchrony metrics:\n*********************************')
 		if 'ccs_pearson' in stats.keys():
-			print '\t- Pearson CC [{0} pairs]: {1}'.format(str(n_pairs), stats['ccs_pearson'][0])
-			print '\t- CC [{0} pairs]: {1}'.format(str(n_pairs), str(stats['ccs'][0]))
+			print('\t- Pearson CC [{0} pairs]: {1}'.format(str(n_pairs), stats['ccs_pearson'][0]))
+			print('\t- CC [{0} pairs]: {1}'.format(str(n_pairs), str(stats['ccs'][0])))
 			if 'd_vr' in stats.keys() and isinstance(stats['d_vr'], float):
-				print '\t- van Rossum distance: {0}'.format(str(stats['d_vr']))
+				print('\t- van Rossum distance: {0}'.format(str(stats['d_vr'])))
 			elif 'd_vr' in stats.keys() and not isinstance(stats['d_vr'], float):
-				print '\t- van Rossum distance: {0}'.format(str(np.mean(stats['d_vr'])))
+				print('\t- van Rossum distance: {0}'.format(str(np.mean(stats['d_vr']))))
 			if 'd_vp' in stats.keys() and isinstance(stats['d_vp'], float):
-				print '\t- Victor Purpura distance: {0}'.format(str(stats['d_vp']))
+				print('\t- Victor Purpura distance: {0}'.format(str(stats['d_vp'])))
 			elif 'd_vp' in stats.keys() and not isinstance(stats['d_vp'], float):
-				print '\t- Victor Purpura distance: {0}'.format(str(np.mean(stats['d_vp'])))
+				print('\t- Victor Purpura distance: {0}'.format(str(np.mean(stats['d_vp']))))
 			if 'SPIKE_distance' in stats.keys() and isinstance(stats['SPIKE_distance'], float):
-				print '\t- SPIKE similarity: %.2f / - ISI distance: %.2f ' % (stats[
-						                            'SPIKE_distance'], stats['ISI_distance'])
+				print('\t- SPIKE similarity: %.2f / - ISI distance: %.2f ' % (stats[
+						                            'SPIKE_distance'], stats['ISI_distance']))
 			elif 'SPIKE_distance' in stats.keys() and not isinstance(stats['SPIKE_distance'], float):
-				print '\t- SPIKE similarity: %.2f / - ISI distance: %.2f' % (np.mean(stats['SPIKE_distance']),
-				                                                            np.mean(stats['ISI_distance']))
+				print('\t- SPIKE similarity: %.2f / - ISI distance: %.2f' % (np.mean(stats['SPIKE_distance']),
+				                                                            np.mean(stats['ISI_distance'])))
 			if 'SPIKE_sync' in stats.keys():
-				print '\t- SPIKE Synchronization: %.2f' % np.mean(stats['SPIKE_sync'])
+				print('\t- SPIKE Synchronization: %.2f' % np.mean(stats['SPIKE_sync']))
 		else:
-			print '\t- Pearson CC [{0} pairs]: {1}'.format(str(n_pairs), np.mean(stats['ccs']))
+			print('\t- Pearson CC [{0} pairs]: {1}'.format(str(n_pairs), np.mean(stats['ccs'])))
 
 
 ############################################################################################
@@ -1345,7 +1345,7 @@ class TopologyPlots(object):
 
 	@staticmethod
 	def print_network(depth=2):
-		print "\nNetwork Structure: "
+		print("\nNetwork Structure: ")
 		nest.PrintNetwork(depth)
 
 	def to_graph_object(self):
@@ -1566,8 +1566,8 @@ class TopologyPlots(object):
 					           zorder=1, c=self.colors[tgt_idx], label='Targets in %s, from %s' % (str(n[0]),
 								                                                                               str(src_ids)))
 				else:
-					print "Sources [%s] in population %s have no target in population %s" % (str(src_ids), str(n[1]),
-					                                                                         str(n[0]))
+					print("Sources [%s] in population %s have no target in population %s" % (str(src_ids), str(n[1]),
+					                                                                         str(n[0])))
 
 				# TODO: make source marker dependent on the other values
 				#  mark sender position
@@ -2345,7 +2345,7 @@ def plot_trajectory(response_matrix, pca_fit_obj=None, label='', color='r', ax=N
 	if not hasattr(pca_fit_obj, "explained_variance_ratio_"):
 		pca_fit_obj.fit(response_matrix.T)
 	X = pca_fit_obj.transform(response_matrix.transpose())
-	print "Explained Variance (first 3 components): %s" % str(pca_fit_obj.explained_variance_ratio_)
+	print("Explained Variance (first 3 components): %s" % str(pca_fit_obj.explained_variance_ratio_))
 
 	ax.clear()
 	ax.plot(X[:, 0], X[:, 1], X[:, 2], color=color, lw=2)
@@ -2728,7 +2728,7 @@ def progress_bar(progress):
 	assert (type(progress) == float) and (progress >= 0.) and (progress <= 1.), progressConditionStr
 	length = 50
 	filled = int(round(length * progress))
-	print "|" + "=" * filled + " " * (length - filled) + "|\r",
+	print("|" + "=" * filled + " " * (length - filled) + "|\r", end=' ')
 	sys.stdout.flush()
 
 

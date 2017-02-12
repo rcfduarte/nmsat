@@ -12,10 +12,10 @@ one_pool_noisedriven
 """
 
 run = 'local'
-data_label = 'state_transfer_onepool_noisedriven_test'
+data_label = 'state_transfer_onepool_noisedriven'
 
 
-def build_parameters():
+def build_parameters(nu_x, gamma):
 	# ##################################################################################################################
 	# System / Kernel Parameters
 	# ##################################################################################################################
@@ -33,12 +33,12 @@ def build_parameters():
 	# ##################################################################################################################
 	# Neuron, Synapse and Network Parameters
 	# ##################################################################################################################
-	N = 12500
+	N = 5000
 	nE = 0.8 * N
 	delay = 1.5
 	epsilon = 0.1
 
-	gamma = 8.
+	# gamma = 8.
 	wE = 20.
 	wI = -gamma * wE
 
@@ -65,7 +65,7 @@ def build_parameters():
 	# ##################################################################################################################
 	# Encoding Parameters
 	# ##################################################################################################################
-	nu_x = 20.
+	# nu_x = 20.
 	k_x = epsilon * nE
 	# w_in = 90.
 
@@ -85,36 +85,43 @@ def build_parameters():
 	# ##################################################################################################################
 	# Extra analysis parameters (specific for this experiment)
 	# ==================================================================================================================
+	analysis_pars = {'time_bin': 1.,  # bin width for spike counts, fano factors and correlation coefficients
+					 'n_pairs': 500,  # number of spike train pairs to consider in correlation coefficient
+					 'tau': 20.,  # time constant of exponential filter (van Rossum distance)
+					 'window_len': 100,  # length of sliding time window (for time_resolved analysis)
+					 'summary_only': True,  # how to save the data (only mean and std - True) or entire data set (False)
+					 'complete': False,  # use all existing measures or just the fastest / simplest ones
+					 'time_resolved': False}  # perform time-resolved analysis
 
-	analysis_pars = {
-					# !!! analysis depth, or level, or something else..
-					'depth': 1,			# 1: save only summary of data, use only fastest measures
-										# 2: save all data, use only fastest measures
-										# 3: save only summary of data, use all available measures
-										# 4: save all data, use all available measures
-
-					'numerics': {
-						'time_bin': 	1.,  	# bin width for spike counts, fano factors and correlation coefficients
-						'n_pairs': 		500,  	# number of spike train pairs to consider in correlation coefficient
-						'tau': 			20., 	# time constant of exponential filter (van Rossum distance)
-						'window_len': 	100}, 	# length of sliding time window (for time_resolved analysis)
-
-					'stats': {
-						# other options are possible here...
-						'epochs': None,
-						'time_resolved': False,  # perform time-resolved analysis
-
-						# !!! for ainess, we could instead enforce more generic options, such as synchrony, regularity,
-						# etc., as you suggested in the email.
-						'ainess': ['ISI_distance', 'SPIKE_distance', 'ccs_pearson',  # compute level of asynchronous,
-								   'cvs', 'cvs_log', 'd_vp', 'd_vr', 'ents', 'ffs']},  # irregular population activity
-
-					'meta': {
-						'save_path': 	"",  # if set to None, then we're not saving anything
-						'plot': 		True,
-						'display': 		True,
-						'color_map': 	'jet'}
-	}
+	# analysis_pars = {
+	# 				# !!! analysis depth, or level, or something else..
+	# 				'depth': 1,			# 1: save only summary of data, use only fastest measures
+	# 									# 2: save all data, use only fastest measures
+	# 									# 3: save only summary of data, use all available measures
+	# 									# 4: save all data, use all available measures
+	#
+	# 				'numerics': {
+	# 					'time_bin': 	1.,  	# bin width for spike counts, fano factors and correlation coefficients
+	# 					'n_pairs': 		500,  	# number of spike train pairs to consider in correlation coefficient
+	# 					'tau': 			20., 	# time constant of exponential filter (van Rossum distance)
+	# 					'window_len': 	100}, 	# length of sliding time window (for time_resolved analysis)
+	#
+	# 				'stats': {
+	# 					# other options are possible here...
+	# 					'epochs': None,
+	# 					'time_resolved': False,  # perform time-resolved analysis
+	#
+	# 					# !!! for ainess, we could instead enforce more generic options, such as synchrony, regularity,
+	# 					# etc., as you suggested in the email.
+	# 					'ainess': ['ISI_distance', 'SPIKE_distance', 'ccs_pearson',  # compute level of asynchronous,
+	# 							   'cvs', 'cvs_log', 'd_vp', 'd_vr', 'ents', 'ffs']},  # irregular population activity
+	#
+	# 				'meta': {
+	# 					'save_path': 	"",  # if set to None, then we're not saving anything
+	# 					'plot': 		True,
+	# 					'display': 		True,
+	# 					'color_map': 	'jet'}
+	# }
 
 	# ##################################################################################################################
 	# RETURN dictionary of Parameters dictionaries
@@ -130,4 +137,8 @@ def build_parameters():
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
+	# 'nu_x': np.arange(2, 21, 1),
+	# 'gamma': np.arange(4., 25.5, 0.2)
+	'nu_x': [20., 22.],
+	'gamma': [6., 6.5]
 }

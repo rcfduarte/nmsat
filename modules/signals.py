@@ -142,7 +142,7 @@ def convert_activity(initializer):
 				analog_activity.append(AnalogSignalList(tmp, np.unique(neuron_ids).tolist(), times=times))
 			return analog_activity
 	else:
-		print "Incorrect initializer..."
+		print("Incorrect initializer...")
 
 
 def to_pyspike(spike_list):
@@ -290,7 +290,7 @@ def convert_array(array, id_list, dt=None, start=None, stop=None):
 			id_signal = AnalogSignal(array[n, :], dt)
 			new_AnalogSignalList.append(id, id_signal)
 		except Exception:
-			print "id %d is not in the source AnalogSignalList" % id
+			print("id %d is not in the source AnalogSignalList" % id)
 	return new_AnalogSignalList
 
 
@@ -1029,7 +1029,7 @@ class SpikeTrain(object):
 			try:
 				n, bins = np.histogram(log_isi, n_bins, weights=weights)  # , normed=True)
 			except ValueError as e:
-				print str(e)
+				print(str(e))
 				exit(-1)
 
 			# n, bins = np.histogram(log_isi, n_bins, weights=weights)
@@ -1494,7 +1494,7 @@ class SpikeList(object):
 			try:
 				new_SpkList.append(id, self.spiketrains[id])
 			except Exception:
-				print("id %d is not in the source SpikeList or already in the new one" % id)
+				print(("id %d is not in the source SpikeList or already in the new one" % id))
 		return new_SpkList
 
 	def time_slice(self, t_start, t_stop):
@@ -3350,7 +3350,7 @@ class AnalogSignalList(object):
 			try:
 				new_AnalogSignalList.append(id, self.analog_signals[id])
 			except Exception:
-				print "id %d is not in the source AnalogSignalList" %id
+				print("id %d is not in the source AnalogSignalList" %id)
 		return new_AnalogSignalList
 
 	def time_offset(self, offset):
@@ -3536,7 +3536,7 @@ class AnalogSignalList(object):
 			try:
 				result[count, :] = self.analog_signals[id].signal
 			except ValueError:
-				print result[count, :].shape, self.analog_signals[id].signal.shape
+				print(result[count, :].shape, self.analog_signals[id].signal.shape)
 				raise
 		return np.std(result, axis)
 

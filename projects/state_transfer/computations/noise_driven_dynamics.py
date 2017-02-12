@@ -40,7 +40,7 @@ def run(parameter_set, plot=False, display=False, save=True):
 	# ######################################################################################################################
 	# Set kernel and simulation parameters
 	# ======================================================================================================================
-	print '\nRuning ParameterSet {0}'.format(parameter_set.label)
+	print('\nRuning ParameterSet {0}'.format(parameter_set.label))
 	nest.ResetKernel()
 	nest.set_verbosity('M_WARNING')
 	nest.SetKernelStatus(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(), param_type='kernel'))

@@ -50,7 +50,7 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 	assert (isinstance(parameter_set, parameters.ParameterSet)), "incorrect ParameterSet"
 	assert (isinstance(stimulus_set, input_architect.StimulusSet)), "incorrect ParameterSet"
 
-	print "\n\n***** Preparing to simulate {0} set *****".format(set_name)
+	print("\n\n***** Preparing to simulate {0} set *****".format(set_name))
 
 	# determine timing compensations required
 	enc_layer.determine_total_delay()
@@ -66,8 +66,8 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 	decoder_resolution = min(list(itertools.chain(*decoder_resolutions)))
 	time_correction_factor = encoder_delay + decoder_resolution
 	if decoder_resolution != encoder_delay:
-		print "To avoid errors in the delay compensation, it is advisable to set the output resolution to be the same " \
-		      "as the encoder delays" # because the state resolution won't be enough to capture the time compensation..
+		print("To avoid errors in the delay compensation, it is advisable to set the output resolution to be the same " \
+		      "as the encoder delays") # because the state resolution won't be enough to capture the time compensation..
 
 	# extract important parameters:
 	sampling_times = parameter_set.decoding_pars.sampling_times
@@ -107,7 +107,7 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 	start_time = time.time()
 	####################################################################################################################
 	if sampling_times is None:  # one sample for each stimulus (acquired at the last time point of each stimulus)
-		print("\n\nSimulating {0} steps".format(str(set_size)))
+		print(("\n\nSimulating {0} steps".format(str(set_size))))
 
 		# ################################ Main Loop ###################################
 		for idx, state_sample_time in enumerate(t_samp):
@@ -122,8 +122,8 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 
 			if idx < set_size:
 				# store and display stimulus information
-				print("\n\nSimulating step {0} / {1} - stimulus {2} [{3} ms]".format(str(idx + 1), str(set_size), str(
-					set_labels[idx]), str(simulation_time)))
+				print(("\n\nSimulating step {0} / {1} - stimulus {2} [{3} ms]".format(str(idx + 1), str(set_size), str(
+					set_labels[idx]), str(simulation_time))))
 				epochs[set_labels[idx]].append((stimulus_onset, state_sample_time))
 				state_sample_time += encoder_delay  # correct sampling time
 
@@ -169,7 +169,7 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 	####################################################################################################################
 	elif (sampling_times is not None) and (isinstance(sub_sampling_times, list) or isinstance(sub_sampling_times, np.ndarray)):  # multiple
 		# sampling times per stimulus (build multiple state matrices)
-		print("\nSimulating {0} steps".format(str(set_size)))
+		print(("\nSimulating {0} steps".format(str(set_size))))
 
 		# initialize state matrices
 		for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations, net.populations,
@@ -214,8 +214,8 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 				t_sim = t - t_int
 
 			if t_sim > 0.:  # len(t_samp) <= set_size + 1 and
-				print("\nSimulating step {0} / stimulus {1} [{2} ms]".format(str(idx + 1), str(set_labels[idx]),
-				                                                             str(t_sim)))
+				print(("\nSimulating step {0} / stimulus {1} [{2} ms]".format(str(idx + 1), str(set_labels[idx]),
+				                                                             str(t_sim))))
 
 				# update spike template data
 				if all(['spike_pattern' in n for n in list(signals.iterate_obj_list(enc_layer.generator_names))]):
@@ -265,7 +265,7 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 						# if n_pop in net.merged_populations and idx == 0 and not n_pop.name[-1].isdigit():
 						# 	n_pop.name += str(ctr)
 						if n_pop.decoding_layer is not None:
-							print("Collecting state matrices from Population {0}".format(str(n_pop.name)))
+							print(("Collecting state matrices from Population {0}".format(str(n_pop.name))))
 							for sample_idx, n_sample_time in enumerate(sub_sampling_times):
 								assert (n_sample_time >= 10.), "Minimum sampling time must be >= 10 ms"
 								visualization.progress_bar(float(sample_idx + 1) / float(len(sub_sampling_times)))
@@ -307,10 +307,10 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 		sample_every_n = int(round(t_samp ** (-1)))  # * step_size  # take one sample of activity every n steps
 
 		if input_signal_set.online:
-			print("\nSimulating {0} steps".format(str(set_size)))
+			print(("\nSimulating {0} steps".format(str(set_size))))
 		else:
-			print("\nSimulating {0} ms in {1} steps".format(str(
-				input_signal.input_signal.t_stop - input_signal.input_signal.t_start), str(len(t_samp))))
+			print(("\nSimulating {0} ms in {1} steps".format(str(
+				input_signal.input_signal.t_stop - input_signal.input_signal.t_start), str(len(t_samp)))))
 
 		# initialize state matrices
 		for n_pop in list(itertools.chain(*[net.merged_populations,
@@ -334,7 +334,7 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 				t_sim = t - t_int
 				if store_activity:
 					epochs[set_labels[idx]].append((t_int, t_samp[-1]))
-					print(idx, set_labels[idx], epochs[set_labels[idx]][-1])
+					print((idx, set_labels[idx], epochs[set_labels[idx]][-1]))
 			else:
 				local_signal = None
 				if idx < len(t_samp) - 1:
@@ -342,10 +342,10 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 						t += intervals[idx]
 					if store_activity:
 						epochs[set_labels[idx]].append((t_int, t_samp[idx]))
-						print(idx, set_labels[idx], epochs[set_labels[idx]][-1])
+						print((idx, set_labels[idx], epochs[set_labels[idx]][-1]))
 				t_sim = t - t_int
 			if t_sim > 0.:
-				print("\nSimulating step {0} [{1} ms]".format(str(idx + 1), str(t_sim)))
+				print(("\nSimulating step {0} [{1} ms]".format(str(idx + 1), str(t_sim))))
 				# Spike templates (need to be updated online)
 				if np.mean(['spike_pattern' in n for n in list(signals.iterate_obj_list(enc_layer.generator_names))]) == 1. \
 						and \
@@ -387,8 +387,8 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 						if n_pop in net.merged_populations and idx == 0 and not n_pop.name[-1].isdigit():
 							n_pop.name += str(ctr)
 						if not signals.empty(n_pop.state_extractors):
-							print("Collecting response samples from Population {0} [rate = {1}]".format(str(
-								n_pop.name), str(t_samp)))
+							print(("Collecting response samples from Population {0} [rate = {1}]".format(str(
+								n_pop.name), str(t_samp))))
 							responses = n_pop.extract_response_matrix(start=t_int, stop=t, save=False)
 							for response_idx, n_response in enumerate(responses):
 								if store_activity:
@@ -415,10 +415,10 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 		sample_every_n = int(round(t_samp ** (-1)))  # * step_size  # take one sample of activity every n steps
 
 		if input_signal_set.online:
-			print("\nSimulating {0} steps".format(str(set_size)))
+			print(("\nSimulating {0} steps".format(str(set_size))))
 		else:
-			print("\nSimulating {0} ms in {1} steps".format(str(
-				input_signal.input_signal.t_stop - input_signal.input_signal.t_start), str(len(t_samp))))
+			print(("\nSimulating {0} ms in {1} steps".format(str(
+				input_signal.input_signal.t_stop - input_signal.input_signal.t_start), str(len(t_samp)))))
 
 		# initialize state matrices
 		for n_pop in list(itertools.chain(*[net.merged_populations,
@@ -444,7 +444,7 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 				t_sim = t - t_int
 				if store_activity:
 					epochs[set_labels[idx]].append((t_int, t_samp[-1]))
-					print(idx, set_labels[idx], epochs[set_labels[idx]][-1])
+					print((idx, set_labels[idx], epochs[set_labels[idx]][-1]))
 			else:
 				local_signal = None
 				if idx < len(t_samp) - 1:
@@ -453,10 +453,10 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 						inter_stim_int = intervals[idx]
 					if store_activity:
 						epochs[set_labels[idx]].append((t_int, t_samp[idx]))
-						print(idx, set_labels[idx], epochs[set_labels[idx]][-1])
+						print((idx, set_labels[idx], epochs[set_labels[idx]][-1]))
 				t_sim = t - t_int
 			if t_sim > 0.:
-				print("\nSimulating step {0} [{1} ms]".format(str(idx + 1), str(t_sim)))
+				print(("\nSimulating step {0} [{1} ms]".format(str(idx + 1), str(t_sim))))
 				# Spike templates (need to be updated online)
 				if np.mean(['spike_pattern' in n for n in list(signals.iterate_obj_list(enc_layer.generator_names))]) == 1. \
 						and \
@@ -498,8 +498,8 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 						if n_pop in net.merged_populations and idx == 0 and not n_pop.name[-1].isdigit():
 							n_pop.name += str(ctr)
 						if not signals.empty(n_pop.state_extractors):
-							print("Collecting response samples from Population {0} [rate = {1}]".format(str(
-								n_pop.name), str(sub_sampling_times)))
+							print(("Collecting response samples from Population {0} [rate = {1}]".format(str(
+								n_pop.name), str(sub_sampling_times))))
 							responses = n_pop.extract_response_matrix(start=t_int, stop=t - inter_stim_int, save=False)
 							for response_idx, n_response in enumerate(responses):
 								if store_activity:
@@ -654,10 +654,10 @@ def time_keep(start_time, idx, set_size, t1):
 	avg_cycle_time = total_time_elapsed / cycle_count
 	cycles_remaining = set_size - cycle_count
 	time_remaining = avg_cycle_time * cycles_remaining
-	print "\nTime information: "
-	print "- Current step time: %.2f mins." % ((t2 - t1) / 60.)
-	print "- Total elapsed time: %.2f mins." % (total_time_elapsed / 60.)
-	print "- Estimated time remaining: %.2f mins." % (time_remaining / 60.)
+	print("\nTime information: ")
+	print("- Current step time: %.2f mins." % ((t2 - t1) / 60.))
+	print("- Total elapsed time: %.2f mins." % (total_time_elapsed / 60.))
+	print("- Estimated time remaining: %.2f mins." % (time_remaining / 60.))
 
 # def process_states(net, enc_layer, parameters, stim, inputs, set_name, target=None):
 #

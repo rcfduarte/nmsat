@@ -77,7 +77,7 @@ def extract_weights_matrix(src_gids, tgets_gids, progress=True):
 	:return: len(tgets_gids) x len(src_gids) weight matrix
 	"""
 	if progress:
-		print "\n Extracting connectivity (weights) matrix..."
+		print("\n Extracting connectivity (weights) matrix...")
 	t_start = time.time()
 	w = lil_matrix((len(tgets_gids), len(src_gids)))
 	a = nest.GetConnections(list(np.unique(src_gids)), list(np.unique(tgets_gids)))
@@ -95,7 +95,7 @@ def extract_weights_matrix(src_gids, tgets_gids, progress=True):
 			visualization.progress_bar(float(nnn+1) / float(len(its)))
 	t_stop = time.time()
 	if progress:
-		print "Elapsed time: %s" % (str(t_stop - t_start))
+		print("Elapsed time: %s" % (str(t_stop - t_start)))
 	# for consistency with pre_computedW, we transpose this matrix (should be [src X tget])
 	return w.T
 
@@ -108,7 +108,7 @@ def extract_delays_matrix(src_gids, tgets_gids, progress=True):
  	:return: len(tgets_gids) x len(src_gids) weight matrix
  	"""
 	if progress:
-		print "\n Extracting connectivity (delays) matrix..."
+		print("\n Extracting connectivity (delays) matrix...")
 	t_start = time.time()
 	d = lil_matrix((len(tgets_gids), len(src_gids)))
 	a = nest.GetConnections(list(np.unique(src_gids)), list(np.unique(tgets_gids)))
@@ -126,7 +126,7 @@ def extract_delays_matrix(src_gids, tgets_gids, progress=True):
 			visualization.progress_bar(float(nnn+1) / float(len(its)))
 	t_stop = time.time()
 	if progress:
-		print "Elapsed time: %s" % (str(t_stop - t_start))
+		print("Elapsed time: %s" % (str(t_stop - t_start)))
 	return d
 
 
@@ -185,7 +185,7 @@ class Population(object):
 		 low=-70., high=-55.)
 		"""
 		assert var_name in nest.GetStatus(self.gids)[0].keys(), "Variable name not in object properties"
-		print ("\n- Randomizing {0} state in Population {1}".format(str(var_name), str(self.name)))
+		print(("\n- Randomizing {0} state in Population {1}".format(str(var_name), str(self.name))))
 		try:
 			nest.SetStatus(self.gids, var_name, randomization_function(size=len(self.gids), **function_parameters))
 		except:
@@ -328,7 +328,7 @@ class Population(object):
 					                                             t_start=t_start, t_stop=t_stop))
 					self.analog_activity_names.append(k)
 		else:
-			print "Incorrect initializer..."
+			print("Incorrect initializer...")
 
 	def connect_decoders(self, decoding_pars):
 		"""
@@ -409,8 +409,8 @@ class Network(object):
 							subpop_dict.update({'is_subpop': False, 'gids': gids})
 							populations[n].append(Population(parameters.ParameterSet(subpop_dict)))
 
-						print ("- Population {0!s}, with ids [{1!s}-{2!s}]".format(net_pars_set.pop_names[n][nn],
-																							 min(gids), max(gids)))
+						print(("- Population {0!s}, with ids [{1!s}-{2!s}]".format(net_pars_set.pop_names[n][nn],
+																							 min(gids), max(gids))))
 
 				else:
 					# create a normal population
@@ -438,8 +438,8 @@ class Network(object):
 						# set up population objects
 						pop_dict.update({'gids': gids, 'is_subpop': False})
 						populations[n] = Population(parameters.ParameterSet(pop_dict))
-					print ("- Population {0!s}, with ids [{1!s}-{2!s}]".format(net_pars_set.pop_names[n],
-																						 min(gids), max(gids)))
+					print(("- Population {0!s}, with ids [{1!s}-{2!s}]".format(net_pars_set.pop_names[n],
+																						 min(gids), max(gids))))
 
 			return populations
 
@@ -525,7 +525,7 @@ class Network(object):
 						for idd in n.id_list:
 							new_spike_list.append(idd, n.spiketrains[idd])
 					else:
-						print "Merge specific spiking activity"   # TODO
+						print("Merge specific spiking activity")   # TODO
 				new_population.spiking_activity = new_spike_list
 
 			if not signals.empty(analog_activity):
@@ -559,9 +559,9 @@ class Network(object):
 							dev_dict, param_type='device'))
 						self.device_gids[n].append(dev_gid)
 						self.n_devices[n] += 1
-						print "- Connecting %s to %s, with label %s and id %s" % (
+						print("- Connecting %s to %s, with label %s and id %s" % (
 							dev_dict['model'], self.population_names[n][nn],
-							dev_dict['label'], str(dev_gid))
+							dev_dict['label'], str(dev_gid)))
 					if self.record_analogs[n][nn]:
 						dev_dict = self.analog_device_pars[n][nn].copy()
 						self.device_type[n].append(dev_dict['model'])
@@ -578,9 +578,9 @@ class Network(object):
 																							   param_type='device'), ids=ids, record=dev_dict['record_from'])
 						self.device_gids[n].append(dev_gid)
 						self.n_devices[n] += 1
-						print "- Connecting %s to %s %s, with label %s and id %s" % (
+						print("- Connecting %s to %s %s, with label %s and id %s" % (
 							dev_dict['model'], self.population_names[n][nn], str(ids),
-							dev_dict['label'], str(dev_gid))
+							dev_dict['label'], str(dev_gid)))
 
 			elif isinstance(self.populations[n], list):
 				# recorder connected to large population, including all its subpopulations
@@ -594,8 +594,8 @@ class Network(object):
 					dev_gid = new_pop.record_spikes(parameters.extract_nestvalid_dict(dev_dict, param_type='device'))
 					self.device_gids[n].append(dev_gid)
 					self.n_devices[n] += 1
-					print "- Connecting %s to %s, with label %s and id %s" % (dev_dict['model'], new_pop.name,
-					                                                        dev_dict['label'], str(dev_gid))
+					print("- Connecting %s to %s, with label %s and id %s" % (dev_dict['model'], new_pop.name,
+					                                                        dev_dict['label'], str(dev_gid)))
 				if self.record_analogs[n]:
 					dev_dict = self.analog_device_pars[n].copy()
 					self.device_type[n].append(dev_dict['model'])
@@ -614,9 +614,9 @@ class Network(object):
 					self.device_gids[n].append(dev_gid)
 
 					self.n_devices[n] += 1
-					print "- Connecting %s to %s [%s], with label %s and id %s" % (dev_dict['model'], new_pop.name,
+					print("- Connecting %s to %s [%s], with label %s and id %s" % (dev_dict['model'], new_pop.name,
 					                                                             str(ids), dev_dict['label'],
-					                                                        str(dev_gid))
+					                                                        str(dev_gid)))
 			else:
 				# there are no sub-populations
 				self.n_devices[n] = 0
@@ -629,8 +629,8 @@ class Network(object):
 					                                                                      param_type='device'))
 					self.device_gids[n].append(dev_gid)
 					self.n_devices[n] += 1
-					print "- Connecting %s to %s, with label %s and id %s" % (dev_dict['model'], self.population_names[n],
-					                                                        dev_dict['label'], str(dev_gid))
+					print("- Connecting %s to %s, with label %s and id %s" % (dev_dict['model'], self.population_names[n],
+					                                                        dev_dict['label'], str(dev_gid)))
 				if self.record_analogs[n]:
 					if isinstance(self.record_analogs[n], bool):
 						dev_dict = self.analog_device_pars[n].copy()
@@ -651,24 +651,24 @@ class Network(object):
 
 						self.n_devices[n] += 1
 						if (ids is not None) and (len(ids) == 1):
-							print "- Connecting %s to %s [%s], with label %s and id %s" % (dev_dict['model'],
+							print("- Connecting %s to %s [%s], with label %s and id %s" % (dev_dict['model'],
 							                                                               self.population_names[n],
 							                                                               str(ids),
 							                                                               dev_dict['label'],
-							                                                               str(dev_gid))
+							                                                               str(dev_gid)))
 						elif ids is not None:
-							print "- Connecting %s to %s [%s-%s], with label %s and id %s" % (dev_dict['model'],
+							print("- Connecting %s to %s [%s-%s], with label %s and id %s" % (dev_dict['model'],
 							                                                                  self.population_names[n],
 							                                                                  str(min(ids)),
 							                                                                  str(max(ids)),
 							                                                                  dev_dict['label'],
-							                                                                  str(dev_gid))
+							                                                                  str(dev_gid)))
 						else:
-							print "- Connecting %s to %s [%s], with label %s and id %s" % (dev_dict['model'],
+							print("- Connecting %s to %s [%s], with label %s and id %s" % (dev_dict['model'],
 							                                                               self.population_names[n],
 							                                                               str('all'),
 							                                                               dev_dict['label'],
-							                                                               str(dev_gid))
+							                                                               str(dev_gid)))
 					else:
 						for nnn in range(int(self.record_analogs[n])):
 							dev_dict = self.analog_device_pars[n][nnn].copy()
@@ -689,18 +689,18 @@ class Network(object):
 
 							self.n_devices[n] += 1
 							if len(ids) == 1:
-								print "- Connecting %s to %s [%s], with label %s and id %s" % (dev_dict['model'],
+								print("- Connecting %s to %s [%s], with label %s and id %s" % (dev_dict['model'],
 								                                                               self.population_names[n],
 								                                                               str(ids),
 								                                                               dev_dict['label'],
-								                                                               str(dev_gid))
+								                                                               str(dev_gid)))
 							else:
-								print "- Connecting %s to %s [%s-%s], with label %s and id %s" % (dev_dict['model'],
+								print("- Connecting %s to %s [%s-%s], with label %s and id %s" % (dev_dict['model'],
 								                                                               self.population_names[n],
 								                                                               str(min(ids)),
 								                                                               str(max(ids)),
 								                                                               dev_dict['label'],
-								                                                               str(dev_gid))
+								                                                               str(dev_gid)))
 
 	def connect_populations(self, connect_pars_set, progress=False):
 		"""
@@ -710,7 +710,7 @@ class Network(object):
 		"""
 		print ("\nConnecting populations: ")
 		for n in range(connect_pars_set.n_synapse_types):
-			print ("    - %s [%s]" % (connect_pars_set.synapse_types[n], connect_pars_set.models[n]))
+			print(("    - %s [%s]" % (connect_pars_set.synapse_types[n], connect_pars_set.models[n])))
 
 			# index of source and target populations in the population lists
 			if connect_pars_set.synapse_types[n][1] in self.population_names:
@@ -773,7 +773,7 @@ class Network(object):
 			#**** set up connections ****
 			if synapse_name.find('copy') > 0:  # re-connect the same neurons...
 				start = time.time()
-				print "    - Connecting {0} (*)".format(synapse_name)
+				print("    - Connecting {0} (*)".format(synapse_name))
 
 				device_models = ['spike_detector', 'spike_generator', 'multimeter']
 				target_synapse_name = synapse_name[:synapse_name.find('copy')-1]
@@ -809,7 +809,7 @@ class Network(object):
 						nest.DataConnect(syn_dicts)
 					if progress:
 						visualization.progress_bar(float(nnn) / float(len(its)))
-				print "\tElapsed time: {0} s".format(str(time.time()-start))
+				print("\tElapsed time: {0} s".format(str(time.time()-start)))
 			else:
 				# 1) if pre-computed weights matrices are given
 				if (connect_pars_set.pre_computedW[n] is not None) and (not connect_pars_set.topology_dependent[n]):
@@ -869,7 +869,7 @@ class Network(object):
 		devices = list(itertools.chain.from_iterable(self.device_names))
 
 		for idx, n in enumerate(list(itertools.chain.from_iterable(self.device_gids))):
-			print " - {0} {1}".format(devices[idx], str(n))
+			print(" - {0} {1}".format(devices[idx], str(n)))
 			nest.SetStatus(n, {'n_events': 0})
 			if nest.GetStatus(n)[0]['to_file']:
 				io.remove_files(nest.GetStatus(n)[0]['filenames'])
@@ -964,12 +964,12 @@ class Network(object):
 			"""
 			devices = ['stimulator', 'structure']
 			base_idx = min(list(itertools.chain(*[n.gids for n in clone.populations])))-1
-			print "\n Replicating connectivity in clone network (*)"
+			print("\n Replicating connectivity in clone network (*)")
 			for syn_idx, synapse in enumerate(network.connection_names):
 				start = time.time()
 				copy_synapse_name = synapse + '_clone'
 				nest.CopyModel(synapse, copy_synapse_name)
-				print "\t- {0}".format(str(network.connection_types[syn_idx]))
+				print("\t- {0}".format(str(network.connection_types[syn_idx])))
 				conns = nest.GetConnections(synapse_model=synapse)
 				# ##
 				iterate_steps = 100
@@ -1020,7 +1020,7 @@ class Network(object):
 						nest.DataConnect(syn_dicts)
 						if progress:
 							visualization.progress_bar(float(nnn)/float(len(its)))
-				print "\tElapsed time: {0} s".format(str(time.time() - start))
+				print("\tElapsed time: {0} s".format(str(time.time() - start)))
 
 		def connect_decoders(network, parameters):
 			"""
@@ -1055,7 +1055,7 @@ class Network(object):
 			cn = 1.
 
 		if to_main:
-			print "Connecting CopyNetwork: "
+			print("Connecting CopyNetwork: ")
 			device_models = ['spike_detector', 'spike_generator', 'multimeter']
 			for pop_idx, pop_obj in enumerate(copy_net.populations):
 				original_gid_range = [min(self.populations[pop_idx].gids),
@@ -1063,8 +1063,8 @@ class Network(object):
 				copy_gid_range = [min(pop_obj.gids), max(pop_obj.gids)]
 
 				start = time.time()
-				print "    - {0}, {1}".format(copy_net.population_names[pop_idx],
-				                           self.population_names[pop_idx])
+				print("    - {0}, {1}".format(copy_net.population_names[pop_idx],
+				                           self.population_names[pop_idx]))
 
 				for n_neuron in range(self.n_neurons[pop_idx]):
 					src_gid = self.populations[pop_idx].gids[n_neuron]
@@ -1097,10 +1097,10 @@ class Network(object):
 						              'delay': delays[iddx], 'receptor_type': receptors[iddx]} for iddx in range(len(
 							target_gids))]
 						nest.DataConnect(syn_dicts)
-				print "Elapsed Time: {0}".format(str(time.time()-start))
+				print("Elapsed Time: {0}".format(str(time.time()-start)))
 
 		elif from_main:
-			print "\nConnecting CopyNetwork: "
+			print("\nConnecting CopyNetwork: ")
 			device_models = ['spike_detector', 'spike_generator', 'multimeter']
 			for pop_idx, pop_obj in enumerate(copy_net.populations):
 				original_gid_range = [min(self.populations[pop_idx].gids),
@@ -1108,8 +1108,8 @@ class Network(object):
 				copy_gid_range = [min(pop_obj.gids), max(pop_obj.gids)]
 
 				start = time.time()
-				print "\t    - {0}, {1}".format(copy_net.population_names[pop_idx],
-				                           self.population_names[pop_idx])
+				print("\t    - {0}, {1}".format(copy_net.population_names[pop_idx],
+				                           self.population_names[pop_idx]))
 				for n_neuron in range(self.n_neurons[pop_idx]):
 					src_gid = self.populations[pop_idx].gids[n_neuron]
 					tget_gid = pop_obj.gids[n_neuron]
@@ -1140,7 +1140,7 @@ class Network(object):
 							              'delay': delays[iddx], 'receptor_type': receptors[iddx]} for iddx in range(len(
 								source_gids))]
 							nest.DataConnect(syn_dicts)
-				print "Elapsed Time: {0}".format(str(time.time() - start))
+				print("Elapsed Time: {0}".format(str(time.time() - start)))
 		if cn is None:
 			return copy_net
 
@@ -1164,13 +1164,13 @@ class Network(object):
 		To merge the data from multiple populations see extract_network_activity()
 		"""
 		if not signals.empty(self.device_names):
-			print "\nExtracting and storing recorded activity from devices:"
+			print("\nExtracting and storing recorded activity from devices:")
 
 		for idx, n in enumerate(self.populations):
 			if isinstance(n, list):
 				for idxx, nn in enumerate(n):
 					if nn.attached_devices:
-						print "- Population {0}".format(nn.name)
+						print("- Population {0}".format(nn.name))
 						for nnn in nn.attached_devices:
 							if nest.GetStatus(nnn)[0]['to_memory']:
 								# initialize activity_set with device gid
@@ -1180,7 +1180,7 @@ class Network(object):
 								nn.activity_set(list(nest.GetStatus(nnn)[0]['filenames']), t_start=t_start, t_stop=t_stop)
 			else:
 				if n.attached_devices:
-					print "- Population {0}".format(n.name)
+					print("- Population {0}".format(n.name))
 					for nn in n.attached_devices:
 						if nest.GetStatus(nn)[0]['to_memory']:
 							# initialize activity_set with device gid

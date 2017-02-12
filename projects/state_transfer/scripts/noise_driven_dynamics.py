@@ -5,7 +5,7 @@ from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list
 from modules.visualization import set_global_rcParams
-from modules.analysis import characterize_population_activity_new, compute_ainess
+from modules.analysis import characterize_population_activity
 import cPickle as pickle
 import numpy as np
 import nest
@@ -45,7 +45,7 @@ results = dict()
 # ######################################################################################################################
 # Set kernel and simulation parameters
 # ======================================================================================================================
-print '\nRuning ParameterSet {0}'.format(parameter_set.label)
+print('\nRuning ParameterSet {0}'.format(parameter_set.label))
 nest.ResetKernel()
 nest.set_verbosity('M_WARNING')
 nest.SetKernelStatus(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(), param_type='kernel'))
@@ -103,9 +103,14 @@ analysis_interval = [parameter_set.kernel_pars.transient_t,
 
 
 # TODO, temporarily, the save path is updated here, but I'll solve it
-parameter_set.analysis_pars.meta.save_path = paths['figures']+paths['label']
-results.update(characterize_population_activity_new(net, parameter_set, analysis_interval,
-													np.random, parameter_set.analysis_pars))
+# parameter_set.analysis_pars.meta.save_path = paths['figures']+paths['label']
+# results.update(characterize_population_activity_new(net, parameter_set, analysis_interval,
+# 													np.random, parameter_set.analysis_pars))
+results.update(characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
+                                                color_map='jet', plot=plot,
+                                                display=display, save=paths['figures']+paths['label'],
+                                                **parameter_set.analysis_pars))
+
 
 # ######################################################################################################################
 # Save data
