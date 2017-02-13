@@ -18,12 +18,35 @@ Talking points:
     - I actually added a padding, that changes the probabilities no? Also, in the paper the edges of the grid have unit
     length, that again influences the connections eventually
 
-4. where to put the windowed jitter cutoff? right IN the jitter function? or pass a parameter to enable it?
-
-6.  until now target parameters for training and testing were required to be of type InputSignal.. however, this is
-    quite limiting. Did some modification, but should we allow arbitrary target values in form of matrix / arrays?
-    if yes, more integration is needed.
 ********************************************
 ***                 TODO                 ***
 ********************************************
 
+#### ANALYSIS
+class ActivityAnalysis:
+    - analyse_spiking (new)
+        - compute_synchrony
+        - compute_isi_stats
+        - compute_spike_stats
+        - compute_time_resolved_statistics
+    - analyse_analog (new)
+        - compute_analog_stats
+    - analyse_state_divergence
+    -= analyse_activity_dynamics [RENAME?]
+    -= analyse_state_matrix [redundant?]
+    x characterize_population_activity
+    
+class PerformanceAnalysis:
+    - analyse_performance_results
+
+Other stuff:
+    - readout_test / train should be methods of the Readout class.. they're getting a readout as a parameter.
+    - structure results dict. Turn it into a Result(dict) class, and make a clear structure in it, with variables created during class creation:
+        - population_name
+            - performance
+            - rank
+            - dimensionality
+            - ...
+      = easier to pass around
+    - comment some functions, don't know where they belong
+    - manifold_learning?

@@ -8,16 +8,18 @@ Collection of analysis and utility functions that are used by other modules
 
 Functions:
 ------------
-ccf - fast cross-correlation function, using fft
-_dict_max - For a dict containing numerical values, return the key for the highest
-crosscorrelate -
-makekernel - Creates kernel functions for convolution
-simple_frequency_spectrum - simple calculation of frequency spectrum
+ccf 						- fast cross-correlation function, using fft
+_dict_max 					- for a dict containing numerical values, return the key for the highest
+crosscorrelate 				-
+makekernel 					- creates kernel functions for convolution
+simple_frequency_spectrum 	- simple calculation of frequency spectrum
 
 Classes:
 ------------
-Decoder -
-
+DecodingLayer 	- reads population activity in response to patterned inputs, extracts the network state
+				  (according to specifications) and trains readout weights
+Readout 		- Readout object, trained to produce an estimation y(t) of output by reading out
+				  population state variables.
 
 Full Analysis interfaces:
 -------------------------
@@ -162,226 +164,224 @@ def cross_correlogram(x, y, max_lag=100., dt=0.1, plot=True):
 		ax.axvline(x=lag[pos_ix], ymin=np.min(corr), ymax=np.max(corr), linewidth=1.5, color='c')
 		pl.show()
 
+# TODO remove? not used?
+# def _dict_max(D):
+# 	"""
+# 	For a dict containing numerical values, return the key for the highest value. If there is more than one item
+# 	with the same highest value, return one of them (arbitrary - depends on the order produced by the iterator).
+# 	"""
+# 	max_val = max(D.values())
+# 	for k in D:
+# 		if D[k] == max_val:
+# 			return k
 
-def _dict_max(D):
-	"""
-	For a dict containing numerical values, return the key for the
-	highest value. If there is more than one item with the same highest
-	value, return one of them (arbitrary - depends on the order produced
-	by the iterator).
-	"""
-	max_val = max(D.values())
-	for k in D:
-		if D[k] == max_val:
-			return k
+# TODO remove? doesn't seem to be used
+# def make_kernel(form, sigma, time_stamp_resolution, direction=1):
+# 	"""
+# 	Creates kernel functions for convolution.
+#
+# 	Constructs a numeric linear convolution kernel of basic shape to be used
+# 	for data smoothing (linear low pass filtering) and firing rate estimation
+# 	from single trial or trial-averaged spike trains.
+#
+# 	Exponential and alpha kernels may also be used to represent postynaptic
+# 	currents / potentials in a linear (current-based) model.
+#
+# 	Adapted from original script written by Martin P. Nawrot for the
+# 	FIND MATLAB toolbox [1]_ [2]_.
+#
+# 	Parameters
+# 	----------
+# 	form : {'BOX', 'TRI', 'GAU', 'EPA', 'EXP', 'ALP'}
+# 		Kernel form. Currently implemented forms are BOX (boxcar),
+# 		TRI (triangle), GAU (gaussian), EPA (epanechnikov), EXP (exponential),
+# 		ALP (alpha function). EXP and ALP are aymmetric kernel forms and
+# 		assume optional parameter `direction`.
+# 	sigma : float
+# 		Standard deviation of the distribution associated with kernel shape.
+# 		This parameter defines the time resolution (in ms) of the kernel estimate
+# 		and makes different kernels comparable (cf. [1] for symetric kernels).
+# 		This is used here as an alternative definition to the cut-off
+# 		frequency of the associated linear filter.
+# 	time_stamp_resolution : float
+# 		Temporal resolution of input and output in ms.
+# 	direction : {-1, 1}
+# 		Asymmetric kernels have two possible directions.
+# 		The values are -1 or 1, default is 1. The
+# 		definition here is that for direction = 1 the
+# 		kernel represents the impulse response function
+# 		of the linear filter. Default value is 1.
+#
+# 	Returns
+# 	-------
+# 	kernel : array_like
+# 		Array of kernel. The length of this array is always an odd
+# 		number to represent symmetric kernels such that the center bin
+# 		coincides with the median of the numeric array, i.e for a
+# 		triangle, the maximum will be at the center bin with equal
+# 		number of bins to the right and to the left.
+# 	norm : float
+# 		For rate estimates. The kernel vector is normalized such that
+# 		the sum of all entries equals unity sum(kernel)=1. When
+# 		estimating rate functions from discrete spike data (0/1) the
+# 		additional parameter `norm` allows for the normalization to
+# 		rate in spikes per second.
+#
+# 		For example:
+# 		``rate = norm * scipy.signal.lfilter(kernel, 1, spike_data)``
+# 	m_idx : int
+# 		Index of the numerically determined median (center of gravity)
+# 		of the kernel function.
+#
+# 	Examples
+# 	--------
+# 	To obtain single trial rate function of trial one should use:
+#
+# 		r = norm * scipy.signal.fftconvolve(sua, kernel)
+#
+# 	To obtain trial-averaged spike train one should use:
+#
+# 		r_avg = norm * scipy.signal.fftconvolve(sua, np.mean(X,1))
+#
+# 	where `X` is an array of shape `(l,n)`, `n` is the number of trials and
+# 	`l` is the length of each trial.
+#
+# 	See also
+# 	--------
+# 	SpikeTrain.instantaneous_rate
+# 	SpikeList.averaged_instantaneous_rate
+#
+# 	.. [1] Meier R, Egert U, Aertsen A, Nawrot MP, "FIND - a unified framework
+# 	   for neural data analysis"; Neural Netw. 2008 Oct; 21(8):1085-93.
+#
+# 	.. [2] Nawrot M, Aertsen A, Rotter S, "Single-trial estimation of neuronal
+# 	   firing rates - from single neuron spike trains to population activity";
+# 	   J. Neurosci Meth 94: 81-92; 1999.
+#
+# 	"""
+# 	assert form.upper() in ('BOX', 'TRI', 'GAU', 'EPA', 'EXP', 'ALP'), "form must \
+# 	be one of either 'BOX','TRI','GAU','EPA','EXP' or 'ALP'!"
+#
+# 	assert direction in (1, -1), "direction must be either 1 or -1"
+#
+# 	SI_sigma = sigma / 1000.  # convert to SI units (ms -> s)
+#
+# 	SI_time_stamp_resolution = time_stamp_resolution / 1000.  # convert to SI units (ms -> s)
+#
+# 	norm = 1./SI_time_stamp_resolution
+#
+# 	if form.upper() == 'BOX':
+# 		w = 2.0 * SI_sigma * np.sqrt(3)
+# 		width = 2 * np.floor(w / 2.0 / SI_time_stamp_resolution) + 1  # always odd number of bins
+# 		height = 1. / width
+# 		kernel = np.ones((1, width)) * height  # area = 1
+#
+# 	elif form.upper() == 'TRI':
+# 		w = 2 * SI_sigma * np.sqrt(6)
+# 		halfwidth = np.floor(w / 2.0 / SI_time_stamp_resolution)
+# 		trileft = np.arange(1, halfwidth + 2)
+# 		triright = np.arange(halfwidth, 0, -1)  # odd number of bins
+# 		triangle = np.append(trileft, triright)
+# 		kernel = triangle / triangle.sum()  # area = 1
+#
+# 	elif form.upper() == 'EPA':
+# 		w = 2.0 * SI_sigma * np.sqrt(5)
+# 		halfwidth = np.floor(w / 2.0 / SI_time_stamp_resolution)
+# 		base = np.arange(-halfwidth, halfwidth + 1)
+# 		parabula = base**2
+# 		epanech = parabula.max() - parabula  # inverse parabula
+# 		kernel = epanech / epanech.sum()  # area = 1
+#
+# 	elif form.upper() == 'GAU':
+# 		w = 2.0 * SI_sigma * 2.7  # > 99% of distribution weight
+# 		halfwidth = np.floor(w / 2.0 / SI_time_stamp_resolution)  # always odd
+# 		base = np.arange(-halfwidth, halfwidth + 1) * SI_time_stamp_resolution
+# 		g = np.exp(-(base**2) / 2.0 / SI_sigma**2) / SI_sigma / np.sqrt(2.0 * np.pi)
+# 		kernel = g / g.sum()
+#
+# 	elif form.upper() == 'ALP':
+# 		w = 5.0 * SI_sigma
+# 		alpha = np.arange(1, (2.0 * np.floor(w / SI_time_stamp_resolution / 2.0) + 1) + 1) * SI_time_stamp_resolution
+# 		alpha = (2.0 / SI_sigma**2) * alpha * np.exp(-alpha * np.sqrt(2) / SI_sigma)
+# 		kernel = alpha / alpha.sum()  # normalization
+# 		if direction == -1:
+# 			kernel = np.flipud(kernel)
+#
+# 	elif form.upper() == 'EXP':
+# 		w = 5.0 * SI_sigma
+# 		expo = np.arange(1, (2.0 * np.floor(w / SI_time_stamp_resolution / 2.0) + 1) + 1) * SI_time_stamp_resolution
+# 		expo = np.exp(-expo / SI_sigma)
+# 		kernel = expo / expo.sum()
+# 		if direction == -1:
+# 			kernel = np.flipud(kernel)
+#
+# 	kernel = kernel.ravel()
+# 	m_idx = np.nonzero(kernel.cumsum() >= 0.5)[0].min()
+#
+# 	return kernel, norm, m_idx
 
-
-def make_kernel(form, sigma, time_stamp_resolution, direction=1):
-	"""
-	Creates kernel functions for convolution.
-
-	Constructs a numeric linear convolution kernel of basic shape to be used
-	for data smoothing (linear low pass filtering) and firing rate estimation
-	from single trial or trial-averaged spike trains.
-
-	Exponential and alpha kernels may also be used to represent postynaptic
-	currents / potentials in a linear (current-based) model.
-
-	Adapted from original script written by Martin P. Nawrot for the
-	FIND MATLAB toolbox [1]_ [2]_.
-
-	Parameters
-	----------
-	form : {'BOX', 'TRI', 'GAU', 'EPA', 'EXP', 'ALP'}
-		Kernel form. Currently implemented forms are BOX (boxcar),
-		TRI (triangle), GAU (gaussian), EPA (epanechnikov), EXP (exponential),
-		ALP (alpha function). EXP and ALP are aymmetric kernel forms and
-		assume optional parameter `direction`.
-	sigma : float
-		Standard deviation of the distribution associated with kernel shape.
-		This parameter defines the time resolution (in ms) of the kernel estimate
-		and makes different kernels comparable (cf. [1] for symetric kernels).
-		This is used here as an alternative definition to the cut-off
-		frequency of the associated linear filter.
-	time_stamp_resolution : float
-		Temporal resolution of input and output in ms.
-	direction : {-1, 1}
-		Asymmetric kernels have two possible directions.
-		The values are -1 or 1, default is 1. The
-		definition here is that for direction = 1 the
-		kernel represents the impulse response function
-		of the linear filter. Default value is 1.
-
-	Returns
-	-------
-	kernel : array_like
-		Array of kernel. The length of this array is always an odd
-		number to represent symmetric kernels such that the center bin
-		coincides with the median of the numeric array, i.e for a
-		triangle, the maximum will be at the center bin with equal
-		number of bins to the right and to the left.
-	norm : float
-		For rate estimates. The kernel vector is normalized such that
-		the sum of all entries equals unity sum(kernel)=1. When
-		estimating rate functions from discrete spike data (0/1) the
-		additional parameter `norm` allows for the normalization to
-		rate in spikes per second.
-
-		For example:
-		``rate = norm * scipy.signal.lfilter(kernel, 1, spike_data)``
-	m_idx : int
-		Index of the numerically determined median (center of gravity)
-		of the kernel function.
-
-	Examples
-	--------
-	To obtain single trial rate function of trial one should use:
-
-		r = norm * scipy.signal.fftconvolve(sua, kernel)
-
-	To obtain trial-averaged spike train one should use:
-
-		r_avg = norm * scipy.signal.fftconvolve(sua, np.mean(X,1))
-
-	where `X` is an array of shape `(l,n)`, `n` is the number of trials and
-	`l` is the length of each trial.
-
-	See also
-	--------
-	SpikeTrain.instantaneous_rate
-	SpikeList.averaged_instantaneous_rate
-
-	.. [1] Meier R, Egert U, Aertsen A, Nawrot MP, "FIND - a unified framework
-	   for neural data analysis"; Neural Netw. 2008 Oct; 21(8):1085-93.
-
-	.. [2] Nawrot M, Aertsen A, Rotter S, "Single-trial estimation of neuronal
-	   firing rates - from single neuron spike trains to population activity";
-	   J. Neurosci Meth 94: 81-92; 1999.
-
-	"""
-	assert form.upper() in ('BOX', 'TRI', 'GAU', 'EPA', 'EXP', 'ALP'), "form must \
-	be one of either 'BOX','TRI','GAU','EPA','EXP' or 'ALP'!"
-
-	assert direction in (1, -1), "direction must be either 1 or -1"
-
-	SI_sigma = sigma / 1000.  # convert to SI units (ms -> s)
-
-	SI_time_stamp_resolution = time_stamp_resolution / 1000.  # convert to SI units (ms -> s)
-
-	norm = 1./SI_time_stamp_resolution
-
-	if form.upper() == 'BOX':
-		w = 2.0 * SI_sigma * np.sqrt(3)
-		width = 2 * np.floor(w / 2.0 / SI_time_stamp_resolution) + 1  # always odd number of bins
-		height = 1. / width
-		kernel = np.ones((1, width)) * height  # area = 1
-
-	elif form.upper() == 'TRI':
-		w = 2 * SI_sigma * np.sqrt(6)
-		halfwidth = np.floor(w / 2.0 / SI_time_stamp_resolution)
-		trileft = np.arange(1, halfwidth + 2)
-		triright = np.arange(halfwidth, 0, -1)  # odd number of bins
-		triangle = np.append(trileft, triright)
-		kernel = triangle / triangle.sum()  # area = 1
-
-	elif form.upper() == 'EPA':
-		w = 2.0 * SI_sigma * np.sqrt(5)
-		halfwidth = np.floor(w / 2.0 / SI_time_stamp_resolution)
-		base = np.arange(-halfwidth, halfwidth + 1)
-		parabula = base**2
-		epanech = parabula.max() - parabula  # inverse parabula
-		kernel = epanech / epanech.sum()  # area = 1
-
-	elif form.upper() == 'GAU':
-		w = 2.0 * SI_sigma * 2.7  # > 99% of distribution weight
-		halfwidth = np.floor(w / 2.0 / SI_time_stamp_resolution)  # always odd
-		base = np.arange(-halfwidth, halfwidth + 1) * SI_time_stamp_resolution
-		g = np.exp(-(base**2) / 2.0 / SI_sigma**2) / SI_sigma / np.sqrt(2.0 * np.pi)
-		kernel = g / g.sum()
-
-	elif form.upper() == 'ALP':
-		w = 5.0 * SI_sigma
-		alpha = np.arange(1, (2.0 * np.floor(w / SI_time_stamp_resolution / 2.0) + 1) + 1) * SI_time_stamp_resolution
-		alpha = (2.0 / SI_sigma**2) * alpha * np.exp(-alpha * np.sqrt(2) / SI_sigma)
-		kernel = alpha / alpha.sum()  # normalization
-		if direction == -1:
-			kernel = np.flipud(kernel)
-
-	elif form.upper() == 'EXP':
-		w = 5.0 * SI_sigma
-		expo = np.arange(1, (2.0 * np.floor(w / SI_time_stamp_resolution / 2.0) + 1) + 1) * SI_time_stamp_resolution
-		expo = np.exp(-expo / SI_sigma)
-		kernel = expo / expo.sum()
-		if direction == -1:
-			kernel = np.flipud(kernel)
-
-	kernel = kernel.ravel()
-	m_idx = np.nonzero(kernel.cumsum() >= 0.5)[0].min()
-
-	return kernel, norm, m_idx
-
-
-def make_simple_kernel(shape, width=3, height=1., resolution=1., normalize=False, **kwargs):
-	"""
-	Simplest way to create a smoothing kernel for 1D convolution
-	:param shape: {'box', 'exp', 'alpha', 'double_exp', 'gauss'}
-	:param width: kernel width
-	:param height: peak amplitude of the kernel
-	:param resolution: time step
-	:param normalize: [bool]
-	:return: kernel k
-	"""
-
-	# TODO sinusoidal (*), load external kernel...
-	x = np.arange(0., (width / resolution) + 1, resolution)
-
-	if shape == 'box':
-		k = np.ones_like(x) * height
-
-	elif shape == 'exp':
-		assert 'tau' in kwargs, "for exponential kernel, please specify tau"
-		tau = kwargs['tau']
-		k = np.exp(-x / tau) * height
-
-	elif shape == 'double_exp':
-		assert ('tau_1' in kwargs), "for double exponential kernel, please specify tau_1"
-		assert ('tau_2' in kwargs), "for double exponential kernel, please specify tau_2"
-
-		tau_1 = kwargs['tau_1']
-		tau_2 = kwargs['tau_2']
-		tmp_k = (-np.exp(-x / tau_1) + np.exp(-x / tau_2))
-		k = tmp_k * (height / np.max(tmp_k))
-
-	elif shape == 'alpha':
-		assert ('tau' in kwargs), "for alpha kernel, please specify tau"
-
-		tau = kwargs['tau']
-		tmp_k = ((x / tau) * np.exp(-x / tau))
-		k = tmp_k * (height / np.max(tmp_k))
-
-	elif shape == 'gauss':
-		assert ('mu' in kwargs), "for Gaussian kernel, please specify mu"
-		assert ('sigma' in kwargs), "for Gaussian kernel, please specify sigma"
-
-		sigma = kwargs['sigma']
-		mu = kwargs['mu']
-		tmp_k = (1. / (sigma * np.sqrt(2. * np.pi))) * np.exp(- ((x - mu) ** 2. / (2. * (sigma ** 2.))))
-		k = tmp_k * (height / np.max(tmp_k))
-
-	elif shape == 'tri':
-		halfwidth = width / 2
-		trileft = np.arange(1, halfwidth + 2)
-		triright = np.arange(halfwidth, 0, -1)  # odd number of bins
-		k = np.append(trileft, triright)
-		k += height
-
-	else:
-		print("Kernel not implemented, please choose {'box', 'exp', 'alpha', 'double_exp', 'gauss', 'tri'}")
-		k = 0
-	if normalize:
-		k /= k.sum()
-
-	return k
+# TODO remove? it's duplicate of the one in input_architect.py
+# def make_simple_kernel(shape, width=3, height=1., resolution=1., normalize=False, **kwargs):
+# 	"""
+# 	Simplest way to create a smoothing kernel for 1D convolution
+# 	:param shape: {'box', 'exp', 'alpha', 'double_exp', 'gauss'}
+# 	:param width: kernel width
+# 	:param height: peak amplitude of the kernel
+# 	:param resolution: time step
+# 	:param normalize: [bool]
+# 	:return: kernel k
+# 	"""
+#
+# 	# TODO sinusoidal (*), load external kernel...
+# 	x = np.arange(0., (width / resolution) + 1, resolution)
+#
+# 	if shape == 'box':
+# 		k = np.ones_like(x) * height
+#
+# 	elif shape == 'exp':
+# 		assert 'tau' in kwargs, "for exponential kernel, please specify tau"
+# 		tau = kwargs['tau']
+# 		k = np.exp(-x / tau) * height
+#
+# 	elif shape == 'double_exp':
+# 		assert ('tau_1' in kwargs), "for double exponential kernel, please specify tau_1"
+# 		assert ('tau_2' in kwargs), "for double exponential kernel, please specify tau_2"
+#
+# 		tau_1 = kwargs['tau_1']
+# 		tau_2 = kwargs['tau_2']
+# 		tmp_k = (-np.exp(-x / tau_1) + np.exp(-x / tau_2))
+# 		k = tmp_k * (height / np.max(tmp_k))
+#
+# 	elif shape == 'alpha':
+# 		assert ('tau' in kwargs), "for alpha kernel, please specify tau"
+#
+# 		tau = kwargs['tau']
+# 		tmp_k = ((x / tau) * np.exp(-x / tau))
+# 		k = tmp_k * (height / np.max(tmp_k))
+#
+# 	elif shape == 'gauss':
+# 		assert ('mu' in kwargs), "for Gaussian kernel, please specify mu"
+# 		assert ('sigma' in kwargs), "for Gaussian kernel, please specify sigma"
+#
+# 		sigma = kwargs['sigma']
+# 		mu = kwargs['mu']
+# 		tmp_k = (1. / (sigma * np.sqrt(2. * np.pi))) * np.exp(- ((x - mu) ** 2. / (2. * (sigma ** 2.))))
+# 		k = tmp_k * (height / np.max(tmp_k))
+#
+# 	elif shape == 'tri':
+# 		halfwidth = width / 2
+# 		trileft = np.arange(1, halfwidth + 2)
+# 		triright = np.arange(halfwidth, 0, -1)  # odd number of bins
+# 		k = np.append(trileft, triright)
+# 		k += height
+#
+# 	else:
+# 		print("Kernel not implemented, please choose {'box', 'exp', 'alpha', 'double_exp', 'gauss', 'tri'}")
+# 		k = 0
+# 	if normalize:
+# 		k /= k.sum()
+#
+# 	return k
 
 
 def simple_frequency_spectrum(x):
@@ -411,7 +411,7 @@ def simple_frequency_spectrum(x):
 	return spec
 
 
-def distance(pos_1, pos_2, N=None):
+def euclidean_distance(pos_1, pos_2, N=None):
 	"""
 	Function to calculate the euclidian distance between two positions
 	:param pos_1:
@@ -420,8 +420,7 @@ def distance(pos_1, pos_2, N=None):
 	:return:
 	"""
 	# If N is not None, it means that we are dealing with a toroidal space,
-	# and we have to take the min distance
-	# on the torus.
+	# and we have to take the min distance on the torus.
 	if N is None:
 		dx = pos_1[0] - pos_2[0]
 		dy = pos_1[1] - pos_2[1]
@@ -2022,7 +2021,7 @@ def ssa_lifetime(pop_obj, parameter_set, input_off=1000., display=True):
 
 	return results
 
-
+# TODO comment, what's this? :-) maybe a more suggestive name?
 def fmf_readout(response, target, readout, index, label='', plot=False, display=False, save=False):
 	"""
 
@@ -2373,225 +2372,7 @@ def readout_test(readout, state, target, index=None, accepted=None, display=True
 	return performance
 
 
-# def train_all_readouts(parameters, net, stim, input_signal, encoding_layer, flush=False, debug=False, plot=True,
-# 					   display=True, save=False):
-# 	"""
-# 		Train all readouts attached to network object
-# 	:param parameters:
-# 	:return:
-# 	"""
-# 	from modules.net_architect import Network
-# 	from modules.input_architect import InputSignal
-# 	from modules.signals import empty
-# 	assert(isinstance(net, Network)), "Please provide Network object"
-# 	assert(isinstance(parameters, prs.ParameterSet)), "parameters must be a ParameterSet object"
-# 	assert(isinstance(input_signal, InputSignal) or isinstance(input_signal, np.ndarray)), \
-# 		"input_signal must be an InputSignal object or numpy array / matrix"
-#
-# 	sampling_rate = parameters.decoding_pars.global_sampling_times
-# 	if isinstance(input_signal, np.ndarray):
-# 		target 		= input_signal
-# 		set_labels 	= stim.train_set_labels
-# 	elif sampling_rate is None or isinstance(sampling_rate, list) or isinstance(sampling_rate, np.ndarray):
-# 		target 		= stim.train_set.todense()
-# 		set_labels 	= stim.train_set_labels
-# 	else:
-# 		unfold_n = int(round(sampling_rate ** (-1)))
-# 		if input_signal.online:
-# 			if not isinstance(input_signal.duration_parameters[0], float) or not isinstance(
-# 					input_signal.interval_parameters[0], float):
-# 				# TODO - implement other variants
-# 				raise NotImplementedError("Input signal duration has to be constant.. Variants are not implemented yet")
-# 			else:
-# 				total_samples = (input_signal.duration_parameters[0] + input_signal.interval_parameters[0]) * len(
-# 					stim.train_set_labels)
-# 				step_size = input_signal.duration_parameters[0] + input_signal.interval_parameters[0]
-# 				target = np.repeat(stim.train_set.todense(), step_size, axis=1)
-# 				assert(target.shape[1] == total_samples), "Inconsistent dimensions in setting continuous targets"
-# 		else:
-# 			target = input_signal.generate_square_signal()[:, ::int(unfold_n)]
-# 		onset_idx = [[] for _ in range(target.shape[0])]
-# 		offset_idx = [[] for _ in range(target.shape[0])]
-# 		labels = []
-# 		set_labels = {}
-# 		for k in range(target.shape[0]):
-# 			stim_idx = np.where(stim.train_set.todense()[k, :])[1]
-# 			if stim_idx.shape[1]:
-# 				labels.append(np.unique(np.array(stim.train_set_labels)[stim_idx])[0])
-# 				if input_signal.online:
-# 					iddxs = np.array(np.where(target[k, :])[1])
-# 				else:
-# 					iddxs = np.array(np.where(target[k, :])[0])
-# 				idx_diff = np.array(np.diff(iddxs))
-# 				if len(idx_diff.shape) > 1:
-# 					idx_diff = idx_diff[0]
-# 					iddxs = iddxs[0]
-# 				onset_idx[k] = [x for idd, x in enumerate(iddxs) if idx_diff[idd-1] > 1 or x == 0]
-# 				offset_idx[k] = [x for idd, x in enumerate(iddxs) if idd<len(iddxs)-1 and (idx_diff[idd] > 1 or x == len(
-# 					target[k, :]))]
-# 				offset_idx.append(iddxs[-1])
-# 		set_labels.update({'dimensions': target.shape[0], 'labels': labels, 'onset_idx': onset_idx, 'offset_idx':
-# 			offset_idx})
-#
-# 	if isinstance(save, dict):
-# 		if save['label']:
-# 			paths = save
-# 			save = True
-# 		else:
-# 			save = False
-#
-# 	# read from all state matrices
-# 	for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations, net.populations,
-# 													   encoding_layer.encoders]))):
-# 		if not empty(n_pop.state_matrix):
-# 			state_dimensions = np.array(n_pop.state_matrix).shape
-# 			population_readouts = n_pop.readouts
-# 			chunker = lambda lst, sz: [lst[i:i + sz] for i in range(0, len(lst), sz)]
-# 			n_pop.readouts = chunker(population_readouts, len(population_readouts) / state_dimensions[0])
-# 			# copy readouts for each state matrix
-# 			if n_pop.state_sample_times:
-# 				n_copies = len(n_pop.state_sample_times)
-# 				all_readouts = n_pop.copy_readout_set(n_copies)
-# 				n_pop.readouts = all_readouts
-#
-# 			for idx_state, n_state in enumerate(n_pop.state_matrix):
-# 				if not isinstance(n_state, list):
-# 					print("\nTraining {0} readouts from Population {1}".format(str(n_pop.decoding_pars['readout'][
-# 																					   'N']), str(n_pop.name)))
-# 					label = n_pop.name + '-Train-StateVar{0}'.format(str(idx_state))
-# 					if save:
-# 						np.save(paths['activity'] + label, n_state)
-# 					if debug:
-# 						if save:
-# 							save_path = paths['figures'] + label
-# 						else:
-# 							save_path = False
-# 						analyse_state_matrix(n_state, set_labels, label=label, plot=plot, display=display,
-# 											 save=save_path)
-# 					for readout in n_pop.readouts[idx_state]:
-# 						readout.set_index()
-# 						discrete_readout_train(n_state, target, readout, readout.index)
-# 				else:
-# 					for iddx_state, nn_state in enumerate(n_state):
-# 						readout_set = n_pop.readouts[iddx_state]
-# 						print("\nTraining {0} readouts from Population {1} [t = {2}]".format(
-# 							str(n_pop.decoding_pars['readout']['N']), str(n_pop.name), str(n_pop.state_sample_times[iddx_state])))
-# 						label = n_pop.name + '-Train-StateVar{0}-sample{1}'.format(str(idx_state),
-# 																				   str(iddx_state))
-# 						if save:
-# 							np.save(paths['activity'] + label, n_state)
-# 						if debug:
-# 							if save:
-# 								save_path = paths['figures'] + label
-# 							else:
-# 								save_path = False
-# 							analyse_state_matrix(nn_state, stim.train_set_labels, label=label, plot=plot,
-# 												 display=display,
-# 												 save=save_path)
-# 						for readout in readout_set[idx_state]:
-# 							readout.set_index()
-# 							discrete_readout_train(nn_state, target, readout, readout.index)
-# 				if flush:
-# 					n_pop.flush_states()
-#
-#
-# def test_all_readouts(parameters, net, stim, input_signal, encoding_layer=None, flush=False, debug=False, plot=True,
-# 					  display=True, save=False):
-# 	"""
-# 	Test and measure performance of all readouts attached to Network object
-# 	:param net:
-# 	:param stim:
-# 	:param flush:
-# 	:return:
-# 	"""
-# 	assert (isinstance(net, net_architect.Network)), "Please provide Network object"
-# 	assert (isinstance(parameters, prs.ParameterSet)), "parameters must be a ParameterSet object"
-# 	assert (isinstance(input_signal, ips.InputSignal) or isinstance(input_signal, np.ndarray)), \
-# 		"input_signal must be an InputSignal object or numpy array / matrix"
-#
-# 	sampling_rate = parameters.decoding_pars.global_sampling_times
-# 	if isinstance(input_signal, np.ndarray):
-# 		# if a custom training target was provided
-# 		target 		= input_signal
-# 		set_labels 	= stim.test_set_labels
-# 	elif sampling_rate is None or isinstance(sampling_rate, list) or isinstance(sampling_rate, np.ndarray):
-# 		target 		= stim.test_set.todense()
-# 		set_labels 	= stim.test_set_labels
-# 	else:
-# 		unfold_n 	= int(round(sampling_rate ** (-1)))
-# 		target 		= input_signal.generate_square_signal()[:, ::int(unfold_n)]
-# 		onset_idx 	= [[] for _ in range(target.shape[0])]
-# 		offset_idx 	= [[] for _ in range(target.shape[0])]
-# 		labels 		= []
-# 		set_labels 	= {}
-# 		for k in range(target.shape[0]):
-# 			stim_idx = np.where(stim.test_set.todense()[k, :])[1]
-# 			if stim_idx.shape[1]:
-# 				labels.append(np.unique(np.array(stim.test_set_labels)[stim_idx])[0])
-# 				iddxs 		  = np.where(target[k, :])[0]
-# 				idx_diff 	  = np.diff(iddxs)
-# 				onset_idx[k]  = [x for idd, x in enumerate(iddxs) if idx_diff[idd - 1] > 1 or x == 0]
-# 				offset_idx[k] = [x for idd, x in enumerate(iddxs) if
-# 								 idd < len(iddxs) - 1 and (idx_diff[idd] > 1 or x == len(target[k, :]))]
-# 				offset_idx.append(iddxs[-1])
-# 		set_labels.update({'dimensions': target.shape[0], 'labels': labels, 'onset_idx': onset_idx,
-# 						   'offset_idx': offset_idx})
-#
-# 	if isinstance(save, dict):
-# 		if save['label']:
-# 			paths = save
-# 			save = True
-# 		else:
-# 			save = False
-#
-# 	# state of merged populations
-# 	if encoding_layer is not None:
-# 		all_populations = list(itertools.chain(*[net.merged_populations, net.populations, encoding_layer.encoders]))
-# 	else:
-# 		all_populations = list(itertools.chain(*[net.merged_populations, net.populations]))
-#
-# 	for ctr, n_pop in enumerate(all_populations):
-# 		if not sg.empty(n_pop.state_matrix):
-# 			for idx_state, n_state in enumerate(n_pop.state_matrix):
-# 				if not isinstance(n_state, list):
-# 					print("\nTesting {0} readouts from Population {1} [{2}]".format(str(n_pop.decoding_pars['readout'][
-# 												'N']), str(n_pop.name), str(n_pop.state_variables[idx_state])))
-# 					label = n_pop.name + '-Test-StateVar{0}'.format(str(idx_state))
-# 					if save:
-# 						np.save(paths['activity'] + label, n_state)
-# 					if debug:
-# 						if save:
-# 							save_path = paths['figures'] + label
-# 						else:
-# 							save_path = False
-# 						analyse_state_matrix(n_state, set_labels, label=label, plot=plot, display=display,
-# 											 save=save_path)
-# 					for readout in n_pop.readouts[idx_state]:
-# 						discrete_readout_test(n_state, target, readout, readout.index)
-# 				else:
-# 					for iddx_state, nn_state in enumerate(n_state):
-# 						readout_set = n_pop.readouts[iddx_state]
-# 						print("\nTesting {0} readouts from Population {1} [t = {2}]".format(
-# 							str(n_pop.decoding_pars['readout'][
-# 									'N']), str(n_pop.name), str(n_pop.state_sample_times[iddx_state])))
-# 						label = n_pop.name + '-Test-StateVar{0}-sample{1}'.format(str(idx_state),
-# 																				  str(iddx_state))
-# 						if save:
-# 							np.save(paths['activity'] + label, n_state)
-# 						if debug:
-# 							if save:
-# 								save_path = paths['figures'] + label
-# 							else:
-# 								save_path = False
-# 							analyse_state_matrix(nn_state, set_labels, label=label, plot=plot,
-# 												 display=display,
-# 												 save=save_path)
-# 						for readout in readout_set[idx_state]:
-# 							discrete_readout_test(nn_state, target, readout, readout.index)
-# 			if flush:
-# 				n_pop.flush_states()
-
-
+# TODO is this not redundant with analyse_activity_dynamics?
 def analyse_state_matrix(state, stim_labels, label='', plot=True, display=True, save=False):
 	"""
 
@@ -2657,7 +2438,7 @@ def advanced_state_analysis(state, stim_labels, label='', plot=True, display=Tru
 	"""
 	pass
 
-
+# TODO is this still needed? there's the same function in DecodingLayer
 def evaluate_encoding(enc_layer, parameter_set, analysis_interval, input_signal, plot=True, display=True, save=False):
 	"""
 	Determine the quality of the encoding method (if there are encoders), by reading out the state of the encoders
@@ -2993,11 +2774,13 @@ def get_state_rank(matrix):
 ########################################################################################################################
 class Readout(object):
 	"""
-
+	Readout object, trained to produce an estimation y(t) of output by reading out population state variables.
 	"""
 	def __init__(self, initializer, display=True):
 		"""
-		Readout object, trained to produce an estimation y(t) of output by reading out population state variables
+		Create and initialize Readout object
+
+		:param initializer: ParameterSet object or dictionary specifying Readout parameters
 		"""
 		self.name = initializer.label
 		self.rule = initializer.algorithm
@@ -3012,7 +2795,7 @@ class Readout(object):
 
 	def set_index(self):
 		"""
-		For a specific case, in which the readout name contains a time index..
+		For a specific case, in which the readout name contains a time index
 		"""
 		index = int(self.name[-1])
 		if self.name[:3] == 'mem':
@@ -3706,3 +3489,223 @@ def reset_decoders(net, enc_layer):
 	                                                   net.populations, enc_layer.encoders]))):
 		if n_pop.decoding_layer is not None:
 			n_pop.decoding_layer.reset_states()
+
+
+
+# def train_all_readouts(parameters, net, stim, input_signal, encoding_layer, flush=False, debug=False, plot=True,
+# 					   display=True, save=False):
+# 	"""
+# 		Train all readouts attached to network object
+# 	:param parameters:
+# 	:return:
+# 	"""
+# 	from modules.net_architect import Network
+# 	from modules.input_architect import InputSignal
+# 	from modules.signals import empty
+# 	assert(isinstance(net, Network)), "Please provide Network object"
+# 	assert(isinstance(parameters, prs.ParameterSet)), "parameters must be a ParameterSet object"
+# 	assert(isinstance(input_signal, InputSignal) or isinstance(input_signal, np.ndarray)), \
+# 		"input_signal must be an InputSignal object or numpy array / matrix"
+#
+# 	sampling_rate = parameters.decoding_pars.global_sampling_times
+# 	if isinstance(input_signal, np.ndarray):
+# 		target 		= input_signal
+# 		set_labels 	= stim.train_set_labels
+# 	elif sampling_rate is None or isinstance(sampling_rate, list) or isinstance(sampling_rate, np.ndarray):
+# 		target 		= stim.train_set.todense()
+# 		set_labels 	= stim.train_set_labels
+# 	else:
+# 		unfold_n = int(round(sampling_rate ** (-1)))
+# 		if input_signal.online:
+# 			if not isinstance(input_signal.duration_parameters[0], float) or not isinstance(
+# 					input_signal.interval_parameters[0], float):
+# 				# TODO - implement other variants
+# 				raise NotImplementedError("Input signal duration has to be constant.. Variants are not implemented yet")
+# 			else:
+# 				total_samples = (input_signal.duration_parameters[0] + input_signal.interval_parameters[0]) * len(
+# 					stim.train_set_labels)
+# 				step_size = input_signal.duration_parameters[0] + input_signal.interval_parameters[0]
+# 				target = np.repeat(stim.train_set.todense(), step_size, axis=1)
+# 				assert(target.shape[1] == total_samples), "Inconsistent dimensions in setting continuous targets"
+# 		else:
+# 			target = input_signal.generate_square_signal()[:, ::int(unfold_n)]
+# 		onset_idx = [[] for _ in range(target.shape[0])]
+# 		offset_idx = [[] for _ in range(target.shape[0])]
+# 		labels = []
+# 		set_labels = {}
+# 		for k in range(target.shape[0]):
+# 			stim_idx = np.where(stim.train_set.todense()[k, :])[1]
+# 			if stim_idx.shape[1]:
+# 				labels.append(np.unique(np.array(stim.train_set_labels)[stim_idx])[0])
+# 				if input_signal.online:
+# 					iddxs = np.array(np.where(target[k, :])[1])
+# 				else:
+# 					iddxs = np.array(np.where(target[k, :])[0])
+# 				idx_diff = np.array(np.diff(iddxs))
+# 				if len(idx_diff.shape) > 1:
+# 					idx_diff = idx_diff[0]
+# 					iddxs = iddxs[0]
+# 				onset_idx[k] = [x for idd, x in enumerate(iddxs) if idx_diff[idd-1] > 1 or x == 0]
+# 				offset_idx[k] = [x for idd, x in enumerate(iddxs) if idd<len(iddxs)-1 and (idx_diff[idd] > 1 or x == len(
+# 					target[k, :]))]
+# 				offset_idx.append(iddxs[-1])
+# 		set_labels.update({'dimensions': target.shape[0], 'labels': labels, 'onset_idx': onset_idx, 'offset_idx':
+# 			offset_idx})
+#
+# 	if isinstance(save, dict):
+# 		if save['label']:
+# 			paths = save
+# 			save = True
+# 		else:
+# 			save = False
+#
+# 	# read from all state matrices
+# 	for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations, net.populations,
+# 													   encoding_layer.encoders]))):
+# 		if not empty(n_pop.state_matrix):
+# 			state_dimensions = np.array(n_pop.state_matrix).shape
+# 			population_readouts = n_pop.readouts
+# 			chunker = lambda lst, sz: [lst[i:i + sz] for i in range(0, len(lst), sz)]
+# 			n_pop.readouts = chunker(population_readouts, len(population_readouts) / state_dimensions[0])
+# 			# copy readouts for each state matrix
+# 			if n_pop.state_sample_times:
+# 				n_copies = len(n_pop.state_sample_times)
+# 				all_readouts = n_pop.copy_readout_set(n_copies)
+# 				n_pop.readouts = all_readouts
+#
+# 			for idx_state, n_state in enumerate(n_pop.state_matrix):
+# 				if not isinstance(n_state, list):
+# 					print("\nTraining {0} readouts from Population {1}".format(str(n_pop.decoding_pars['readout'][
+# 																					   'N']), str(n_pop.name)))
+# 					label = n_pop.name + '-Train-StateVar{0}'.format(str(idx_state))
+# 					if save:
+# 						np.save(paths['activity'] + label, n_state)
+# 					if debug:
+# 						if save:
+# 							save_path = paths['figures'] + label
+# 						else:
+# 							save_path = False
+# 						analyse_state_matrix(n_state, set_labels, label=label, plot=plot, display=display,
+# 											 save=save_path)
+# 					for readout in n_pop.readouts[idx_state]:
+# 						readout.set_index()
+# 						discrete_readout_train(n_state, target, readout, readout.index)
+# 				else:
+# 					for iddx_state, nn_state in enumerate(n_state):
+# 						readout_set = n_pop.readouts[iddx_state]
+# 						print("\nTraining {0} readouts from Population {1} [t = {2}]".format(
+# 							str(n_pop.decoding_pars['readout']['N']), str(n_pop.name), str(n_pop.state_sample_times[iddx_state])))
+# 						label = n_pop.name + '-Train-StateVar{0}-sample{1}'.format(str(idx_state),
+# 																				   str(iddx_state))
+# 						if save:
+# 							np.save(paths['activity'] + label, n_state)
+# 						if debug:
+# 							if save:
+# 								save_path = paths['figures'] + label
+# 							else:
+# 								save_path = False
+# 							analyse_state_matrix(nn_state, stim.train_set_labels, label=label, plot=plot,
+# 												 display=display,
+# 												 save=save_path)
+# 						for readout in readout_set[idx_state]:
+# 							readout.set_index()
+# 							discrete_readout_train(nn_state, target, readout, readout.index)
+# 				if flush:
+# 					n_pop.flush_states()
+#
+#
+# def test_all_readouts(parameters, net, stim, input_signal, encoding_layer=None, flush=False, debug=False, plot=True,
+# 					  display=True, save=False):
+# 	"""
+# 	Test and measure performance of all readouts attached to Network object
+# 	:param net:
+# 	:param stim:
+# 	:param flush:
+# 	:return:
+# 	"""
+# 	assert (isinstance(net, net_architect.Network)), "Please provide Network object"
+# 	assert (isinstance(parameters, prs.ParameterSet)), "parameters must be a ParameterSet object"
+# 	assert (isinstance(input_signal, ips.InputSignal) or isinstance(input_signal, np.ndarray)), \
+# 		"input_signal must be an InputSignal object or numpy array / matrix"
+#
+# 	sampling_rate = parameters.decoding_pars.global_sampling_times
+# 	if isinstance(input_signal, np.ndarray):
+# 		# if a custom training target was provided
+# 		target 		= input_signal
+# 		set_labels 	= stim.test_set_labels
+# 	elif sampling_rate is None or isinstance(sampling_rate, list) or isinstance(sampling_rate, np.ndarray):
+# 		target 		= stim.test_set.todense()
+# 		set_labels 	= stim.test_set_labels
+# 	else:
+# 		unfold_n 	= int(round(sampling_rate ** (-1)))
+# 		target 		= input_signal.generate_square_signal()[:, ::int(unfold_n)]
+# 		onset_idx 	= [[] for _ in range(target.shape[0])]
+# 		offset_idx 	= [[] for _ in range(target.shape[0])]
+# 		labels 		= []
+# 		set_labels 	= {}
+# 		for k in range(target.shape[0]):
+# 			stim_idx = np.where(stim.test_set.todense()[k, :])[1]
+# 			if stim_idx.shape[1]:
+# 				labels.append(np.unique(np.array(stim.test_set_labels)[stim_idx])[0])
+# 				iddxs 		  = np.where(target[k, :])[0]
+# 				idx_diff 	  = np.diff(iddxs)
+# 				onset_idx[k]  = [x for idd, x in enumerate(iddxs) if idx_diff[idd - 1] > 1 or x == 0]
+# 				offset_idx[k] = [x for idd, x in enumerate(iddxs) if
+# 								 idd < len(iddxs) - 1 and (idx_diff[idd] > 1 or x == len(target[k, :]))]
+# 				offset_idx.append(iddxs[-1])
+# 		set_labels.update({'dimensions': target.shape[0], 'labels': labels, 'onset_idx': onset_idx,
+# 						   'offset_idx': offset_idx})
+#
+# 	if isinstance(save, dict):
+# 		if save['label']:
+# 			paths = save
+# 			save = True
+# 		else:
+# 			save = False
+#
+# 	# state of merged populations
+# 	if encoding_layer is not None:
+# 		all_populations = list(itertools.chain(*[net.merged_populations, net.populations, encoding_layer.encoders]))
+# 	else:
+# 		all_populations = list(itertools.chain(*[net.merged_populations, net.populations]))
+#
+# 	for ctr, n_pop in enumerate(all_populations):
+# 		if not sg.empty(n_pop.state_matrix):
+# 			for idx_state, n_state in enumerate(n_pop.state_matrix):
+# 				if not isinstance(n_state, list):
+# 					print("\nTesting {0} readouts from Population {1} [{2}]".format(str(n_pop.decoding_pars['readout'][
+# 												'N']), str(n_pop.name), str(n_pop.state_variables[idx_state])))
+# 					label = n_pop.name + '-Test-StateVar{0}'.format(str(idx_state))
+# 					if save:
+# 						np.save(paths['activity'] + label, n_state)
+# 					if debug:
+# 						if save:
+# 							save_path = paths['figures'] + label
+# 						else:
+# 							save_path = False
+# 						analyse_state_matrix(n_state, set_labels, label=label, plot=plot, display=display,
+# 											 save=save_path)
+# 					for readout in n_pop.readouts[idx_state]:
+# 						discrete_readout_test(n_state, target, readout, readout.index)
+# 				else:
+# 					for iddx_state, nn_state in enumerate(n_state):
+# 						readout_set = n_pop.readouts[iddx_state]
+# 						print("\nTesting {0} readouts from Population {1} [t = {2}]".format(
+# 							str(n_pop.decoding_pars['readout'][
+# 									'N']), str(n_pop.name), str(n_pop.state_sample_times[iddx_state])))
+# 						label = n_pop.name + '-Test-StateVar{0}-sample{1}'.format(str(idx_state),
+# 																				  str(iddx_state))
+# 						if save:
+# 							np.save(paths['activity'] + label, n_state)
+# 						if debug:
+# 							if save:
+# 								save_path = paths['figures'] + label
+# 							else:
+# 								save_path = False
+# 							analyse_state_matrix(nn_state, set_labels, label=label, plot=plot,
+# 												 display=display,
+# 												 save=save_path)
+# 						for readout in readout_set[idx_state]:
+# 							discrete_readout_test(nn_state, target, readout, readout.index)
+# 			if flush:
+# 				n_pop.flush_states()
