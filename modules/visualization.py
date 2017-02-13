@@ -2728,7 +2728,7 @@ def progress_bar(progress):
 	assert (type(progress) == float) and (progress >= 0.) and (progress <= 1.), progressConditionStr
 	length = 50
 	filled = int(round(length * progress))
-	print("|" + "=" * filled + " " * (length - filled) + "|\r", end=' ')
+	sys.stdout.write("\r|" + "=" * filled + " " * (length - filled) + "|")
 	sys.stdout.flush()
 
 
