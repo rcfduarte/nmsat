@@ -57,7 +57,6 @@ def randomize_initial_var(var_name, obj_id, randomization_function, **function_p
 	try:
 		nest.SetStatus(obj_id, var_name, randomization_function(size=len(obj_id), **function_parameters))
 	except:
-		#print(k)
 		for n_neuron in obj_id:
 			success = False
 			while not success:
@@ -65,7 +64,6 @@ def randomize_initial_var(var_name, obj_id, randomization_function, **function_p
 					nest.SetStatus([n_neuron], var_name, randomization_function(size=1, **function_parameters))
 					success = True
 				except:
-					#print(n_neuron)
 					pass
 
 
@@ -614,9 +612,8 @@ class Network(object):
 					self.device_gids[n].append(dev_gid)
 
 					self.n_devices[n] += 1
-					print("- Connecting %s to %s [%s], with label %s and id %s" % (dev_dict['model'], new_pop.name,
-					                                                             str(ids), dev_dict['label'],
-					                                                        str(dev_gid)))
+					print("- Connecting %s to %s [%s], with label %s and id %s" %
+						  (dev_dict['model'], new_pop.name, str(ids), dev_dict['label'], str(dev_gid)))
 			else:
 				# there are no sub-populations
 				self.n_devices[n] = 0
@@ -629,8 +626,8 @@ class Network(object):
 					                                                                      param_type='device'))
 					self.device_gids[n].append(dev_gid)
 					self.n_devices[n] += 1
-					print("- Connecting %s to %s, with label %s and id %s" % (dev_dict['model'], self.population_names[n],
-					                                                        dev_dict['label'], str(dev_gid)))
+					print("- Connecting %s to %s, with label %s and id %s" %
+						  (dev_dict['model'], self.population_names[n], dev_dict['label'], str(dev_gid)))
 				if self.record_analogs[n]:
 					if isinstance(self.record_analogs[n], bool):
 						dev_dict = self.analog_device_pars[n].copy()
@@ -1063,8 +1060,7 @@ class Network(object):
 				copy_gid_range = [min(pop_obj.gids), max(pop_obj.gids)]
 
 				start = time.time()
-				print("    - {0}, {1}".format(copy_net.population_names[pop_idx],
-				                           self.population_names[pop_idx]))
+				print("    - {0}, {1}".format(copy_net.population_names[pop_idx], self.population_names[pop_idx]))
 
 				for n_neuron in range(self.n_neurons[pop_idx]):
 					src_gid = self.populations[pop_idx].gids[n_neuron]
@@ -1108,8 +1104,8 @@ class Network(object):
 				copy_gid_range = [min(pop_obj.gids), max(pop_obj.gids)]
 
 				start = time.time()
-				print("\t    - {0}, {1}".format(copy_net.population_names[pop_idx],
-				                           self.population_names[pop_idx]))
+				print("\t    - {0}, {1}".format(copy_net.population_names[pop_idx], self.population_names[pop_idx]))
+
 				for n_neuron in range(self.n_neurons[pop_idx]):
 					src_gid = self.populations[pop_idx].gids[n_neuron]
 					tget_gid = pop_obj.gids[n_neuron]

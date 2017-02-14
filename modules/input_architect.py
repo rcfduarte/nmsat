@@ -591,8 +591,8 @@ class Grammar:
 		print('***************************************************************************')
 		if self.name is not None:
 			print(('Generative mechanism abides to %s rules' % self.name))
-		print(('Unique states:', self.states))
-		print(('Alphabet:', self.alphabet))
+		print('Unique states: {0}'.format(self.states))
+		print('Alphabet: {0}'.format(self.aplhabet))
 		print('Transition table: ')
 		self.print_transitiontable(self.generate_transitiontable(), self.states)
 	# print '\nGrammar complexity (n, TE): {0}{1}'.format(self.n_gram, self.topological_entropy)

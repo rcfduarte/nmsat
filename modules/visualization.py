@@ -992,33 +992,33 @@ class SpikePlots(object):
 	def __init__(self, spikelist, start=None, stop=None, N=None):
 		"""
 		Initialize SpikePlot object
-		:param spikelist: SpikeList object
+		:param spikelist: SpikeList object, sliced to match the (start, stop) interval
 		:param start: [float] start time for the display (if None, range is taken from data)
 		:param stop: [float] stop time (if None, range is taken from data)
 		"""
 		if not isinstance(spikelist, signals.SpikeList):
 			raise Exception("Error, argument should be a SpikeList object")
-		self.spikelist = spikelist
 
 		if start is None:
-			self.start = self.spikelist.t_start
+			self.start = spikelist.t_start
 		else:
 			self.start = start
 		if stop is None:
-			self.stop = self.spikelist.t_stop
+			self.stop = spikelist.t_stop
 		else:
 			self.stop = stop
 		if N is None:
-			self.N = len(self.spikelist.id_list)
+			self.N = len(spikelist.id_list)
 
-	def dot_display(self, gids=None, colors=None, with_rate=True, dt=1.0, display=True, ax=None, fig=None, save=False,
+		self.spikelist = spikelist.time_slice(self.start, self.stop)
+
+	def dot_display(self, gids_colors=None, with_rate=True, dt=1.0, display=True, ax=None, fig=None, save=False,
 					**kwargs):
 		"""
 		Simplest case, dot display
-		:param gids: [list] if some ids should be highlighted in a different color, this should be specified by
-		providing a list of gids and a list of corresponding colors, if None, no ids are differentiated
-		:param colors: [list] - list of colors corresponding to the specified gids, if None all neurons are plotted
-		in the same color (blue)
+		:param gids_colors: [list] if some ids should be highlighted in a different color, this should be specified by
+		providing a list of (gids, color) pairs, where gids is a list of ids and color is the corresponding
+		color for those gids. If None, no ids are differentiated
 		:param with_rate: [bool] - whether to display psth or not
 		:param dt: [float] - delta t for the psth
 		:param display: [bool] - display the figure
@@ -1057,49 +1057,54 @@ class SpikePlots(object):
 			fig.suptitle(kwargs['suptitle'])
 			kwargs.pop('suptitle')
 
-		if colors is None:
-			colors = 'b'
 		# extract properties from kwargs and divide them into axes properties and others
 		ax_props = {k: v for k, v in kwargs.iteritems() if k in ax1.properties()}
 		pl_props = {k: v for k, v in kwargs.iteritems() if k not in ax1.properties()}  # TODO: improve
 
-		tt = self.spikelist.time_slice(self.start, self.stop)
-
-		if gids is None:
-			times = tt.raw_data()[:, 0]
-			neurons = tt.raw_data()[:, 1]
-			ax1.plot(times, neurons, '.', color=colors)
+		default_color = 'b'
+		if gids_colors is None:
+			times = self.spikelist.raw_data()[:, 0]
+			neurons = self.spikelist.raw_data()[:, 1]
+			ax1.plot(times, neurons, '.', color=default_color)
+			ax1.set(ylim=[np.min(self.spikelist.id_list), np.max(self.spikelist.id_list)], xlim=[self.start, self.stop])
 		else:
-			# TODO @Renato, @barni, this should be reviewed and corrected..
-			assert isinstance(gids, list), "Gids should be a list"
-			for n, ids in enumerate(gids):
-				tt1 = self.spikelist.time_slice(self.start, self.stop).id_slice(list(ids))
-				times = tt1.raw_data()[:, 0]
-				neurons = tt1.raw_data()[:, 1]
-				ax1.plot(times, neurons, '.', color=colors[n])
+			assert isinstance(gids_colors, list), "gids_colors should be a list of (gids[list], color) pairs"
+			ax_min_y = np.max(self.spikelist.id_list)
+			ax_max_y = np.min(self.spikelist.id_list)
+			for gid_color_pair in gids_colors:
+				gids, color = gid_color_pair
+				assert isinstance(gids, list), "Gids should be a list"
 
-		# set axis range here, it might still be overwritten below
-		ax1.set(ylim=[min(self.spikelist.id_list), max(self.spikelist.id_list)], xlim=[self.start, self.stop])
+				tt = self.spikelist.id_slice(gids)  # it's okay since slice always returns new object
+				times = tt.raw_data()[:, 0]
+				neurons = tt.raw_data()[:, 1]
+				ax1.plot(times, neurons, '.', color=colors)
+				ax_max_y = np.max(ax_max_y, tt.id_list)
+				ax_min_y = np.min(ax_min_y, tt.id_list)
+			ax1.set(ylim=[ax_min_y, ax_max_y], xlim=[self.start, self.stop])
 
 		if with_rate:
-			global_rate = tt.firing_rate(dt, average=True)
-			mean_rate = tt.firing_rate(10., average=True)
-			if gids is None:
-				time = tt.time_axis(dt)[:-1]
+			global_rate = self.spikelist.firing_rate(dt, average=True)
+			mean_rate 	= self.spikelist.firing_rate(10., average=True)
+			if gids_colors is None:
+				time = self.spikelist.time_axis(dt)[:-1]
 				ax2.plot(time, global_rate, **pl_props)
 			else:
-				for n, ids in enumerate(gids):
-					tt1 = self.spikelist.time_slice(self.start, self.stop).id_slice(list(ids))
-					time = tt1.time_axis(dt)[:-1]
-					rate = tt1.firing_rate(dt, average=True)
-					ax2.plot(time, rate, color=colors[n], linewidth=1.0, alpha=0.8)
-			ax2.plot(tt.time_axis(10.)[:-1], mean_rate, 'k', linewidth=1.5)
+				assert isinstance(gids_colors, list), "gids_colors should be a list of (gids[list], color) pairs"
+				for gid_color_pair in gids_colors:
+					gids, color = gid_color_pair
+					assert isinstance(gids, list), "Gids should be a list"
+
+					tt = self.spikelist.id_slice(gids)  # it's okay since slice always returns new object
+					time = tt.time_axis(dt)[:-1]
+					rate = tt.firing_rate(dt, average=True)
+					ax2.plot(time, rate, color=color, linewidth=1.0, alpha=0.8)
+			ax2.plot(self.spikelist.time_axis(10.)[:-1], mean_rate, 'k', linewidth=1.5)
 			ax2.set(ylim=[min(global_rate) - 1, max(global_rate) + 1], xlim=[self.start, self.stop])
 		else:
 			ax1.set(**ax_props)
-			ax.set(ylim=[min(self.spikelist.id_list), max(self.spikelist.id_list)], xlim=[self.start, self.stop])
 		if save:
-			assert isinstance(save, str), "Please provide filename"
+			assert isinstance(save, str), "Please provide filename to save figure"
 			pl.savefig(save)
 
 		if display:
@@ -1321,6 +1326,7 @@ class AnalogSignalPlots(object):
 
 
 ############################################################################################
+# TODO has this been tested? Does it work? @barni
 class TopologyPlots(object):
 	"""
 	Class of plotting routines for network topologies
@@ -2177,27 +2183,27 @@ class ActivityAnimator(object):
 	def __plot_trace(self, ax=None, time_interval=None, dt=1.):
 		pass
 
-	def __plot_trajectory(self, variable=None):
+	def __plot_trajectory(self, ax=None, start=None, stop=None, colors=['b'], shift_only=False, dt=1., ax_props={}):
 		pass
 	# def animate_trajectory(response_matrix, pca_fit_obj, interval=100, label='', ax=None, fig=None, display=True,
 	# 					   save=False):
 	#
-	# 	if ax is None and fig is None:
-	# 		fig = pl.figure()
-	# 		ax = fig.add_subplot(111, projection='3d')
-	# 		ax.grid(False)
-	#
-	# 	def animate(i):
-	# 		X = pca_fit_obj.transform(response_matrix.as_array()[:, :i + 1].transpose())
-	#
-	# 		ax.clear()
-	# 		ax.plot(X[:, 0], X[:, 1], X[:, 2], color='r', lw=2)
-	# 		ax.set_title(label + r'$ - t = {0}$ / (3PCs) $= {1}$'.format(str(i),
-	# 																	 str(round(np.sum(
-	# 																		 pca_fit_obj.explained_variance_ratio_[:3]),
-	# 																			   1))))
-	#
-	# 	ani = animation.FuncAnimation(fig, animate, interval=10)
+		# if ax is None:
+		# 	fig = pl.figure()
+		# 	ax = fig.add_subplot(111, projection='3d')
+		# 	ax.grid(False)
+		#
+		# def animate(i):
+		# 	X = pca_fit_obj.transform(response_matrix.as_array()[:, :i + 1].transpose())
+		#
+		# 	ax.clear()
+		# 	ax.plot(X[:, 0], X[:, 1], X[:, 2], color='r', lw=2)
+		# 	ax.set_title(label + r'$ - t = {0}$ / (3PCs) $= {1}$'.format(str(i),
+		# 																 str(round(np.sum(
+		# 																	 pca_fit_obj.explained_variance_ratio_[:3]),
+		# 																		   1))))
+		#
+		# ani = animation.FuncAnimation(fig, animate, interval=10)
 
 	def __has_activity(self, activities, key):
 		return bool(activities is not None and key in activities)
@@ -2261,9 +2267,13 @@ class ActivityAnimator(object):
 			ax_raster 	= pl.subplot2grid((30, 1), (0, 0), rowspan=23, colspan=1)
 		if self.__has_activity(activities, "rate"):
 			ax_rate 	= pl.subplot2grid((30, 1), (24, 0), rowspan=5, colspan=1)
+		if self.__has_activity(activities, "trajectory"):
+			ax_trajectory = pl.subplot(111, projection='3d')#pl.subplot2grid((30, 1), (24, 0), rowspan=5, colspan=1)
+			ax_trajectory.grid(False)
 
 		self.raster_fr_data = None
 		self.rate_fr_data 	= None
+		self.trajectory_fr_data = None
 		self.max_rate 		= None
 		self.sliced_spike_list = None
 
@@ -2723,9 +2733,9 @@ def progress_bar(progress):
 		>> progress_bar(0.7)
 			|===================================               |
 	"""
-	progressConditionStr = "ERROR: The argument of function visualization.progress_bar(...) must be a float between " \
+	condition_msg = "ERROR: The argument of function visualization.progress_bar(...) must be a float between " \
 	                       "0. and 1.!"
-	assert (type(progress) == float) and (progress >= 0.) and (progress <= 1.), progressConditionStr
+	assert (type(progress) == float) and (progress >= 0.) and (progress <= 1.), condition_msg
 	length = 50
 	filled = int(round(length * progress))
 	sys.stdout.write("\r|" + "=" * filled + " " * (length - filled) + "|")

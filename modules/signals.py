@@ -3536,7 +3536,7 @@ class AnalogSignalList(object):
 			try:
 				result[count, :] = self.analog_signals[id].signal
 			except ValueError:
-				print(result[count, :].shape, self.analog_signals[id].signal.shape)
+				print("{0} {1}".format(result[count, :].shape, self.analog_signals[id].signal.shape))
 				raise
 		return np.std(result, axis)
 

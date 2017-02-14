@@ -4,11 +4,12 @@ from modules.input_architect import EncodingLayer
 from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list
-from modules.visualization import set_global_rcParams
+from modules.visualization import set_global_rcParams, SpikePlots
 from modules.analysis import characterize_population_activity
 import cPickle as pickle
 import numpy as np
 import nest
+
 
 # ######################################################################################################################
 # Experiment options
@@ -85,7 +86,13 @@ net.connect_populations(parameter_set.connection_pars, progress=True)
 # ======================================================================================================================
 if parameter_set.kernel_pars.transient_t:
 	net.simulate(parameter_set.kernel_pars.transient_t)
-	net.flush_records()
+	# TODO remove; only for plotting
+	# net.extract_population_activity()
+	# net.extract_network_activity()
+	# sp = SpikePlots(net.populations[0].spiking_activity.id_slice(list(net.populations[0].gids[:500])))
+	# sp.dot_display(save="raster_nu_x=18_gamma=14.0.pdf", with_rate=False)
+	# net.flush_records()
+	# exit(0)
 
 net.simulate(parameter_set.kernel_pars.sim_time + 1.)
 # ######################################################################################################################
@@ -101,16 +108,10 @@ net.flush_records()
 analysis_interval = [parameter_set.kernel_pars.transient_t,
 	                 parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t]
 
-
-# TODO, temporarily, the save path is updated here, but I'll solve it
-# parameter_set.analysis_pars.meta.save_path = paths['figures']+paths['label']
-# results.update(characterize_population_activity_new(net, parameter_set, analysis_interval,
-# 													np.random, parameter_set.analysis_pars))
 results.update(characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
                                                 color_map='jet', plot=plot,
                                                 display=display, save=paths['figures']+paths['label'],
                                                 **parameter_set.analysis_pars))
-
 
 # ######################################################################################################################
 # Save data
