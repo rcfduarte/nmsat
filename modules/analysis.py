@@ -52,6 +52,7 @@ import sklearn.decomposition as sk
 import sklearn.linear_model as lm
 import sklearn.svm as svm
 from modules.visualization import ActivityAnimator
+from pytest import collect
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import GridSearchCV
 import sklearn.metrics as met
@@ -1232,9 +1233,9 @@ def characterize_population_activity_new(population_object, parameter_set, analy
 		assert isinstance(spike_list, sg.SpikeList), "Spiking activity should be SpikeList object"
 		spike_list = spike_list.time_slice(analysis_interval[0], analysis_interval[1])
 
-		ai = ActivityAnimator(spike_list, populations=population_object, ids=gids, vm_list=[])
+		# ai = ActivityAnimator(spike_list, populations=population_object, ids=gids, vm_list=[])
 		# ai.animate_activity(time_window=100, save=True)
-		print ("gonna animate raster plot... @done")
+		# print ("gonna animate raster plot... @done")
 
 		results['spiking_activity'].update(compute_spikelist_metrics_new(spike_list, population_object.name,
 		                                        time_bin=ap.numerics.time_bin, n_pairs=ap.numerics.n_pairs,
@@ -1442,6 +1443,11 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 		assert isinstance(spike_list, sg.SpikeList), "Spiking activity should be SpikeList object"
 		spike_list = spike_list.time_slice(analysis_interval[0], analysis_interval[1])
 
+		# TODO remove, debug
+		# print ("gonna animate raster plot... @done")
+		# ai = ActivityAnimator(spike_list, populations=population_object, ids=gids, vm_list=[])
+		# ai.animate_activity(time_window=100, save=True)
+		# exit(0)
 		results['spiking_activity'].update(compute_spikelist_metrics(spike_list, population_object.name,
 		                                        time_bin=time_bin, n_pairs=n_pairs, tau=tau,
 		                                        summary_only=summary_only, complete=complete,
@@ -2691,8 +2697,8 @@ def analyse_state_divergence(parameter_set, net, clone, plot=True, display=True,
 						  'linestyle': '-'}
 			plot_props2 = {'xlabel': 'Time [ms]', 'ylabel': 'Neuron', 'color': 'k', 'linewidth': 1.0,
 						  'linestyle': '-'}
-			rp1.dot_display(ax=[ax1a, ax2a], with_rate=True, colors='r', display=False, save=False, **plot_props1)
-			rp2.dot_display(ax=[ax1b, ax2b], with_rate=True, colors='k', display=False, save=False, **plot_props2)
+			rp1.dot_display(ax=[ax1a, ax2a], with_rate=True, default_color='r', display=False, save=False, **plot_props1)
+			rp2.dot_display(ax=[ax1b, ax2b], with_rate=True, default_color='k', display=False, save=False, **plot_props2)
 
 			ax3.plot(time_vec, r_cor, '-b')
 			ax3.set_ylabel('CC')

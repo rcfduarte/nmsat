@@ -417,6 +417,18 @@ def plot_histograms(ax_list, data_list, n_bins, args_list, cmap='hsv'):
 
 def plot_state_analysis(parameter_set, results, summary_only=False, start=None, stop=None, display=True, save=False):
 	"""
+	Plots spiking and analog activity. Spiking activity includes spike raster plot and other statistics (mean firing
+	rate and CV-, FF-, and CCS histograms). If analog activity is recorded, the mean V_m is plotted, along with the
+	 mean E and mean I currents.
+
+	:param parameter_set: ParameterSet object
+	:param results: dictionary with the activity statistics
+	:param summary_only: plot only raster plot or everything
+	:param start: start of time window for the plots
+	:param stop: end of time window for the plots
+	:param display: show plots
+	:param save: save plots
+	:return:
 	"""
 	fig1 = []
 	fig2 = []
@@ -434,11 +446,14 @@ def plot_state_analysis(parameter_set, results, summary_only=False, start=None, 
 		ax1 = pl.subplot2grid((25, 1), loc=(0, 0), rowspan=20, colspan=1)
 		ax2 = pl.subplot2grid((25, 1), loc=(20, 0), rowspan=5, colspan=1, sharex=ax1)
 
+	# TODO @barni QUESTION how many different populations do we want to support?
+	# there's ax.set_color_cycle() option, but it's cyclic..
 	colors = ['b', 'r', 'Orange', 'gray', 'g'] # color sequence for the different populations (TODO automate)
 
 	if bool(results['spiking_activity']):
 		pop_names = results['spiking_activity'].keys()
 
+		# make spike raster plot
 		spiking_activity = results['metadata']['spike_list']
 		rp = SpikePlots(spiking_activity, start, stop)
 		if display:
@@ -446,15 +461,18 @@ def plot_state_analysis(parameter_set, results, summary_only=False, start=None, 
 			                         results=results['spiking_activity'][results['metadata']['population_name']])
 		plot_props = {'xlabel': 'Time [ms]', 'ylabel': 'Neuron', 'color': 'b', 'linewidth': 1.0,
 		              'linestyle': '-'}
-		if len(pop_names) > 1 and 'sub_population_names' in results['metadata'].keys():
+		if len(pop_names) > 1 or 'sub_population_names' in results['metadata'].keys():
+			# different color for each subpopulation
 			gids = results['metadata']['sub_population_gids']
-			rp.dot_display(gids=gids, colors=colors[:len(gids)], ax=[ax1, ax2], with_rate=True, display=False,
-			               save=False, **plot_props)
+			rp.dot_display(gids_colors=[(gids_, colors[idx]) for idx, gids_ in enumerate(gids)],
+						   ax=[ax1, ax2], with_rate=True, display=False, save=False, **plot_props)
 		else:
+			# single global color
 			rp.dot_display(ax=[ax1, ax2], with_rate=True, display=False, save=False, **plot_props)
 		ax2.set_ylabel(r'$\mathrm{\bar{r}(t)} \mathrm{[sps]}$')
 		ax1.set_ylabel(r'$\mathrm{Neuron}$')
-		#################
+
+		# plot other spiking activity related histograms
 		if not summary_only:
 			fig2 = pl.figure()
 			fig2.suptitle(r'Population ${0}$ - Spiking Statistics $[{1}, {2}]$'.format(
@@ -466,41 +484,38 @@ def plot_state_analysis(parameter_set, results, summary_only=False, start=None, 
 			ax24 = pl.subplot2grid((9, 14), loc=(5, 3), rowspan=4, colspan=4)
 			ax25 = pl.subplot2grid((9, 14), loc=(5, 8), rowspan=4, colspan=4)
 
-			for indice, name in enumerate(pop_names):
+			for idx, name in enumerate(pop_names):
 				plot_props = {'xlabel': 'Rates', 'ylabel': 'Count', 'histtype': 'stepfilled', 'alpha': 0.4}
 
-				plot_histogram(results['spiking_activity'][name]['mean_rates'], nbins=100, norm=True, ax=ax21, color=colors[indice],
+				plot_histogram(results['spiking_activity'][name]['mean_rates'], nbins=100, norm=True, ax=ax21, color=colors[idx],
 				                   display=False, save=False, **plot_props)
 				plot_props.update({'xlabel': 'ISI'})  # , 'yscale': 'log'}) #, 'xscale': 'log'})##
 				ax22.set_yscale('log')
-				plot_histogram(results['spiking_activity'][name]['isi'], nbins=100, norm=True, ax=ax22, color=colors[indice],
+				plot_histogram(results['spiking_activity'][name]['isi'], nbins=100, norm=True, ax=ax22, color=colors[idx],
 				                   display=False, save=False, **plot_props)
 				plot_props['xlabel'] = 'CC'
-				tmp = results['spiking_activity'][name]['ccs']
-				if not isinstance(tmp, np.ndarray):
-					tmp = np.array(tmp)
+				tmp = np.array(results['spiking_activity'][name]['ccs'])
 				ccs = tmp[~np.isnan(tmp)] #tmp
-				plot_histogram(ccs, nbins=100, norm=True, ax=ax23, color=colors[indice],
-				                   display=False, save=False, **plot_props)
-				plot_props['xlabel'] = 'FF'
-				tmp = results['spiking_activity'][name]['ffs']
-				if not isinstance(tmp, np.ndarray):
-					tmp = np.array(tmp)
-				ffs = tmp[~np.isnan(tmp)]
-				plot_histogram(ffs, nbins=100, norm=True, ax=ax24, color=colors[indice],
-				                   display=False, save=False, **plot_props)
-				plot_props['xlabel'] = '$CV_{ISI}$'
-				tmp = results['spiking_activity'][name]['cvs']
-				cvs = tmp[~np.isnan(tmp)]
-				if not isinstance(tmp, np.ndarray):
-					tmp = np.array(tmp)
-				plot_histogram(cvs, nbins=100, norm=True, ax=ax25, color=colors[indice],
-				                   display=False, save=False, **plot_props)
+				plot_histogram(ccs, nbins=100, norm=True, ax=ax23, color=colors[idx],
+							   display=False, save=False, **plot_props)
 
+				plot_props['xlabel'] = 'FF'
+				tmp = np.array(results['spiking_activity'][name]['ffs'])
+				ffs = tmp[~np.isnan(tmp)]
+				plot_histogram(ffs, nbins=100, norm=True, ax=ax24, color=colors[idx],
+							   display=False, save=False, **plot_props)
+
+				plot_props['xlabel'] = '$CV_{ISI}$'
+				tmp = np.array(results['spiking_activity'][name]['cvs'])
+				cvs = tmp[~np.isnan(tmp)]
+				plot_histogram(cvs, nbins=100, norm=True, ax=ax25, color=colors[idx],
+							   display=False, save=False, **plot_props)
+
+	# plot analog activity statistics
 	if bool(results['analog_activity']):
 		pop_names = results['analog_activity'].keys()
 		
-		for indice, name in enumerate(pop_names):
+		for idx, name in enumerate(pop_names):
 			if len(results['analog_activity'][name]['recorded_neurons']) > 1:
 				fig3 = pl.figure()
 				fig3.suptitle(r'Population ${0}$ - Analog Signal Statistics [${1}, {2}$]'.format(
@@ -513,7 +528,7 @@ def plot_state_analysis(parameter_set, results, summary_only=False, start=None, 
 				plot_props = {'xlabel': r'$\langle V_{m} \rangle$', 'ylabel': 'Count', 'histtype': 'stepfilled',
 				              'alpha': 0.8}
 				plot_histogram(results['analog_activity'][name]['mean_V_m'], nbins=20, norm=True, ax=ax31,
-				               color=colors[indice],
+				               color=colors[idx],
 				                   display=False, save=False, **plot_props)
 				plot_props.update({'xlabel': r'$\langle I_{Syn}^{Total} \rangle$'}) #, 'label': r'\langle I_{Exc}
 				# \rangle'})
@@ -529,7 +544,7 @@ def plot_state_analysis(parameter_set, results, summary_only=False, start=None, 
 				plot_props.update({'xlabel': r'$CC_{I_{E}/I_{I}}$'})
 				#plot_props.pop('label')
 				plot_histogram(results['analog_activity'][name]['EI_CC'], nbins=20, norm=True, ax=ax33, color=colors[
-					indice], display=False, save=False, **plot_props)
+					idx], display=False, save=False, **plot_props)
 			elif results['analog_activity'][name]['recorded_neurons']:
 				pop_idx = parameter_set.net_pars.pop_names.index(name)
 				###
@@ -1012,18 +1027,19 @@ class SpikePlots(object):
 
 		self.spikelist = spikelist.time_slice(self.start, self.stop)
 
-	def dot_display(self, gids_colors=None, with_rate=True, dt=1.0, display=True, ax=None, fig=None, save=False,
-					**kwargs):
+	def dot_display(self, gids_colors=None, with_rate=True, dt=1.0, display=True, ax=None, save=False,
+					default_color='b', **kwargs):
 		"""
 		Simplest case, dot display
 		:param gids_colors: [list] if some ids should be highlighted in a different color, this should be specified by
-		providing a list of (gids, color) pairs, where gids is a list of ids and color is the corresponding
-		color for those gids. If None, no ids are differentiated
+		providing a list of (gids, color) pairs, where gids [numpy.ndarray] contains the ids and color is the
+		corresponding color for those gids. If None, no ids are differentiated
 		:param with_rate: [bool] - whether to display psth or not
 		:param dt: [float] - delta t for the psth
 		:param display: [bool] - display the figure
 		:param ax: [axes handle] - axes on which to display the figure
 		:param save: [bool] - save the figure
+		:param default_color: [char] default color if no ids are differentiated
 		:param kwargs: [key=value pairs] axes properties
 		"""
 		if (ax is not None) and (not isinstance(ax, list)) and (not isinstance(ax, mpl.axes.Axes)):
@@ -1061,7 +1077,6 @@ class SpikePlots(object):
 		ax_props = {k: v for k, v in kwargs.iteritems() if k in ax1.properties()}
 		pl_props = {k: v for k, v in kwargs.iteritems() if k not in ax1.properties()}  # TODO: improve
 
-		default_color = 'b'
 		if gids_colors is None:
 			times = self.spikelist.raw_data()[:, 0]
 			neurons = self.spikelist.raw_data()[:, 1]
@@ -1073,14 +1088,14 @@ class SpikePlots(object):
 			ax_max_y = np.min(self.spikelist.id_list)
 			for gid_color_pair in gids_colors:
 				gids, color = gid_color_pair
-				assert isinstance(gids, list), "Gids should be a list"
+				assert isinstance(gids, np.ndarray), "Gids should be a numpy.ndarray"
 
 				tt = self.spikelist.id_slice(gids)  # it's okay since slice always returns new object
 				times = tt.raw_data()[:, 0]
 				neurons = tt.raw_data()[:, 1]
-				ax1.plot(times, neurons, '.', color=colors)
-				ax_max_y = np.max(ax_max_y, tt.id_list)
-				ax_min_y = np.min(ax_min_y, tt.id_list)
+				ax1.plot(times, neurons, '.', color=color)
+				ax_max_y = max(ax_max_y, max(tt.id_list))
+				ax_min_y = min(ax_min_y, min(tt.id_list))
 			ax1.set(ylim=[ax_min_y, ax_max_y], xlim=[self.start, self.stop])
 
 		if with_rate:
@@ -1093,7 +1108,7 @@ class SpikePlots(object):
 				assert isinstance(gids_colors, list), "gids_colors should be a list of (gids[list], color) pairs"
 				for gid_color_pair in gids_colors:
 					gids, color = gid_color_pair
-					assert isinstance(gids, list), "Gids should be a list"
+					assert isinstance(gids, np.ndarray), "Gids should be a numpy.ndarray"
 
 					tt = self.spikelist.id_slice(gids)  # it's okay since slice always returns new object
 					time = tt.time_axis(dt)[:-1]
