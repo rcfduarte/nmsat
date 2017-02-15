@@ -1126,17 +1126,22 @@ def compute_dimensionality(activity_matrix, pca_obj=None, display=False):
 def compute_timescale(activity_matrix, time_axis, max_lag=1000, method=0):
 	"""
 	Determines the time scale of fluctuations in the population activity
+
 	:param activity_matrix: np.array with size NxT
-	:param method: based on autocorrelation (0) or on power spectra (1)
+	:param time_axis:
+	:param max_lag:
+	?? :param method: based on autocorrelation (0) or on power spectra (1)
 	:return:
 	"""
-	# TODO modify / review / extend
+	# TODO modify / review / extend / correct / update
+	# QUESTION I'd like to do it, but ...
 	time_scales = []
-	final_acc = []
-	errors = []
-	acc = cross_trial_cc(activity_matrix)
+	final_acc 	= []
+	errors 		= []
+	acc 		= cross_trial_cc(activity_matrix)
 	initial_guess = 1., 0., 10.
 	for n_signal in range(acc.shape[0]):
+		# TODO err_func not defined here..
 		fit, _ = opt.leastsq(err_func, initial_guess, args=(time_axis, acc[n_signal, :max_lag], acc_function))
 
 		if fit[2] > 0:
@@ -1148,8 +1153,7 @@ def compute_timescale(activity_matrix, time_axis, max_lag=1000, method=0):
 			final_acc.append(acc[n_signal, :max_lag])
 	final_acc = np.array(final_acc)
 
-	mean_fit, _ = opt.leastsq(err_func, initial_guess, args=(time_axis, np.mean(final_acc, 0),
-															 acc_function))
+	mean_fit, _ = opt.leastsq(err_func, initial_guess, args=(time_axis, np.mean(final_acc, 0), acc_function))
 	error_rates = np.sum((np.mean(final_acc, 0) - acc_function(time_axis, *mean_fit)) ** 2)
 	print("Timescale = {0} ms / error = {1}".format(str(mean_fit[2]), str(error_rates)))
 	print("Accepted dimensions = {0}".format(str(float(final_acc.shape[0]) / float(acc.shape[0]))))
@@ -1161,7 +1165,13 @@ def manifold_learning(activity_matrix, n_neighbors, standardize=True, plot=True,
 	"""
 	Fit and test various manifold learning algorithms, to extract a reasonable 3D projection of the data for
 	visualization
+
 	:param activity_matrix: matrix to analyze (NxT)
+	:param n_neighbors:
+	:param standardize:
+	:param plot:
+	:param display:
+	:param save:
 	:return:
 	"""
 	# TODO extend and test - and include in the analyse_activity_dynamics function
@@ -1232,10 +1242,6 @@ def characterize_population_activity_new(population_object, parameter_set, analy
 		spike_list = population_object.spiking_activity
 		assert isinstance(spike_list, sg.SpikeList), "Spiking activity should be SpikeList object"
 		spike_list = spike_list.time_slice(analysis_interval[0], analysis_interval[1])
-
-		# ai = ActivityAnimator(spike_list, populations=population_object, ids=gids, vm_list=[])
-		# ai.animate_activity(time_window=100, save=True)
-		# print ("gonna animate raster plot... @done")
 
 		results['spiking_activity'].update(compute_spikelist_metrics_new(spike_list, population_object.name,
 		                                        time_bin=ap.numerics.time_bin, n_pairs=ap.numerics.n_pairs,
@@ -1433,7 +1439,7 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 		population_object 		= new_population
 	else:
 		raise TypeError("Incorrect population object. Must be Population or Network object")
-	spike_list = None
+
 	results = {'spiking_activity': {}, 'analog_activity': {}, 'metadata': {'population_name': population_object.name}}
 
 	########################################################################################################
@@ -1444,10 +1450,13 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 		spike_list = spike_list.time_slice(analysis_interval[0], analysis_interval[1])
 
 		# TODO remove, debug
-		# print ("gonna animate raster plot... @done")
-		# ai = ActivityAnimator(spike_list, populations=population_object, ids=gids, vm_list=[])
-		# ai.animate_activity(time_window=100, save=True)
+		# print ("gonna animate raster plot...")
+		# response_matrix = spike_list.compile_binary_response_matrix(dt=.1)
+		# visualization.plot_trajectory(response_matrix, save=save)
+		# # ai = ActivityAnimator(spike_list, populations=population_object, ids=gids, vm_list=[])
+		# # ai.animate_activity(time_window=100, save=True)
 		# exit(0)
+		#######
 		results['spiking_activity'].update(compute_spikelist_metrics(spike_list, population_object.name,
 		                                        time_bin=time_bin, n_pairs=n_pairs, tau=tau,
 		                                        summary_only=summary_only, complete=complete,
@@ -2091,6 +2100,15 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 						   debug=False, plot=True, display=True, save=False):
 	"""
 
+	:param net:
+	:param parameter_set:
+	:param input:
+	:param total_time:
+	:param normalize:
+	:param debug:
+	:param plot:
+	:param display:
+	:param save:
 	:return:
 	"""
 	results = {}

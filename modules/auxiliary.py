@@ -500,6 +500,7 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 						if not signals.empty(n_pop.state_extractors):
 							print(("Collecting response samples from Population {0} [rate = {1}]".format(str(
 								n_pop.name), str(sub_sampling_times))))
+							# TODO QUESTION extract_response_matrix not defined anymore?
 							responses = n_pop.extract_response_matrix(start=t_int, stop=t - inter_stim_int, save=False)
 							for response_idx, n_response in enumerate(responses):
 								if store_activity:

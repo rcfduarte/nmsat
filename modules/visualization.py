@@ -356,6 +356,11 @@ def box_plot(ax, data, pos):
 def summary_statistics(data_list, labels, loc=0, fig=None, cmap='jet'):
 	"""
 
+	:param data_list:
+	:param labels:
+	:param loc:
+	:param fig:
+	:param cmap:
 	:return:
 	"""
 	n_axes = len(data_list)
@@ -401,6 +406,15 @@ def connectivity_axes(synapse_types, equal=True):
 
 
 def plot_histograms(ax_list, data_list, n_bins, args_list, cmap='hsv'):
+	"""
+
+	:param ax_list:
+	:param data_list:
+	:param n_bins:
+	:param args_list:
+	:param cmap:
+	:return:
+	"""
 	assert(len(ax_list) == len(data_list)), "Data dimension mismatch"
 	colors = get_cmap(len(ax_list), cmap)
 	counter = range(len(ax_list))
@@ -2320,35 +2334,6 @@ class ActivityAnimator(object):
 # 	ax.vlines(times[possible_spike_times], v_th, 50., color='k')
 # 	ax.set_ylim(min(vm) - 5., 10.)
 
-# def animate_raster(spike_list, gids, window_size, display=False, save=False):
-# 	"""
-#
-# 	:param spike_list:
-# 	:param gids:
-# 	:param window_size:
-# 	:return:
-# 	"""
-# 	time_axis = spike_list.time_axis(time_bin=1.)
-# 	mw = signals.moving_window(time_axis, window_size)
-# 	fig = pl.figure()
-# 	ax1 = pl.subplot2grid((30, 1), (0, 0), rowspan=23, colspan=1)
-# 	ax2 = pl.subplot2grid((30, 1), (24, 0), rowspan=5, colspan=1, sharex=ax1)
-#
-# 	def animate(i):
-# 		ax1.clear()
-# 		ax2.clear()
-# 		time_window = mw.next()
-# 		spike_plot = SpikePlots(spike_list, start=min(time_window), stop=max(time_window), N=10000)
-# 		spike_plot.dot_display(gids=gids, colors=['b', 'r'], with_rate=True, dt=1.0, display=False, ax=[ax1, ax2],
-# 		                       fig=fig, save=False)
-#
-# 	ani = animation.FuncAnimation(fig, animate, interval=10)
-#
-# 	if display:
-# 		pl.show(False)
-# 	if save:
-# 		ani.save('{0}_animation.gif'.format(save), fps=1000)
-
 
 def plot_trajectory(response_matrix, pca_fit_obj=None, label='', color='r', ax=None, display=True, save=False):
 	"""
@@ -2374,8 +2359,7 @@ def plot_trajectory(response_matrix, pca_fit_obj=None, label='', color='r', ax=N
 
 	ax.clear()
 	ax.plot(X[:, 0], X[:, 1], X[:, 2], color=color, lw=2)
-	ax.set_title(label + r'$ - (3PCs) $= {0}$'.format(str(round(np.sum(pca_fit_obj.explained_variance_ratio_[:3]),
-	                                                                       1))))
+	ax.set_title(label + r'$ - (3PCs) $= {0}$'.format(str(round(np.sum(pca_fit_obj.explained_variance_ratio_[:3]), 1))))
 	#ax.grid()
 	if display:
 		pl.show(False)
@@ -2410,6 +2394,7 @@ def plot_trajectory(response_matrix, pca_fit_obj=None, label='', color='r', ax=N
 def plot_response(population, ids=None, spiking_activity=None, display=True, save=False):
 	"""
 	Plot activity matrix and the traces for specified ids, along with the spikes recorded with the spike detector
+
 	:param population: Population object to which the responses belong
 	:param ids: ids of the neurons to plot independently
 	:param spiking_activity: if None the population's spiking_activity will be used instead, otherwise, should be a
@@ -2487,6 +2472,14 @@ def plot_response(population, ids=None, spiking_activity=None, display=True, sav
 
 def plot_fmf(t_axis, fmf, ax, label='', display=True, save=False):
 	"""
+
+	:param t_axis:
+	:param fmf:
+	:param ax:
+	:param label:
+	:param display:
+	:param save:
+	:return:
 	"""
 	if (ax is not None) and (not isinstance(ax, mpl.axes.Axes)):
 		raise ValueError('ax must be matplotlib.axes.Axes instance.')
@@ -2532,6 +2525,16 @@ def plot_fmf(t_axis, fmf, ax, label='', display=True, save=False):
 
 
 def plot_state_matrix(state_mat, stim_labels, ax=None, label='', display=True, save=False):
+	"""
+
+	:param state_mat:
+	:param stim_labels:
+	:param ax:
+	:param label:
+	:param display:
+	:param save:
+	:return:
+	"""
 	if (ax is not None) and (not isinstance(ax, mpl.axes.Axes)):
 		raise ValueError('ax must be matplotlib.axes.Axes instance.')
 	if ax is None:
@@ -2573,6 +2576,11 @@ def get_cmap(N, cmap='hsv'):
 
 def plot_readout_performance(results_dict, display=True, save=False):
 	"""
+
+	:param results_dict:
+	:param display:
+	:param save:
+	:return:
 	"""
 	for pop_name, pop_readouts in results_dict.items():
 
@@ -2684,6 +2692,12 @@ def plot_readout_performance(results_dict, display=True, save=False):
 def extract_encoder_connectivity(enc_layer, net, display=True, save=False):
 	"""
 	Extract and plot encoding layer connections
+
+	:param enc_layer:
+	:param net:
+	:param display:
+	:param save:
+	:return:
 	"""
 	if len(np.unique(enc_layer.connection_types)) == 1:
 		tgets = list(signals.iterate_obj_list([list(signals.iterate_obj_list(n.gids)) for n in net.populations]))
@@ -2835,6 +2849,7 @@ def plot_connectivity_matrix(matrix, source_name, target_name, label='', ax=None
 def plot_response_activity(spike_list, input_stimulus, start=None, stop=None):
 	"""
 	Plot population responses to stimuli (spiking activity)
+
 	:param spike_list:
 	:param input_stimulus:
 	:return:
@@ -2842,7 +2857,6 @@ def plot_response_activity(spike_list, input_stimulus, start=None, stop=None):
 	fig = pl.figure()
 	ax1 = pl.subplot2grid((12, 1), (0, 0), rowspan=6, colspan=1)
 	ax2 = pl.subplot2grid((12, 1), (7, 0), rowspan=2, colspan=1, sharex=ax1)
-	ax3 = pl.subplot2grid((12, 1), (10, 0), rowspan=2, colspan=1, sharex=ax1)
 
 	rp = SpikePlots(spike_list, start, stop)
 	plot_props = {'xlabel': 'Time [ms]', 'ylabel': 'Neuron', 'linewidth': 1.0, 'linestyle': '-'}
@@ -2852,12 +2866,18 @@ def plot_response_activity(spike_list, input_stimulus, start=None, stop=None):
 	rp.mark_events(ax2, input_stimulus, start, stop)
 
 
-def plot_isi_data(results, data_label, color_map='jet', location=0, fig_handles=None, axes=None, display=True, \
-                                                                                                       save=False):
+def plot_isi_data(results, data_label, color_map='jet', location=0, fig_handles=None,
+				  axes=None, display=True, save=False):
 	"""
 
 	:param results:
-	:param label:
+	:param data_label:
+	:param color_map:
+	:param location:
+	:param fig_handles:
+	:param axes:
+	:param display:
+	:param save:
 	:return:
 	"""
 	keys = ['isi', 'cvs', 'lvs', 'lvRs', 'ents', 'iR', 'cvs_log', 'isi_5p', 'ai']
@@ -2890,7 +2910,12 @@ def plot_synchrony_measures(results, label='', time_resolved=False, epochs=None,
 	"""
 
 	:param results:
+	:param label:
 	:param time_resolved:
+	:param epochs:
+	:param color_map:
+	:param display:
+	:param save:
 	:return:
 	"""
 	# Synchrony distance matrices
@@ -2937,11 +2962,16 @@ def plot_synchrony_measures(results, label='', time_resolved=False, epochs=None,
 			fig4.savefig(save + '{0}_time_resolved_sync.pdf'.format(str(label)))
 
 
-def plot_averaged_time_resolved(results, spike_list, label='', epochs=None, color_map='jet', display=True,
-                                  save=False):
+def plot_averaged_time_resolved(results, spike_list, label='', epochs=None, color_map='jet', display=True, save=False):
 	"""
 
 	:param results:
+	:param spike_list:
+	:param label:
+	:param epochs:
+	:param color_map:
+	:param display:
+	:param save:
 	:return:
 	"""
 	# time resolved regularity
@@ -2949,6 +2979,7 @@ def plot_averaged_time_resolved(results, spike_list, label='', epochs=None, colo
 	fig5.suptitle('{0} - Time-resolved regularity'.format(str(label)))
 	stats = ['isi_5p_profile', 'cvs_profile', 'cvs_log_profile', 'lvs_profile', 'iR_profile', 'ents_profile']
 	cm = get_cmap(len(stats), color_map)
+	# TODO pretty ugly around here..
 	for idx, n in enumerate(stats):
 		globals()['ax5{0}'.format(str(idx))] = fig5.add_subplot(len(stats), 1, idx + 1)
 		data_mean = np.array([results[n][i][0] for i in range(len(results[n]))])
