@@ -368,10 +368,10 @@ def summary_statistics(data_list, labels, loc=0, fig=None, cmap='jet'):
 		fig = pl.figure()
 	cm = get_cmap(n_axes, cmap)
 	for i in range(n_axes):
-		globals()['ax_{0}'.format(str(i))] = pl.subplot2grid((1, n_axes*2), (0, i*2), rowspan=1, colspan=2)
-		violin_plot(globals()['ax_{0}'.format(str(i))], [data_list[i]], pos=[0], location=loc, color=[cm(i)])
-		globals()['ax_{0}'.format(str(i))].set_title(labels[i])
-		box_plot(globals()['ax_{0}'.format(str(i))], [data_list[i]], pos=[0])
+		ax = pl.subplot2grid((1, n_axes*2), (0, i*2), rowspan=1, colspan=2)
+		violin_plot(ax, [data_list[i]], pos=[0], location=loc, color=[cm(i)])
+		ax.set_title(labels[i])
+		box_plot(ax, [data_list[i]], pos=[0])
 
 
 def isi_analysis_histogram_axes(label=''):
@@ -1988,18 +1988,17 @@ class InputPlots(object):
 		if ax is None:
 			fig = pl.figure()
 			for ii in range(len(self.input.input_signal)):
-				globals()['ax' + str(ii)] = pl.subplot2grid((len(self.input.input_signal), 1), (ii, 0), rowspan=1,
-				                                           colspan=1)
-				globals()['ax' + str(ii)].plot(self.input.time_data, self.input.input_signal[ii].signal, **plot_props)
-				globals()['ax' + str(ii)].set_ylabel(r'\sigma_{u}')
+				ax = pl.subplot2grid((len(self.input.input_signal), 1), (ii, 0), rowspan=1, colspan=1)
+				ax.plot(self.input.time_data, self.input.input_signal[ii].signal, **plot_props)
+				ax.set_ylabel(r'\sigma_{u}')
 				if ii < len(self.input.input_signal) - 1:
-					globals()['ax' + str(ii)].set_xticklabels('')
-					globals()['ax' + str(ii)].set_xlim(left=min(self.input.time_data), right=max(self.input.time_data))
+					ax.set_xticklabels('')
+					ax.set_xlim(left=min(self.input.time_data), right=max(self.input.time_data))
 				else:
-					globals()['ax' + str(ii)].set_xlabel('Time [ms]')
-					globals()['ax' + str(ii)].set_xlim(left=min(self.input.time_data), right=max(self.input.time_data))
-				globals()['ax' + str(ii)].set_ylim([min(self.input.input_signal[ii].signal)-10., max(self.input.input_signal[ii].signal)+10.])
-				globals()['ax' + str(ii)].set(**ax_props)
+					ax.set_xlabel('Time [ms]')
+					ax.set_xlim(left=min(self.input.time_data), right=max(self.input.time_data))
+				ax.set_ylim([min(self.input.input_signal[ii].signal)-10., max(self.input.input_signal[ii].signal)+10.])
+				ax.set(**ax_props)
 		else:
 			for ii in range(len(self.input.input_signal)):
 				ax.plot(self.input.time_data, self.input.input_signal[ii].signal, **plot_props)
@@ -2028,17 +2027,17 @@ class InputPlots(object):
 		if ax is None:
 			fig = pl.figure()
 			for ii in range(len(self.noise.noise_signal)):
-				globals()['ax' + str(ii)] = pl.subplot2grid((len(self.noise.noise_signal), 1), (ii, 0), rowspan=1,
+				ax = pl.subplot2grid((len(self.noise.noise_signal), 1), (ii, 0), rowspan=1,
 				                                           colspan=1)
-				globals()['ax' + str(ii)].plot(self.noise.noise_signal[ii].time_axis(), self.noise.noise_signal[
+				ax.plot(self.noise.noise_signal[ii].time_axis(), self.noise.noise_signal[
 					ii].signal)
-				globals()['ax' + str(ii)].set_ylabel(r'\sigma_{u}')
+				ax.set_ylabel(r'\sigma_{u}')
 				if ii < len(self.noise.noise_signal) - 1:
-					globals()['ax' + str(ii)].set_xticklabels('')
-					globals()['ax' + str(ii)].set_xlim(min(self.noise.time_data), max(self.noise.time_data))
+					ax.set_xticklabels('')
+					ax.set_xlim(min(self.noise.time_data), max(self.noise.time_data))
 				else:
-					globals()['ax' + str(ii)].set_xlabel('Time [ms]')
-					globals()['ax' + str(ii)].set_xlim(min(self.noise.time_data), max(self.noise.time_data))
+					ax.set_xlabel('Time [ms]')
+					ax.set_xlim(min(self.noise.time_data), max(self.noise.time_data))
 		else:
 			for ii in range(len(self.noise.noise_signal)):
 				ax.plot(self.noise.noise_signal[ii].time_axis(), self.noise.noise_signal[ii].signal)
@@ -2390,7 +2389,6 @@ def plot_trajectory(response_matrix, pca_fit_obj=None, label='', color='r', ax=N
 # 	if save:
 # 		ani.save('{0}_animation.gif'.format(save), fps=1000)
 
-
 def plot_response(population, ids=None, spiking_activity=None, display=True, save=False):
 	"""
 	Plot activity matrix and the traces for specified ids, along with the spikes recorded with the spike detector
@@ -2409,18 +2407,18 @@ def plot_response(population, ids=None, spiking_activity=None, display=True, sav
 	dt = population.decoding_layer.activity[0].dt
 
 	for state_idx, n_state in enumerate(population.decoding_layer.state_variables):
-		globals()['ax_{0}'.format(state_idx)] = fig1.add_subplot(len(population.decoding_layer.state_variables),
-		                                                         1, state_idx + 1)
-		plt = globals()['ax_{0}'.format(state_idx)].imshow(population.decoding_layer.activity[state_idx].as_array(),
-		                                                   aspect='auto', interpolation='nearest')
-		divider = make_axes_locatable(globals()['ax_{0}'.format(state_idx)])
+		ax = fig1.add_subplot(len(population.decoding_layer.state_variables), 1, state_idx + 1)
+		plt = ax.imshow(population.decoding_layer.activity[state_idx].as_array(),
+						aspect='auto', interpolation='nearest')
+		divider = make_axes_locatable(ax)
 		cax = divider.append_axes("right", "5%", pad="4%")
 		cbar = fig1.colorbar(plt, cax=cax)
-		x_ticks = globals()['ax_{0}'.format(state_idx)].get_xticks()
-		globals()['ax_{0}'.format(state_idx)].set_xticklabels([str(x * dt) for x in x_ticks])
-		globals()['ax_{0}'.format(state_idx)].set_xlabel(r"Time [ms]")
-		globals()['ax_{0}'.format(state_idx)].set_ylabel("Neuron")
-		globals()['ax_{0}'.format(state_idx)].set_title("{0}".format(n_state))
+		x_ticks = ax.get_xticks()
+
+		ax.set_xticklabels([str(x * dt) for x in x_ticks])
+		ax.set_xlabel(r"Time [ms]")
+		ax.set_ylabel("Neuron")
+		ax.set_title("{0}".format(n_state))
 
 	if not signals.empty(population.spiking_activity) or spiking_activity is not None:
 		if spiking_activity is not None:
@@ -2432,37 +2430,36 @@ def plot_response(population, ids=None, spiking_activity=None, display=True, sav
 			assert (isinstance(ids, list) or isinstance(ids, np.ndarray)), "Provide list or array of neuron gids"
 		else:
 			ids = np.random.permutation(sl.id_list)[:5]
-		list_idx = ids - min(population.gids)#np.where(np.sort(np.array(population.gids)) == neuron_idx)[
-		# 0][0]
+		list_idx = ids - min(population.gids)#np.where(np.sort(np.array(population.gids)) == neuron_idx)[# 0][0]
 
 		for state_idx, n_state in enumerate(population.decoding_layer.state_variables):
-			globals()['fig_{0}'.format(state_idx)] = pl.figure()
+			fig2 = pl.figure()
 			label = "population_{0}_variable_{1}".format(str(population.name), str(n_state))
 			activity = population.decoding_layer.activity[state_idx]
-			globals()['fig_{0}'.format(state_idx)].suptitle(r"Population {0} [${1}$] - $dt={2}$".format(str(
+			fig2.suptitle(r"Population {0} [${1}$] - $dt={2}$".format(str(
 				population.name), str(n_state), str(activity.dt)))
 			time_axis = activity.time_axis()
+
 			for iid, neuron_id in enumerate(ids):
 				spk = sl.spiketrains[int(neuron_id)]
-				globals()['ax_1{0}'.format(str(iid))] = globals()['fig_{0}'.format(state_idx)].add_subplot(len(ids),
-				                                                                        1, iid+1)
-				globals()['ax_1{0}'.format(str(iid))].plot(time_axis, activity.as_array()[list_idx[iid], :])
+				ax = fig2.add_subplot(len(ids), 1, iid+1)
+				ax.plot(time_axis, activity.as_array()[list_idx[iid], :])
 				if not signals.empty(population.decoding_layer.state_matrix[state_idx]) and not signals.empty(
 						population.decoding_layer.sampled_times):
 					state_mat = population.decoding_layer.state_matrix[state_idx]
 					if isinstance(state_mat, np.ndarray):
-						globals()['ax_1{0}'.format(str(iid))].plot(population.decoding_layer.sampled_times,
-						                                           state_mat[list_idx[iid],
-						                                           -len(population.decoding_layer.sampled_times):], 'or')
-				ylims = globals()['ax_1{0}'.format(str(iid))].get_ylim()
+						ax.plot(population.decoding_layer.sampled_times,
+																   state_mat[list_idx[iid],
+																   -len(population.decoding_layer.sampled_times):], 'or')
+				ylims = ax.get_ylim()
 				for idxx, n_spk in enumerate(spk.spike_times):
-					globals()['ax_1{0}'.format(str(iid))].vlines(n_spk, ylims[0], ylims[1], lw=2)
-				# globals()['ax_1{0}'.format(str(iid))].plot(spk.spike_times, np.ones_like(spk.spike_times), 'o')
-				globals()['ax_1{0}'.format(str(iid))].set_title(r"gid {0} [{1}]".format(str(neuron_id), population.name))
-				globals()['ax_1{0}'.format(str(iid))].set_xlim([activity.t_start, activity.t_stop])
-				globals()['ax_1{0}'.format(str(iid))].set_ylim(ylims)
+					ax.vlines(n_spk, ylims[0], ylims[1], lw=2)
+				# ax.plot(spk.spike_times, np.ones_like(spk.spike_times), 'o')
+				ax.set_title(r"gid {0} [{1}]".format(str(neuron_id), population.name))
+				ax.set_xlim([activity.t_start, activity.t_stop])
+				ax.set_ylim(ylims)
 			if save:
-				globals()['fig_{0}'.format(state_idx)].savefig(save + label + '.pdf')
+				fig2.savefig(save + label + '.pdf')
 
 	if display:
 		pl.show(block=False)
@@ -2736,17 +2733,15 @@ def extract_encoder_connectivity(enc_layer, net, display=True, save=False):
 		enc_layer.extract_synaptic_delays()
 
 	for connection, matrix in enc_layer.connection_weights.items():
-		globals()['fig_encW_{0}'.format(connection)], globals()['ax_encW_{0}'.format(connection)] = pl.subplots()
+		fig, ax = pl.subplots()
 		source_name, target_name = connection.split('_')
 		plot_connectivity_matrix(matrix.todense(), source_name, target_name, label=connection + 'W',
-		                         ax=globals()['ax_encW_{0}'.format(connection)],
-		                         display=display, save=save)
+		                         ax=ax, display=display, save=save)
 	for connection, matrix in enc_layer.connection_delays.items():
-		globals()['fig_encd_{0}'.format(connection)], globals()['ax_encd_{0}'.format(connection)] = pl.subplots()
+		fig, ax = pl.subplots()
 		source_name, target_name = connection.split('_')
 		plot_connectivity_matrix(matrix.todense(), source_name, target_name, label=connection + 'd',
-		                         ax=globals()['ax_encd_{0}'.format(connection)],
-		                         display=display, save=save)
+		                         ax=ax, display=display, save=save)
 #
 # 	def rate_map(self):
 
@@ -2979,20 +2974,20 @@ def plot_averaged_time_resolved(results, spike_list, label='', epochs=None, colo
 	fig5.suptitle('{0} - Time-resolved regularity'.format(str(label)))
 	stats = ['isi_5p_profile', 'cvs_profile', 'cvs_log_profile', 'lvs_profile', 'iR_profile', 'ents_profile']
 	cm = get_cmap(len(stats), color_map)
-	# TODO pretty ugly around here..
+
 	for idx, n in enumerate(stats):
-		globals()['ax5{0}'.format(str(idx))] = fig5.add_subplot(len(stats), 1, idx + 1)
-		data_mean = np.array([results[n][i][0] for i in range(len(results[n]))])
-		data_std = np.array([results[n][i][1] for i in range(len(results[n]))])
-		t_axis = np.linspace(spike_list.t_start, spike_list.t_stop, len(data_mean))
-		globals()['ax5{0}'.format(str(idx))].plot(t_axis, data_mean, c=cm(idx), lw=2.5)
-		globals()['ax5{0}'.format(str(idx))].fill_between(t_axis, data_mean - data_std, data_mean +
-		                                                  data_std, facecolor=cm(idx), alpha=0.2)
-		globals()['ax5{0}'.format(str(idx))].set_ylabel(n)
-		globals()['ax5{0}'.format(str(idx))].set_xlabel('Time [ms]')
-		globals()['ax5{0}'.format(str(idx))].set_xlim(spike_list.time_parameters())
+		ax 			= fig5.add_subplot(len(stats), 1, idx + 1)
+		data_mean 	= np.array([results[n][i][0] for i in range(len(results[n]))])
+		data_std 	= np.array([results[n][i][1] for i in range(len(results[n]))])
+		t_axis 		= np.linspace(spike_list.t_start, spike_list.t_stop, len(data_mean))
+
+		ax.plot(t_axis, data_mean, c=cm(idx), lw=2.5)
+		ax.fill_between(t_axis, data_mean - data_std, data_mean + data_std, facecolor=cm(idx), alpha=0.2)
+		ax.set_ylabel(n)
+		ax.set_xlabel('Time [ms]')
+		ax.set_xlim(spike_list.time_parameters())
 		if epochs is not None:
-			mark_epochs(globals()['ax5{0}'.format(str(idx))], epochs, color_map)
+			mark_epochs(ax, epochs, color_map)
 
 	# activity plots
 	fig6 = pl.figure()
