@@ -31,7 +31,7 @@ def build_parameters(nu_x, gamma):
 	system = dict(
 		nodes=1,
 		ppn=16,
-		mem=32,
+		mem=64000,
 		walltime='00-20:00:00',
 		queue='defqueue',
 		transient_time=1000.,

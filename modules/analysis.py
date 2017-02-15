@@ -52,7 +52,7 @@ import sklearn.decomposition as sk
 import sklearn.linear_model as lm
 import sklearn.svm as svm
 from modules.visualization import ActivityAnimator
-from pytest import collect
+# from pytest import collect
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import GridSearchCV
 import sklearn.metrics as met
@@ -384,7 +384,7 @@ def cross_correlogram(x, y, max_lag=100., dt=0.1, plot=True):
 #
 # 	return k
 
-
+# TODO used?
 def simple_frequency_spectrum(x):
 	"""
 	Simple frequency spectrum.
@@ -415,6 +415,7 @@ def simple_frequency_spectrum(x):
 def euclidean_distance(pos_1, pos_2, N=None):
 	"""
 	Function to calculate the euclidian distance between two positions
+
 	:param pos_1:
 	:param pos_2:
 	:param N:
@@ -440,6 +441,7 @@ def rescale_signal(val, out_min, out_max):
 def autocorrelation_function(x):
 	"""
 	Determine the autocorrelation of signal x
+
 	:param x:
 	:return:
 	"""
@@ -461,6 +463,7 @@ def autocorrelation_function(x):
 def get_total_counts(spike_list, time_bin=50.):
 	"""
 	Determines the total spike counts for neurons with consecutive nonzero counts in bins of the specified size
+
 	:param spike_list: SpikeList object
 	:param time_bin: bin width
 	:return ctr: number of neurons complying
@@ -509,8 +512,16 @@ def cross_trial_cc(total_counts, display=True):
 
 	return np.array(r)
 
-
+# TODO this is ...? :P
 def acc_function(x, a, b, tau):
+	"""
+
+	:param x:
+	:param a:
+	:param b:
+	:param tau:
+	:return:
+	"""
 	return a * (np.exp(-x / tau) + b)
 
 
@@ -541,6 +552,8 @@ def err_func(params, x, y, func):
 
 def check_signal_dimensions(input_signal, target_signal):
 	"""
+	Raise error if dimensionalities of signals don't match
+
 	:param input_signal: array
 	:param target_signal: array
 	:return:
@@ -554,6 +567,7 @@ def nrmse(input_signal, target_signal):
 	"""
 	(from Oger)
 	Calculates the normalized root mean square error (NRMSE) of the input signal compared to the target signal.
+
 	:param input_signal: array
 	:param target_signal: array
 	:return: NRMSE
@@ -1175,6 +1189,7 @@ def manifold_learning(activity_matrix, n_neighbors, standardize=True, plot=True,
 	:return:
 	"""
 	# TODO extend and test - and include in the analyse_activity_dynamics function
+	# QUESTION
 	if display:
 		print("Testing manifold learning algorithms")
 	if plot:
@@ -2095,7 +2110,7 @@ def fmf_readout(response, target, readout, index, label='', plot=False, display=
 	return output, {'MAE': MAE, 'MSE': MSE, 'NMSE': NMSE, 'RMSE': RMSE, 'NRMSE': NRMSE, 'norm_wOut': norm_wout,
 					'fmf': fmf}
 
-
+# TODO update
 def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True,
 						   debug=False, plot=True, display=True, save=False):
 	"""
@@ -2329,7 +2344,7 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 
 		return results
 
-
+# TODO maybe move this and test to Readout class? later.
 def readout_train(readout, state, target, index=None, accepted=None, display=True, plot=False, save=False):
 	"""
 	Train readout object

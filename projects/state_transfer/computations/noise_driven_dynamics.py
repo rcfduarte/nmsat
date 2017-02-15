@@ -95,17 +95,11 @@ def run(parameter_set, plot=False, display=False, save=True):
 	# ======================================================================================================================
 	analysis_interval = [parameter_set.kernel_pars.transient_t,
 	                     parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t]
-	extra_analysis_parameters = {'time_bin': 1., # these parameters can be set in the main parameters file..
-	                             'n_pairs': 500,
-	                             'tau': 20.,
-	                             'window_len': 100,
-	                             'summary_only': True,
-	                             'complete': False,
-	                             'time_resolved': False}
+
 	results.update(characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
-	                                                color_map='jet', plot=plot,
+	                                                color_map='coolwarm', plot=plot,
 	                                                display=display, save=paths['figures'] + paths['label'],
-	                                                **extra_analysis_parameters))
+	                                                **parameter_set.analysis_pars))
 
 	# ######################################################################################################################
 	# Save data

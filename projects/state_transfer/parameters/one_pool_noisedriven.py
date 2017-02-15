@@ -11,8 +11,18 @@ one_pool_noisedriven
 - debug with noise_driven_dynamics script
 """
 
-run = 'local'
+run = 'Blaustein'
 data_label = 'state_transfer_onepool_noisedriven'
+
+# ######################################################################################################################
+# PARAMETER RANGE declarations
+# ======================================================================================================================
+parameter_range = {
+	'nu_x': np.arange(4, 25, 1),
+	'gamma': np.arange(4., 30, 0.5)
+	# 'nu_x': [15.],
+	# 'gamma': [10.]
+}
 
 
 def build_parameters(nu_x, gamma):
@@ -22,7 +32,7 @@ def build_parameters(nu_x, gamma):
 	system = dict(
 		nodes=1,
 		ppn=16,
-		mem=32,
+		mem=32000,
 		walltime='00-20:00:00',
 		queue='defqueue',
 		transient_time=1000.,
@@ -33,7 +43,7 @@ def build_parameters(nu_x, gamma):
 	# ##################################################################################################################
 	# Neuron, Synapse and Network Parameters
 	# ##################################################################################################################
-	N = 5000
+	N = 1250
 	nE = 0.8 * N
 	delay = 1.5
 	epsilon = 0.1
@@ -67,7 +77,7 @@ def build_parameters(nu_x, gamma):
 	# ##################################################################################################################
 	# nu_x = 20.
 	k_x = epsilon * nE
-	# w_in = 90.
+	w_in = 70.
 
 	encoding_pars = set_encoding_defaults(default_set=0)
 
@@ -78,7 +88,7 @@ def build_parameters(nu_x, gamma):
 			'syn_specs': {},
 			'models': 'static_synapse',
 			'model_pars': {},
-			'weight_dist': wE,
+			'weight_dist': w_in,#wE,
 			'delay_dist': delay})
 	add_background_noise(encoding_pars, background_noise)
 
@@ -132,13 +142,3 @@ def build_parameters(nu_x, gamma):
 	             ('encoding_pars', 	 encoding_pars),
 	             ('connection_pars', connection_pars),
 				 ('analysis_pars', 	 analysis_pars)])
-
-# ######################################################################################################################
-# PARAMETER RANGE declarations
-# ======================================================================================================================
-parameter_range = {
-	# 'nu_x': np.arange(2, 21, 1),
-	# 'gamma': np.arange(4., 25.5, 0.2)
-	'nu_x': [20., 22.],
-	'gamma': [6., 6.5]
-}
