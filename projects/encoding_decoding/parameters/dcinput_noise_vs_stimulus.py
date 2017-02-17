@@ -25,8 +25,8 @@ def build_parameters():
 		mem=32000,
 		walltime='01-00:00:00',
 		queue='defqueue',
-		transient_time=1000.,  # ongoing
-		sim_time=1000.)  # evoked
+		transient_time=500.,  # ongoing
+		sim_time=500.)  # evoked
 
 	kernel_pars = set_kernel_defaults(run_type=run, data_label=data_label, **system)
 	np.random.seed(kernel_pars['np_seed'])
@@ -124,23 +124,24 @@ def build_parameters():
 	inp_duration = 200.
 	inter_stim_interval = 0.
 
-	input_pars = {'signal': {
-		'N': lexicon_size,
-		'durations': [inp_duration],
-		'i_stim_i': [inter_stim_interval],
-		'kernel': ('box', {}),
-		'start_time': 0.,
-		'stop_time': sys.float_info.max,
-		'max_amplitude': [inp_amplitude],
-		'min_amplitude': 0.,
-		'resolution': inp_resolution},
+	input_pars = {
+		'signal': {
+			'N': lexicon_size,
+			'durations': [inp_duration],
+			'i_stim_i': [inter_stim_interval],
+			'kernel': ('box', {}),
+			'start_time': kernel_pars['transient_t'],
+			'stop_time': sys.float_info.max,
+			'max_amplitude': [inp_amplitude],
+			'min_amplitude': 0.,
+			'resolution': inp_resolution},
 		'noise': {
-			'N': 0,
+			'N': 1,
 			'noise_source': ['GWN'],
 			'noise_pars': {'amplitude': 5., 'mean': 1., 'std': 0.25},
 			'rectify': True,
 			'start_time': 0.,
-			'stop_time': sys.float_info.max,
+			'stop_time': kernel_pars['transient_t'],
 			'resolution': inp_resolution, }}
 
 	# ######################################################################################################################

@@ -766,7 +766,7 @@ def plot_2d_parscans(image_arrays=[], axis=[], fig_handle=None, labels=[], cmap=
 		if not isinstance(ax, mpl.axes.Axes):
 			raise ValueError('ax must be matplotlib.axes.Axes instance.')
 		else:
-			plt1 = ax.imshow(image_arrays[idx], aspect='auto', origin=origin, cmap=cmap) #  interpolation='nearest',
+			plt1 = ax.imshow(image_arrays[idx], aspect='auto', origin=origin, cmap=cmap,  interpolation='nearest')
 
 			if boundaries:
 				cont = ax.contour(image_arrays[idx], boundaries[idx], origin='lower', colors='k', linewidths=2)
@@ -1968,10 +1968,7 @@ class InputPlots(object):
 		else:
 			for ii in range(len(self.input.input_signal)):
 				ax.plot(self.input.time_data, self.input.input_signal[ii].signal, **plot_props)
-				# if self.start and self.stop:
-				# 	ax.set_xlim(left=self.start, right=self.stop)
-				# else:
-				ax.set_xlim(left=min(self.input.time_data), right=max(self.input.time_data))
+				ax.set_xlim([min(self.input.time_data), max(self.input.time_data)])
 				ax.set_ylim([min(self.input.input_signal[ii].signal)-10., max(self.input.input_signal[ii].signal)+10.])
 				ax.set_xlabel('Time [ms]')
 				ax.set_ylabel(r'\sigma_{u}')
@@ -2451,8 +2448,8 @@ def plot_response(population, ids=None, spiking_activity=None, display=True, sav
 				globals()['ax_1{0}'.format(str(iid))].set_title(r"gid {0} [{1}]".format(str(neuron_id), population.name))
 				globals()['ax_1{0}'.format(str(iid))].set_xlim([activity.t_start, activity.t_stop])
 				globals()['ax_1{0}'.format(str(iid))].set_ylim(ylims)
-			if save:
-				globals()['fig_{0}'.format(state_idx)].savefig(save + label + '.pdf')
+			# if save:
+			# 	globals()['fig_{0}'.format(state_idx)].savefig(save + label + '.pdf')
 
 	if display:
 		pl.show(block=False)

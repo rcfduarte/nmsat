@@ -28,7 +28,7 @@ debug = True
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/dcinput_ongoing_evoked.py'
+params_file = '../parameters/dcinput_noise_vs_stimulus.py'
 # params_file = '../parameters/spikeinput_ongoing_evoked.py'
 
 parameter_set = ParameterSpace(params_file)[0]
