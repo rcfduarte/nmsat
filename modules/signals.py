@@ -142,7 +142,7 @@ def convert_activity(initializer):
 				analog_activity.append(AnalogSignalList(tmp, np.unique(neuron_ids).tolist(), times=times))
 			return analog_activity
 	else:
-		print "Incorrect initializer..."
+		print("Incorrect initializer...")
 
 
 def to_pyspike(spike_list):
@@ -290,7 +290,7 @@ def convert_array(array, id_list, dt=None, start=None, stop=None):
 			id_signal = AnalogSignal(array[n, :], dt)
 			new_AnalogSignalList.append(id, id_signal)
 		except Exception:
-			print "id %d is not in the source AnalogSignalList" % id
+			print("id %d is not in the source AnalogSignalList" % id)
 	return new_AnalogSignalList
 
 
@@ -1029,7 +1029,7 @@ class SpikeTrain(object):
 			try:
 				n, bins = np.histogram(log_isi, n_bins, weights=weights)  # , normed=True)
 			except ValueError as e:
-				print str(e)
+				print(str(e))
 				exit(-1)
 
 			# n, bins = np.histogram(log_isi, n_bins, weights=weights)
@@ -1137,24 +1137,24 @@ class SpikeTrain(object):
 			start = self.t_start
 		if stop is None:
 			stop = self.t_stop
-		SpkTimes = np.round(self.spike_times, 1)
-		TimeVec = np.arange(start, stop, 0.1)
+		spike_times = np.round(self.spike_times, 1)
+		time_vec 	= np.arange(start, stop, 0.1)
 		sample_rate = int(dt / 0.1)
-		States = np.zeros_like(TimeVec)
+		states 		= np.zeros_like(time_vec)
 
-		if not empty(SpkTimes):
-			Spk_idxs = []
-			for x in SpkTimes:
-				if not empty(np.where(round(x, 1) == np.round(TimeVec, 1))):
-					Spk_idxs.append(np.where(round(x, 1) == np.round(TimeVec, 1))[0][0])
-			States = np.zeros_like(TimeVec)
-			for i, t in enumerate(TimeVec):
+		if not empty(spike_times):
+			spike_idxs = []
+			for x in spike_times:
+				if not empty(np.where(round(x, 1) == np.round(time_vec, 1))):
+					spike_idxs.append(np.where(round(x, 1) == np.round(time_vec, 1))[0][0])
+			states = np.zeros_like(time_vec)
+			for i, t in enumerate(time_vec):
 				state = 0
-				if i in Spk_idxs:
+				if i in spike_idxs:
 					state += 1.
-				States[i] = state
-			States = States[::sample_rate]
-		return States
+				states[i] = state
+			states = states[::sample_rate]
+		return states
 
 
 ###############################################################################################
@@ -1494,7 +1494,7 @@ class SpikeList(object):
 			try:
 				new_SpkList.append(id, self.spiketrains[id])
 			except Exception:
-				print("id %d is not in the source SpikeList or already in the new one" % id)
+				print(("id %d is not in the source SpikeList or already in the new one" % id))
 		return new_SpkList
 
 	def time_slice(self, t_start, t_stop):
@@ -2705,17 +2705,26 @@ class SpikeList(object):
 
 		return state_mat
 
+	# TODO why does the name include binary? ;-)
+	# QUESTION how is this the "filtered spiking activity"? we're converting the spikes directly..
 	def compile_binary_response_matrix(self, dt, start=None, stop=None, N=None, display=False):
 		"""
 		Returns an NxT matrix where each row represents the filtered spiking activity of
-		one neuron and the columns represent time...
+		one neuron and the columns represent time
+
+		:param dt: time step
+		:param start: start of time window
+		:param stop: end of time window
+		# :param N:
+		:param display:
+		:return:
 		"""
 		if start is None:
 			start = self.t_start
 		if stop is None:
 			stop = self.t_stop
-		if N is None:
-			N = len(self.id_list)
+		# if N is None: # TODO remove; needed?
+		# 	N = len(self.id_list)
 		t = np.arange(start, stop, dt)
 
 		if display:
@@ -3350,7 +3359,7 @@ class AnalogSignalList(object):
 			try:
 				new_AnalogSignalList.append(id, self.analog_signals[id])
 			except Exception:
-				print "id %d is not in the source AnalogSignalList" %id
+				print("id %d is not in the source AnalogSignalList" %id)
 		return new_AnalogSignalList
 
 	def time_offset(self, offset):
@@ -3536,7 +3545,7 @@ class AnalogSignalList(object):
 			try:
 				result[count, :] = self.analog_signals[id].signal
 			except ValueError:
-				print result[count, :].shape, self.analog_signals[id].signal.shape
+				print("{0} {1}".format(result[count, :].shape, self.analog_signals[id].signal.shape))
 				raise
 		return np.std(result, axis)
 

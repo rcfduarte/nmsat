@@ -11,18 +11,27 @@ two_pool_noisedriven
 - debug with noise_driven_dynamics script
 """
 
-run = 'local'
-data_label = 'state_transfer_twopool_noisedriven_test'
+run = 'Blaustein'
+data_label = 'state_transfer_twopool_noisedriven'
 
 
-def build_parameters():
+# ######################################################################################################################
+# PARAMETER RANGE declarations
+# ======================================================================================================================
+parameter_range = {
+	'nu_x':		[20.],
+	'gamma': 	[8., 14.]
+}
+
+
+def build_parameters(nu_x, gamma):
 	# ##################################################################################################################
 	# System / Kernel Parameters
 	# ##################################################################################################################
 	system = dict(
 		nodes=1,
 		ppn=16,
-		mem=32,
+		mem=64000,
 		walltime='00-20:00:00',
 		queue='defqueue',
 		transient_time=1000.,
@@ -38,7 +47,7 @@ def build_parameters():
 	delay = 1.5
 	epsilon = 0.1
 
-	gamma = 8.
+	# gamma = 8.
 	wE = 20.
 	wI = -gamma * wE
 
@@ -76,7 +85,7 @@ def build_parameters():
 	# ##################################################################################################################
 	# Encoding Parameters
 	# ##################################################################################################################
-	nu_x = 20.
+	# nu_x = 20.
 	k_x = epsilon * nE
 	# w_in = 90.
 
@@ -101,9 +110,3 @@ def build_parameters():
 	             ('net_pars', net_pars),
 	             ('encoding_pars', encoding_pars),
 	             ('connection_pars', connection_pars)])
-
-# ######################################################################################################################
-# PARAMETER RANGE declarations
-# ======================================================================================================================
-parameter_range = {
-}

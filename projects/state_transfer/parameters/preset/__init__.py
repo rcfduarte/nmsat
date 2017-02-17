@@ -137,8 +137,8 @@ def set_neuron_defaults(default_set=1):
 			},
 		}
 	elif default_set == 2:
-		print "\nLoading Default Neuron Set 2 (two pools, E1, I1, E2, I2 neurons) - amat2_psc_exp, fixed voltage " \
-		      "threshold, fixed absolute refractory time, Fast, exponential synapses, homogeneous parameters"
+		print("\nLoading Default Neuron Set 2 (two pools, E1, I1, E2, I2 neurons) - amat2_psc_exp, fixed voltage " \
+		      "threshold, fixed absolute refractory time, Fast, exponential synapses, homogeneous parameters")
 		neuron_pars = {
 			'E1': {
 				'model': 'amat2_psc_exp',
@@ -413,7 +413,7 @@ def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=
 		# n_connections = len(syn_pars.target_population_names)
 		connections = [(n, gen_label) for n in syn_pars.target_population_names]
 		synapse_names = [gen_label+'syn' for _ in syn_pars.target_population_names]
-		print("\nLoading Default Encoding Set 1 - DC input to {0}".format(str(syn_pars.target_population_names)))
+		print(("\nLoading Default Encoding Set 1 - DC input to {0}".format(str(syn_pars.target_population_names))))
 		encoding_pars = {
 			'encoder': {
 				'N': 0,
@@ -486,10 +486,10 @@ def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=
 		else:
 			preset_W = syn_pars.preset_W
 
-		print("\nLoading Default Encoding Set 2 - Deterministic spike encoding, {0} input populations of {1} [{2} " \
+		print(("\nLoading Default Encoding Set 2 - Deterministic spike encoding, {0} input populations of {1} [{2} " \
 		      "neurons] connected to {3}".format(
 				str(input_dimensions), str(n_encoding_neurons), str(encoder_neuron_pars['model']), str(
-				syn_pars.target_population_names)))
+				syn_pars.target_population_names))))
 
 		encoding_pars = {
 			'encoder': {
@@ -538,8 +538,8 @@ def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=
 		# n_connections = len(syn_pars.target_population_names)
 		connections = [(n, gen_label) for n in syn_pars.target_population_names]
 		synapse_names = [gen_label+'syn' for _ in syn_pars.target_population_names]
-		print("\nLoading Default Encoding Set 3 - Stochastic spike encoding, independent realizations of "
-		      "inhomogeneous Poisson processes connected to {0}".format(str(syn_pars.target_population_names)))
+		print(("\nLoading Default Encoding Set 3 - Stochastic spike encoding, independent realizations of "
+		      "inhomogeneous Poisson processes connected to {0}".format(str(syn_pars.target_population_names))))
 
 		encoding_pars = {
 			'encoder': {
@@ -592,9 +592,9 @@ def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=
 		else:
 			jitter = None
 
-		print("\nLoading Default Encoding Set 4 - Stochastic spike encoding, {0} fixed spike pattern templates "
+		print(("\nLoading Default Encoding Set 4 - Stochastic spike encoding, {0} fixed spike pattern templates "
 		      "composed of {1} independent spike trains connected to {2}".format(
-				str(input_dimensions), str(n_encoding_neurons), str(syn_pars.target_population_names)))
+				str(input_dimensions), str(n_encoding_neurons), str(syn_pars.target_population_names))))
 
 		encoding_pars = {
 			'encoder': {

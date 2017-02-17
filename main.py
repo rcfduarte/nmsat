@@ -11,12 +11,13 @@ from os import path
 import importlib
 from modules.parameters import ParameterSpace
 
-
-def run_experiment(params_file_full_path, computation_function="noise_driven_dynamics", **parameters):
+def run_experiment(params_file_full_path, computation_function="noise_driven_dynamics", cluster=None, **parameters):
 	"""
+	Entry point, parses parameters and runs experiments locally or creates scripts to be run on a cluster.
 
 	:param params_file_full_path: full path to parameter file
 	:param computation_function: which experiment to run
+	:param cluster: name of cluster template, e.g., Blaustein. Corresponding entry must be in defaults.paths!
 	:param parameters: other CLI input parameters
 	:return:
 	"""
@@ -36,6 +37,7 @@ def run_experiment(params_file_full_path, computation_function="noise_driven_dyn
 	else:
 		pars = ParameterSpace(params_file_full_path)
 
+	pars.update_run_parameters(cluster)
 	pars.save(pars[0].kernel_pars.data_path+pars[0].kernel_pars.data_prefix+'_ParameterSpace.py')
 
 	if pars[0].kernel_pars.system['local']:
@@ -46,6 +48,11 @@ def run_experiment(params_file_full_path, computation_function="noise_driven_dyn
 
 
 def create_parser():
+	"""
+	Create command line parser with options.
+
+	:return: ArgumentParser
+	"""
 	parser_ = ArgumentParser(prog="main.py")
 	parser_.add_argument("-f", dest="p_file", nargs=1, default=None, metavar="parameter_file",
 					  help="absolute path to parameter file", required=True)
@@ -53,7 +60,7 @@ def create_parser():
 					   help="computation function to execute", required=True)
 	parser_.add_argument("--cluster", dest="cluster", nargs=1, default=None, metavar="Blaustein",
 					   help="name of cluster entry in default paths dictionary")
-	parser_.add_argument("--extra", dest="extra", nargs='*', default=None, metavar="extra arguments",
+	parser_.add_argument("--extra", dest="extra", nargs='*', default=[], metavar="extra arguments",
 					   help="extra arguments for the computation function")
 	return parser_
 
@@ -82,4 +89,6 @@ if __name__ == "__main__":
 			d.update({k: True})
 		elif v == 'None':
 			d.update({k: None})
-	run_experiment(args.p_file[0], computation_function=args.c_function[0], **d)
+
+	cluster = args.cluster[0] if args.cluster is not None else None
+	run_experiment(args.p_file[0], computation_function=args.c_function[0], cluster=cluster, **d)

@@ -36,7 +36,6 @@ import numpy as np
 import os
 import sys
 import types
-import time
 import itertools
 import cPickle as pickle
 try:
@@ -46,10 +45,13 @@ except ImportError as e:
 import io
 import scipy.stats as st
 import inspect
-import pprint
 import nest
 import errno
+
+from defaults.paths import paths
+
 np.set_printoptions(threshold=np.nan)
+
 
 
 ##########################################################################################
@@ -97,7 +99,7 @@ def extract_nestvalid_dict(d, param_type='neuron'):
 		nest_dict = {k: v for k, v in d.iteritems() if k in accepted_keys}
 	else:
 		# TODO
-		print("{!s} not implemented yet".format(param_type))
+		print(("{!s} not implemented yet".format(param_type)))
 		assert False
 
 	return nest_dict
@@ -519,7 +521,7 @@ class ParameterSet(dict):
 		"""
 
 		if not url:
-			print "Please provide url"
+			print("Please provide url")
 			# url = self._url
 		assert url != ''
 		# if not self._url:
@@ -724,17 +726,18 @@ class ParameterSet(dict):
 #########################################################################################
 class ParameterSpace:
 	"""
-	A collection of `ParameterSets`, representing multiple points in
-	parameter space. Created by putting `ParameterRange` objects within 
-	a `ParameterSet`.
+	A collection of `ParameterSets`, representing multiple points (combinations) in parameter space.
+	Parses parameter scripts and runs experiments locally or creates job files to be run on a cluster.
+	Can also harvest stored results from previous experiments and recreate the parameter space for post-analysis.
 	"""
 
 	def __init__(self, initializer, keep_all=False):
 		"""
 		Generate ParameterSpace containing a list of all ParameterSets
+
 		:param initializer: file url
 		:param keep_all: store all original parameters (??)
-		:return:
+		:return: (tuple) param_sets, param_axes, global_label, size of parameter space
 		"""
 		assert isinstance(initializer, str), "Filename must be provided"
 		with open(initializer, 'r') as fp:
@@ -793,11 +796,11 @@ class ParameterSpace:
 			try:
 				validate_parameters_file(module_obj)
 			except ValueError as error:
-				print ("Invalid parameter file! Error: %s" % error)
+				print("Invalid parameter file! Error: %s" % error)
 				exit(-1)
 
 			range_args	= inspect.getargspec(module_obj.build_parameters)[0]  # arg names in build_parameters function
-			n_ranges 	= len(range_args)  # nr range args TODO @continue
+			n_ranges 	= len(range_args)
 			n_runs 	 	= int(np.prod([len(module_obj.parameter_range[arg]) for arg in range_args]))  # nr combinations
 			param_axes 	= dict()
 			param_sets 	= []
@@ -815,7 +818,7 @@ class ParameterSpace:
 				try:
 					validate_parameter_sets(param_ranges)
 				except ValueError as error:
-					print ("Invalid parameter file! Error: %s" % error)
+					print("Invalid parameter file! Error: %s" % error)
 
 				# build parameter axes
 				axe_prefixes = ['x', 'y', 'z']
@@ -849,7 +852,7 @@ class ParameterSpace:
 			try:
 				validate_parameter_sets([param_set])
 			except ValueError as error:
-				print ("Invalid parameter file! Error: %s" % error)
+				print(("Invalid parameter file! Error: %s" % error))
 
 			param_axes	= {}
 			label 		= param_set.kernel_pars["data_prefix"]
@@ -861,6 +864,24 @@ class ParameterSpace:
 		else:
 			self.parameter_sets, self.parameter_axes, self.label, self.dimensions = parse_parameters_dict(initializer)
 
+	def update_run_parameters(self, cluster=None):
+		"""
+		Update run type and experiment specific paths in case a cluster template is specified.
+
+		:param cluster: name of cluster template, e.g., Blaustein
+		:return:
+		"""
+		if cluster is not None:
+			assert cluster in paths.keys(), "Default setting for cluster {0} not found!".format(cluster)
+			for param_set in self.parameter_sets:
+				param_set.kernel_pars['data_path'] = paths[cluster]['data_path']
+				param_set.kernel_pars['mpl_path'] = paths[cluster]['matplotlib_rc']
+				param_set.kernel_pars['print_time'] = False
+				param_set.kernel_pars.system.local = False
+				param_set.kernel_pars.system.system_label = cluster
+				param_set.kernel_pars.system.jdf_template = paths[cluster]['jdf_template']
+				param_set.kernel_pars.system.remote_directory = paths[cluster]['remote_directory']
+
 	def iter_sets(self):
 		"""
 		An iterator which yields the ParameterSets in ParameterSpace
@@ -868,9 +889,11 @@ class ParameterSpace:
 		for val in self.parameter_sets:
 			yield val
 
+	# TODO remove at the end if not used in testing? @barni
 	def __eq__(self, other):
 		"""
-		@barni Added this function for testing purposes.
+		For testing purposes
+
 		:param other:
 		:return:
 		"""
@@ -926,20 +949,22 @@ class ParameterSpace:
 	def run(self, computation_function, project_dir=None, **parameters):
 		"""
 		Run a computation on all the parameters
+
 		:param computation_function: function to execute
 		:param parameters: kwarg arguments for the function
 		"""
 		system = self.parameter_sets[0].kernel_pars.system
 
 		if system['local']:
-			print "\nRunning {0} serially on {1} Parameter Sets".format(str(computation_function.__module__.split('.')[1]), str(len(self)))
+			print("\nRunning {0} serially on {1} Parameter Sets".format(str(computation_function.__module__.split('.')[1]), str(len(self))))
 
+			results = None
 			for par_set in self.parameter_sets:
-				print "\n- Parameters: {0}".format(str(par_set.label))
+				print("\n- Parameters: {0}".format(str(par_set.label)))
 				results = computation_function(par_set, **parameters)
 			return results
 		else:
-			print "\nPreparing job description files..."
+			print("\nPreparing job description files...")
 			export_folder 			= system['remote_directory']
 			main_experiment_folder 	= export_folder + '{0}/'.format(self.label)
 
@@ -947,9 +972,9 @@ class ParameterSpace:
 				os.makedirs(main_experiment_folder)
 			except OSError as err:
 				if err.errno == errno.EEXIST and os.path.isdir(main_experiment_folder):
-					print "Path `{0}` already exists, will be overwritten!".format(main_experiment_folder)
+					print("Path `{0}` already exists, will be overwritten!".format(main_experiment_folder))
 				else:
-					raise OSError(e.errno, "Could not create exported experiment folder.", main_experiment_folder)
+					raise OSError(err.errno, "Could not create exported experiment folder.", main_experiment_folder)
 
 			remote_run_folder 	  = export_folder + self.label + '/'
 			project_dir 		  = os.path.abspath(project_dir)
@@ -1017,7 +1042,7 @@ class ParameterSpace:
 		def pretty(d, indent=0):
 			if isinstance(d, dict):
 				for key, value in d.iteritems():
-					print '  ' * indent + str(key)
+					print('  ' * indent + str(key))
 					if isinstance(value, dict):
 						pretty(value, indent + 1)
 
@@ -1029,23 +1054,24 @@ class ParameterSpace:
 			try:
 				with open(data_path + 'Results_' + pars_labels[ctr], 'r') as fp:
 					results = pickle.load(fp)
-				print "Loading ParameterSet {0}".format(self.label)
+				print("Loading ParameterSet {0}".format(self.label))
 				found_ = True
 			except:
-				print "Dataset {0} Not Found, skipping".format(pars_labels[ctr])
+				print("Dataset {0} Not Found, skipping".format(pars_labels[ctr]))
 				ctr += 1
 				continue
-		print "\n\nResults dictionary structure:"
+		print("\n\nResults dictionary structure:")
 		pretty(results)
 
 	def harvest(self, data_path, key_set=None, operation=None):
 		"""
 		Gather stored results data and populate the space spanned by the Parameters with the corresponding results
+
 		:param data_path: full path to global data folder
 		:param key_set: specific result to extract from each results dictionary (nested keys should be specified as
 		'key1/key2/...'
 		:param operation: function to apply to result, if any
-		:return (parameter_labels, results_array):
+		:return: (parameter_labels, results_array)
 		"""
 		if self.parameter_axes:
 			l = ['x', 'y', 'z']
@@ -1079,9 +1105,9 @@ class ParameterSpace:
 				try:
 					with open(data_path+'Results_'+params_label, 'r') as fp:
 						results = pickle.load(fp)
-					print "Loading ParameterSet {0}".format(params_label)
+					print("Loading ParameterSet {0}".format(params_label))
 				except:
-					print "Dataset {0} Not Found, skipping".format(params_label)
+					print("Dataset {0} Not Found, skipping".format(params_label))
 					continue
 				if key_set is not None:
 					nested_result = io.NestedDict(results)
@@ -1097,7 +1123,7 @@ class ParameterSpace:
 			try:
 				with open(data_path+'Results_'+self.label, 'r') as fp:
 					results = pickle.load(fp)
-				print "Loading Dataset {0}".format(self.label)
+				print("Loading Dataset {0}".format(self.label))
 				if key_set is not None:
 					nested_result = io.NestedDict(results)
 					assert isinstance(results, dict), "Results must be dictionary"
@@ -1108,15 +1134,18 @@ class ParameterSpace:
 				else:
 					results_array = results
 			except IOError:
-				print "Dataset {0} Not Found, skipping".format(self.label)
+				print("Dataset {0} Not Found, skipping".format(self.label))
 
 		return parameters_array, results_array
 
+	# TODO needed?
 	@staticmethod
 	def extract_result_from_array(results_array, field, operation=None):
 		"""
 		returns an array with a single numerical result...
 		:param results_array:
+		:param field:
+		:param operation:
 		:return:s
 		"""
 		result = np.zeros_like(results_array)

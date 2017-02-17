@@ -50,7 +50,7 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 	assert (isinstance(parameter_set, parameters.ParameterSet)), "incorrect ParameterSet"
 	assert (isinstance(stimulus_set, input_architect.StimulusSet)), "incorrect ParameterSet"
 
-	print "\n\n***** Preparing to simulate {0} set *****".format(set_name)
+	print("\n\n***** Preparing to simulate {0} set *****".format(set_name))
 
 	# determine timing compensations required
 	enc_layer.determine_total_delay()
@@ -66,8 +66,8 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 	decoder_resolution = min(list(itertools.chain(*decoder_resolutions)))
 	time_correction_factor = encoder_delay + decoder_resolution
 	if decoder_resolution != encoder_delay:
-		print "To avoid errors in the delay compensation, it is advisable to set the output resolution to be the same " \
-		      "as the encoder delays" # because the state resolution won't be enough to capture the time compensation..
+		print("To avoid errors in the delay compensation, it is advisable to set the output resolution to be the same " \
+		      "as the encoder delays") # because the state resolution won't be enough to capture the time compensation..
 
 	# extract important parameters:
 	sampling_times = parameter_set.decoding_pars.sampling_times
@@ -107,7 +107,7 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 	start_time = time.time()
 	####################################################################################################################
 	if sampling_times is None:  # one sample for each stimulus (acquired at the last time point of each stimulus)
-		print("\n\nSimulating {0} steps".format(str(set_size)))
+		print(("\n\nSimulating {0} steps".format(str(set_size))))
 
 		# ################################ Main Loop ###################################
 		for idx, state_sample_time in enumerate(t_samp):
@@ -654,10 +654,10 @@ def time_keep(start_time, idx, set_size, t1):
 	avg_cycle_time = total_time_elapsed / cycle_count
 	cycles_remaining = set_size - cycle_count
 	time_remaining = avg_cycle_time * cycles_remaining
-	print "\nTime information: "
-	print "- Current step time: %.2f mins." % ((t2 - t1) / 60.)
-	print "- Total elapsed time: %.2f mins." % (total_time_elapsed / 60.)
-	print "- Estimated time remaining: %.2f mins." % (time_remaining / 60.)
+	print("\nTime information: ")
+	print("- Current step time: %.2f mins." % ((t2 - t1) / 60.))
+	print("- Total elapsed time: %.2f mins." % (total_time_elapsed / 60.))
+	print("- Estimated time remaining: %.2f mins." % (time_remaining / 60.))
 
 # def process_states(net, enc_layer, parameters, stim, inputs, set_name, target=None):
 #

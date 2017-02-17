@@ -46,7 +46,7 @@ def extract_data_fromfile(fname):
 	if parameters.isiterable(fname):
 		data = None
 		for f in fname:
-			print "Reading data from file {0}".format(f)
+			print("Reading data from file {0}".format(f))
 			if os.path.isfile(f) and os.path.getsize(f) > 0:
 				with open(f, 'r') as fp:
 					if fp.readline(4) == '....':

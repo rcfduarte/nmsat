@@ -8,16 +8,18 @@ Collection of analysis and utility functions that are used by other modules
 
 Functions:
 ------------
-ccf - fast cross-correlation function, using fft
-_dict_max - For a dict containing numerical values, return the key for the highest
-crosscorrelate -
-makekernel - Creates kernel functions for convolution
-simple_frequency_spectrum - simple calculation of frequency spectrum
+ccf 						- fast cross-correlation function, using fft
+_dict_max 					- for a dict containing numerical values, return the key for the highest
+crosscorrelate 				-
+makekernel 					- creates kernel functions for convolution
+simple_frequency_spectrum 	- simple calculation of frequency spectrum
 
 Classes:
 ------------
-Decoder -
-
+DecodingLayer 	- reads population activity in response to patterned inputs, extracts the network state
+				  (according to specifications) and trains readout weights
+Readout 		- Readout object, trained to produce an estimation y(t) of output by reading out
+				  population state variables.
 
 Full Analysis interfaces:
 -------------------------
@@ -50,6 +52,7 @@ import sklearn.decomposition as sk
 import sklearn.linear_model as lm
 import sklearn.svm as svm
 from modules.visualization import ActivityAnimator
+# from pytest import collect
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import GridSearchCV
 import sklearn.metrics as met
@@ -162,228 +165,226 @@ def cross_correlogram(x, y, max_lag=100., dt=0.1, plot=True):
 		ax.axvline(x=lag[pos_ix], ymin=np.min(corr), ymax=np.max(corr), linewidth=1.5, color='c')
 		pl.show()
 
+# TODO remove? not used?
+# def _dict_max(D):
+# 	"""
+# 	For a dict containing numerical values, return the key for the highest value. If there is more than one item
+# 	with the same highest value, return one of them (arbitrary - depends on the order produced by the iterator).
+# 	"""
+# 	max_val = max(D.values())
+# 	for k in D:
+# 		if D[k] == max_val:
+# 			return k
 
-def _dict_max(D):
-	"""
-	For a dict containing numerical values, return the key for the
-	highest value. If there is more than one item with the same highest
-	value, return one of them (arbitrary - depends on the order produced
-	by the iterator).
-	"""
-	max_val = max(D.values())
-	for k in D:
-		if D[k] == max_val:
-			return k
+# TODO remove? doesn't seem to be used
+# def make_kernel(form, sigma, time_stamp_resolution, direction=1):
+# 	"""
+# 	Creates kernel functions for convolution.
+#
+# 	Constructs a numeric linear convolution kernel of basic shape to be used
+# 	for data smoothing (linear low pass filtering) and firing rate estimation
+# 	from single trial or trial-averaged spike trains.
+#
+# 	Exponential and alpha kernels may also be used to represent postynaptic
+# 	currents / potentials in a linear (current-based) model.
+#
+# 	Adapted from original script written by Martin P. Nawrot for the
+# 	FIND MATLAB toolbox [1]_ [2]_.
+#
+# 	Parameters
+# 	----------
+# 	form : {'BOX', 'TRI', 'GAU', 'EPA', 'EXP', 'ALP'}
+# 		Kernel form. Currently implemented forms are BOX (boxcar),
+# 		TRI (triangle), GAU (gaussian), EPA (epanechnikov), EXP (exponential),
+# 		ALP (alpha function). EXP and ALP are aymmetric kernel forms and
+# 		assume optional parameter `direction`.
+# 	sigma : float
+# 		Standard deviation of the distribution associated with kernel shape.
+# 		This parameter defines the time resolution (in ms) of the kernel estimate
+# 		and makes different kernels comparable (cf. [1] for symetric kernels).
+# 		This is used here as an alternative definition to the cut-off
+# 		frequency of the associated linear filter.
+# 	time_stamp_resolution : float
+# 		Temporal resolution of input and output in ms.
+# 	direction : {-1, 1}
+# 		Asymmetric kernels have two possible directions.
+# 		The values are -1 or 1, default is 1. The
+# 		definition here is that for direction = 1 the
+# 		kernel represents the impulse response function
+# 		of the linear filter. Default value is 1.
+#
+# 	Returns
+# 	-------
+# 	kernel : array_like
+# 		Array of kernel. The length of this array is always an odd
+# 		number to represent symmetric kernels such that the center bin
+# 		coincides with the median of the numeric array, i.e for a
+# 		triangle, the maximum will be at the center bin with equal
+# 		number of bins to the right and to the left.
+# 	norm : float
+# 		For rate estimates. The kernel vector is normalized such that
+# 		the sum of all entries equals unity sum(kernel)=1. When
+# 		estimating rate functions from discrete spike data (0/1) the
+# 		additional parameter `norm` allows for the normalization to
+# 		rate in spikes per second.
+#
+# 		For example:
+# 		``rate = norm * scipy.signal.lfilter(kernel, 1, spike_data)``
+# 	m_idx : int
+# 		Index of the numerically determined median (center of gravity)
+# 		of the kernel function.
+#
+# 	Examples
+# 	--------
+# 	To obtain single trial rate function of trial one should use:
+#
+# 		r = norm * scipy.signal.fftconvolve(sua, kernel)
+#
+# 	To obtain trial-averaged spike train one should use:
+#
+# 		r_avg = norm * scipy.signal.fftconvolve(sua, np.mean(X,1))
+#
+# 	where `X` is an array of shape `(l,n)`, `n` is the number of trials and
+# 	`l` is the length of each trial.
+#
+# 	See also
+# 	--------
+# 	SpikeTrain.instantaneous_rate
+# 	SpikeList.averaged_instantaneous_rate
+#
+# 	.. [1] Meier R, Egert U, Aertsen A, Nawrot MP, "FIND - a unified framework
+# 	   for neural data analysis"; Neural Netw. 2008 Oct; 21(8):1085-93.
+#
+# 	.. [2] Nawrot M, Aertsen A, Rotter S, "Single-trial estimation of neuronal
+# 	   firing rates - from single neuron spike trains to population activity";
+# 	   J. Neurosci Meth 94: 81-92; 1999.
+#
+# 	"""
+# 	assert form.upper() in ('BOX', 'TRI', 'GAU', 'EPA', 'EXP', 'ALP'), "form must \
+# 	be one of either 'BOX','TRI','GAU','EPA','EXP' or 'ALP'!"
+#
+# 	assert direction in (1, -1), "direction must be either 1 or -1"
+#
+# 	SI_sigma = sigma / 1000.  # convert to SI units (ms -> s)
+#
+# 	SI_time_stamp_resolution = time_stamp_resolution / 1000.  # convert to SI units (ms -> s)
+#
+# 	norm = 1./SI_time_stamp_resolution
+#
+# 	if form.upper() == 'BOX':
+# 		w = 2.0 * SI_sigma * np.sqrt(3)
+# 		width = 2 * np.floor(w / 2.0 / SI_time_stamp_resolution) + 1  # always odd number of bins
+# 		height = 1. / width
+# 		kernel = np.ones((1, width)) * height  # area = 1
+#
+# 	elif form.upper() == 'TRI':
+# 		w = 2 * SI_sigma * np.sqrt(6)
+# 		halfwidth = np.floor(w / 2.0 / SI_time_stamp_resolution)
+# 		trileft = np.arange(1, halfwidth + 2)
+# 		triright = np.arange(halfwidth, 0, -1)  # odd number of bins
+# 		triangle = np.append(trileft, triright)
+# 		kernel = triangle / triangle.sum()  # area = 1
+#
+# 	elif form.upper() == 'EPA':
+# 		w = 2.0 * SI_sigma * np.sqrt(5)
+# 		halfwidth = np.floor(w / 2.0 / SI_time_stamp_resolution)
+# 		base = np.arange(-halfwidth, halfwidth + 1)
+# 		parabula = base**2
+# 		epanech = parabula.max() - parabula  # inverse parabula
+# 		kernel = epanech / epanech.sum()  # area = 1
+#
+# 	elif form.upper() == 'GAU':
+# 		w = 2.0 * SI_sigma * 2.7  # > 99% of distribution weight
+# 		halfwidth = np.floor(w / 2.0 / SI_time_stamp_resolution)  # always odd
+# 		base = np.arange(-halfwidth, halfwidth + 1) * SI_time_stamp_resolution
+# 		g = np.exp(-(base**2) / 2.0 / SI_sigma**2) / SI_sigma / np.sqrt(2.0 * np.pi)
+# 		kernel = g / g.sum()
+#
+# 	elif form.upper() == 'ALP':
+# 		w = 5.0 * SI_sigma
+# 		alpha = np.arange(1, (2.0 * np.floor(w / SI_time_stamp_resolution / 2.0) + 1) + 1) * SI_time_stamp_resolution
+# 		alpha = (2.0 / SI_sigma**2) * alpha * np.exp(-alpha * np.sqrt(2) / SI_sigma)
+# 		kernel = alpha / alpha.sum()  # normalization
+# 		if direction == -1:
+# 			kernel = np.flipud(kernel)
+#
+# 	elif form.upper() == 'EXP':
+# 		w = 5.0 * SI_sigma
+# 		expo = np.arange(1, (2.0 * np.floor(w / SI_time_stamp_resolution / 2.0) + 1) + 1) * SI_time_stamp_resolution
+# 		expo = np.exp(-expo / SI_sigma)
+# 		kernel = expo / expo.sum()
+# 		if direction == -1:
+# 			kernel = np.flipud(kernel)
+#
+# 	kernel = kernel.ravel()
+# 	m_idx = np.nonzero(kernel.cumsum() >= 0.5)[0].min()
+#
+# 	return kernel, norm, m_idx
 
+# TODO remove? it's duplicate of the one in input_architect.py
+# def make_simple_kernel(shape, width=3, height=1., resolution=1., normalize=False, **kwargs):
+# 	"""
+# 	Simplest way to create a smoothing kernel for 1D convolution
+# 	:param shape: {'box', 'exp', 'alpha', 'double_exp', 'gauss'}
+# 	:param width: kernel width
+# 	:param height: peak amplitude of the kernel
+# 	:param resolution: time step
+# 	:param normalize: [bool]
+# 	:return: kernel k
+# 	"""
+#
+# 	# TODO sinusoidal (*), load external kernel...
+# 	x = np.arange(0., (width / resolution) + 1, resolution)
+#
+# 	if shape == 'box':
+# 		k = np.ones_like(x) * height
+#
+# 	elif shape == 'exp':
+# 		assert 'tau' in kwargs, "for exponential kernel, please specify tau"
+# 		tau = kwargs['tau']
+# 		k = np.exp(-x / tau) * height
+#
+# 	elif shape == 'double_exp':
+# 		assert ('tau_1' in kwargs), "for double exponential kernel, please specify tau_1"
+# 		assert ('tau_2' in kwargs), "for double exponential kernel, please specify tau_2"
+#
+# 		tau_1 = kwargs['tau_1']
+# 		tau_2 = kwargs['tau_2']
+# 		tmp_k = (-np.exp(-x / tau_1) + np.exp(-x / tau_2))
+# 		k = tmp_k * (height / np.max(tmp_k))
+#
+# 	elif shape == 'alpha':
+# 		assert ('tau' in kwargs), "for alpha kernel, please specify tau"
+#
+# 		tau = kwargs['tau']
+# 		tmp_k = ((x / tau) * np.exp(-x / tau))
+# 		k = tmp_k * (height / np.max(tmp_k))
+#
+# 	elif shape == 'gauss':
+# 		assert ('mu' in kwargs), "for Gaussian kernel, please specify mu"
+# 		assert ('sigma' in kwargs), "for Gaussian kernel, please specify sigma"
+#
+# 		sigma = kwargs['sigma']
+# 		mu = kwargs['mu']
+# 		tmp_k = (1. / (sigma * np.sqrt(2. * np.pi))) * np.exp(- ((x - mu) ** 2. / (2. * (sigma ** 2.))))
+# 		k = tmp_k * (height / np.max(tmp_k))
+#
+# 	elif shape == 'tri':
+# 		halfwidth = width / 2
+# 		trileft = np.arange(1, halfwidth + 2)
+# 		triright = np.arange(halfwidth, 0, -1)  # odd number of bins
+# 		k = np.append(trileft, triright)
+# 		k += height
+#
+# 	else:
+# 		print("Kernel not implemented, please choose {'box', 'exp', 'alpha', 'double_exp', 'gauss', 'tri'}")
+# 		k = 0
+# 	if normalize:
+# 		k /= k.sum()
+#
+# 	return k
 
-def make_kernel(form, sigma, time_stamp_resolution, direction=1):
-	"""
-	Creates kernel functions for convolution.
-
-	Constructs a numeric linear convolution kernel of basic shape to be used
-	for data smoothing (linear low pass filtering) and firing rate estimation
-	from single trial or trial-averaged spike trains.
-
-	Exponential and alpha kernels may also be used to represent postynaptic
-	currents / potentials in a linear (current-based) model.
-
-	Adapted from original script written by Martin P. Nawrot for the
-	FIND MATLAB toolbox [1]_ [2]_.
-
-	Parameters
-	----------
-	form : {'BOX', 'TRI', 'GAU', 'EPA', 'EXP', 'ALP'}
-		Kernel form. Currently implemented forms are BOX (boxcar),
-		TRI (triangle), GAU (gaussian), EPA (epanechnikov), EXP (exponential),
-		ALP (alpha function). EXP and ALP are aymmetric kernel forms and
-		assume optional parameter `direction`.
-	sigma : float
-		Standard deviation of the distribution associated with kernel shape.
-		This parameter defines the time resolution (in ms) of the kernel estimate
-		and makes different kernels comparable (cf. [1] for symetric kernels).
-		This is used here as an alternative definition to the cut-off
-		frequency of the associated linear filter.
-	time_stamp_resolution : float
-		Temporal resolution of input and output in ms.
-	direction : {-1, 1}
-		Asymmetric kernels have two possible directions.
-		The values are -1 or 1, default is 1. The
-		definition here is that for direction = 1 the
-		kernel represents the impulse response function
-		of the linear filter. Default value is 1.
-
-	Returns
-	-------
-	kernel : array_like
-		Array of kernel. The length of this array is always an odd
-		number to represent symmetric kernels such that the center bin
-		coincides with the median of the numeric array, i.e for a
-		triangle, the maximum will be at the center bin with equal
-		number of bins to the right and to the left.
-	norm : float
-		For rate estimates. The kernel vector is normalized such that
-		the sum of all entries equals unity sum(kernel)=1. When
-		estimating rate functions from discrete spike data (0/1) the
-		additional parameter `norm` allows for the normalization to
-		rate in spikes per second.
-
-		For example:
-		``rate = norm * scipy.signal.lfilter(kernel, 1, spike_data)``
-	m_idx : int
-		Index of the numerically determined median (center of gravity)
-		of the kernel function.
-
-	Examples
-	--------
-	To obtain single trial rate function of trial one should use:
-
-		r = norm * scipy.signal.fftconvolve(sua, kernel)
-
-	To obtain trial-averaged spike train one should use:
-
-		r_avg = norm * scipy.signal.fftconvolve(sua, np.mean(X,1))
-
-	where `X` is an array of shape `(l,n)`, `n` is the number of trials and
-	`l` is the length of each trial.
-
-	See also
-	--------
-	SpikeTrain.instantaneous_rate
-	SpikeList.averaged_instantaneous_rate
-
-	.. [1] Meier R, Egert U, Aertsen A, Nawrot MP, "FIND - a unified framework
-	   for neural data analysis"; Neural Netw. 2008 Oct; 21(8):1085-93.
-
-	.. [2] Nawrot M, Aertsen A, Rotter S, "Single-trial estimation of neuronal
-	   firing rates - from single neuron spike trains to population activity";
-	   J. Neurosci Meth 94: 81-92; 1999.
-
-	"""
-	assert form.upper() in ('BOX', 'TRI', 'GAU', 'EPA', 'EXP', 'ALP'), "form must \
-	be one of either 'BOX','TRI','GAU','EPA','EXP' or 'ALP'!"
-
-	assert direction in (1, -1), "direction must be either 1 or -1"
-
-	SI_sigma = sigma / 1000.  # convert to SI units (ms -> s)
-
-	SI_time_stamp_resolution = time_stamp_resolution / 1000.  # convert to SI units (ms -> s)
-
-	norm = 1./SI_time_stamp_resolution
-
-	if form.upper() == 'BOX':
-		w = 2.0 * SI_sigma * np.sqrt(3)
-		width = 2 * np.floor(w / 2.0 / SI_time_stamp_resolution) + 1  # always odd number of bins
-		height = 1. / width
-		kernel = np.ones((1, width)) * height  # area = 1
-
-	elif form.upper() == 'TRI':
-		w = 2 * SI_sigma * np.sqrt(6)
-		halfwidth = np.floor(w / 2.0 / SI_time_stamp_resolution)
-		trileft = np.arange(1, halfwidth + 2)
-		triright = np.arange(halfwidth, 0, -1)  # odd number of bins
-		triangle = np.append(trileft, triright)
-		kernel = triangle / triangle.sum()  # area = 1
-
-	elif form.upper() == 'EPA':
-		w = 2.0 * SI_sigma * np.sqrt(5)
-		halfwidth = np.floor(w / 2.0 / SI_time_stamp_resolution)
-		base = np.arange(-halfwidth, halfwidth + 1)
-		parabula = base**2
-		epanech = parabula.max() - parabula  # inverse parabula
-		kernel = epanech / epanech.sum()  # area = 1
-
-	elif form.upper() == 'GAU':
-		w = 2.0 * SI_sigma * 2.7  # > 99% of distribution weight
-		halfwidth = np.floor(w / 2.0 / SI_time_stamp_resolution)  # always odd
-		base = np.arange(-halfwidth, halfwidth + 1) * SI_time_stamp_resolution
-		g = np.exp(-(base**2) / 2.0 / SI_sigma**2) / SI_sigma / np.sqrt(2.0 * np.pi)
-		kernel = g / g.sum()
-
-	elif form.upper() == 'ALP':
-		w = 5.0 * SI_sigma
-		alpha = np.arange(1, (2.0 * np.floor(w / SI_time_stamp_resolution / 2.0) + 1) + 1) * SI_time_stamp_resolution
-		alpha = (2.0 / SI_sigma**2) * alpha * np.exp(-alpha * np.sqrt(2) / SI_sigma)
-		kernel = alpha / alpha.sum()  # normalization
-		if direction == -1:
-			kernel = np.flipud(kernel)
-
-	elif form.upper() == 'EXP':
-		w = 5.0 * SI_sigma
-		expo = np.arange(1, (2.0 * np.floor(w / SI_time_stamp_resolution / 2.0) + 1) + 1) * SI_time_stamp_resolution
-		expo = np.exp(-expo / SI_sigma)
-		kernel = expo / expo.sum()
-		if direction == -1:
-			kernel = np.flipud(kernel)
-
-	kernel = kernel.ravel()
-	m_idx = np.nonzero(kernel.cumsum() >= 0.5)[0].min()
-
-	return kernel, norm, m_idx
-
-
-def make_simple_kernel(shape, width=3, height=1., resolution=1., normalize=False, **kwargs):
-	"""
-	Simplest way to create a smoothing kernel for 1D convolution
-	:param shape: {'box', 'exp', 'alpha', 'double_exp', 'gauss'}
-	:param width: kernel width
-	:param height: peak amplitude of the kernel
-	:param resolution: time step
-	:param normalize: [bool]
-	:return: kernel k
-	"""
-
-	# TODO sinusoidal (*), load external kernel...
-	x = np.arange(0., (width / resolution) + 1, resolution)
-
-	if shape == 'box':
-		k = np.ones_like(x) * height
-
-	elif shape == 'exp':
-		assert 'tau' in kwargs, "for exponential kernel, please specify tau"
-		tau = kwargs['tau']
-		k = np.exp(-x / tau) * height
-
-	elif shape == 'double_exp':
-		assert ('tau_1' in kwargs), "for double exponential kernel, please specify tau_1"
-		assert ('tau_2' in kwargs), "for double exponential kernel, please specify tau_2"
-
-		tau_1 = kwargs['tau_1']
-		tau_2 = kwargs['tau_2']
-		tmp_k = (-np.exp(-x / tau_1) + np.exp(-x / tau_2))
-		k = tmp_k * (height / np.max(tmp_k))
-
-	elif shape == 'alpha':
-		assert ('tau' in kwargs), "for alpha kernel, please specify tau"
-
-		tau = kwargs['tau']
-		tmp_k = ((x / tau) * np.exp(-x / tau))
-		k = tmp_k * (height / np.max(tmp_k))
-
-	elif shape == 'gauss':
-		assert ('mu' in kwargs), "for Gaussian kernel, please specify mu"
-		assert ('sigma' in kwargs), "for Gaussian kernel, please specify sigma"
-
-		sigma = kwargs['sigma']
-		mu = kwargs['mu']
-		tmp_k = (1. / (sigma * np.sqrt(2. * np.pi))) * np.exp(- ((x - mu) ** 2. / (2. * (sigma ** 2.))))
-		k = tmp_k * (height / np.max(tmp_k))
-
-	elif shape == 'tri':
-		halfwidth = width / 2
-		trileft = np.arange(1, halfwidth + 2)
-		triright = np.arange(halfwidth, 0, -1)  # odd number of bins
-		k = np.append(trileft, triright)
-		k += height
-
-	else:
-		print "Kernel not implemented, please choose {'box', 'exp', 'alpha', 'double_exp', 'gauss', 'tri'}"
-		k = 0
-	if normalize:
-		k /= k.sum()
-
-	return k
-
-
+# TODO used?
 def simple_frequency_spectrum(x):
 	"""
 	Simple frequency spectrum.
@@ -411,17 +412,17 @@ def simple_frequency_spectrum(x):
 	return spec
 
 
-def distance(pos_1, pos_2, N=None):
+def euclidean_distance(pos_1, pos_2, N=None):
 	"""
 	Function to calculate the euclidian distance between two positions
+
 	:param pos_1:
 	:param pos_2:
 	:param N:
 	:return:
 	"""
 	# If N is not None, it means that we are dealing with a toroidal space,
-	# and we have to take the min distance
-	# on the torus.
+	# and we have to take the min distance on the torus.
 	if N is None:
 		dx = pos_1[0] - pos_2[0]
 		dy = pos_1[1] - pos_2[1]
@@ -440,6 +441,7 @@ def rescale_signal(val, out_min, out_max):
 def autocorrelation_function(x):
 	"""
 	Determine the autocorrelation of signal x
+
 	:param x:
 	:return:
 	"""
@@ -461,6 +463,7 @@ def autocorrelation_function(x):
 def get_total_counts(spike_list, time_bin=50.):
 	"""
 	Determines the total spike counts for neurons with consecutive nonzero counts in bins of the specified size
+
 	:param spike_list: SpikeList object
 	:param time_bin: bin width
 	:return ctr: number of neurons complying
@@ -477,7 +480,7 @@ def get_total_counts(spike_list, time_bin=50.):
 		if np.mean(tmp) == 1:
 			neuron_ids.append(n_train)
 			ctr += 1
-	print "{0} neurons have nonzero spike counts in bins of size {1}".format(str(ctr), str(time_bin))
+	print("{0} neurons have nonzero spike counts in bins of size {1}".format(str(ctr), str(time_bin)))
 	total_counts1 = []
 	for n_id in neuron_ids:
 		counts = spike_list.spiketrains[n_id].time_histogram(time_bin=time_bin, normalized=False, binary=False)
@@ -496,7 +499,7 @@ def cross_trial_cc(total_counts, display=True):
 	"""
 	if display:
 		from modules.visualization import progress_bar
-		print "Computing autocorrelations.."
+		print("Computing autocorrelations..")
 	units = total_counts.shape[0]
 
 	r = []
@@ -509,8 +512,16 @@ def cross_trial_cc(total_counts, display=True):
 
 	return np.array(r)
 
-
+# TODO this is ...? :P
 def acc_function(x, a, b, tau):
+	"""
+
+	:param x:
+	:param a:
+	:param b:
+	:param tau:
+	:return:
+	"""
 	return a * (np.exp(-x / tau) + b)
 
 
@@ -541,6 +552,8 @@ def err_func(params, x, y, func):
 
 def check_signal_dimensions(input_signal, target_signal):
 	"""
+	Raise error if dimensionalities of signals don't match
+
 	:param input_signal: array
 	:param target_signal: array
 	:return:
@@ -554,6 +567,7 @@ def nrmse(input_signal, target_signal):
 	"""
 	(from Oger)
 	Calculates the normalized root mean square error (NRMSE) of the input signal compared to the target signal.
+
 	:param input_signal: array
 	:param target_signal: array
 	:return: NRMSE
@@ -685,7 +699,7 @@ def compute_isi_stats_new(spike_list, depth=1, display=True):
 	:return: dictionary with all the relevant data
 	"""
 	if display:
-		print "\nAnalysing inter-spike intervals..."
+		print("\nAnalysing inter-spike intervals...")
 		t_start = time.time()
 	results = dict()
 
@@ -720,7 +734,7 @@ def compute_isi_stats_new(spike_list, depth=1, display=True):
 		results['ai'] 		= (np.mean(ai), np.var(ai))
 
 	if display:
-		print "Elapsed Time: {0} s".format(str(round(time.time()-t_start, 3)))
+		print("Elapsed Time: {0} s".format(str(round(time.time()-t_start, 3))))
 
 	return results
 
@@ -734,7 +748,7 @@ def compute_isi_stats(spike_list, summary_only=False, display=True):
 	:return: dictionary with all the relevant data
 	"""
 	if display:
-		print "\nAnalysing inter-spike intervals..."
+		print("\nAnalysing inter-spike intervals...")
 		t_start = time.time()
 	results = dict()
 
@@ -774,7 +788,7 @@ def compute_isi_stats(spike_list, summary_only=False, display=True):
 		ai = spike_list.adaptation_index(float_only=True)
 		results['ai'] = (np.mean(ai), np.var(ai))
 	if display:
-		print "Elapsed Time: {0} s".format(str(round(time.time()-t_start, 3)))
+		print("Elapsed Time: {0} s".format(str(round(time.time()-t_start, 3))))
 
 	return results
 
@@ -789,7 +803,7 @@ def compute_spike_stats_new(spike_list, time_bin=1., depth=2, display=False):
 	:return: dictionary with all the relevant data
 	"""
 	if display:
-		print "\nAnalysing spiking activity..."
+		print("\nAnalysing spiking activity...")
 		t_start = time.time()
 
 	results = {}
@@ -811,7 +825,7 @@ def compute_spike_stats_new(spike_list, time_bin=1., depth=2, display=False):
 		results['spiking_neurons'] 	= spike_list.id_list
 
 	if display:
-		print "Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3)))
+		print("Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3))))
 	return results
 
 
@@ -825,7 +839,7 @@ def compute_spike_stats(spike_list, time_bin=1., summary_only=False, display=Fal
 	:return: dictionary with all the relevant data
 	"""
 	if display:
-		print "\nAnalysing spiking activity..."
+		print("\nAnalysing spiking activity...")
 		t_start = time.time()
 	results = {}
 	rates = np.array(spike_list.mean_rates())
@@ -844,7 +858,7 @@ def compute_spike_stats(spike_list, time_bin=1., summary_only=False, display=Fal
 		results['ffs'] 				= ffs[~np.isnan(ffs)]
 		results['spiking_neurons'] 	= spike_list.id_list
 	if display:
-		print "Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3)))
+		print("Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3))))
 	return results
 
 
@@ -906,7 +920,7 @@ def compute_synchrony_new(spike_list, n_pairs=500, time_bin=1., tau=20., time_re
 	:return results: dict
 	"""
 	if display:
-		print "\nAnalysing spike synchrony..."
+		print("\nAnalysing spike synchrony...")
 		t_start = time.time()
 
 	if has_pyspike:
@@ -946,7 +960,7 @@ def compute_synchrony_new(spike_list, n_pairs=500, time_bin=1., tau=20., time_re
 				results['SPIKE_sync_distance']		= spk.spike_sync(spike_trains)
 
 	if display:
-		print "Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3)))
+		print("Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3))))
 	return results
 
 
@@ -966,7 +980,7 @@ def compute_synchrony(spike_list, n_pairs=500, bin=1., tau=20., time_resolved=Fa
 	:return results: dict
 	"""
 	if display:
-		print "\nAnalysing spike synchrony..."
+		print("\nAnalysing spike synchrony...")
 		t_start = time.time()
 	if has_pyspike:
 		spike_trains = sg.to_pyspike(spike_list)
@@ -999,7 +1013,7 @@ def compute_synchrony(spike_list, n_pairs=500, bin=1., tau=20., time_resolved=Fa
 			results['SPIKE_distance'] 			= spk.spike_distance(spike_trains)
 			results['SPIKE_sync_distance'] 		= spk.spike_sync(spike_trains)
 	if display:
-		print "Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3)))
+		print("Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3))))
 	return results
 
 
@@ -1017,7 +1031,7 @@ def compute_analog_stats(population, parameter_set, variable_names, analysis_int
 	pop_idx = parameter_set.net_pars.pop_names.index(population.name)
 	if not population.analog_activity:
 		results['recorded_neurons'] = []
-		print "No analog variables recorded from {0}".format(str(population.name))
+		print("No analog variables recorded from {0}".format(str(population.name)))
 		return results
 	else:
 		if isinstance(population.analog_activity, list):
@@ -1109,7 +1123,7 @@ def compute_dimensionality(activity_matrix, pca_obj=None, display=False):
 	assert(check_dependency('sklearn')), "PCA analysis requires scikit learn"
 	import sklearn.decomposition as sk
 	if display:
-		print "Determining effective dimensionality.."
+		print("Determining effective dimensionality..")
 		t_start = time.time()
 	if pca_obj is None:
 		pca_obj = sk.PCA(n_components=np.shape(activity_matrix)[0])
@@ -1118,41 +1132,45 @@ def compute_dimensionality(activity_matrix, pca_obj=None, display=False):
 	# Dimensionality
 	dimensionality = 1. / np.sum((pca_obj.explained_variance_ratio_ ** 2))
 	if display:
-		print "Effective dimensionality = {0}".format(str(round(dimensionality, 2)))
-		print "Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3)))
+		print("Effective dimensionality = {0}".format(str(round(dimensionality, 2))))
+		print("Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3))))
 	return dimensionality
 
 
 def compute_timescale(activity_matrix, time_axis, max_lag=1000, method=0):
 	"""
 	Determines the time scale of fluctuations in the population activity
+
 	:param activity_matrix: np.array with size NxT
-	:param method: based on autocorrelation (0) or on power spectra (1)
+	:param time_axis:
+	:param max_lag:
+	?? :param method: based on autocorrelation (0) or on power spectra (1)
 	:return:
 	"""
-	# TODO modify / review / extend
+	# TODO modify / review / extend / correct / update
+	# QUESTION I'd like to do it, but ...
 	time_scales = []
-	final_acc = []
-	errors = []
-	acc = cross_trial_cc(activity_matrix)
+	final_acc 	= []
+	errors 		= []
+	acc 		= cross_trial_cc(activity_matrix)
 	initial_guess = 1., 0., 10.
 	for n_signal in range(acc.shape[0]):
+		# TODO err_func not defined here..
 		fit, _ = opt.leastsq(err_func, initial_guess, args=(time_axis, acc[n_signal, :max_lag], acc_function))
 
 		if fit[2] > 0:
 			error_rates = np.sum((acc[n_signal, :max_lag] - acc_function(time_axis[:max_lag], *fit)) ** 2)
-			print "Timescale [ACC] = {0} ms / error = {1}".format(str(fit[2]), str(error_rates))
+			print("Timescale [ACC] = {0} ms / error = {1}".format(str(fit[2]), str(error_rates)))
 			time_scales.append(fit[2])
 			errors.append(error_rates)
 
 			final_acc.append(acc[n_signal, :max_lag])
 	final_acc = np.array(final_acc)
 
-	mean_fit, _ = opt.leastsq(err_func, initial_guess, args=(time_axis, np.mean(final_acc, 0),
-															 acc_function))
+	mean_fit, _ = opt.leastsq(err_func, initial_guess, args=(time_axis, np.mean(final_acc, 0), acc_function))
 	error_rates = np.sum((np.mean(final_acc, 0) - acc_function(time_axis, *mean_fit)) ** 2)
-	print "Timescale = {0} ms / error = {1}".format(str(mean_fit[2]), str(error_rates))
-	print "Accepted dimensions = {0}".format(str(float(final_acc.shape[0]) / float(acc.shape[0])))
+	print("Timescale = {0} ms / error = {1}".format(str(mean_fit[2]), str(error_rates)))
+	print("Accepted dimensions = {0}".format(str(float(final_acc.shape[0]) / float(acc.shape[0]))))
 
 	return final_acc, mean_fit, acc_function, time_scales
 
@@ -1161,12 +1179,19 @@ def manifold_learning(activity_matrix, n_neighbors, standardize=True, plot=True,
 	"""
 	Fit and test various manifold learning algorithms, to extract a reasonable 3D projection of the data for
 	visualization
+
 	:param activity_matrix: matrix to analyze (NxT)
+	:param n_neighbors:
+	:param standardize:
+	:param plot:
+	:param display:
+	:param save:
 	:return:
 	"""
 	# TODO extend and test - and include in the analyse_activity_dynamics function
+	# QUESTION
 	if display:
-		print "Testing manifold learning algorithms"
+		print("Testing manifold learning algorithms")
 	if plot:
 		fig1 = pl.figure()
 
@@ -1176,14 +1201,14 @@ def manifold_learning(activity_matrix, n_neighbors, standardize=True, plot=True,
 	# LLE (with the different methods available)
 	for i, method in enumerate(methods):
 		if display:
-			print "- Locally Linear Embedding: "
+			print("- Locally Linear Embedding: ")
 			t_start = time.time()
 		fit_obj = man.LocallyLinearEmbedding(n_neighbors=n_neighbors, n_components=3, eigen_solver='auto',
 								   method=method)
 		Y = fit_obj.fit_transform(activity_matrix.T)
 		if display:
-			print "\t{0} - {1} s / Reconstruction error = {2}".format(method, str(time.time()-t_start), str(
-				fit_obj.reconstruction_error_))
+			print("\t{0} - {1} s / Reconstruction error = {2}".format(method, str(time.time()-t_start), str(
+				fit_obj.reconstruction_error_)))
 		if plot:
 			locals()['ax1_{0}'.format(i)] = fig1.add_subplot(2, 4, 1, projection='3d')
 			locals()['ax1_{0}'.format(i)].plot(Y[:, 0], Y[:, 1], Y[:, 2])
@@ -1232,10 +1257,6 @@ def characterize_population_activity_new(population_object, parameter_set, analy
 		spike_list = population_object.spiking_activity
 		assert isinstance(spike_list, sg.SpikeList), "Spiking activity should be SpikeList object"
 		spike_list = spike_list.time_slice(analysis_interval[0], analysis_interval[1])
-
-		ai = ActivityAnimator(spike_list, populations=population_object, ids=gids, vm_list=[])
-		# ai.animate_activity(time_window=100, save=True)
-		print ("gonna animate raster plot... @done")
 
 		results['spiking_activity'].update(compute_spikelist_metrics_new(spike_list, population_object.name,
 		                                        time_bin=ap.numerics.time_bin, n_pairs=ap.numerics.n_pairs,
@@ -1289,7 +1310,7 @@ def characterize_population_activity_new(population_object, parameter_set, analy
 
 	else:
 		# TODO give a WARNING / ERROR here, if the network is not spiking...
-		print "# TODO give a WARNING / ERROR here, the network is not spiking..."
+		print("# TODO give a WARNING / ERROR here, the network is not spiking...")
 		pass
 
 	# ########################################################################################################
@@ -1433,7 +1454,7 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 		population_object 		= new_population
 	else:
 		raise TypeError("Incorrect population object. Must be Population or Network object")
-	spike_list = None
+
 	results = {'spiking_activity': {}, 'analog_activity': {}, 'metadata': {'population_name': population_object.name}}
 
 	########################################################################################################
@@ -1443,6 +1464,14 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 		assert isinstance(spike_list, sg.SpikeList), "Spiking activity should be SpikeList object"
 		spike_list = spike_list.time_slice(analysis_interval[0], analysis_interval[1])
 
+		# TODO remove, debug
+		# print ("gonna animate raster plot...")
+		# response_matrix = spike_list.compile_binary_response_matrix(dt=.1)
+		# visualization.plot_trajectory(response_matrix, save=save)
+		# # ai = ActivityAnimator(spike_list, populations=population_object, ids=gids, vm_list=[])
+		# # ai.animate_activity(time_window=100, save=True)
+		# exit(0)
+		#######
 		results['spiking_activity'].update(compute_spikelist_metrics(spike_list, population_object.name,
 		                                        time_bin=time_bin, n_pairs=n_pairs, tau=tau,
 		                                        summary_only=summary_only, complete=complete,
@@ -1639,7 +1668,7 @@ def analyse_activity_dynamics(activity_matrix, epochs=None, label='', plot=False
 
 	pca_obj = sk.PCA(n_components=activity_matrix.shape[0])
 	X = pca_obj.fit_transform(activity_matrix.T)
-	print "Explained Variance (first 3 components): %s" % str(pca_obj.explained_variance_ratio_[:3])
+	print("Explained Variance (first 3 components): %s" % str(pca_obj.explained_variance_ratio_[:3]))
 	results.update({'dimensionality': compute_dimensionality(activity_matrix, pca_obj=pca_obj, display=True)})
 	if plot:
 		visualization.plot_dimensionality(results, pca_obj, X, data_label=label, display=display, save=save)
@@ -1697,7 +1726,7 @@ def compute_time_resolved_statistics(spike_list, label='', time_bin=1., window_l
 	steps = len(list(sg.moving_window(time_axis, window_len)))
 	mw = sg.moving_window(time_axis, window_len)
 	results = dict()
-	print "\nAnalysing activity in moving window.."
+	print("\nAnalysing activity in moving window..")
 
 	for n in range(steps):
 		if display:
@@ -1878,9 +1907,9 @@ def single_neuron_responses(population_object, parameter_set, pop_idx=0, start=N
 			if results['rate']:
 				results['ff'] = spike_list.fano_factor(1.)
 		else:
-			print "No spikes recorded"
+			print("No spikes recorded")
 	else:
-		print "No spike recorder attached to {0}".format(population_object.name)
+		print("No spike recorder attached to {0}".format(population_object.name))
 
 	if parameter_set.net_pars.record_analogs[pop_idx]:
 		for idx, nn in enumerate(population_object.analog_activity_names): #parameter_set.net_pars.analog_device_pars[pop_idx]['record_from']):
@@ -1913,9 +1942,9 @@ def single_neuron_responses(population_object, parameter_set, pop_idx=0, start=N
 					results[nn] = globals()[nn].analog_signals[int(min(iddds))].signal
 				# TODO: add case when record g_ex/g_in
 			else:
-				print "No recorded analog {0}".format(str(nn))
+				print("No recorded analog {0}".format(str(nn)))
 	else:
-		print "No recorded analogs from {0}".format(population_object.name)
+		print("No recorded analogs from {0}".format(population_object.name))
 	if plot:
 		fig = pl.figure()
 		ax1 = pl.subplot2grid((10, 10), (0, 0), rowspan=4, colspan=4)
@@ -1986,7 +2015,7 @@ def ssa_lifetime(pop_obj, parameter_set, input_off=1000., display=True):
 	"""
 	results = dict(ssa={})
 	if display:
-		print "\nSelf-sustaining Activity Lifetime: "
+		print("\nSelf-sustaining Activity Lifetime: ")
 	if isinstance(pop_obj, net_architect.Network):
 		gids = []
 		new_SpkList = sg.SpikeList([], [], parameter_set.kernel_pars.transient_t,
@@ -2002,13 +2031,13 @@ def ssa_lifetime(pop_obj, parameter_set, input_off=1000., display=True):
 																			  'tau': n.last_spike_time() -
 																					 input_off}})
 			if display:
-				print "- {0} Survival = {1} ms".format(str(pop_obj.population_names[ii]), str(results['ssa'][str(
-					pop_obj.population_names[ii]+'_ssa')]['tau']))
+				print("- {0} Survival = {1} ms".format(str(pop_obj.population_names[ii]), str(results['ssa'][str(
+					pop_obj.population_names[ii]+'_ssa')]['tau'])))
 
 		results['ssa'].update({'Global_ssa': {'last_spike': new_SpkList.last_spike_time(),
 										  'tau': new_SpkList.last_spike_time() - input_off}})
 		if display:
-			print "- {0} Survival = {1} ms".format('Global', str(results['ssa']['Global_ssa']['tau']))
+			print("- {0} Survival = {1} ms".format('Global', str(results['ssa']['Global_ssa']['tau'])))
 
 	elif isinstance(pop_obj, net_architect.Population):
 		name = pop_obj.name
@@ -2016,13 +2045,13 @@ def ssa_lifetime(pop_obj, parameter_set, input_off=1000., display=True):
 		results['ssa'].update({name+'_ssa': {'last_spike': spike_list.last_spike_time(),
 						 'tau': spike_list.last_spike_time() - input_off}})
 		if display:
-			print "- {0} Survival = {1} ms".format(str(name), str(results['ssa'][name+'_ssa']['tau']))
+			print("- {0} Survival = {1} ms".format(str(name), str(results['ssa'][name+'_ssa']['tau'])))
 	else:
 		raise ValueError("Input must be Network or Population object")
 
 	return results
 
-
+# TODO comment, what's this? :-) maybe a more suggestive name?
 def fmf_readout(response, target, readout, index, label='', plot=False, display=False, save=False):
 	"""
 
@@ -2033,7 +2062,7 @@ def fmf_readout(response, target, readout, index, label='', plot=False, display=
 	target = target[:, :-index]
 	readout.train(state, target)
 	norm_wout = readout.measure_stability()
-	print "|W_out| [{0}] = {1}".format(readout.name, str(norm_wout))
+	print("|W_out| [{0}] = {1}".format(readout.name, str(norm_wout)))
 
 	output = readout.test(state)
 
@@ -2044,17 +2073,17 @@ def fmf_readout(response, target, readout, index, label='', plot=False, display=
 		NMSE = nmse(output, target)
 		NRMSE = nrmse(output[0], target[0])
 
-		print "\t- MAE = {0}".format(str(MAE))
-		print "\t- MSE = {0}".format(str(MSE))
-		print "\t- NMSE = {0}".format(str(NMSE))
-		print "\t- RMSE = {0}".format(str(RMSE))
-		print "\t- NRMSE = {0}".format(str(NRMSE))
+		print("\t- MAE = {0}".format(str(MAE)))
+		print("\t- MSE = {0}".format(str(MSE)))
+		print("\t- NMSE = {0}".format(str(NMSE)))
+		print("\t- RMSE = {0}".format(str(RMSE)))
+		print("\t- NRMSE = {0}".format(str(NRMSE)))
 
 		COV = (np.cov(target, output) ** 2.)
 		VARS = np.var(output) * np.var(target)
 		FMF = COV / VARS
 		fmf = FMF[0, 1]
-		print "M[k] = {0}".format(str(FMF[0, 1]))
+		print("M[k] = {0}".format(str(FMF[0, 1])))
 	else:
 		MAE = np.mean(output.T - target)
 		MSE = mse(output.T, target)
@@ -2062,17 +2091,17 @@ def fmf_readout(response, target, readout, index, label='', plot=False, display=
 		NMSE = nmse(output.T, target)
 		NRMSE = nrmse(output[:, 0], target[0])
 
-		print "\t- MAE = {0}".format(str(MAE))
-		print "\t- MSE = {0}".format(str(MSE))
-		print "\t- NMSE = {0}".format(str(NMSE))
-		print "\t- RMSE = {0}".format(str(RMSE))
-		print "\t- NRMSE = {0}".format(str(NRMSE))
+		print("\t- MAE = {0}".format(str(MAE)))
+		print("\t- MSE = {0}".format(str(MSE)))
+		print("\t- NMSE = {0}".format(str(NMSE)))
+		print("\t- RMSE = {0}".format(str(RMSE)))
+		print("\t- NRMSE = {0}".format(str(NRMSE)))
 
 		COV = np.cov(target[0, :], output[:, 0]) ** 2.
 		VARS = np.var(target) * np.var(output)
 		FMF = COV / VARS
 		fmf = FMF[0, 1]
-		print "\t- M[k] = {0}".format(str(FMF[0, 1]))
+		print("\t- M[k] = {0}".format(str(FMF[0, 1])))
 
 	if plot:
 		from modules.visualization import plot_target_out
@@ -2081,11 +2110,20 @@ def fmf_readout(response, target, readout, index, label='', plot=False, display=
 	return output, {'MAE': MAE, 'MSE': MSE, 'NMSE': NMSE, 'RMSE': RMSE, 'NRMSE': NRMSE, 'norm_wOut': norm_wout,
 					'fmf': fmf}
 
-
+# TODO update
 def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True,
 						   debug=False, plot=True, display=True, save=False):
 	"""
 
+	:param net:
+	:param parameter_set:
+	:param input:
+	:param total_time:
+	:param normalize:
+	:param debug:
+	:param plot:
+	:param display:
+	:param save:
 	:return:
 	"""
 	results = {}
@@ -2112,8 +2150,8 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 		baseline_out /= parameter_set.input_pars.noise.noise_pars.amplitude
 		baseline_out -= np.mean(baseline_out)  # parameter_set.input_pars.noise.noise_pars.mean
 
-	print "\n*******************************\nFading Memory Evaluation\n*******************************\nBaseline (" \
-		  "random): "
+	print("\n*******************************\nFading Memory Evaluation\n*******************************\nBaseline (" \
+		  "random): ")
 
 	# Error
 	MAE = np.mean(np.abs(baseline_out[0] - global_target[0]))
@@ -2122,16 +2160,16 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 	NMSE = nmse(baseline_out, global_target)
 	NRMSE = nrmse(baseline_out[0], global_target[0])
 
-	print "\t- MAE = {0}".format(str(MAE))
-	print "\t- MSE = {0}".format(str(MSE))
-	print "\t- NMSE = {0}".format(str(NMSE))
-	print "\t- RMSE = {0}".format(str(RMSE))
-	print "\t- NRMSE = {0}".format(str(NRMSE))
+	print("\t- MAE = {0}".format(str(MAE)))
+	print("\t- MSE = {0}".format(str(MSE)))
+	print("\t- NMSE = {0}".format(str(NMSE)))
+	print("\t- RMSE = {0}".format(str(RMSE)))
+	print("\t- NRMSE = {0}".format(str(NRMSE)))
 	# memory
 	COV = (np.cov(global_target, baseline_out) ** 2.)
 	VARS = np.var(baseline_out) * np.var(global_target)
 	FMF = COV / VARS
-	print "\t- M[0] = {0}".format(str(FMF[0, 1]))
+	print("\t- M[0] = {0}".format(str(FMF[0, 1])))
 	results['Baseline'] = {'MAE': MAE,
 						   'MSE': MSE,
 						   'NMSE': NMSE,
@@ -2153,7 +2191,7 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 
 			results['{0}'.format(n_pop.name)] = {}
 			if hasattr(n_pop, "decoding_pars"):
-				print "\nPopulation {0}".format(n_pop.name)
+				print("\nPopulation {0}".format(n_pop.name))
 				read_pops.append(n_pop)
 				internal_indices = [int(readout.name[len(readout.name.rstrip('0123456789')):])+1 for readout in
 									n_pop.readouts]
@@ -2196,7 +2234,7 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 
 			results['{0}'.format(n_pop.name)] = {}
 			if hasattr(n_pop, "decoding_pars"):
-				print "\nPopulation {0}".format(n_pop.name)
+				print("\nPopulation {0}".format(n_pop.name))
 				read_pops.append(n_pop)
 				internal_indices = [int(readout.name[len(readout.name.rstrip('0123456789')):])+1 for readout in
 									n_pop.readouts]
@@ -2306,7 +2344,7 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 
 		return results
 
-
+# TODO maybe move this and test to Readout class? later.
 def readout_train(readout, state, target, index=None, accepted=None, display=True, plot=False, save=False):
 	"""
 	Train readout object
@@ -2336,7 +2374,7 @@ def readout_train(readout, state, target, index=None, accepted=None, display=Tru
 	readout.train(state, target)
 	norm_wout = readout.measure_stability()
 	if display:
-		print "|W_out| [{0}] = {1}".format(readout.name, str(norm_wout))
+		print("|W_out| [{0}] = {1}".format(readout.name, str(norm_wout)))
 	if plot:
 		readout.plot_weights(display=display, save=save)
 
@@ -2371,6 +2409,1126 @@ def readout_test(readout, state, target, index=None, accepted=None, display=True
 	readout.test(state)
 	performance = readout.measure_performance(target, display=display)
 	return performance
+
+
+# TODO is this not redundant with analyse_activity_dynamics?
+def analyse_state_matrix(state, stim_labels, label='', plot=True, display=True, save=False):
+	"""
+
+	:param state:
+	:param stim:
+	:return:
+	"""
+	pca_obj = sk.PCA(n_components=3)
+	X_r = pca_obj.fit(state.T).transform(state.T)
+	print("Explained Variance (first 3 components): %s" % str(pca_obj.explained_variance_ratio_))
+
+	if not isinstance(stim_labels, dict):
+		label_seq = np.array(list(sg.iterate_obj_list(stim_labels)))
+		n_elements = np.unique(label_seq)
+		if plot:
+			fig1 = pl.figure()
+			ax1 = fig1.add_subplot(111)
+			visualization.plot_state_matrix(state, stim_labels, ax=ax1, label=label, display=False, save=False)
+
+			fig2 = pl.figure()
+			fig2.clf()
+			exp_var = [round(n, 2) for n in pca_obj.explained_variance_ratio_]
+			fig2.suptitle(r'${0} - PCA (var = {1})$'.format(str(label), str(exp_var)),
+						  fontsize=20)
+
+			ax2 = fig2.add_subplot(111, projection='3d')
+			colors_map = visualization.get_cmap(N=len(n_elements), cmap='Paired')
+			ax2.set_xlabel(r'$PC_{1}$')
+			ax2.set_ylabel(r'$PC_{2}$')
+			ax2.set_zlabel(r'$PC_{3}$')
+
+			ccs = [colors_map(ii) for ii in range(len(n_elements))]
+			for color, index, lab in zip(ccs, n_elements, n_elements):
+				locals()['sc_{0}'.format(str(index))] = ax2.scatter(X_r[np.where(np.array(list(itertools.chain(
+					label_seq))) == index)[0], 0], X_r[np.where(np.array(list(itertools.chain(label_seq))) == index)[
+								0],  1], X_r[np.where(np.array(list(itertools.chain(label_seq))) == index)[0], 2],
+																	s=50, c=color, label=lab)
+			scatters = [locals()['sc_{0}'.format(str(ind))] for ind in n_elements]
+			#pl.legend(tuple(scatters), tuple(n_elements))
+			pl.legend(loc=0, handles=scatters)
+
+			if display:
+				pl.show(block=False)
+			if save:
+				fig1.savefig(save + 'state_matrix_{0}.pdf'.format(label))
+				fig2.savefig(save + 'pca_representation_{0}.pdf'.format(label))
+	else:
+		if plot:
+			fig1 = pl.figure()
+			ax = fig1.add_subplot(111, projection='3d')
+			ax.plot(X_r[:, 0], X_r[:, 1], X_r[:, 2], color='r', lw=2)
+			ax.set_title(label + r'$ - (3PCs) $= {0}$'.format(str(round(np.sum(pca_obj.explained_variance_ratio_[:3]),
+																	1))))
+			ax.grid()
+			if display:
+				pl.show(False)
+			if save:
+				fig1.savefig(save + 'pca_representation_{0}.pdf'.format(label))
+
+
+def advanced_state_analysis(state, stim_labels, label='', plot=True, display=True, save=False):
+	"""
+	"""
+	pass
+
+# TODO is this still needed? there's the same function in DecodingLayer
+def evaluate_encoding(enc_layer, parameter_set, analysis_interval, input_signal, plot=True, display=True, save=False):
+	"""
+	Determine the quality of the encoding method (if there are encoders), by reading out the state of the encoders
+	and training it to reconstruct the input signal
+	:param enc_layer:
+	:return:
+	"""
+	assert(isinstance(analysis_interval, list)), "Incorrect analysis_interval"
+	results = dict()
+	for idx, n_enc in enumerate(enc_layer.encoders):
+		new_pars = prs.ParameterSet(prs.copy_dict(parameter_set.as_dict()))
+		new_pars.kernel_pars.data_prefix = 'Input Encoder {0}'.format(n_enc.name)
+		# results['input_activity_{0}'.format(str(idx))] = characterize_population_activity(n_enc,
+		#                                                                   parameter_set=new_pars,
+		#                                                                   analysis_interval=analysis_interval,
+		#                                                                   epochs=None, time_bin=1., complete=False,
+		#                                                                   time_resolved=False, color_map='jet',
+		#                                                                   plot=plot, display=display, save=save)
+
+		if isinstance(n_enc.spiking_activity, sg.SpikeList) and not n_enc.spiking_activity.empty():
+			inp_spikes = n_enc.spiking_activity.time_slice(analysis_interval[0], analysis_interval[1])
+			tau = parameter_set.decoding_pars.state_extractor.filter_tau
+			n_input_neurons = np.sum(parameter_set.encoding_pars.encoder.n_neurons)
+			if n_enc.decoding_layer is not None:
+				inp_responses = n_enc.decoding_layer.extract_activity(start=analysis_interval[0],
+				                                                      stop=analysis_interval[1], save=False,
+				                                                      reset=False)[0]
+				inp_readout_pars = prs.copy_dict(n_enc.decoding_layer.decoding_pars.readout[0])
+			else:
+				# TEST!!
+				inp_responses = inp_spikes.filter_spiketrains(dt=input_signal.dt,
+				                                              tau=tau, start=analysis_interval[0],
+				                                              stop=analysis_interval[1], N=n_input_neurons)
+				inp_readout_pars = prs.copy_dict(parameter_set.decoding_pars.readout[0],
+			                                 {'label': 'InputNeurons',
+			                                  'algorithm': parameter_set.decoding_pars.readout[0]['algorithm'][0]})
+			inp_readout = Readout(prs.ParameterSet(inp_readout_pars))
+			analysis_signal = input_signal.time_slice(analysis_interval[0], analysis_interval[1])
+			inp_readout.train(inp_responses, analysis_signal.as_array())
+			inp_readout.test(inp_responses)
+			perf = inp_readout.measure_performance(analysis_signal.as_array())
+
+			from modules.input_architect import InputSignal
+			input_out = InputSignal()
+			input_out.load_signal(inp_readout.output.T, dt=input_signal.dt, onset=analysis_interval[0],
+				inherit_from=analysis_signal)
+
+			if plot:
+				from modules.visualization import InputPlots
+				import matplotlib.pyplot as pl
+				figure2 = pl.figure()
+				figure2.suptitle(r'MAE = {0}'.format(str(perf['raw']['MAE'])))
+				ax21 = figure2.add_subplot(211)
+				ax22 = figure2.add_subplot(212, sharex=ax21)
+				InputPlots(input_obj=analysis_signal).plot_input_signal(ax22, save=False, display=False)
+				ax22.set_color_cycle(None)
+				InputPlots(input_obj=input_out).plot_input_signal(ax22, save=False, display=False)
+				ax22.set_ylim([analysis_signal.base-10., analysis_signal.peak+10.])
+				inp_spikes.raster_plot(with_rate=False, ax=ax21, save=False, display=False)
+				if display:
+					pl.show(block=False)
+				if save:
+					figure2.savefig(save+'_EncodingQuality.pdf')
+	return results
+
+
+def analyse_performance_results(net, enc_layer=None, plot=True, display=True, save=False):
+	"""
+	Re-organizes performance results
+	(may be too case-sensitive!!)
+	"""
+	from modules.signals import empty
+	results = {}
+
+	if enc_layer is not None:
+		all_populations = list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders]))
+	else:
+		all_populations = list(itertools.chain(*[net.merged_populations, net.populations]))
+
+	for n_pop in all_populations:
+		if hasattr(n_pop, "decoding_pars"):
+			results[n_pop.name] = {}
+			readout_labels = list(np.sort(n_pop.decoding_pars['readout']['labels']))
+			readout_type = [n[:3] for n in readout_labels]
+			if 'mem' in readout_type and 'cla' in readout_type: # special case
+				last_mem = readout_type[::-1].index('mem')
+				readout_labels.insert(last_mem + 1, readout_labels[0])
+				readout_labels.pop(0)
+				readout_type = [n[:3] for n in readout_labels]
+				last_mem = readout_type[::-1].index('mem')
+				first_mem = readout_type.index('mem')
+				readout_labels[first_mem:last_mem - 1] = readout_labels[first_mem:last_mem - 1][::-1]
+
+			pop_readouts = n_pop.readouts
+			pop_state_variables = n_pop.state_variables
+			print(pop_state_variables)
+			if empty(n_pop.state_sample_times):
+				for idx_state, n_state in enumerate(n_pop.state_extractors):
+					pop_readout_labels = [n.name for n in pop_readouts[idx_state]]
+					readout_idx = [np.where(n == np.array(readout_labels))[0][0] for n in pop_readout_labels]
+					readout_set = list(np.array(pop_readouts[idx_state])[readout_idx])
+					results[n_pop.name].update({'ReadoutSet{0}'.format(str(idx_state)): {}})
+					indices = [n.index for n in readout_set]
+					results[n_pop.name]['ReadoutSet{0}'.format(str(idx_state))] = compile_performance_results(
+						readout_set, state_variable=pop_state_variables[idx_state])
+			else:
+				assert (len(pop_readouts) == len(n_pop.state_sample_times)), "Inconsistent readout set"
+				n_states = len(pop_readouts[0])
+				for n_state in range(n_states):
+					results[n_pop.name].update({'ReadoutSet{0}'.format(str(n_state)): {}})
+					results[n_pop.name]['ReadoutSet{0}'.format(str(n_state))].update(
+						{'sample_times': n_pop.state_sample_times})
+
+					for n_sample_time in range(len(n_pop.state_sample_times)):
+						readout_set = pop_readouts[n_sample_time][n_state]
+						results[n_pop.name]['ReadoutSet{0}'.format(str(n_state))].update({'sample_{0}'.format(
+							n_sample_time): {}})
+						results[n_pop.name]['ReadoutSet{0}'.format(str(n_state))]['sample_{0}'.format(
+							n_sample_time)] = compile_performance_results(readout_set,
+																		  state_variable=pop_state_variables[n_state])
+
+	if plot:
+		visualization.plot_readout_performance(results, display=display, save=save)
+	return results
+
+
+def compile_performance_results(readout_set, state_variable=''):
+	"""
+	"""
+	results = {
+		'accuracy': np.array([n.performance['label']['performance'] for n in readout_set]),
+		'performance': np.array([n.performance['max']['performance'] for n in readout_set if not sg.empty(
+			n.performance['max'])]),
+		'hamming_loss': np.array([n.performance['label']['hamm_loss'] for n in readout_set]),
+		'MSE': np.array([n.performance['max']['MSE'] for n in readout_set if not sg.empty(n.performance['max'])]),
+		'pb_cc': [n.performance['raw']['point_bisserial'] for n in readout_set if not sg.empty(n.performance['raw'])],
+		'raw_MAE': np.array([n.performance['raw']['MAE'] for n in readout_set if not sg.empty(n.performance['raw'])]),
+		'precision': np.array([n.performance['label']['precision'] for n in readout_set]),
+		'f1_score': np.array([n.performance['label']['f1_score'] for n in readout_set]),
+		'recall': np.array([n.performance['label']['recall'] for n in readout_set]),
+		'confusion_matrices': [n.performance['label']['confusion'] for n in readout_set],
+		'jaccard': np.array([n.performance['label']['jaccard'] for n in readout_set]),
+		'class_support': [n.performance['label']['class_support'] for n in readout_set],
+		'norm_wout': np.array([n.measure_stability() for n in readout_set]),
+		'labels': [n.name for n in readout_set],
+		'indices': [n.index for n in readout_set],
+		'state_variable': state_variable}
+	return results
+
+
+def analyse_state_divergence(parameter_set, net, clone, plot=True, display=True, save=False):
+	"""
+
+	:param parameter_set:
+	:param net:
+	:param clone:
+	:return:
+	"""
+	results = dict()
+	pop_idx = net.population_names.index(parameter_set.kernel_pars.perturb_population)
+	start = parameter_set.kernel_pars.transient_t
+	stop = parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t
+	activity_time_vector = np.arange(parameter_set.kernel_pars.transient_t,
+									 parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t,
+									 parameter_set.kernel_pars.resolution)
+	perturbation_time = parameter_set.kernel_pars.perturbation_time + parameter_set.kernel_pars.transient_t
+	observation_time = max(activity_time_vector) - perturbation_time
+	#perturbation_time = parameter_set.kernel_pars.perturbation_time + parameter_set.kernel_pars.transient_t
+	#observation_time = max(time_vec) - perturbation_time
+
+	if not sg.empty(net.populations[pop_idx].spiking_activity.spiketrains):
+		time_vec = net.populations[pop_idx].spiking_activity.time_axis(1)[:-1]
+		perturbation_idx = np.where(time_vec == perturbation_time)
+		rate_native = net.populations[pop_idx].spiking_activity.firing_rate(1, average=True)
+		rate_clone = clone.populations[pop_idx].spiking_activity.firing_rate(1, average=True)
+
+		binary_native = net.populations[pop_idx].spiking_activity.compile_binary_response_matrix(
+				parameter_set.kernel_pars.resolution, start=parameter_set.kernel_pars.transient_t,
+				stop=parameter_set.kernel_pars.sim_time+parameter_set.kernel_pars.transient_t,
+				N=net.populations[pop_idx].size, display=True)
+		binary_clone = clone.populations[pop_idx].spiking_activity.compile_binary_response_matrix(
+				parameter_set.kernel_pars.resolution, start=parameter_set.kernel_pars.transient_t,
+				stop=parameter_set.kernel_pars.sim_time+parameter_set.kernel_pars.transient_t,
+				N=clone.populations[pop_idx].size, display=True)
+
+		r_cor = []
+		hamming = []
+		for idx, t in enumerate(time_vec):
+			if not sg.empty(np.corrcoef(rate_native[:idx], rate_clone[:idx])) and np.corrcoef(rate_native[:idx],
+								rate_clone[:idx])[0, 1] != np.nan:
+				r_cor.append(np.corrcoef(rate_native[:idx], rate_clone[:idx])[0, 1])
+			else:
+				r_cor.append(0.)
+			binary_state_diff = binary_native[:, idx] - binary_clone[:, idx]
+			if not sg.empty(np.nonzero(binary_state_diff)[0]):
+				hamming.append(float(len(np.nonzero(binary_state_diff)[0]))/float(net.populations[pop_idx].size))
+			else:
+				hamming.append(0.)
+
+		results['rate_native'] = rate_native
+		results['rate_clone'] = rate_clone
+		results['rate_correlation'] = np.array(r_cor)
+		results['hamming_distance'] = np.array(hamming)
+
+	if not sg.empty(net.populations[pop_idx].response_matrix):
+		responses_native = net.populations[pop_idx].response_matrix
+		responses_clone = clone.populations[pop_idx].response_matrix
+		response_vars = parameter_set.decoding_pars.state_extractor.state_variable
+		print("\n Computing state divergence: ")
+		labels = []
+		for resp_idx, n_response in enumerate(responses_native):
+			print("\t- State variable {0}".format(str(response_vars[resp_idx])))
+			response_length = len(n_response.time_axis())
+			distan = []
+			for t in range(response_length):
+				distan.append(distance.euclidean(n_response.as_array()[:, t], responses_clone[resp_idx].as_array()[:, t]))
+				if display:
+					from modules.visualization import progress_bar
+					progress_bar(float(t)/float(response_length))
+
+			results['state_{0}'.format(str(response_vars[resp_idx]))] = np.array(distan)
+			labels.append(str(response_vars[resp_idx]))
+
+			if np.array(distan).any():
+				initial_distance = distan[min(np.where(np.array(distan) > 0.0)[0])]
+			else:
+				initial_distance = 0.
+			final_distance = distan[-1]
+			lyapunov = (np.log(final_distance) / observation_time) - np.log(initial_distance) / observation_time
+			print("Lyapunov Exponent = {0}".format(lyapunov))
+
+	if plot:
+		if not sg.empty(net.populations[pop_idx].spiking_activity.spiketrains):
+			fig = pl.figure()
+			fig.suptitle(r'$LE = {0}$'.format(str(lyapunov)))
+			ax1a = pl.subplot2grid((12, 1), (0, 0), rowspan=8, colspan=1)
+			ax1b = ax1a.twinx()
+
+			ax2a = pl.subplot2grid((12, 1), (8, 0), rowspan=2, colspan=1, sharex=ax1a)
+			ax2b = ax2a.twinx()
+
+			ax3 = pl.subplot2grid((12, 1), (10, 0), rowspan=2, colspan=1, sharex=ax1a)
+
+			#ax4 = pl.subplot2grid((12, 1), (16, 0), rowspan=4, colspan=1)
+
+			rp1 = visualization.SpikePlots(net.populations[pop_idx].spiking_activity, start, stop)
+			rp2 = visualization.SpikePlots(clone.populations[pop_idx].spiking_activity, start, stop)
+
+			plot_props1 = {'xlabel': 'Time [ms]', 'ylabel': 'Neuron', 'color': 'r', 'linewidth': 1.0,
+						  'linestyle': '-'}
+			plot_props2 = {'xlabel': 'Time [ms]', 'ylabel': 'Neuron', 'color': 'k', 'linewidth': 1.0,
+						  'linestyle': '-'}
+			rp1.dot_display(ax=[ax1a, ax2a], with_rate=True, default_color='r', display=False, save=False, **plot_props1)
+			rp2.dot_display(ax=[ax1b, ax2b], with_rate=True, default_color='k', display=False, save=False, **plot_props2)
+
+			ax3.plot(time_vec, r_cor, '-b')
+			ax3.set_ylabel('CC')
+			# mark perturbation time
+			yrange_1 = np.arange(ax1a.get_ylim()[0], ax1a.get_ylim()[1], 1)
+			ax1a.plot(perturbation_time * np.ones_like(yrange_1), yrange_1, 'r--')
+			yrange_2 = np.arange(ax2a.get_ylim()[0], ax2a.get_ylim()[1], 1)
+			ax2a.plot(perturbation_time * np.ones_like(yrange_2), yrange_2, 'r--')
+			yrange_3 = np.arange(ax3.get_ylim()[0], ax3.get_ylim()[1], 1)
+			ax3.plot(perturbation_time * np.ones_like(yrange_3), yrange_3, 'r--')
+			if display:
+				pl.show(False)
+			if save:
+				assert isinstance(save, str), "Please provide filename"
+				fig.savefig(save + 'LE_analysis.pdf')
+
+		if not sg.empty(net.populations[pop_idx].response_matrix):
+			fig2 = pl.figure()
+			ax4 = fig2.add_subplot(211)
+			ax5 = fig2.add_subplot(212, sharex=ax4)
+			for lab in labels:
+				ax4.plot(activity_time_vector, results['state_{0}'.format(lab)], label=lab)
+			ax4.set_ylabel(r'$d_{E}$')
+
+			if 'hamming_distance' in results.keys():
+				ax5.plot(time_vec, results['hamming_distance'], c='g')
+				ax5.set_ylabel(r'$d_{H}$')
+
+			yrange_4 = np.arange(ax4.get_ylim()[0], ax4.get_ylim()[1], 1)
+			ax4.plot(perturbation_time * np.ones_like(yrange_4), yrange_4, 'r--')
+			yrange_5 = np.arange(ax5.get_ylim()[0], ax5.get_ylim()[1], 1)
+			ax5.plot(perturbation_time * np.ones_like(yrange_5), yrange_5, 'r--')
+
+			ax4.set_xlabel(r'')
+			#ax4.set_xticklabels([])
+			ax4.set_xlim(np.min(activity_time_vector), np.max(activity_time_vector))
+			ax4.legend(loc=0)
+			ax5.set_xlabel(r'Time [ms]')
+
+			if display:
+				pl.show(False)
+			if save:
+				assert isinstance(save, str), "Please provide filename"
+				fig2.savefig(save + 'state_divergence.pdf')
+	return results
+
+
+def calculate_ranks(network):
+	"""
+	Calculate the rank of all state matrices stored in the population's decoding_layers
+	:return dict: {population_name: {state_variable: rank}}
+	"""
+	results = dict()
+	for ctr, n_pop in enumerate(list(itertools.chain(*[network.merged_populations, network.populations]))):
+		results[n_pop.name] = []
+		states = []
+
+		if n_pop.decoding_layer is not None:
+			if not sg.empty(n_pop.decoding_layer.state_matrix) and isinstance(n_pop.decoding_layer.state_matrix[0],
+			                                                                  list):
+				states = list(itertools.chain(*n_pop.decoding_layer.state_matrix))
+			elif not sg.empty(n_pop.decoding_layer.state_matrix):
+				states = n_pop.decoding_layer.state_matrix
+
+		for idx_state, n_state in enumerate(states):
+			results[n_pop.name].update({n_pop.decoding_layer.state_variables[idx_state]: get_state_rank(n_state)})
+
+	return results
+
+
+def get_state_rank(matrix):
+	"""
+	Calculate the rank of all state matrices
+	:return:
+	"""
+	return np.linalg.matrix_rank(matrix)
+
+
+########################################################################################################################
+class Readout(object):
+	"""
+	Readout object, trained to produce an estimation y(t) of output by reading out population state variables.
+	"""
+	def __init__(self, initializer, display=True):
+		"""
+		Create and initialize Readout object
+
+		:param initializer: ParameterSet object or dictionary specifying Readout parameters
+		"""
+		self.name = initializer.label
+		self.rule = initializer.algorithm
+		self.weights = None
+		self.fit_obj = None
+		self.output = None
+		self.index = None
+		self.norm_wout = None
+		self.performance = {}
+		if display:
+			print(("\t- Readout {0} [trained with {1}]".format(self.name, self.rule)))
+
+	def set_index(self):
+		"""
+		For a specific case, in which the readout name contains a time index
+		"""
+		index = int(self.name[-1])
+		if self.name[:3] == 'mem':
+			self.index = -index
+		else:
+			self.index = index
+
+	def train(self, state_train, target_train, display=True):
+		"""
+		"""
+		if display:
+			print(("\nTraining Readout {0} [{1}]".format(str(self.name), str(self.rule))))
+		if self.rule == 'pinv':
+			reg = lm.LinearRegression(fit_intercept=False)
+			reg.fit(state_train.T, target_train.T)
+			self.weights = reg.coef_#np.dot(np.linalg.pinv(np.transpose(state_train)), np.transpose(target_train))
+			self.fit_obj = reg #[]
+
+		elif self.rule == 'ridge':
+			# Get w_out by ridge regression:
+			# a) Obtain regression parameters by cross-validation
+			alphas = 10.0 ** np.arange(-5, 4)
+			reg = lm.RidgeCV(alphas, fit_intercept=False)
+			# b) fit using the best alpha...
+			reg.fit(state_train.T, target_train.T)
+			# c) get the regression coefficients
+			self.weights = reg.coef_
+			self.fit_obj = reg
+
+		elif self.rule == 'logistic':
+			C = 10.0 ** np.arange(-5, 5)
+			reg = lm.LogisticRegressionCV(C, cv=5, penalty='l2', dual=False,
+															fit_intercept=False, n_jobs=-1)
+			reg.fit(state_train.T, np.argmax(np.array(target_train), 0))
+			self.weights = reg.coef_
+			self.fit_obj = reg
+
+		elif self.rule == 'perceptron':
+			reg = lm.Perceptron(fit_intercept=False)
+			reg.fit(state_train.T, np.argmax(np.array(target_train), 0))
+			self.weights = reg.coef_
+			self.fit_obj = reg
+
+		elif self.rule == 'svm-linear':
+			reg = svm.SVC(kernel='linear')
+			reg.fit(state_train.T, np.argmax(np.array(target_train), 0))
+			self.weights = reg.coef_
+			self.fit_obj = reg
+
+		elif self.rule == 'svm-rbf':
+			reg = svm.SVC(kernel='rbf')
+			print("Performing 5-fold CV for svm-rbf hyperparameters...")
+			# use exponentially spaces C...
+			C_range = 10.0 ** np.arange(-2, 9)
+			# ... and gamma
+			gamma_range = 10.0 ** np.arange(-5, 4)
+			param_grid = dict(gamma=gamma_range, C=C_range)
+			# pick only a subset of train dataset...
+			target_test = target_train[:, :target_train.shape[1] / 2]
+			state_test = state_train[:, :target_train.shape[1] / 2]
+			cv = StratifiedKFold(y=np.argmax(np.array(target_test), 0), n_folds=5)
+			grid = GridSearchCV(reg, param_grid=param_grid, cv=cv, n_jobs=-1)
+			# use the test dataset (it's much smaller...)
+			grid.fit(state_test.T, np.argmax(np.array(target_test), 0))
+			print(("The best classifier is: ", grid.best_estimator_))
+
+			# use best parameters:
+			reg = grid.best_estimator_
+			reg.fit(state_train.T, np.argmax(np.array(target_train), 0))
+			self.weights = reg.coef0
+			self.fit_obj = reg
+
+		elif self.rule == 'elastic':
+			# l1_ratio_range = np.logspace(-5, 1, 60)
+			print("Performing 5-fold CV for ElasticNet hyperparameters...")
+			enet = lm.ElasticNetCV(n_jobs=-1)
+			enet.fit(state_train.T, np.argmax(np.array(target_train), 0))
+
+			self.fit_obj = enet
+			self.weights = enet.coef_
+
+		elif self.rule == 'bayesian_ridge':
+			model = lm.BayesianRidge()
+			model.fit(state_train.T, np.argmax(np.array(target_train), 0))
+
+			self.fit_obj = model
+			self.weights = model.coef_
+
+		return self.weights, self.fit_obj
+
+	def test(self, state_test, display=True):
+		"""
+		"""
+		if display:
+			print("\nTesting Readout {0}".format(str(self.name)))
+		self.output = None
+		self.output = self.fit_obj.predict(state_test.T)
+
+		return self.output
+
+	@staticmethod
+	def parse_outputs(output, target, dimensions, set_size, method='WTA', k=1):
+		"""
+
+		:param self:
+		:return:
+		"""
+		is_binary_target = np.all(np.unique(target) == [0., 1.])
+		is_binary_output = np.all(np.unique(output) == [0., 1.])
+		is_labeled_target = (len(target.shape) == 1)
+		is_labeled_output = (len(output.shape) == 1)
+
+		# select correct dimensions:
+		if not is_labeled_target:
+			assert (target.shape[0] == dimensions and target.shape[1] == set_size), \
+				"Incorrect target dimensions ({0})".format(str(target.shape))
+		else:
+			assert (target.shape[0] == set_size), \
+				"Incorrect target dimensions ({0})".format(str(target.shape))
+
+		if not is_labeled_output:
+			assert (output.shape[0] == dimensions and output.shape[1] == set_size), \
+				"Incorrect output dimensions ({0})".format(str(output.shape))
+		else:
+			assert (output.shape[0] == set_size), \
+				"Incorrect output dimensions ({0})".format(str(output.shape))
+
+		# set binary_output and output_labels
+		if not is_binary_output:
+			binary_output = np.zeros((dimensions, set_size))
+			if method == 'WTA':
+				for kk in range(output.shape[1]):
+					args = np.argsort(output[:, kk])[-k:]
+					binary_output[args, kk] = 1.
+			else:
+				for kk in range(output.shape[1]):
+					binary_output[np.where(output[:, kk] >= 0), kk] = 1.
+		else:
+			binary_output = output
+		if not is_labeled_output:
+			output_labels = np.argmax(output, 0)
+		else:
+			output_labels = output
+
+		# set binary_target and target_labels
+		if not is_binary_target:
+			binary_target = np.zeros((target.shape[0], target.shape[1]))
+			if method == 'WTA':
+				for kk in range(target.shape[1]):
+					args = np.argsort(target[:, kk])[-k:]
+					binary_target[args, kk] = 1.
+		else:
+			binary_target = target
+		if not is_labeled_target:
+			target_labels = np.argmax(target, 0)
+		else:
+			target_labels = target
+
+		return binary_output, output_labels, binary_target, target_labels
+
+	def measure_performance(self, target, output=None, comparison_function=None, display=True):
+		"""
+		Compute readout performance according to different metrics.
+		:param target: target output [numpy.array (binary or real-valued) or list (labels)]
+		:param output:
+		:param labeled:
+		:return:
+		"""
+		assert (isinstance(target, np.ndarray)), "Provide target matrix as array"
+
+		if output is None:
+			output = self.output
+
+		# check what type of data is provided
+		is_binary_target = np.all(np.unique(target) == [0., 1.])
+		is_binary_output = np.all(np.unique(output) == [0., 1.])
+		is_labeled_target = (len(target.shape) == 1)
+		is_labeled_output = (len(output.shape) == 1)
+
+		if output.shape != target.shape and not is_labeled_output:
+			output = output.T
+
+		# set dimensions
+		if not is_labeled_target:
+			n_out = target.shape[0]
+			test_steps = target.shape[1]
+		elif not is_labeled_output:
+			n_out = output.shape[0]
+			test_steps = output.shape[1]
+		else:
+			raise TypeError("Incorrect data shapes")
+
+		if comparison_function is None:
+			binary_output, output_labels, binary_target, target_labels = self.parse_outputs(output, target,
+			                                                    dimensions=n_out, set_size=test_steps, k=1)
+		else:
+			binary_output, output_labels, binary_target, target_labels = self.parse_outputs(output, target,
+			                                                    dimensions=n_out, set_size=test_steps,
+			                                                    method=comparison_function)
+		# print binary_output.todense(), output_labels
+		# initialize results dictionary - raw takes the direct readout output, max the binarized output and label the
+		#  labels of each step
+		performance = {'raw': {}, 'max': {}, 'label': {}}
+
+		if not is_labeled_output:  # some readouts just provide class labels
+			# Raw performance measures
+			performance['raw']['MSE'] = met.mean_squared_error(target, output)
+			performance['raw']['MAE'] = met.mean_absolute_error(target, output)
+			print("Readout {0} [raw ouput]: \n  - MSE = {1}".format(str(self.name), str(performance['raw']['MSE'])))
+			if is_binary_target and not is_binary_output and len(output.shape) > 1:
+				pb_cc = []
+				for n in range(target.shape[0]):
+					pb_cc.append(mst.pointbiserialr(np.array(target)[n, :], np.array(output)[n, :])[0])
+				performance['raw']['point_bisserial'] = pb_cc
+
+			# Max performance measures
+			performance['max']['MSE'] = met.mean_squared_error(binary_target, binary_output)
+			performance['max']['MAE'] = met.mean_absolute_error(binary_target, binary_output)
+			# performance['max']['performance'] = 1. - np.mean(np.abs(binary_target - binary_output))
+
+			performance['label']['performance'] = met.accuracy_score(target_labels, output_labels)
+			performance['label']['hamm_loss'] 	= met.hamming_loss(target_labels, output_labels)
+			performance['label']['precision'] 	= met.average_precision_score(binary_output, binary_target,
+																			average='weighted')
+			performance['label']['f1_score'] 	= met.f1_score(binary_target, binary_output, average='weighted')
+			performance['label']['recall'] 		= met.recall_score(target_labels, output_labels, average='weighted')
+			performance['label']['confusion'] 	= met.confusion_matrix(target_labels, output_labels)
+			performance['label']['jaccard'] 	= met.jaccard_similarity_score(target_labels, output_labels)
+			performance['label']['class_support'] = met.precision_recall_fscore_support(target_labels, output_labels)
+
+			print("Readout {0} Performance: \n  - Labels = {1}".format(str(self.name), str(performance['label'][
+				'performance'])))
+			if display:
+				print(met.classification_report(target_labels, output_labels))
+
+		self.performance = performance
+		return performance
+
+	def measure_stability(self):
+		"""
+		Determine the stability of the solution (norm of weights)
+		"""
+		self.norm_wout = np.linalg.norm(self.weights)
+		return np.linalg.norm(self.weights)
+
+	def copy(self):
+		"""
+		Copy the readout object
+		:return: new Readout object
+		"""
+		return copy.deepcopy(self)
+
+	def reset(self):
+		"""
+		Reset current readout
+		:return:
+		"""
+		initializer = prs.ParameterSet({'label': self.name, 'algorithm': self.rule})
+		self.__init__(initializer, False)
+
+	def plot_weights(self, display=True, save=False):
+		"""
+		Plots a histogram with the current weights
+		"""
+		visualization.plot_w_out(self.weights, label=self.name+'-'+self.rule, display=display, save=save)
+
+	def plot_confusion(self, display=True, save=False):
+		"""
+		"""
+		visualization.plot_confusion_matrix(self.performance['label']['confusion'], label=self.name, display=display,
+		                                    save=save)
+
+
+########################################################################################################################
+class DecodingLayer(object):
+	"""
+	The Decoder reads population activity in response to patterned inputs,
+	extracts the network state (according to specifications) and trains readout weights
+	"""
+	def __init__(self, initializer, population):
+		"""
+		Create and connect decoders to population
+
+		:param initializer: ParameterSet object or dictionary specifying decoding parameters
+		:param population:
+		"""
+		if isinstance(initializer, dict):
+			initializer = prs.ParameterSet(initializer)
+		assert isinstance(initializer, prs.ParameterSet), "StateExtractor must be initialized with ParameterSet or " \
+														  "dictionary"
+		self.decoding_pars = initializer
+		self.state_variables = initializer.state_variable
+		self.reset_state_variables = initializer.reset_states
+		self.average_states = initializer.average_states
+		self.extractors = []
+		self.readouts = [[] for _ in range(len(self.state_variables))]
+		self.activity = [None for _ in range(len(self.state_variables))]
+		self.state_matrix = [[] for _ in range(len(self.state_variables))]
+		self.initial_states = [None for _ in range(len(self.state_variables))]
+		self.total_delays = [0. for _ in range(len(self.state_variables))]
+		self.source_population = population
+		self.state_sample_times = None
+		self.sampled_times = []
+		self.extractor_resolution = [[] for _ in range(len(self.state_variables))]
+		self.standardize_states = initializer.standardize
+
+		for state_idx, state_variable in enumerate(self.state_variables):
+			state_specs = initializer.state_specs[state_idx]
+			if state_variable == 'V_m': # TODO - implement any other recordables from the neuron!!
+				mm_specs = prs.extract_nestvalid_dict(state_specs, param_type='device')
+				mm = nest.Create('multimeter', 1, mm_specs)
+				self.extractors.append(mm)
+				nest.Connect(mm, population.gids)
+				original_neuron_status = nest.GetStatus(population.gids)
+				self.initial_states[state_idx] = np.array([x['V_m'] for x in original_neuron_status])
+				self.extractor_resolution[state_idx] = state_specs['interval']
+			elif state_variable == 'spikes':
+				rec_neuron_pars = {'model': 'iaf_psc_delta', 'V_m': 0., 'E_L': 0., 'C_m': 1.,
+				                   'tau_m': state_specs['tau_m'],
+				                   'V_th': sys.float_info.max, 'V_reset': 0.,
+				                   'V_min': 0.}
+				rec_neuron_pars.update(state_specs)
+				filter_neuron_specs = prs.extract_nestvalid_dict(rec_neuron_pars, param_type='neuron')
+
+				rec_neurons = nest.Create(rec_neuron_pars['model'], len(population.gids), filter_neuron_specs)
+				if 'start' in state_specs.keys():
+					rec_mm = nest.Create('multimeter', 1, {'record_from': ['V_m'],
+					                                       'record_to': ['memory'],
+					                                       'interval': rec_neuron_pars['interval'],
+					                                       'start': state_specs['start']})
+				else:
+					rec_mm = nest.Create('multimeter', 1, {'record_from': ['V_m'],
+					                                       'record_to': ['memory'],
+					                                       'interval': rec_neuron_pars['interval']})
+				self.extractors.append(rec_mm)
+				nest.Connect(rec_mm, rec_neurons)
+				nest.Connect(population.gids, rec_neurons, 'one_to_one',
+				             syn_spec={'weight': 1., 'delay': rec_neuron_pars['interval'], 'model': 'static_synapse'})
+				self.initial_states[state_idx] = np.zeros((len(rec_neurons),))
+				self.extractor_resolution[state_idx] = rec_neuron_pars['interval']
+			else:
+				if state_variable in nest.GetStatus(population.gids[0])[0]['recordables']:
+					mm_specs = prs.extract_nestvalid_dict(state_specs, param_type='device')
+					mm = nest.Create('multimeter', 1, mm_specs)
+					self.extractors.append(mm)
+					nest.Connect(mm, population.gids)
+					self.initial_states[state_idx] = np.zeros((len(population.gids),))
+					self.extractor_resolution[state_idx] = state_specs['interval']
+				else:
+					raise NotImplementedError("Acquisition from state variable {0} not implemented yet".format(
+						state_variable))
+			print(("- State acquisition from Population {0} [{1}] - id {2}".format(population.name, state_variable,
+			                                                                      self.extractors[-1])))
+			if hasattr(initializer, "readout"):
+				pars_readout = prs.ParameterSet(initializer.readout[state_idx])
+				implemented_algorithms = ['pinv', 'ridge', 'logistic', 'svm-linear', 'svm-rbf', 'perceptron', 'elastic',
+				                          'bayesian_ridge']
+
+				for n_readout in range(pars_readout.N):
+					if len(pars_readout.algorithm) == pars_readout.N:
+						alg = pars_readout.algorithm[n_readout]
+					elif len(pars_readout.algorithm) == 1:
+						alg = pars_readout.algorithm[0]
+					else:
+						raise TypeError("Please provide readout algorithm for each readout or a single string, common to all "
+						                "readouts")
+
+					assert (alg in implemented_algorithms), "Algorithm {0} not implemented".format(alg)
+
+					readout_dict = {'label': pars_readout.labels[n_readout],
+					                'algorithm': alg}
+					self.readouts[state_idx].append(Readout(prs.ParameterSet(readout_dict)))
+		# print self.extractor_resolution
+		assert (len(np.unique(np.array(self.extractor_resolution))) == 1), "Output resolution must be common to " \
+		                                                                   "all state extractors"
+
+	def flush_records(self):
+		"""
+		Clear data from NEST devices
+		:return:
+		"""
+		for idx, n_device in enumerate(self.extractors):
+			nest.SetStatus(n_device, {'n_events': 0})
+			if nest.GetStatus(n_device)[0]['to_file']:
+				io.remove_files(nest.GetStatus(n_device)[0]['filenames'])
+			print((" - State extractor {0} [{1}] from Population {2}".format(str(self.state_variables[idx]),
+			                                                               str(n_device[0]),
+			                                                               str(self.source_population.name))))
+
+	def flush_states(self):
+		"""
+		Clear all data
+		:return:
+		"""
+		print(("\n- Deleting state and activity data from all decoders attached to {0}".format(str(
+			self.source_population.name))))
+		self.activity = [None for _ in range(len(self.state_variables))]
+		self.state_matrix = [[] for _ in range(len(self.state_variables))]
+
+	def extract_activity(self, start=None, stop=None, save=True):
+		"""
+		Read recorded activity from devices and store it
+		:param start:
+		:param stop:
+		:return:
+		"""
+		all_responses = []
+		print(("\nExtracting and storing recorded activity from state extractors [Population {0}]:".format(str(
+			self.source_population.name))))
+		for idx, n_state in enumerate(self.extractors):
+			print(("  - Reading extractor {0} [{1}]".format(n_state, str(self.state_variables[idx]))))
+			start_time1 = time.time()
+			if nest.GetStatus(n_state)[0]['to_memory']:
+				initializer = n_state
+			else:
+				initializer = nest.GetStatus(n_state)[0]['filenames']
+
+			# compensate delay in 'spikes' state variable
+			if self.state_variables[idx] == 'spikes':
+				if not self.total_delays[idx]:
+					self.determine_total_delay()
+				time_shift = self.total_delays[idx] #self.extractor_resolution[idx] #
+
+			if isinstance(initializer, basestring) or isinstance(initializer, list) or (isinstance(initializer,
+			                                                        tuple) and isinstance(initializer[0], basestring)):
+				# read data from file
+				data = io.extract_data_fromfile(initializer)
+				if data is not None:
+					if len(data.shape) != 2:
+						data = np.reshape(data, (int(len(data)/2), 2))
+					if data.shape[1] == 2:
+						raise NotImplementedError("Reading spiking activity directly not implemented")
+					else:
+						neuron_ids = data[:, 0]
+						times = data[:, 1]
+						if self.state_variables[idx] == 'spikes':
+							times -= time_shift
+						if start is not None and stop is not None:
+							idx1 = np.where(times >= start)[0]
+							idx2 = np.where(times <= stop)[0]
+							idxx = np.intersect1d(idx1, idx2)
+							times = times[idxx]
+							neuron_ids = neuron_ids[idxx]
+							data = data[idxx, :]
+						for nn in range(data.shape[1]):
+							if nn > 1:
+								sigs = data[:, nn]
+								tmp = [(neuron_ids[n], sigs[n]) for n in range(len(neuron_ids))]
+								responses = sg.AnalogSignalList(tmp, np.unique(neuron_ids).tolist(), times=times,
+								                                t_start=start, t_stop=stop)
+			elif isinstance(initializer, tuple) or isinstance(initializer, int):
+				# read data in memory
+				status_dict = nest.GetStatus(initializer)[0]['events']
+				times = status_dict['times']
+
+				if self.state_variables[idx] == 'spikes':
+					times -= time_shift
+
+				if start is not None and stop is not None:
+					idxx = np.where((times >= start - 0.00001) & (times <= stop + 0.000001))[0]
+					times = times[idxx]
+					status_dict['V_m'] = status_dict['V_m'][idxx]
+					status_dict['senders'] = status_dict['senders'][idxx]
+				tmp = [(status_dict['senders'][n], status_dict['V_m'][n]) for n in range(len(status_dict['senders']))]
+				responses = sg.AnalogSignalList(tmp, np.unique(status_dict['senders']).tolist(), times=times,
+												dt=self.extractor_resolution[idx], t_start=start, t_stop=stop)
+
+				# ############# DEBUG ##################################################################################
+				# dbg_status_dict = nest.GetStatus(initializer)[0]['events']
+				# print "\n\n ----  DEBUGGING  ----- \n"
+				# n_id, n_as = responses.analog_signals.iteritems().next()
+				# assert n_id == 154 # iaf_psc_delta neuron attached to neuron 0
+				#
+				# print "\n@spikelist.spiketrains[0]: {0}".format(self.source_population.spiking_activity.spiketrains[1])
+				#
+				# dbg_vms = [t for idx, t in enumerate(dbg_status_dict['V_m']) if dbg_status_dict['senders'][idx] == 154]
+				# print "\n\narray idx -- time point -- vm\n"
+				# for idx, vm in enumerate(dbg_vms):
+				# 	if idx > 0 and vm > dbg_vms[idx - 1]:
+				# 		print "{0}, {1}, {2}".format(idx, idx - 1, vm)
+				#
+				# sml = self.source_population.spiking_activity.filter_spiketrains(dt=0.1, tau=20., start=0.1, stop=200.1)[0].tolist()
+				# print "\n\n@filtered spikes [(arr index, aligned time, V_m)]"
+				# for idx, val in enumerate(sml):
+				# 	if idx > 0 and val > sml[idx - 1]:
+				# 		print idx, idx + 1, val
+				# exit(0)
+			else:
+				raise TypeError("Incorrect Decoder ID")
+
+			all_responses.append(responses)
+			print(("Elapsed time: {0} s".format(str(time.time()-start_time1))))
+		if save:
+			for idx, n_response in enumerate(all_responses):
+				self.activity[idx] = n_response
+		else:
+			return all_responses
+
+	def extract_state_vector(self, time_point=200., save=True, reset=False):
+		"""
+		Read population responses within a local time window and extract a single state vector at the specified time
+		:param time_point: in ms
+		:param lag: length of local time window = [time_point-lag, time_point]
+		:param save: bool - store state vectors in the decoding layer or return them
+		:param reset:
+		:return:
+		"""
+		# set the lag to  be == 2*resolution
+		lag = np.unique(self.extractor_resolution)[0] #* 2.
+		self.sampled_times.append(time_point)
+		if not sg.empty(self.activity):
+			responses = self.activity
+		else:
+			responses = self.extract_activity(start=time_point-lag, stop=time_point, save=False)
+
+		state_vectors = []
+		if save and (isinstance(responses, list) and len(self.state_matrix) != len(responses)):
+			self.state_matrix = [[] for _ in range(len(responses))]
+		elif not save and (isinstance(responses, list)):
+			state_vectors = [[] for _ in range(len(responses))]
+		elif not save:
+			state_vectors = []
+		for idx, n in enumerate(responses):
+			state_vector = n.as_array()[:, -1]
+			if save:
+				self.state_matrix[idx].append(state_vector)
+			else:
+				state_vectors[idx].append(state_vector)
+		if reset:
+			self.reset_states()
+		if not save:
+			return state_vectors
+
+	def compile_state_matrix(self, sampling_times=None):
+		"""
+		After gathering all state vectors, compile a standard state matrix
+
+		:param sampling_times:
+		:return:
+		"""
+		assert self.state_matrix, "State matrix elements need to be stored before calling this function"
+		states = []
+		if len(self.state_matrix) > 1 and sampling_times is None:
+			states = []
+			for n_idx, n_state in enumerate(self.state_matrix):
+				st = np.array(n_state).T
+				if self.standardize_states[n_idx]:
+					st = StandardScaler().fit_transform(st.T).T
+				states.append(st)
+			self.state_matrix = states
+		elif len(self.state_matrix) > 1 and sampling_times is not None:
+			for n_idx, n_state in enumerate(self.state_matrix):
+				states = []
+				for idx_state, n_state_mat in enumerate(n_state):
+					st = np.array(n_state_mat).T
+					if self.standardize_states[n_idx]:
+						st = StandardScaler().fit_transform(st.T).T
+					states.append(st)
+					# states.append(np.array(n_state_mat).T)
+				self.state_matrix[n_idx] = states
+		elif len(self.state_matrix) == 1 and sampling_times is not None:
+			states = []
+			for idx_state, n_state_mat in enumerate(self.state_matrix[0]):
+				st = np.array(n_state_mat).T
+				if self.standardize_states[idx_state]:
+					st = StandardScaler().fit_transform(st.T).T
+				states.append(st)
+				# states.append(np.array(n_state_mat).T)
+			self.state_matrix[0] = states
+		else:
+			st = np.array(self.state_matrix[0]).T
+			if self.standardize_states[0]:
+				st = StandardScaler().fit_transform(st.T).T
+			states.append(st)
+			# states.append(st)
+			self.state_matrix = states
+
+	def evaluate_decoding(self, n_neurons=10, display=False, save=False):
+		"""
+		Make sure the state extraction process is consistent
+
+		:param spike_list: raw spiking activity data for this population
+		:param n_neurons: choose n random neurons to plot
+		:return:
+		"""
+		spike_list = self.source_population.spiking_activity
+		start = spike_list.t_start
+		stop = spike_list.t_stop
+		neuron_ids = np.random.permutation(spike_list.id_list)[:n_neurons]
+
+		if sg.empty(self.activity):
+			self.extract_activity(start=start, stop=stop, save=True)
+		visualization.plot_response(self.source_population, ids=neuron_ids, display=display, save=save)
+
+	def reset_states(self):
+		"""
+		Sets all state variables to 0
+		:return:
+		"""
+		for idx_state, n_state in enumerate(self.state_variables):
+			if self.reset_state_variables[idx_state]:
+				# print("\nReseting {0} state in Population {1}".format(n_state, self.source_population.name))
+				if n_state == 'V_m':
+					print("Resetting V_m can lead to incorrect results!")
+					for idx, neuron_id in enumerate(self.source_population.gids):
+						nest.SetStatus([neuron_id], {'V_m': self.initial_states[idx_state][idx]})
+				elif n_state == 'spikes':
+					recording_neuron_gids = nest.GetStatus(nest.GetConnections(self.extractors[idx_state]), 'target')
+					for idx, neuron_id in enumerate(recording_neuron_gids):
+						nest.SetStatus([neuron_id], {'V_m': self.initial_states[idx_state][idx]})
+				else:
+					try:
+						for idx, neuron_id in enumerate(self.source_population.gids):
+							nest.SetStatus([neuron_id], {n_state: self.initial_states[idx_state][idx]})
+					except ValueError:
+						print(("State variable {0} cannot be reset".format(n_state)))
+
+	def determine_total_delay(self):
+		"""
+		Determine the connection delays involved in the decoding layer
+		:return:
+		"""
+		for idx, extractor_id in enumerate(self.extractors):
+			status_dict = nest.GetStatus(nest.GetConnections(source=extractor_id))
+			tget_gids = [n['target'] for n in status_dict]
+			source_neurons = [x for x in tget_gids if x in self.source_population.gids]
+			if sg.empty(source_neurons):
+				assert (self.state_variables[idx] == 'spikes'), "No connections to {0} extractor".format(
+					self.state_variables[idx])
+				assert (np.array([nest.GetStatus([x])[0]['model'] == 'iaf_psc_delta' for x in tget_gids]).all()), \
+					"No connections to {0} extractor".format(
+					self.state_variables[idx])
+
+				net_to_decneurons = net_architect.extract_delays_matrix(src_gids=self.source_population.gids[:10],
+				                                                        tgets_gids=tget_gids, progress=False)
+				net_to_decneurons_delay = np.unique(np.array(net_to_decneurons[net_to_decneurons.nonzero()].todense()))
+				assert (len(net_to_decneurons_delay) == 1), "Heterogeneous delays in decoding layer are not supported.."
+
+				# decneurons_to_mm = net_architect.extract_delays_matrix(src_gids=extractor_id, tgets_gids=tget_gids, progress=False)
+				# decneurons_to_mm_delay = np.unique(np.array(decneurons_to_mm[decneurons_to_mm.nonzero()].todense()))
+				# assert (len(decneurons_to_mm_delay) == 1), "Heterogeneous delays in decoding layer are not " \
+				#                                             "supported.."
+
+				self.total_delays[idx] = float(net_to_decneurons_delay)# + decneurons_to_mm_delay)
+			else:
+				# delays = net_architect.extract_delays_matrix(src_gids=extractor_id, tgets_gids=tget_gids, progress=False)
+				# delay = np.unique(np.array(delays[delays.nonzero()].todense()))
+				# assert (len(delay) == 1), "Heterogeneous delays in decoding layer are not supported.."
+				self.total_delays[idx] = 0.#0.float(delay)
+		print(("\nTotal delays in Population {0} DecodingLayer {1}: {2} ms".format(str(self.source_population.name),
+		                                                                          str(self.state_variables),
+		                                                                          str(self.total_delays))))
+
+
+'''
+
+	def copy_readout_set(self, n=1):
+		"""
+		Returns n copies of all the readouts attached to the population
+		:param n: number of copies
+		:return: list of Readout objects
+		"""
+		assert self.readouts, "Population {0} doesn't have any readouts attached!".format(self.name)
+
+		all_copies = []
+		for n_copy in range(n):
+			if isinstance(self.readouts[0], list):
+				# nested readouts (multiple state variables for current population)
+				copy_readouts = [[] for _ in range(len(self.readouts))]
+				for set_index in range(len(self.readouts)):
+					for n_readout, readout in enumerate(self.readouts[set_index]):
+						copy_readouts[set_index].append(readout.copy())
+			else:
+				copy_readouts = []
+				for n_readout, readout in enumerate(self.readouts):
+					copy_readouts.append(readout.copy())
+			all_copies.append(copy_readouts)
+		return all_copies
+
+'''
+
+
+def reset_decoders(net, enc_layer):
+	"""
+	Reset all decoders
+	:param net:
+	:param enc_layer:
+	:return:
+	"""
+	for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
+	                                                   net.populations, enc_layer.encoders]))):
+		if n_pop.decoding_layer is not None:
+			n_pop.decoding_layer.reset_states()
+
 
 
 # def train_all_readouts(parameters, net, stim, input_signal, encoding_layer, flush=False, debug=False, plot=True,
@@ -2590,1119 +3748,3 @@ def readout_test(readout, state, target, index=None, accepted=None, display=True
 # 							discrete_readout_test(nn_state, target, readout, readout.index)
 # 			if flush:
 # 				n_pop.flush_states()
-
-
-def analyse_state_matrix(state, stim_labels, label='', plot=True, display=True, save=False):
-	"""
-
-	:param state:
-	:param stim:
-	:return:
-	"""
-	pca_obj = sk.PCA(n_components=3)
-	X_r = pca_obj.fit(state.T).transform(state.T)
-	print "Explained Variance (first 3 components): %s" % str(pca_obj.explained_variance_ratio_)
-
-	if not isinstance(stim_labels, dict):
-		label_seq = np.array(list(sg.iterate_obj_list(stim_labels)))
-		n_elements = np.unique(label_seq)
-		if plot:
-			fig1 = pl.figure()
-			ax1 = fig1.add_subplot(111)
-			visualization.plot_state_matrix(state, stim_labels, ax=ax1, label=label, display=False, save=False)
-
-			fig2 = pl.figure()
-			fig2.clf()
-			exp_var = [round(n, 2) for n in pca_obj.explained_variance_ratio_]
-			fig2.suptitle(r'${0} - PCA (var = {1})$'.format(str(label), str(exp_var)),
-						  fontsize=20)
-
-			ax2 = fig2.add_subplot(111, projection='3d')
-			colors_map = visualization.get_cmap(N=len(n_elements), cmap='Paired')
-			ax2.set_xlabel(r'$PC_{1}$')
-			ax2.set_ylabel(r'$PC_{2}$')
-			ax2.set_zlabel(r'$PC_{3}$')
-
-			ccs = [colors_map(ii) for ii in range(len(n_elements))]
-			for color, index, lab in zip(ccs, n_elements, n_elements):
-				locals()['sc_{0}'.format(str(index))] = ax2.scatter(X_r[np.where(np.array(list(itertools.chain(
-					label_seq))) == index)[0], 0], X_r[np.where(np.array(list(itertools.chain(label_seq))) == index)[
-								0],  1], X_r[np.where(np.array(list(itertools.chain(label_seq))) == index)[0], 2],
-																	s=50, c=color, label=lab)
-			scatters = [locals()['sc_{0}'.format(str(ind))] for ind in n_elements]
-			#pl.legend(tuple(scatters), tuple(n_elements))
-			pl.legend(loc=0, handles=scatters)
-
-			if display:
-				pl.show(block=False)
-			if save:
-				fig1.savefig(save + 'state_matrix_{0}.pdf'.format(label))
-				fig2.savefig(save + 'pca_representation_{0}.pdf'.format(label))
-	else:
-		if plot:
-			fig1 = pl.figure()
-			ax = fig1.add_subplot(111, projection='3d')
-			ax.plot(X_r[:, 0], X_r[:, 1], X_r[:, 2], color='r', lw=2)
-			ax.set_title(label + r'$ - (3PCs) $= {0}$'.format(str(round(np.sum(pca_obj.explained_variance_ratio_[:3]),
-																	1))))
-			ax.grid()
-			if display:
-				pl.show(False)
-			if save:
-				fig1.savefig(save + 'pca_representation_{0}.pdf'.format(label))
-
-
-def advanced_state_analysis(state, stim_labels, label='', plot=True, display=True, save=False):
-	"""
-	"""
-	pass
-
-
-def evaluate_encoding(enc_layer, parameter_set, analysis_interval, input_signal, plot=True, display=True, save=False):
-	"""
-	Determine the quality of the encoding method (if there are encoders), by reading out the state of the encoders
-	and training it to reconstruct the input signal
-	:param enc_layer:
-	:return:
-	"""
-	assert(isinstance(analysis_interval, list)), "Incorrect analysis_interval"
-	results = dict()
-	for idx, n_enc in enumerate(enc_layer.encoders):
-		new_pars = prs.ParameterSet(prs.copy_dict(parameter_set.as_dict()))
-		new_pars.kernel_pars.data_prefix = 'Input Encoder {0}'.format(n_enc.name)
-		# results['input_activity_{0}'.format(str(idx))] = characterize_population_activity(n_enc,
-		#                                                                   parameter_set=new_pars,
-		#                                                                   analysis_interval=analysis_interval,
-		#                                                                   epochs=None, time_bin=1., complete=False,
-		#                                                                   time_resolved=False, color_map='jet',
-		#                                                                   plot=plot, display=display, save=save)
-
-		if isinstance(n_enc.spiking_activity, sg.SpikeList) and not n_enc.spiking_activity.empty():
-			inp_spikes = n_enc.spiking_activity.time_slice(analysis_interval[0], analysis_interval[1])
-			tau = parameter_set.decoding_pars.state_extractor.filter_tau
-			n_input_neurons = np.sum(parameter_set.encoding_pars.encoder.n_neurons)
-			if n_enc.decoding_layer is not None:
-				inp_responses = n_enc.decoding_layer.extract_activity(start=analysis_interval[0],
-				                                                      stop=analysis_interval[1], save=False,
-				                                                      reset=False)[0]
-				inp_readout_pars = prs.copy_dict(n_enc.decoding_layer.decoding_pars.readout[0])
-			else:
-				# TEST!!
-				inp_responses = inp_spikes.filter_spiketrains(dt=input_signal.dt,
-				                                              tau=tau, start=analysis_interval[0],
-				                                              stop=analysis_interval[1], N=n_input_neurons)
-				inp_readout_pars = prs.copy_dict(parameter_set.decoding_pars.readout[0],
-			                                 {'label': 'InputNeurons',
-			                                  'algorithm': parameter_set.decoding_pars.readout[0]['algorithm'][0]})
-			inp_readout = Readout(prs.ParameterSet(inp_readout_pars))
-			analysis_signal = input_signal.time_slice(analysis_interval[0], analysis_interval[1])
-			inp_readout.train(inp_responses, analysis_signal.as_array())
-			inp_readout.test(inp_responses)
-			perf = inp_readout.measure_performance(analysis_signal.as_array())
-
-			from modules.input_architect import InputSignal
-			input_out = InputSignal()
-			input_out.load_signal(inp_readout.output.T, dt=input_signal.dt, onset=analysis_interval[0],
-				inherit_from=analysis_signal)
-
-			if plot:
-				from modules.visualization import InputPlots
-				import matplotlib.pyplot as pl
-				figure2 = pl.figure()
-				figure2.suptitle(r'MAE = {0}'.format(str(perf['raw']['MAE'])))
-				ax21 = figure2.add_subplot(211)
-				ax22 = figure2.add_subplot(212, sharex=ax21)
-				InputPlots(input_obj=analysis_signal).plot_input_signal(ax22, save=False, display=False)
-				ax22.set_color_cycle(None)
-				InputPlots(input_obj=input_out).plot_input_signal(ax22, save=False, display=False)
-				ax22.set_ylim([analysis_signal.base-10., analysis_signal.peak+10.])
-				inp_spikes.raster_plot(with_rate=False, ax=ax21, save=False, display=False)
-				if display:
-					pl.show(block=False)
-				if save:
-					figure2.savefig(save+'_EncodingQuality.pdf')
-	return results
-
-
-def analyse_performance_results(net, enc_layer=None, plot=True, display=True, save=False):
-	"""
-	Re-organizes performance results
-	(may be too case-sensitive!!)
-	"""
-	from modules.signals import empty
-	results = {}
-
-	if enc_layer is not None:
-		all_populations = list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders]))
-	else:
-		all_populations = list(itertools.chain(*[net.merged_populations, net.populations]))
-
-	for n_pop in all_populations:
-		if hasattr(n_pop, "decoding_pars"):
-			results[n_pop.name] = {}
-			readout_labels = list(np.sort(n_pop.decoding_pars['readout']['labels']))
-			readout_type = [n[:3] for n in readout_labels]
-			if 'mem' in readout_type and 'cla' in readout_type: # special case
-				last_mem = readout_type[::-1].index('mem')
-				readout_labels.insert(last_mem + 1, readout_labels[0])
-				readout_labels.pop(0)
-				readout_type = [n[:3] for n in readout_labels]
-				last_mem = readout_type[::-1].index('mem')
-				first_mem = readout_type.index('mem')
-				readout_labels[first_mem:last_mem - 1] = readout_labels[first_mem:last_mem - 1][::-1]
-
-			pop_readouts = n_pop.readouts
-			pop_state_variables = n_pop.state_variables
-			print pop_state_variables
-			if empty(n_pop.state_sample_times):
-				for idx_state, n_state in enumerate(n_pop.state_extractors):
-					pop_readout_labels = [n.name for n in pop_readouts[idx_state]]
-					readout_idx = [np.where(n == np.array(readout_labels))[0][0] for n in pop_readout_labels]
-					readout_set = list(np.array(pop_readouts[idx_state])[readout_idx])
-					results[n_pop.name].update({'ReadoutSet{0}'.format(str(idx_state)): {}})
-					indices = [n.index for n in readout_set]
-					results[n_pop.name]['ReadoutSet{0}'.format(str(idx_state))] = compile_performance_results(
-						readout_set, state_variable=pop_state_variables[idx_state])
-			else:
-				assert (len(pop_readouts) == len(n_pop.state_sample_times)), "Inconsistent readout set"
-				n_states = len(pop_readouts[0])
-				for n_state in range(n_states):
-					results[n_pop.name].update({'ReadoutSet{0}'.format(str(n_state)): {}})
-					results[n_pop.name]['ReadoutSet{0}'.format(str(n_state))].update(
-						{'sample_times': n_pop.state_sample_times})
-
-					for n_sample_time in range(len(n_pop.state_sample_times)):
-						readout_set = pop_readouts[n_sample_time][n_state]
-						results[n_pop.name]['ReadoutSet{0}'.format(str(n_state))].update({'sample_{0}'.format(
-							n_sample_time): {}})
-						results[n_pop.name]['ReadoutSet{0}'.format(str(n_state))]['sample_{0}'.format(
-							n_sample_time)] = compile_performance_results(readout_set,
-																		  state_variable=pop_state_variables[n_state])
-
-	if plot:
-		visualization.plot_readout_performance(results, display=display, save=save)
-	return results
-
-
-def compile_performance_results(readout_set, state_variable=''):
-	"""
-	"""
-	results = {
-		'accuracy': np.array([n.performance['label']['performance'] for n in readout_set]),
-		'performance': np.array([n.performance['max']['performance'] for n in readout_set if not sg.empty(
-			n.performance['max'])]),
-		'hamming_loss': np.array([n.performance['label']['hamm_loss'] for n in readout_set]),
-		'MSE': np.array([n.performance['max']['MSE'] for n in readout_set if not sg.empty(n.performance['max'])]),
-		'pb_cc': [n.performance['raw']['point_bisserial'] for n in readout_set if not sg.empty(n.performance['raw'])],
-		'raw_MAE': np.array([n.performance['raw']['MAE'] for n in readout_set if not sg.empty(n.performance['raw'])]),
-		'precision': np.array([n.performance['label']['precision'] for n in readout_set]),
-		'f1_score': np.array([n.performance['label']['f1_score'] for n in readout_set]),
-		'recall': np.array([n.performance['label']['recall'] for n in readout_set]),
-		'confusion_matrices': [n.performance['label']['confusion'] for n in readout_set],
-		'jaccard': np.array([n.performance['label']['jaccard'] for n in readout_set]),
-		'class_support': [n.performance['label']['class_support'] for n in readout_set],
-		'norm_wout': np.array([n.measure_stability() for n in readout_set]),
-		'labels': [n.name for n in readout_set],
-		'indices': [n.index for n in readout_set],
-		'state_variable': state_variable}
-	return results
-
-
-def analyse_state_divergence(parameter_set, net, clone, plot=True, display=True, save=False):
-	"""
-
-	:param parameter_set:
-	:param net:
-	:param clone:
-	:return:
-	"""
-	results = dict()
-	pop_idx = net.population_names.index(parameter_set.kernel_pars.perturb_population)
-	start = parameter_set.kernel_pars.transient_t
-	stop = parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t
-	activity_time_vector = np.arange(parameter_set.kernel_pars.transient_t,
-									 parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t,
-									 parameter_set.kernel_pars.resolution)
-	perturbation_time = parameter_set.kernel_pars.perturbation_time + parameter_set.kernel_pars.transient_t
-	observation_time = max(activity_time_vector) - perturbation_time
-	#perturbation_time = parameter_set.kernel_pars.perturbation_time + parameter_set.kernel_pars.transient_t
-	#observation_time = max(time_vec) - perturbation_time
-
-	if not sg.empty(net.populations[pop_idx].spiking_activity.spiketrains):
-		time_vec = net.populations[pop_idx].spiking_activity.time_axis(1)[:-1]
-		perturbation_idx = np.where(time_vec == perturbation_time)
-		rate_native = net.populations[pop_idx].spiking_activity.firing_rate(1, average=True)
-		rate_clone = clone.populations[pop_idx].spiking_activity.firing_rate(1, average=True)
-
-		binary_native = net.populations[pop_idx].spiking_activity.compile_binary_response_matrix(
-				parameter_set.kernel_pars.resolution, start=parameter_set.kernel_pars.transient_t,
-				stop=parameter_set.kernel_pars.sim_time+parameter_set.kernel_pars.transient_t,
-				N=net.populations[pop_idx].size, display=True)
-		binary_clone = clone.populations[pop_idx].spiking_activity.compile_binary_response_matrix(
-				parameter_set.kernel_pars.resolution, start=parameter_set.kernel_pars.transient_t,
-				stop=parameter_set.kernel_pars.sim_time+parameter_set.kernel_pars.transient_t,
-				N=clone.populations[pop_idx].size, display=True)
-
-		r_cor = []
-		hamming = []
-		for idx, t in enumerate(time_vec):
-			if not sg.empty(np.corrcoef(rate_native[:idx], rate_clone[:idx])) and np.corrcoef(rate_native[:idx],
-								rate_clone[:idx])[0, 1] != np.nan:
-				r_cor.append(np.corrcoef(rate_native[:idx], rate_clone[:idx])[0, 1])
-			else:
-				r_cor.append(0.)
-			binary_state_diff = binary_native[:, idx] - binary_clone[:, idx]
-			if not sg.empty(np.nonzero(binary_state_diff)[0]):
-				hamming.append(float(len(np.nonzero(binary_state_diff)[0]))/float(net.populations[pop_idx].size))
-			else:
-				hamming.append(0.)
-
-		results['rate_native'] = rate_native
-		results['rate_clone'] = rate_clone
-		results['rate_correlation'] = np.array(r_cor)
-		results['hamming_distance'] = np.array(hamming)
-
-	if not sg.empty(net.populations[pop_idx].response_matrix):
-		responses_native = net.populations[pop_idx].response_matrix
-		responses_clone = clone.populations[pop_idx].response_matrix
-		response_vars = parameter_set.decoding_pars.state_extractor.state_variable
-		print "\n Computing state divergence: "
-		labels = []
-		for resp_idx, n_response in enumerate(responses_native):
-			print "\t- State variable {0}".format(str(response_vars[resp_idx]))
-			response_length = len(n_response.time_axis())
-			distan = []
-			for t in range(response_length):
-				distan.append(distance.euclidean(n_response.as_array()[:, t], responses_clone[resp_idx].as_array()[:, t]))
-				if display:
-					from modules.visualization import progress_bar
-					progress_bar(float(t)/float(response_length))
-
-			results['state_{0}'.format(str(response_vars[resp_idx]))] = np.array(distan)
-			labels.append(str(response_vars[resp_idx]))
-
-			if np.array(distan).any():
-				initial_distance = distan[min(np.where(np.array(distan) > 0.0)[0])]
-			else:
-				initial_distance = 0.
-			final_distance = distan[-1]
-			lyapunov = (np.log(final_distance) / observation_time) - np.log(initial_distance) / observation_time
-			print "Lyapunov Exponent = {0}".format(lyapunov)
-
-	if plot:
-		if not sg.empty(net.populations[pop_idx].spiking_activity.spiketrains):
-			fig = pl.figure()
-			fig.suptitle(r'$LE = {0}$'.format(str(lyapunov)))
-			ax1a = pl.subplot2grid((12, 1), (0, 0), rowspan=8, colspan=1)
-			ax1b = ax1a.twinx()
-
-			ax2a = pl.subplot2grid((12, 1), (8, 0), rowspan=2, colspan=1, sharex=ax1a)
-			ax2b = ax2a.twinx()
-
-			ax3 = pl.subplot2grid((12, 1), (10, 0), rowspan=2, colspan=1, sharex=ax1a)
-
-			#ax4 = pl.subplot2grid((12, 1), (16, 0), rowspan=4, colspan=1)
-
-			rp1 = visualization.SpikePlots(net.populations[pop_idx].spiking_activity, start, stop)
-			rp2 = visualization.SpikePlots(clone.populations[pop_idx].spiking_activity, start, stop)
-
-			plot_props1 = {'xlabel': 'Time [ms]', 'ylabel': 'Neuron', 'color': 'r', 'linewidth': 1.0,
-						  'linestyle': '-'}
-			plot_props2 = {'xlabel': 'Time [ms]', 'ylabel': 'Neuron', 'color': 'k', 'linewidth': 1.0,
-						  'linestyle': '-'}
-			rp1.dot_display(ax=[ax1a, ax2a], with_rate=True, colors='r', display=False, save=False, **plot_props1)
-			rp2.dot_display(ax=[ax1b, ax2b], with_rate=True, colors='k', display=False, save=False, **plot_props2)
-
-			ax3.plot(time_vec, r_cor, '-b')
-			ax3.set_ylabel('CC')
-			# mark perturbation time
-			yrange_1 = np.arange(ax1a.get_ylim()[0], ax1a.get_ylim()[1], 1)
-			ax1a.plot(perturbation_time * np.ones_like(yrange_1), yrange_1, 'r--')
-			yrange_2 = np.arange(ax2a.get_ylim()[0], ax2a.get_ylim()[1], 1)
-			ax2a.plot(perturbation_time * np.ones_like(yrange_2), yrange_2, 'r--')
-			yrange_3 = np.arange(ax3.get_ylim()[0], ax3.get_ylim()[1], 1)
-			ax3.plot(perturbation_time * np.ones_like(yrange_3), yrange_3, 'r--')
-			if display:
-				pl.show(False)
-			if save:
-				assert isinstance(save, str), "Please provide filename"
-				fig.savefig(save + 'LE_analysis.pdf')
-
-		if not sg.empty(net.populations[pop_idx].response_matrix):
-			fig2 = pl.figure()
-			ax4 = fig2.add_subplot(211)
-			ax5 = fig2.add_subplot(212, sharex=ax4)
-			for lab in labels:
-				ax4.plot(activity_time_vector, results['state_{0}'.format(lab)], label=lab)
-			ax4.set_ylabel(r'$d_{E}$')
-
-			if 'hamming_distance' in results.keys():
-				ax5.plot(time_vec, results['hamming_distance'], c='g')
-				ax5.set_ylabel(r'$d_{H}$')
-
-			yrange_4 = np.arange(ax4.get_ylim()[0], ax4.get_ylim()[1], 1)
-			ax4.plot(perturbation_time * np.ones_like(yrange_4), yrange_4, 'r--')
-			yrange_5 = np.arange(ax5.get_ylim()[0], ax5.get_ylim()[1], 1)
-			ax5.plot(perturbation_time * np.ones_like(yrange_5), yrange_5, 'r--')
-
-			ax4.set_xlabel(r'')
-			#ax4.set_xticklabels([])
-			ax4.set_xlim(np.min(activity_time_vector), np.max(activity_time_vector))
-			ax4.legend(loc=0)
-			ax5.set_xlabel(r'Time [ms]')
-
-			if display:
-				pl.show(False)
-			if save:
-				assert isinstance(save, str), "Please provide filename"
-				fig2.savefig(save + 'state_divergence.pdf')
-	return results
-
-
-def calculate_ranks(network):
-	"""
-	Calculate the rank of all state matrices stored in the population's decoding_layers
-	:return dict: {population_name: {state_variable: rank}}
-	"""
-	results = dict()
-	for ctr, n_pop in enumerate(list(itertools.chain(*[network.merged_populations, network.populations]))):
-		results[n_pop.name] = []
-		states = []
-
-		if n_pop.decoding_layer is not None:
-			if not sg.empty(n_pop.decoding_layer.state_matrix) and isinstance(n_pop.decoding_layer.state_matrix[0],
-			                                                                  list):
-				states = list(itertools.chain(*n_pop.decoding_layer.state_matrix))
-			elif not sg.empty(n_pop.decoding_layer.state_matrix):
-				states = n_pop.decoding_layer.state_matrix
-
-		for idx_state, n_state in enumerate(states):
-			results[n_pop.name].update({n_pop.decoding_layer.state_variables[idx_state]: get_state_rank(n_state)})
-
-	return results
-
-
-def get_state_rank(matrix):
-	"""
-	Calculate the rank of all state matrices
-	:return:
-	"""
-	return np.linalg.matrix_rank(matrix)
-
-
-########################################################################################################################
-class Readout(object):
-	"""
-
-	"""
-	def __init__(self, initializer, display=True):
-		"""
-		Readout object, trained to produce an estimation y(t) of output by reading out population state variables
-		"""
-		self.name = initializer.label
-		self.rule = initializer.algorithm
-		self.weights = None
-		self.fit_obj = None
-		self.output = None
-		self.index = None
-		self.norm_wout = None
-		self.performance = {}
-		if display:
-			print("\t- Readout {0} [trained with {1}]".format(self.name, self.rule))
-
-	def set_index(self):
-		"""
-		For a specific case, in which the readout name contains a time index..
-		"""
-		index = int(self.name[-1])
-		if self.name[:3] == 'mem':
-			self.index = -index
-		else:
-			self.index = index
-
-	def train(self, state_train, target_train, display=True):
-		"""
-		"""
-		if display:
-			print("\nTraining Readout {0} [{1}]".format(str(self.name), str(self.rule)))
-		if self.rule == 'pinv':
-			reg = lm.LinearRegression(fit_intercept=False)
-			reg.fit(state_train.T, target_train.T)
-			self.weights = reg.coef_#np.dot(np.linalg.pinv(np.transpose(state_train)), np.transpose(target_train))
-			self.fit_obj = reg #[]
-
-		elif self.rule == 'ridge':
-			# Get w_out by ridge regression:
-			# a) Obtain regression parameters by cross-validation
-			alphas = 10.0 ** np.arange(-5, 4)
-			reg = lm.RidgeCV(alphas, fit_intercept=False)
-			# b) fit using the best alpha...
-			reg.fit(state_train.T, target_train.T)
-			# c) get the regression coefficients
-			self.weights = reg.coef_
-			self.fit_obj = reg
-
-		elif self.rule == 'logistic':
-			C = 10.0 ** np.arange(-5, 5)
-			reg = lm.LogisticRegressionCV(C, cv=5, penalty='l2', dual=False,
-															fit_intercept=False, n_jobs=-1)
-			reg.fit(state_train.T, np.argmax(np.array(target_train), 0))
-			self.weights = reg.coef_
-			self.fit_obj = reg
-
-		elif self.rule == 'perceptron':
-			reg = lm.Perceptron(fit_intercept=False)
-			reg.fit(state_train.T, np.argmax(np.array(target_train), 0))
-			self.weights = reg.coef_
-			self.fit_obj = reg
-
-		elif self.rule == 'svm-linear':
-			reg = svm.SVC(kernel='linear')
-			reg.fit(state_train.T, np.argmax(np.array(target_train), 0))
-			self.weights = reg.coef_
-			self.fit_obj = reg
-
-		elif self.rule == 'svm-rbf':
-			reg = svm.SVC(kernel='rbf')
-			print("Performing 5-fold CV for svm-rbf hyperparameters...")
-			# use exponentially spaces C...
-			C_range = 10.0 ** np.arange(-2, 9)
-			# ... and gamma
-			gamma_range = 10.0 ** np.arange(-5, 4)
-			param_grid = dict(gamma=gamma_range, C=C_range)
-			# pick only a subset of train dataset...
-			target_test = target_train[:, :target_train.shape[1] / 2]
-			state_test = state_train[:, :target_train.shape[1] / 2]
-			cv = StratifiedKFold(y=np.argmax(np.array(target_test), 0), n_folds=5)
-			grid = GridSearchCV(reg, param_grid=param_grid, cv=cv, n_jobs=-1)
-			# use the test dataset (it's much smaller...)
-			grid.fit(state_test.T, np.argmax(np.array(target_test), 0))
-			print("The best classifier is: ", grid.best_estimator_)
-
-			# use best parameters:
-			reg = grid.best_estimator_
-			reg.fit(state_train.T, np.argmax(np.array(target_train), 0))
-			self.weights = reg.coef0
-			self.fit_obj = reg
-
-		elif self.rule == 'elastic':
-			# l1_ratio_range = np.logspace(-5, 1, 60)
-			print("Performing 5-fold CV for ElasticNet hyperparameters...")
-			enet = lm.ElasticNetCV(n_jobs=-1)
-			enet.fit(state_train.T, np.argmax(np.array(target_train), 0))
-
-			self.fit_obj = enet
-			self.weights = enet.coef_
-
-		elif self.rule == 'bayesian_ridge':
-			model = lm.BayesianRidge()
-			model.fit(state_train.T, np.argmax(np.array(target_train), 0))
-
-			self.fit_obj = model
-			self.weights = model.coef_
-
-		return self.weights, self.fit_obj
-
-	def test(self, state_test, display=True):
-		"""
-		"""
-		if display:
-			print "\nTesting Readout {0}".format(str(self.name))
-		self.output = None
-		self.output = self.fit_obj.predict(state_test.T)
-
-		return self.output
-
-	@staticmethod
-	def parse_outputs(output, target, dimensions, set_size, method='WTA', k=1):
-		"""
-
-		:param self:
-		:return:
-		"""
-		is_binary_target = np.all(np.unique(target) == [0., 1.])
-		is_binary_output = np.all(np.unique(output) == [0., 1.])
-		is_labeled_target = (len(target.shape) == 1)
-		is_labeled_output = (len(output.shape) == 1)
-
-		# select correct dimensions:
-		if not is_labeled_target:
-			assert (target.shape[0] == dimensions and target.shape[1] == set_size), \
-				"Incorrect target dimensions ({0})".format(str(target.shape))
-		else:
-			assert (target.shape[0] == set_size), \
-				"Incorrect target dimensions ({0})".format(str(target.shape))
-
-		if not is_labeled_output:
-			assert (output.shape[0] == dimensions and output.shape[1] == set_size), \
-				"Incorrect output dimensions ({0})".format(str(output.shape))
-		else:
-			assert (output.shape[0] == set_size), \
-				"Incorrect output dimensions ({0})".format(str(output.shape))
-
-		# set binary_output and output_labels
-		if not is_binary_output:
-			binary_output = np.zeros((dimensions, set_size))
-			if method == 'WTA':
-				for kk in range(output.shape[1]):
-					args = np.argsort(output[:, kk])[-k:]
-					binary_output[args, kk] = 1.
-			else:
-				for kk in range(output.shape[1]):
-					binary_output[np.where(output[:, kk] >= 0), kk] = 1.
-		else:
-			binary_output = output
-		if not is_labeled_output:
-			output_labels = np.argmax(output, 0)
-		else:
-			output_labels = output
-
-		# set binary_target and target_labels
-		if not is_binary_target:
-			binary_target = np.zeros((target.shape[0], target.shape[1]))
-			if method == 'WTA':
-				for kk in range(target.shape[1]):
-					args = np.argsort(target[:, kk])[-k:]
-					binary_target[args, kk] = 1.
-		else:
-			binary_target = target
-		if not is_labeled_target:
-			target_labels = np.argmax(target, 0)
-		else:
-			target_labels = target
-
-		return binary_output, output_labels, binary_target, target_labels
-
-	def measure_performance(self, target, output=None, comparison_function=None, display=True):
-		"""
-		Compute readout performance according to different metrics.
-		:param target: target output [numpy.array (binary or real-valued) or list (labels)]
-		:param output:
-		:param labeled:
-		:return:
-		"""
-		assert (isinstance(target, np.ndarray)), "Provide target matrix as array"
-
-		if output is None:
-			output = self.output
-
-		# check what type of data is provided
-		is_binary_target = np.all(np.unique(target) == [0., 1.])
-		is_binary_output = np.all(np.unique(output) == [0., 1.])
-		is_labeled_target = (len(target.shape) == 1)
-		is_labeled_output = (len(output.shape) == 1)
-
-		if output.shape != target.shape and not is_labeled_output:
-			output = output.T
-
-		# set dimensions
-		if not is_labeled_target:
-			n_out = target.shape[0]
-			test_steps = target.shape[1]
-		elif not is_labeled_output:
-			n_out = output.shape[0]
-			test_steps = output.shape[1]
-		else:
-			raise TypeError("Incorrect data shapes")
-
-		if comparison_function is None:
-			binary_output, output_labels, binary_target, target_labels = self.parse_outputs(output, target,
-			                                                    dimensions=n_out, set_size=test_steps, k=1)
-		else:
-			binary_output, output_labels, binary_target, target_labels = self.parse_outputs(output, target,
-			                                                    dimensions=n_out, set_size=test_steps,
-			                                                    method=comparison_function)
-		# print binary_output.todense(), output_labels
-		# initialize results dictionary - raw takes the direct readout output, max the binarized output and label the
-		#  labels of each step
-		performance = {'raw': {}, 'max': {}, 'label': {}}
-
-		if not is_labeled_output:  # some readouts just provide class labels
-			# Raw performance measures
-			performance['raw']['MSE'] = met.mean_squared_error(target, output)
-			performance['raw']['MAE'] = met.mean_absolute_error(target, output)
-			print "Readout {0} [raw ouput]: \n  - MSE = {1}".format(str(self.name), str(performance['raw']['MSE']))
-			if is_binary_target and not is_binary_output and len(output.shape) > 1:
-				pb_cc = []
-				for n in range(target.shape[0]):
-					pb_cc.append(mst.pointbiserialr(np.array(target)[n, :], np.array(output)[n, :])[0])
-				performance['raw']['point_bisserial'] = pb_cc
-
-			# Max performance measures
-			performance['max']['MSE'] = met.mean_squared_error(binary_target, binary_output)
-			performance['max']['MAE'] = met.mean_absolute_error(binary_target, binary_output)
-			# performance['max']['performance'] = 1. - np.mean(np.abs(binary_target - binary_output))
-
-			performance['label']['performance'] = met.accuracy_score(target_labels, output_labels)
-			performance['label']['hamm_loss'] 	= met.hamming_loss(target_labels, output_labels)
-			performance['label']['precision'] 	= met.average_precision_score(binary_output, binary_target,
-																			average='weighted')
-			performance['label']['f1_score'] 	= met.f1_score(binary_target, binary_output, average='weighted')
-			performance['label']['recall'] 		= met.recall_score(target_labels, output_labels, average='weighted')
-			performance['label']['confusion'] 	= met.confusion_matrix(target_labels, output_labels)
-			performance['label']['jaccard'] 	= met.jaccard_similarity_score(target_labels, output_labels)
-			performance['label']['class_support'] = met.precision_recall_fscore_support(target_labels, output_labels)
-
-			print "Readout {0} Performance: \n  - Labels = {1}".format(str(self.name), str(performance['label'][
-				'performance']))
-			if display:
-				print met.classification_report(target_labels, output_labels)
-
-		self.performance = performance
-		return performance
-
-	def measure_stability(self):
-		"""
-		Determine the stability of the solution (norm of weights)
-		"""
-		self.norm_wout = np.linalg.norm(self.weights)
-		return np.linalg.norm(self.weights)
-
-	def copy(self):
-		"""
-		Copy the readout object
-		:return: new Readout object
-		"""
-		return copy.deepcopy(self)
-
-	def reset(self):
-		"""
-		Reset current readout
-		:return:
-		"""
-		initializer = prs.ParameterSet({'label': self.name, 'algorithm': self.rule})
-		self.__init__(initializer, False)
-
-	def plot_weights(self, display=True, save=False):
-		"""
-		Plots a histogram with the current weights
-		"""
-		visualization.plot_w_out(self.weights, label=self.name+'-'+self.rule, display=display, save=save)
-
-	def plot_confusion(self, display=True, save=False):
-		"""
-		"""
-		visualization.plot_confusion_matrix(self.performance['label']['confusion'], label=self.name, display=display,
-		                                    save=save)
-
-
-########################################################################################################################
-class DecodingLayer(object):
-	"""
-	The Decoder reads population activity in response to patterned inputs,
-	extracts the network state (according to specifications) and trains readout weights
-	"""
-	def __init__(self, initializer, population):
-		"""
-		Create and connect decoders to population
-
-		:param initializer: ParameterSet object or dictionary specifying decoding parameters
-		:param population:
-		"""
-		if isinstance(initializer, dict):
-			initializer = prs.ParameterSet(initializer)
-		assert isinstance(initializer, prs.ParameterSet), "StateExtractor must be initialized with ParameterSet or " \
-														  "dictionary"
-		self.decoding_pars = initializer
-		self.state_variables = initializer.state_variable
-		self.reset_state_variables = initializer.reset_states
-		self.average_states = initializer.average_states
-		self.extractors = []
-		self.readouts = [[] for _ in range(len(self.state_variables))]
-		self.activity = [None for _ in range(len(self.state_variables))]
-		self.state_matrix = [[] for _ in range(len(self.state_variables))]
-		self.initial_states = [None for _ in range(len(self.state_variables))]
-		self.total_delays = [0. for _ in range(len(self.state_variables))]
-		self.source_population = population
-		self.state_sample_times = None
-		self.sampled_times = []
-		self.extractor_resolution = [[] for _ in range(len(self.state_variables))]
-		self.standardize_states = initializer.standardize
-
-		for state_idx, state_variable in enumerate(self.state_variables):
-			state_specs = initializer.state_specs[state_idx]
-			if state_variable == 'V_m': # TODO - implement any other recordables from the neuron!!
-				mm_specs = prs.extract_nestvalid_dict(state_specs, param_type='device')
-				mm = nest.Create('multimeter', 1, mm_specs)
-				self.extractors.append(mm)
-				nest.Connect(mm, population.gids)
-				original_neuron_status = nest.GetStatus(population.gids)
-				self.initial_states[state_idx] = np.array([x['V_m'] for x in original_neuron_status])
-				self.extractor_resolution[state_idx] = state_specs['interval']
-			elif state_variable == 'spikes':
-				rec_neuron_pars = {'model': 'iaf_psc_delta', 'V_m': 0., 'E_L': 0., 'C_m': 1.,
-				                   'tau_m': state_specs['tau_m'],
-				                   'V_th': sys.float_info.max, 'V_reset': 0.,
-				                   'V_min': 0.}
-				rec_neuron_pars.update(state_specs)
-				filter_neuron_specs = prs.extract_nestvalid_dict(rec_neuron_pars, param_type='neuron')
-
-				rec_neurons = nest.Create(rec_neuron_pars['model'], len(population.gids), filter_neuron_specs)
-				if 'start' in state_specs.keys():
-					rec_mm = nest.Create('multimeter', 1, {'record_from': ['V_m'],
-					                                       'record_to': ['memory'],
-					                                       'interval': rec_neuron_pars['interval'],
-					                                       'start': state_specs['start']})
-				else:
-					rec_mm = nest.Create('multimeter', 1, {'record_from': ['V_m'],
-					                                       'record_to': ['memory'],
-					                                       'interval': rec_neuron_pars['interval']})
-				self.extractors.append(rec_mm)
-				nest.Connect(rec_mm, rec_neurons)
-				nest.Connect(population.gids, rec_neurons, 'one_to_one',
-				             syn_spec={'weight': 1., 'delay': rec_neuron_pars['interval'], 'model': 'static_synapse'})
-				self.initial_states[state_idx] = np.zeros((len(rec_neurons),))
-				self.extractor_resolution[state_idx] = rec_neuron_pars['interval']
-			else:
-				if state_variable in nest.GetStatus(population.gids[0])[0]['recordables']:
-					mm_specs = prs.extract_nestvalid_dict(state_specs, param_type='device')
-					mm = nest.Create('multimeter', 1, mm_specs)
-					self.extractors.append(mm)
-					nest.Connect(mm, population.gids)
-					self.initial_states[state_idx] = np.zeros((len(population.gids),))
-					self.extractor_resolution[state_idx] = state_specs['interval']
-				else:
-					raise NotImplementedError("Acquisition from state variable {0} not implemented yet".format(
-						state_variable))
-			print("- State acquisition from Population {0} [{1}] - id {2}".format(population.name, state_variable,
-			                                                                      self.extractors[-1]))
-			if hasattr(initializer, "readout"):
-				pars_readout = prs.ParameterSet(initializer.readout[state_idx])
-				implemented_algorithms = ['pinv', 'ridge', 'logistic', 'svm-linear', 'svm-rbf', 'perceptron', 'elastic',
-				                          'bayesian_ridge']
-
-				for n_readout in range(pars_readout.N):
-					if len(pars_readout.algorithm) == pars_readout.N:
-						alg = pars_readout.algorithm[n_readout]
-					elif len(pars_readout.algorithm) == 1:
-						alg = pars_readout.algorithm[0]
-					else:
-						raise TypeError("Please provide readout algorithm for each readout or a single string, common to all "
-						                "readouts")
-
-					assert (alg in implemented_algorithms), "Algorithm {0} not implemented".format(alg)
-
-					readout_dict = {'label': pars_readout.labels[n_readout],
-					                'algorithm': alg}
-					self.readouts[state_idx].append(Readout(prs.ParameterSet(readout_dict)))
-		# print self.extractor_resolution
-		assert (len(np.unique(np.array(self.extractor_resolution))) == 1), "Output resolution must be common to " \
-		                                                                   "all state extractors"
-
-	def flush_records(self):
-		"""
-		Clear data from NEST devices
-		:return:
-		"""
-		for idx, n_device in enumerate(self.extractors):
-			nest.SetStatus(n_device, {'n_events': 0})
-			if nest.GetStatus(n_device)[0]['to_file']:
-				io.remove_files(nest.GetStatus(n_device)[0]['filenames'])
-			print(" - State extractor {0} [{1}] from Population {2}".format(str(self.state_variables[idx]),
-			                                                               str(n_device[0]),
-			                                                               str(self.source_population.name)))
-
-	def flush_states(self):
-		"""
-		Clear all data
-		:return:
-		"""
-		print("\n- Deleting state and activity data from all decoders attached to {0}".format(str(
-			self.source_population.name)))
-		self.activity = [None for _ in range(len(self.state_variables))]
-		self.state_matrix = [[] for _ in range(len(self.state_variables))]
-
-	def extract_activity(self, start=None, stop=None, save=True):
-		"""
-		Read recorded activity from devices and store it
-		:param start:
-		:param stop:
-		:return:
-		"""
-		all_responses = []
-		print("\nExtracting and storing recorded activity from state extractors [Population {0}]:".format(str(
-			self.source_population.name)))
-		for idx, n_state in enumerate(self.extractors):
-			print("  - Reading extractor {0} [{1}]".format(n_state, str(self.state_variables[idx])))
-			start_time1 = time.time()
-			if nest.GetStatus(n_state)[0]['to_memory']:
-				initializer = n_state
-			else:
-				initializer = nest.GetStatus(n_state)[0]['filenames']
-
-			# compensate delay in 'spikes' state variable
-			if self.state_variables[idx] == 'spikes':
-				if not self.total_delays[idx]:
-					self.determine_total_delay()
-				time_shift = self.total_delays[idx] #self.extractor_resolution[idx] #
-
-			if isinstance(initializer, basestring) or isinstance(initializer, list) or (isinstance(initializer,
-			                                                        tuple) and isinstance(initializer[0], basestring)):
-				# read data from file
-				data = io.extract_data_fromfile(initializer)
-				if data is not None:
-					if len(data.shape) != 2:
-						data = np.reshape(data, (int(len(data)/2), 2))
-					if data.shape[1] == 2:
-						raise NotImplementedError("Reading spiking activity directly not implemented")
-					else:
-						neuron_ids = data[:, 0]
-						times = data[:, 1]
-						if self.state_variables[idx] == 'spikes':
-							times -= time_shift
-						if start is not None and stop is not None:
-							idx1 = np.where(times >= start)[0]
-							idx2 = np.where(times <= stop)[0]
-							idxx = np.intersect1d(idx1, idx2)
-							times = times[idxx]
-							neuron_ids = neuron_ids[idxx]
-							data = data[idxx, :]
-						for nn in range(data.shape[1]):
-							if nn > 1:
-								sigs = data[:, nn]
-								tmp = [(neuron_ids[n], sigs[n]) for n in range(len(neuron_ids))]
-								responses = sg.AnalogSignalList(tmp, np.unique(neuron_ids).tolist(), times=times,
-								                                t_start=start, t_stop=stop)
-			elif isinstance(initializer, tuple) or isinstance(initializer, int):
-				# read data in memory
-				status_dict = nest.GetStatus(initializer)[0]['events']
-				times = status_dict['times']
-
-				if self.state_variables[idx] == 'spikes':
-					times -= time_shift
-
-				if start is not None and stop is not None:
-					idxx = np.where((times >= start - 0.00001) & (times <= stop + 0.000001))[0]
-					times = times[idxx]
-					status_dict['V_m'] = status_dict['V_m'][idxx]
-					status_dict['senders'] = status_dict['senders'][idxx]
-				tmp = [(status_dict['senders'][n], status_dict['V_m'][n]) for n in range(len(status_dict['senders']))]
-				responses = sg.AnalogSignalList(tmp, np.unique(status_dict['senders']).tolist(), times=times,
-												dt=self.extractor_resolution[idx], t_start=start, t_stop=stop)
-
-				# ############# DEBUG ##################################################################################
-				# dbg_status_dict = nest.GetStatus(initializer)[0]['events']
-				# print "\n\n ----  DEBUGGING  ----- \n"
-				# n_id, n_as = responses.analog_signals.iteritems().next()
-				# assert n_id == 154 # iaf_psc_delta neuron attached to neuron 0
-				#
-				# print "\n@spikelist.spiketrains[0]: {0}".format(self.source_population.spiking_activity.spiketrains[1])
-				#
-				# dbg_vms = [t for idx, t in enumerate(dbg_status_dict['V_m']) if dbg_status_dict['senders'][idx] == 154]
-				# print "\n\narray idx -- time point -- vm\n"
-				# for idx, vm in enumerate(dbg_vms):
-				# 	if idx > 0 and vm > dbg_vms[idx - 1]:
-				# 		print "{0}, {1}, {2}".format(idx, idx - 1, vm)
-				#
-				# sml = self.source_population.spiking_activity.filter_spiketrains(dt=0.1, tau=20., start=0.1, stop=200.1)[0].tolist()
-				# print "\n\n@filtered spikes [(arr index, aligned time, V_m)]"
-				# for idx, val in enumerate(sml):
-				# 	if idx > 0 and val > sml[idx - 1]:
-				# 		print idx, idx + 1, val
-				# exit(0)
-			else:
-				raise TypeError("Incorrect Decoder ID")
-
-			all_responses.append(responses)
-			print("Elapsed time: {0} s".format(str(time.time()-start_time1)))
-		if save:
-			for idx, n_response in enumerate(all_responses):
-				self.activity[idx] = n_response
-		else:
-			return all_responses
-
-	def extract_state_vector(self, time_point=200., save=True, reset=False):
-		"""
-		Read population responses within a local time window and extract a single state vector at the specified time
-		:param time_point: in ms
-		:param lag: length of local time window = [time_point-lag, time_point]
-		:param save: bool - store state vectors in the decoding layer or return them
-		:param reset:
-		:return:
-		"""
-		# set the lag to  be == 2*resolution
-		lag = np.unique(self.extractor_resolution)[0] #* 2.
-		self.sampled_times.append(time_point)
-		if not sg.empty(self.activity):
-			responses = self.activity
-		else:
-			responses = self.extract_activity(start=time_point-lag, stop=time_point, save=False)
-
-		state_vectors = []
-		if save and (isinstance(responses, list) and len(self.state_matrix) != len(responses)):
-			self.state_matrix = [[] for _ in range(len(responses))]
-		elif not save and (isinstance(responses, list)):
-			state_vectors = [[] for _ in range(len(responses))]
-		elif not save:
-			state_vectors = []
-		for idx, n in enumerate(responses):
-			state_vector = n.as_array()[:, -1]
-			if save:
-				self.state_matrix[idx].append(state_vector)
-			else:
-				state_vectors[idx].append(state_vector)
-		if reset:
-			self.reset_states()
-		if not save:
-			return state_vectors
-
-	def compile_state_matrix(self, sampling_times=None):
-		"""
-		After gathering all state vectors, compile a standard state matrix
-
-		:param sampling_times:
-		:return:
-		"""
-		assert self.state_matrix, "State matrix elements need to be stored before calling this function"
-		states = []
-		if len(self.state_matrix) > 1 and sampling_times is None:
-			states = []
-			for n_idx, n_state in enumerate(self.state_matrix):
-				st = np.array(n_state).T
-				if self.standardize_states[n_idx]:
-					st = StandardScaler().fit_transform(st.T).T
-				states.append(st)
-			self.state_matrix = states
-		elif len(self.state_matrix) > 1 and sampling_times is not None:
-			for n_idx, n_state in enumerate(self.state_matrix):
-				states = []
-				for idx_state, n_state_mat in enumerate(n_state):
-					st = np.array(n_state_mat).T
-					if self.standardize_states[n_idx]:
-						st = StandardScaler().fit_transform(st.T).T
-					states.append(st)
-					# states.append(np.array(n_state_mat).T)
-				self.state_matrix[n_idx] = states
-		elif len(self.state_matrix) == 1 and sampling_times is not None:
-			states = []
-			for idx_state, n_state_mat in enumerate(self.state_matrix[0]):
-				st = np.array(n_state_mat).T
-				if self.standardize_states[idx_state]:
-					st = StandardScaler().fit_transform(st.T).T
-				states.append(st)
-				# states.append(np.array(n_state_mat).T)
-			self.state_matrix[0] = states
-		else:
-			st = np.array(self.state_matrix[0]).T
-			if self.standardize_states[0]:
-				st = StandardScaler().fit_transform(st.T).T
-			states.append(st)
-			# states.append(st)
-			self.state_matrix = states
-
-	def evaluate_decoding(self, n_neurons=10, display=False, save=False):
-		"""
-		Make sure the state extraction process is consistent
-
-		:param spike_list: raw spiking activity data for this population
-		:param n_neurons: choose n random neurons to plot
-		:return:
-		"""
-		spike_list = self.source_population.spiking_activity
-		start = spike_list.t_start
-		stop = spike_list.t_stop
-		neuron_ids = np.random.permutation(spike_list.id_list)[:n_neurons]
-
-		if sg.empty(self.activity):
-			self.extract_activity(start=start, stop=stop, save=True)
-		visualization.plot_response(self.source_population, ids=neuron_ids, display=display, save=save)
-
-	def reset_states(self):
-		"""
-		Sets all state variables to 0
-		:return:
-		"""
-		for idx_state, n_state in enumerate(self.state_variables):
-			if self.reset_state_variables[idx_state]:
-				# print("\nReseting {0} state in Population {1}".format(n_state, self.source_population.name))
-				if n_state == 'V_m':
-					print("Resetting V_m can lead to incorrect results!")
-					for idx, neuron_id in enumerate(self.source_population.gids):
-						nest.SetStatus([neuron_id], {'V_m': self.initial_states[idx_state][idx]})
-				elif n_state == 'spikes':
-					recording_neuron_gids = nest.GetStatus(nest.GetConnections(self.extractors[idx_state]), 'target')
-					for idx, neuron_id in enumerate(recording_neuron_gids):
-						nest.SetStatus([neuron_id], {'V_m': self.initial_states[idx_state][idx]})
-				else:
-					try:
-						for idx, neuron_id in enumerate(self.source_population.gids):
-							nest.SetStatus([neuron_id], {n_state: self.initial_states[idx_state][idx]})
-					except ValueError:
-						print("State variable {0} cannot be reset".format(n_state))
-
-	def determine_total_delay(self):
-		"""
-		Determine the connection delays involved in the decoding layer
-		:return:
-		"""
-		for idx, extractor_id in enumerate(self.extractors):
-			status_dict = nest.GetStatus(nest.GetConnections(source=extractor_id))
-			tget_gids = [n['target'] for n in status_dict]
-			source_neurons = [x for x in tget_gids if x in self.source_population.gids]
-			if sg.empty(source_neurons):
-				assert (self.state_variables[idx] == 'spikes'), "No connections to {0} extractor".format(
-					self.state_variables[idx])
-				assert (np.array([nest.GetStatus([x])[0]['model'] == 'iaf_psc_delta' for x in tget_gids]).all()), \
-					"No connections to {0} extractor".format(
-					self.state_variables[idx])
-
-				net_to_decneurons = net_architect.extract_delays_matrix(src_gids=self.source_population.gids[:10],
-				                                                        tgets_gids=tget_gids, progress=False)
-				net_to_decneurons_delay = np.unique(np.array(net_to_decneurons[net_to_decneurons.nonzero()].todense()))
-				assert (len(net_to_decneurons_delay) == 1), "Heterogeneous delays in decoding layer are not supported.."
-
-				# decneurons_to_mm = net_architect.extract_delays_matrix(src_gids=extractor_id, tgets_gids=tget_gids, progress=False)
-				# decneurons_to_mm_delay = np.unique(np.array(decneurons_to_mm[decneurons_to_mm.nonzero()].todense()))
-				# assert (len(decneurons_to_mm_delay) == 1), "Heterogeneous delays in decoding layer are not " \
-				#                                             "supported.."
-
-				self.total_delays[idx] = float(net_to_decneurons_delay)# + decneurons_to_mm_delay)
-			else:
-				# delays = net_architect.extract_delays_matrix(src_gids=extractor_id, tgets_gids=tget_gids, progress=False)
-				# delay = np.unique(np.array(delays[delays.nonzero()].todense()))
-				# assert (len(delay) == 1), "Heterogeneous delays in decoding layer are not supported.."
-				self.total_delays[idx] = 0.#0.float(delay)
-		print("\nTotal delays in Population {0} DecodingLayer {1}: {2} ms".format(str(self.source_population.name),
-		                                                                          str(self.state_variables),
-		                                                                          str(self.total_delays)))
-
-
-'''
-
-	def copy_readout_set(self, n=1):
-		"""
-		Returns n copies of all the readouts attached to the population
-		:param n: number of copies
-		:return: list of Readout objects
-		"""
-		assert self.readouts, "Population {0} doesn't have any readouts attached!".format(self.name)
-
-		all_copies = []
-		for n_copy in range(n):
-			if isinstance(self.readouts[0], list):
-				# nested readouts (multiple state variables for current population)
-				copy_readouts = [[] for _ in range(len(self.readouts))]
-				for set_index in range(len(self.readouts)):
-					for n_readout, readout in enumerate(self.readouts[set_index]):
-						copy_readouts[set_index].append(readout.copy())
-			else:
-				copy_readouts = []
-				for n_readout, readout in enumerate(self.readouts):
-					copy_readouts.append(readout.copy())
-			all_copies.append(copy_readouts)
-		return all_copies
-
-'''
-
-
-def reset_decoders(net, enc_layer):
-	"""
-	Reset all decoders
-	:param net:
-	:param enc_layer:
-	:return:
-	"""
-	for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
-	                                                   net.populations, enc_layer.encoders]))):
-		if n_pop.decoding_layer is not None:
-			n_pop.decoding_layer.reset_states()
