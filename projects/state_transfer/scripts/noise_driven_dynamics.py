@@ -4,7 +4,7 @@ from modules.input_architect import EncodingLayer
 from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list
-from modules.visualization import set_global_rcParams, SpikePlots, plot_response
+from modules.visualization import set_global_rcParams, SpikePlots
 from modules.analysis import characterize_population_activity
 import cPickle as pickle
 import numpy as np
@@ -22,7 +22,7 @@ debug 	= False
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/two_pool_noisedriven.py'
+params_file = '../parameters/one_pool_noisedriven.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -121,9 +121,10 @@ analysis_interval = [parameter_set.kernel_pars.transient_t,
 	                 parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t]
 
 results.update(characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
-                                                color_map='coolwarm', plot=plot,
-                                                display=display, save=paths['figures']+paths['label'], color_subpop=True,
-                                                **parameter_set.analysis_pars))
+                                                color_map='coolwarm', plot=plot, display=display,
+                                                save=paths['figures']+paths['label'], color_subpop=True,
+                                                analysis_pars=parameter_set.analysis_pars))
+
 # ######################################################################################################################
 # Save data
 # ======================================================================================================================

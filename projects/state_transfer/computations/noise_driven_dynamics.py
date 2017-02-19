@@ -99,7 +99,7 @@ def run(parameter_set, plot=False, display=False, save=True):
 	results.update(characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
 	                                                color_map='coolwarm', plot=plot,
 	                                                display=display, save=paths['figures'] + paths['label'],
-	                                                **parameter_set.analysis_pars))
+	                                                analysis_pars=parameter_set.analysis_pars))
 
 	# ######################################################################################################################
 	# Save data

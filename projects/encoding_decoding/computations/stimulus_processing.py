@@ -265,7 +265,7 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 		results.update(characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
 		                                                color_map='jet', plot=plot,
 		                                                display=display, save=paths['figures'] + paths['label'],
-		                                                **parameter_set.analysis_pars.population_state))
+		                                                analysis_pars=parameter_set.analysis_pars))
 		print "\nElapsed time (state characterization): {0}".format(str(time.time() - start_analysis))
 
 		if not empty(results['analog_activity']) and 'mean_I_ex' in results['analog_activity']['E'].keys():

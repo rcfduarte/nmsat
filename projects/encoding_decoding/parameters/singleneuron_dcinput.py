@@ -101,31 +101,7 @@ def build_parameters():
 			'delay_dist': [1. for _ in range(n_connections)],
 			'preset_W': [None for _ in range(n_connections)]},
 	})
-	# ##################################################################################################################
-	# Analysis Parameters
-	# ##################################################################################################################
-	# analysis_pars = {
-	# 	'numerics': {
-	# 		'time_bin': 1.,  # bin width for spike counts, fano factors and correlation coefficients
-	# 		'n_pairs': 500,  # number of spike train pairs to consider in correlation coefficient
-	# 		'tau': 20.,  # time constant of exponential filter (van Rossum distance)
-	# 		'window_len': 100},  # length of sliding time window (for time_resolved analysis)
-	# 	'stats': {
-	# 		# other options are possible here...
-	# 		'epochs': None,
-	# 		'time_resolved': False,  # perform time-resolved analysis
-	#
-	# 		# !!! for ainess, we could instead enforce more generic options, such as synchrony, regularity,
-	# 		# etc., as you suggested in the email.
-	# 		'ainess': ['ISI_distance', 'SPIKE_distance', 'ccs_pearson',  # compute level of asynchronous,
-	# 		           'cvs', 'cvs_log', 'd_vp', 'd_vr', 'ents', 'ffs']},  # irregular population activity
-	#
-	# 	'meta': {
-	# 		'save_path': "",  # if set to None, then we're not saving anything
-	# 		'plot': True,
-	# 		'display': True,
-	# 		'color_map': 'jet'}
-	# }
+
 	# ##################################################################################################################
 	# RETURN dictionary of Parameters dictionaries
 	# ==================================================================================================================

@@ -1169,6 +1169,7 @@ class SpikePlots(object):
 				if start-500 < on < stop+500:
 					ax.fill_betweenx(y_range, on, offsets[idx], facecolor=color_map(k), alpha=0.3)
 
+	# TODO we should provide this function also when only summary is used / not all measures.. check for existing keys
 	def print_activity_report(self, results=None, label='', n_pairs=500):
 		"""
 		Displays on screen a summary of the network settings and main statistics
