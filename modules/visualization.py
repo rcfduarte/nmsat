@@ -795,7 +795,7 @@ def plot_2d_parscans(image_arrays=[], axis=[], fig_handle=None, labels=[], cmap=
 		if not isinstance(ax, mpl.axes.Axes):
 			raise ValueError('ax must be matplotlib.axes.Axes instance.')
 		else:
-			plt1 = ax.imshow(image_arrays[idx], aspect='auto', origin=origin, cmap=cmap) #  interpolation='nearest',
+			plt1 = ax.imshow(image_arrays[idx], aspect='auto', origin=origin, cmap=cmap,  interpolation='nearest')
 
 			if boundaries:
 				cont = ax.contour(image_arrays[idx], boundaries[idx], origin='lower', colors='k', linewidths=2)
@@ -2002,10 +2002,7 @@ class InputPlots(object):
 		else:
 			for ii in range(len(self.input.input_signal)):
 				ax.plot(self.input.time_data, self.input.input_signal[ii].signal, **plot_props)
-				# if self.start and self.stop:
-				# 	ax.set_xlim(left=self.start, right=self.stop)
-				# else:
-				ax.set_xlim(left=min(self.input.time_data), right=max(self.input.time_data))
+				ax.set_xlim([min(self.input.time_data), max(self.input.time_data)])
 				ax.set_ylim([min(self.input.input_signal[ii].signal)-10., max(self.input.input_signal[ii].signal)+10.])
 				ax.set_xlabel('Time [ms]')
 				ax.set_ylabel(r'\sigma_{u}')

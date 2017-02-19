@@ -8,8 +8,8 @@ dc_input
 - test dc_input stimulus processing
 """
 
-run = 'Jureca'
-data_label = 'ED_dcinput_training_parameters'
+run = 'local'
+data_label = 'ED_dcinput_example2'
 
 
 def build_parameters(lexicon_size, T):
@@ -18,7 +18,7 @@ def build_parameters(lexicon_size, T):
 	# ######################################################################################################################
 	system = dict(
 		nodes=1,
-		ppn=4,
+		ppn=16,
 		mem=8,
 		walltime='01-00:00:00',
 		queue='batch',
@@ -68,7 +68,7 @@ def build_parameters(lexicon_size, T):
 		syn_specs=[{}, {}, {}, {}])
 	neuron_pars, net_pars, connection_pars = set_network_defaults(N=N, **recurrent_synapses)
 
-	net_pars['record_spikes'] = [False, False]
+	net_pars['record_spikes'] = [True, True]
 
 	# net_pars['record_analogs'] = [True, False]
 	# multimeter = rec_device_defaults(device_type='multimeter')
@@ -179,15 +179,15 @@ def build_parameters(lexicon_size, T):
 	readout_algorithms = ['ridge', 'pinv']
 
 	decoders = dict(
-		decoded_population=[['E', 'I']],
-		state_variable=['V_m'],
+		decoded_population=[['E', 'I'], ['E', 'I']],
+		state_variable=['V_m', 'spikes'],
 		filter_time=filter_tau,
 		readouts=readout_labels,
 		readout_algorithms=readout_algorithms,
 		sampling_times=state_sampling,
-		reset_states=[False],
-		average_states=[False],
-		standardize=[False]
+		reset_states=[False, False],
+		average_states=[False, False],
+		standardize=[False, False]
 	)
 
 	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)
@@ -196,7 +196,7 @@ def build_parameters(lexicon_size, T):
 	# Extra analysis parameters (specific for this experiment)
 	# ==================================================================================================================
 	analysis_pars = {
-		'store_activity': False,       # [bool or int] - store all population activity in the last n steps of the test
+		'store_activity': 5,       # [bool or int] - store all population activity in the last n steps of the test
 									# phase; if set True the entire test phase will be stored;
 
 		'population_state': {       # if the activity is stored, these are the parameters for the state characterization
@@ -229,6 +229,6 @@ def build_parameters(lexicon_size, T):
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'lexicon_size': np.arange(5, 505, 5),
-	'T': np.arange(100, 1100, 100)
+	'lexicon_size': [50], #np.arange(5, 505, 5),
+	'T': [50] #np.arange(100, 1100, 100)
 }

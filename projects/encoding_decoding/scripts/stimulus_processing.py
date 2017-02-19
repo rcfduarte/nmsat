@@ -22,17 +22,17 @@ from stimulus_generator import StimulusPattern
 # ######################################################################################################################
 # Experiment options
 # ======================================================================================================================
-plot = True
-display = True
-save = True
-debug = False
-online = True
+plot = False
+display = False
+save = False
+debug = False #False
+online = True #True
 
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-# params_file = '../parameters/dc_stimulus_input.py'
-params_file = '../parameters/spike_pattern_input.py'
+params_file = '../parameters/dc_stimulus_input.py'
+# params_file = '../parameters/spike_pattern_input.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -206,7 +206,7 @@ if hasattr(stim_set, "unique_set"):
 					results['rank'][n_pop.name].update({var + str(idx_var) + '_{0}'.format(set_name): get_state_rank(
 						state_matrix)})
 
-					if save:
+					if save and debug:
 						np.save(paths['activity']+paths['label']+'_population{0}_state{1}_{2}.npy'.format(n_pop.name,
 						                                                    var, set_name), state_matrix)
 					analyse_state_matrix(state_matrix, labels, label=n_pop.name+var+set_name,
@@ -249,9 +249,10 @@ for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc
 				for readout in readouts:
 					readout_train(readout, state_matrix, target=target, index=None, accepted=train_idx,
 					              display=display, plot=plot, save=paths['figures']+paths['label'])
-				if save:
+				if save and debug:
 					np.save(paths['activity']+paths['label']+'_population{0}_state{1}_{2}.npy'.format(n_pop.name,
 					                                                    var, set_name), state_matrix)
+
 				analyse_state_matrix(state_matrix, labels, label=n_pop.name + var + set_name,
 				                     plot=plot, display=display, save=paths['figures'] + paths['label'])
 		dec_layer.flush_states()
@@ -263,26 +264,26 @@ epochs_test = iterate_input_sequence(net, enc_layer, parameter_set, stim_set, in
                        store_activity=parameter_set.analysis_pars.store_activity)
 
 # characterize population activity
-if parameter_set.analysis_pars.store_activity:
-	start_analysis = time.time()
-	analysis_interval = [epochs_test['analysis_start'], nest.GetKernelStatus()['time'] - nest.GetKernelStatus()[
-		'resolution']]
-	results.update(characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
-	                                                color_map='jet', plot=plot,
-	                                                display=display, save=paths['figures']+paths['label'],
-	                                                **parameter_set.analysis_pars.population_state))
-	print "\nElapsed time (state characterization): {0}".format(str(time.time() - start_analysis))
-
-	if not empty(results['analog_activity']) and 'mean_I_ex' in results['analog_activity']['E'].keys():
-		inh = np.array(results['analog_activity']['E']['mean_I_in'])
-		exc = np.array(results['analog_activity']['E']['mean_I_ex'])
-		ei_ratios = np.abs(np.abs(inh) - np.abs(exc))
-		ei_ratios_corrected = np.abs(np.abs(inh - np.mean(inh)) - np.abs(exc - np.mean(exc)))
-		print "EI amplitude difference: {0} +- {1}".format(str(np.mean(ei_ratios)), str(np.std(ei_ratios)))
-		print "EI amplitude difference (amplitude corrected): {0} +- {1}".format(str(np.mean(ei_ratios_corrected)),
-		                                                                         str(np.std(ei_ratios_corrected)))
-		results['analog_activity']['E']['IE_ratio'] = np.mean(ei_ratios)
-		results['analog_activity']['E']['IE_ratio_corrected'] = np.mean(ei_ratios_corrected)
+# if parameter_set.analysis_pars.store_activity:
+# 	start_analysis = time.time()
+# 	analysis_interval = [epochs_test['analysis_start'], nest.GetKernelStatus()['time'] - nest.GetKernelStatus()[
+# 		'resolution']]
+# 	results.update(characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
+# 	                                                color_map='jet', plot=plot,
+# 	                                                display=display, save=paths['figures']+paths['label'],
+# 	                                                **parameter_set.analysis_pars.population_state))
+# 	print "\nElapsed time (state characterization): {0}".format(str(time.time() - start_analysis))
+#
+# 	if not empty(results['analog_activity']) and 'mean_I_ex' in results['analog_activity']['E'].keys():
+# 		inh = np.array(results['analog_activity']['E']['mean_I_in'])
+# 		exc = np.array(results['analog_activity']['E']['mean_I_ex'])
+# 		ei_ratios = np.abs(np.abs(inh) - np.abs(exc))
+# 		ei_ratios_corrected = np.abs(np.abs(inh - np.mean(inh)) - np.abs(exc - np.mean(exc)))
+# 		print "EI amplitude difference: {0} +- {1}".format(str(np.mean(ei_ratios)), str(np.std(ei_ratios)))
+# 		print "EI amplitude difference (amplitude corrected): {0} +- {1}".format(str(np.mean(ei_ratios_corrected)),
+# 		                                                                         str(np.std(ei_ratios_corrected)))
+# 		results['analog_activity']['E']['IE_ratio'] = np.mean(ei_ratios)
+# 		results['analog_activity']['E']['IE_ratio_corrected'] = np.mean(ei_ratios_corrected)
 
 # test readouts and analyse state matrix
 for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
@@ -290,13 +291,13 @@ for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc
 		dec_layer = n_pop.decoding_layer
 		results['performance'].update({n_pop.name: {}})
 		results['dimensionality'].update({n_pop.name: {}})
-		if parameter_set.analysis_pars.store_activity:
+		if parameter_set.analysis_pars.store_activity: # and debug:
 			if isinstance(parameter_set.analysis_pars.store_activity, int) and \
 					parameter_set.analysis_pars.store_activity <= parameter_set.stim_pars.test_set_length:
 				dec_layer.sampled_times = dec_layer.sampled_times[-parameter_set.analysis_pars.store_activity:]
 			else:
 				dec_layer.sampled_times = dec_layer.sampled_times[-parameter_set.stim_pars.test_set_length:]
-			dec_layer.evaluate_decoding(n_neurons=50, display=display, save=paths['figures'] + paths['label'])
+			dec_layer.evaluate_decoding(n_neurons=20, display=display, save=paths['figures'] + paths['label'])
 
 		labels = getattr(target_set, "{0}_set_labels".format(set_name))
 		target = np.array(getattr(target_set, "{0}_set".format(set_name)).todense())
@@ -326,7 +327,7 @@ for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc
 					                                display=display)})
 					results['performance'][n_pop.name][var + str(idx_var)][readout.name].update({'norm_wOut':
 						                                                                             readout.norm_wout})
-				if save:
+				if save and debug:
 					np.save(paths['activity']+paths['label']+'_population{0}_state{1}_{2}.npy'.format(n_pop.name,
 					                                                    var, set_name), state_matrix)
 				analyse_state_matrix(state_matrix, labels, label=n_pop.name + var + set_name,
