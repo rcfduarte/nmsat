@@ -11,17 +11,17 @@ one_pool_noisedriven
 - debug with noise_driven_dynamics script
 """
 
-run = 'Blaustein'
-data_label = 'state_transfer_onepool_noisedriven'
+run = 'local'
+data_label = 'state_transfer_onepool_noisedriven_test'
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'nu_x': np.arange(4, 25, 1),
-	'gamma': np.arange(4., 30, 0.5)
-	# 'nu_x': [15.],
-	# 'gamma': [10.]
+	# 'nu_x': np.arange(4, 25, 1),
+	# 'gamma': np.arange(4., 30, 0.5)
+	'nu_x': [22.],
+	'gamma': [24.]
 }
 
 
@@ -95,43 +95,32 @@ def build_parameters(nu_x, gamma):
 	# ##################################################################################################################
 	# Extra analysis parameters (specific for this experiment)
 	# ==================================================================================================================
-	analysis_pars = {'time_bin': 1.,  # bin width for spike counts, fano factors and correlation coefficients
-					 'n_pairs': 500,  # number of spike train pairs to consider in correlation coefficient
-					 'tau': 20.,  # time constant of exponential filter (van Rossum distance)
-					 'window_len': 100,  # length of sliding time window (for time_resolved analysis)
-					 'summary_only': True,  # how to save the data (only mean and std - True) or entire data set (False)
-					 'complete': False,  # use all existing measures or just the fastest / simplest ones
-					 'time_resolved': False}  # perform time-resolved analysis
+	# analysis_pars = {'time_bin': 1.,  # bin width for spike counts, fano factors and correlation coefficients
+	# 				 'n_pairs': 500,  # number of spike train pairs to consider in correlation coefficient
+	# 				 'tau': 20.,  # time constant of exponential filter (van Rossum distance)
+	# 				 'window_len': 100,  # length of sliding time window (for time_resolved analysis)
+	# 				 'summary_only': True,  # how to save the data (only mean and std - True) or entire data set (False)
+	# 				 'complete': True,  # use all existing measures or just the fastest / simplest ones
+	# 				 'time_resolved': False}  # perform time-resolved analysis
 
-	# analysis_pars = {
-	# 				# !!! analysis depth, or level, or something else..
-	# 				'depth': 1,			# 1: save only summary of data, use only fastest measures
-	# 									# 2: save all data, use only fastest measures
-	# 									# 3: save only summary of data, use all available measures
-	# 									# 4: save all data, use all available measures
-	#
-	# 				'numerics': {
-	# 					'time_bin': 	1.,  	# bin width for spike counts, fano factors and correlation coefficients
-	# 					'n_pairs': 		500,  	# number of spike train pairs to consider in correlation coefficient
-	# 					'tau': 			20., 	# time constant of exponential filter (van Rossum distance)
-	# 					'window_len': 	100}, 	# length of sliding time window (for time_resolved analysis)
-	#
-	# 				'stats': {
-	# 					# other options are possible here...
-	# 					'epochs': None,
-	# 					'time_resolved': False,  # perform time-resolved analysis
-	#
-	# 					# !!! for ainess, we could instead enforce more generic options, such as synchrony, regularity,
-	# 					# etc., as you suggested in the email.
-	# 					'ainess': ['ISI_distance', 'SPIKE_distance', 'ccs_pearson',  # compute level of asynchronous,
-	# 							   'cvs', 'cvs_log', 'd_vp', 'd_vr', 'ents', 'ffs']},  # irregular population activity
-	#
-	# 				'meta': {
-	# 					'save_path': 	"",  # if set to None, then we're not saving anything
-	# 					'plot': 		True,
-	# 					'display': 		True,
-	# 					'color_map': 	'jet'}
-	# }
+	analysis_pars = {
+		# analysis depth
+		'depth': 1,	# 1: save only summary of data, use only fastest measures
+					# 2: save all data, use only fastest measures
+					# 3: save only summary of data, use all available measures
+					# 4: save all data, use all available measures
+
+		'store_activity': False,	# [int] - store all population activity in the last n steps of the test
+									# phase; if set True the entire test phase will be stored;
+
+		'population_activity': {
+			'time_bin': 	1.,  	# bin width for spike counts, fano factors and correlation coefficients
+			'n_pairs': 		500,  	# number of spike train pairs to consider in correlation coefficient
+			'tau': 			20., 	# time constant of exponential filter (van Rossum distance)
+			'window_len': 	100, 	# length of sliding time window (for time_resolved analysis)
+			'time_resolved': False, # perform time-resolved analysis
+		}
+	}
 
 	# ##################################################################################################################
 	# RETURN dictionary of Parameters dictionaries

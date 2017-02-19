@@ -690,7 +690,8 @@ def mse(input_signal, target_signal):
 # 	return error
 
 
-def compute_isi_stats_new(spike_list, depth=1, display=True):
+# TODO when classes are finished, integrate this function and update arguments
+def compute_isi_stats(spike_list, summary_only=True, display=True):
 	"""
 	Compute all relevant isi metrics
 	:param spike_list: SpikeList object
@@ -703,7 +704,6 @@ def compute_isi_stats_new(spike_list, depth=1, display=True):
 		t_start = time.time()
 	results = dict()
 
-	results['isi'] 		= np.array(list(itertools.chain(*spike_list.isi())))
 	results['cvs'] 		= spike_list.cv_isi(float_only=True)
 	results['lvs'] 		= spike_list.local_variation()
 	results['lvRs'] 	= spike_list.local_variation_revised(float_only=True)
@@ -713,7 +713,9 @@ def compute_isi_stats_new(spike_list, depth=1, display=True):
 	results['isi_5p'] 	= spike_list.isi_5p(float_only=True)
 	results['ai'] 		= spike_list.adaptation_index(float_only=True)
 
-	if depth == 1 or depth == 3:
+	if not summary_only:
+		results['isi'] 	= np.array(list(itertools.chain(*spike_list.isi())))
+	else:
 		results['isi'] = []
 		cvs 	= results['cvs']
 		lvs 	= results['lvs']
@@ -738,97 +740,7 @@ def compute_isi_stats_new(spike_list, depth=1, display=True):
 
 	return results
 
-
-def compute_isi_stats(spike_list, summary_only=False, display=True):
-	"""
-	Compute all relevant isi metrics
-	:param spike_list: SpikeList object
-	:param summary_only: bool - store only the summary statistics or all the data (memory!)
-	:param display: bool - display progress / time
-	:return: dictionary with all the relevant data
-	"""
-	if display:
-		print("\nAnalysing inter-spike intervals...")
-		t_start = time.time()
-	results = dict()
-
-	if not summary_only:
-		results['isi'] 		= np.array(list(itertools.chain(*spike_list.isi())))
-		results['cvs'] 		= spike_list.cv_isi(float_only=True)
-		results['lvs'] 		= spike_list.local_variation()
-		results['lvRs'] 	= spike_list.local_variation_revised(float_only=True)
-		results['ents'] 	= spike_list.isi_entropy(float_only=True)
-		results['iR'] 		= spike_list.instantaneous_regularity(float_only=True)
-		results['cvs_log'] 	= spike_list.cv_log_isi(float_only=True)
-		results['isi_5p'] 	= spike_list.isi_5p(float_only=True)
-		results['ai'] 		= spike_list.adaptation_index(float_only=True)
-	else:
-		results['isi'] = []
-		cvs = spike_list.cv_isi(float_only=True)
-		results['cvs'] = (np.mean(cvs), np.var(cvs))
-
-		lvs = spike_list.local_variation()
-		results['lvs'] = (np.mean(lvs), np.var(lvs))
-
-		lvRs = spike_list.local_variation_revised(float_only=True)
-		results['lvRs'] = (np.mean(lvRs), np.var(lvRs))
-
-		H = spike_list.isi_entropy(float_only=True)
-		results['ents'] = (np.mean(H), np.var(H))
-
-		iRs = spike_list.instantaneous_regularity(float_only=True)
-		results['iR'] = (np.mean(iRs), np.var(iRs))
-
-		cvs_log = spike_list.cv_log_isi(float_only=True)
-		results['cvs_log'] = (np.mean(cvs_log), np.var(cvs_log))
-
-		isi_5p = spike_list.isi_5p(float_only=True)
-		results['isi_5p'] = (np.mean(isi_5p), np.var(isi_5p))
-
-		ai = spike_list.adaptation_index(float_only=True)
-		results['ai'] = (np.mean(ai), np.var(ai))
-	if display:
-		print("Elapsed Time: {0} s".format(str(round(time.time()-t_start, 3))))
-
-	return results
-
-
-def compute_spike_stats_new(spike_list, time_bin=1., depth=2, display=False):
-	"""
-	Compute relevant statistics on population firing activity (f. rates, spike counts)
-	:param spike_list: SpikeList object
-	:param time_bin: float - bin width to determine spike counts
-	:param summary_only: bool - store only the summary statistics or all the data (memory!)
-	:param display: bool - display progress / time
-	:return: dictionary with all the relevant data
-	"""
-	if display:
-		print("\nAnalysing spiking activity...")
-		t_start = time.time()
-
-	results = {}
-	rates 	= np.array(spike_list.mean_rates())
-	rates 	= rates[~np.isnan(rates)]
-	counts 	= spike_list.spike_counts(dt=time_bin, normalized=False, binary=False)
-	ffs 	= np.array(spike_list.fano_factors(time_bin))
-
-	if depth == 1:
-		results['counts'] 			= (np.mean(counts[~np.isnan(counts)]), np.var(counts[~np.isnan(counts)]))
-		results['mean_rates'] 		= (np.mean(rates), np.var(rates))
-		results['ffs'] 				= (np.mean(ffs[~np.isnan(ffs)]), np.var(ffs[~np.isnan(ffs)]))
-		results['corrected_rates'] 	= (np.mean(rates[np.nonzero(rates)[0]]), np.std(rates[np.nonzero(rates)[0]]))
-	else:
-		results['counts'] 			= counts
-		results['mean_rates'] 		= rates
-		results['corrected_rates'] 	= rates[np.nonzero(rates)[0]]
-		results['ffs'] 				= ffs[~np.isnan(ffs)]
-		results['spiking_neurons'] 	= spike_list.id_list
-
-	if display:
-		print("Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3))))
-	return results
-
-
+# TODO when classes are finished, integrate this function and update arguments
 def compute_spike_stats(spike_list, time_bin=1., summary_only=False, display=False):
 	"""
 	Compute relevant statistics on population firing activity (f. rates, spike counts)
@@ -904,8 +816,8 @@ def compute_spike_stats(spike_list, time_bin=1., summary_only=False, display=Fal
 # 	t_start = time_points - np.floor(default_params['box_width']/2.) + 1
 # 	t_end = time_points - np.ceil(default_params['box_width']/2.) + 1
 
-
-def compute_synchrony_new(spike_list, n_pairs=500, time_bin=1., tau=20., time_resolved=False, display=True, depth=4):
+# TODO when classes are finished, integrate this function and update arguments
+def compute_synchrony(spike_list, n_pairs=500, time_bin=1., tau=20., time_resolved=False, display=True, depth=4):
 	"""
 	Apply various metrics of spike train synchrony
 		Note: Has dependency on PySpike package.
@@ -959,59 +871,6 @@ def compute_synchrony_new(spike_list, n_pairs=500, time_bin=1., tau=20., time_re
 				results['SPIKE_distance'] 			= spk.spike_distance(spike_trains)
 				results['SPIKE_sync_distance']		= spk.spike_sync(spike_trains)
 
-	if display:
-		print("Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3))))
-	return results
-
-
-def compute_synchrony(spike_list, n_pairs=500, bin=1., tau=20., time_resolved=False, summary_only=False,
-					  display=True, complete=True):
-	"""
-	Apply various metrics of spike train synchrony
-		Note: Has dependency on PySpike package.
-	:param spike_list: SpikeList object
-	:param n_pairs: number of neuronal pairs to consider in the pairwise correlation measures
-	:param bin: time_bin (for pairwise correlations)
-	:param tau: time constant (for the van Rossum distance)
-	:param time_resolved: bool - perform time-resolved synchrony analysis (PySpike)
-	:param summary_only: bool - retrieve only a summary of the results
-	:param complete: bool - use all metrics or only the ccs (due to computation time, memory)
-	:param display: bool - display elapsed time message
-	:return results: dict
-	"""
-	if display:
-		print("\nAnalysing spike synchrony...")
-		t_start = time.time()
-	if has_pyspike:
-		spike_trains = sg.to_pyspike(spike_list)
-	results = dict()
-	if time_resolved and has_pyspike:
-		results['SPIKE_sync_profile'] 	= spk.spike_sync_profile(spike_trains)
-		results['ISI_profile'] 			= spk.isi_profile(spike_trains)
-		results['SPIKE_profile'] 		= spk.spike_profile(spike_trains)
-	if summary_only:
-		results['ccs_pearson'] = spike_list.pairwise_pearson_corrcoeff(n_pairs, time_bin=bin, all_coef=False)
-		ccs = spike_list.pairwise_cc(n_pairs, time_bin=bin)
-		results['ccs'] = (np.mean(ccs), np.var(ccs))
-		if complete:
-			results['d_vp'] = spike_list.distance_victorpurpura(n_pairs, cost=0.5)
-			results['d_vr'] = np.mean(spike_list.distance_van_rossum(tau=tau))
-			if has_pyspike:
-				results['ISI_distance'] 		= spk.isi_distance(spike_trains)
-				results['SPIKE_distance'] 		= spk.spike_distance(spike_trains)
-				results['SPIKE_sync_distance'] 	= spk.spike_sync(spike_trains)
-	else:
-		results['ccs_pearson'] 	= spike_list.pairwise_pearson_corrcoeff(n_pairs, time_bin=bin, all_coef=True)
-		results['ccs'] 			= spike_list.pairwise_cc(n_pairs, time_bin=bin)
-		results['d_vp'] 		= spike_list.distance_victorpurpura(n_pairs, cost=0.5)
-		results['d_vr'] 		= spike_list.distance_van_rossum(tau=tau)
-		if has_pyspike:
-			results['ISI_distance_matrix'] 		= spk.isi_distance_matrix(spike_trains)
-			results['SPIKE_distance_matrix'] 	= spk.spike_distance_matrix(spike_trains)
-			results['SPIKE_sync_matrix'] 		= spk.spike_sync_matrix(spike_trains)
-			results['ISI_distance'] 			= spk.isi_distance(spike_trains)
-			results['SPIKE_distance'] 			= spk.spike_distance(spike_trains)
-			results['SPIKE_sync_distance'] 		= spk.spike_sync(spike_trains)
 	if display:
 		print("Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3))))
 	return results
@@ -1148,7 +1007,6 @@ def compute_timescale(activity_matrix, time_axis, max_lag=1000, method=0):
 	:return:
 	"""
 	# TODO modify / review / extend / correct / update
-	# QUESTION I'd like to do it, but ...
 	time_scales = []
 	final_acc 	= []
 	errors 		= []
@@ -1189,7 +1047,7 @@ def manifold_learning(activity_matrix, n_neighbors, standardize=True, plot=True,
 	:return:
 	"""
 	# TODO extend and test - and include in the analyse_activity_dynamics function
-	# QUESTION
+	# QUESTION what is this? :)
 	if display:
 		print("Testing manifold learning algorithms")
 	if plot:
@@ -1214,8 +1072,10 @@ def manifold_learning(activity_matrix, n_neighbors, standardize=True, plot=True,
 			locals()['ax1_{0}'.format(i)].plot(Y[:, 0], Y[:, 1], Y[:, 2])
 
 
-def characterize_population_activity_new(population_object, parameter_set, analysis_interval, prng=None,
-										 analysis_pars=None):
+# TODO when classes are finished, integrate this function and update arguments
+def characterize_population_activity(population_object, parameter_set, analysis_interval, prng=None, epochs=None,
+									 plot=True, display=True, save=False, color_map="coolwarm", color_subpop=False,
+									 analysis_pars=None):
 	"""
 	Compute all the relevant metrics of recorded activity (spiking and analog signals), providing
 	a thorough characterization and quantification of population dynamics
@@ -1231,6 +1091,7 @@ def characterize_population_activity_new(population_object, parameter_set, analy
 		raise ValueError("Analysis parameters are required for characterizing population activity!")
 
 	ap = analysis_pars
+	pars_activity = ap.population_activity
 
 	if isinstance(population_object, net_architect.Population):
 		gids = None
@@ -1258,239 +1119,23 @@ def characterize_population_activity_new(population_object, parameter_set, analy
 		assert isinstance(spike_list, sg.SpikeList), "Spiking activity should be SpikeList object"
 		spike_list = spike_list.time_slice(analysis_interval[0], analysis_interval[1])
 
-		results['spiking_activity'].update(compute_spikelist_metrics_new(spike_list, population_object.name,
-		                                        time_bin=ap.numerics.time_bin, n_pairs=ap.numerics.n_pairs,
-												tau=ap.numerics.tau, depth=ap.depth,
-		                                        time_resolved=ap.stats.time_resolved))
+		results['spiking_activity'].update(compute_spikelist_metrics(spike_list, population_object.name, ap))
 
-		if ap.meta.plot and ap.depth % 2 == 0:
+		if plot and ap.depth % 2 == 0: # save all data
 			visualization.plot_isi_data(results['spiking_activity'][population_object.name],
-										data_label=population_object.name, color_map=ap.meta.color_map, location=0,
-							  			display=ap.meta.display, save=ap.meta.save_path)
+										data_label=population_object.name, color_map=color_map, location=0,
+							  			display=display, save=save)
 			if has_pyspike:
 				visualization.plot_synchrony_measures(results['spiking_activity'][population_object.name],
-											label=population_object.name, time_resolved=ap.stats.time_resolved,
-											epochs=ap.stats.epochs, display=ap.meta.display, save=ap.meta.save_path)
-
-		if ap.stats.time_resolved:
-			# *** Averaged time-resolved metrics
-			results['spiking_activity'][population_object.name].update(compute_time_resolved_statistics(spike_list,
-			                        label=population_object.name, time_bin=ap.numerics.time_bin, epochs=ap.stats.epochs,
-									window_len=ap.numerics.window_len, color_map=ap.meta.color_map,
-									display=ap.meta.display, plot=ap.meta.plot, save=ap.meta.save_path))
-		if ap.meta.plot:
-			results['metadata']['spike_list'] = spike_list
-
-		if gids and ap.depth >= 3:
-			results['metadata'].update({'sub_population_names': subpop_names, 'sub_population_gids': gids,
-										'spike_data_file': ''})
-			if len(gids) == 2:
-				locations = [-1, 1]
-			else:
-				locations = [0 for _ in range(len(gids))]
-
-			for indice, name in enumerate(subpop_names):
-				results['spiking_activity'][name].update(compute_spikelist_metrics_new(spike_list, name, depth=ap.depth,
-		                                        time_bin=ap.numerics.time_bin, n_pairs=ap.numerics.n_pairs,
-												tau=ap.numerics.tau, time_resolved=ap.stats.time_resolved))
-				if ap.meta.plot and ap.depth % 2 == 0:
-					visualization.plot_isi_data(results['spiking_activity'][name], data_label=name,
-								 				color_map=ap.meta.color_map, location=locations[indice],
-												display=ap.meta.display, save=ap.meta.save_path)
-					if has_pyspike:
-						visualization.plot_synchrony_measures(results['spiking_activity'][name], label=name,
-						                        			  time_resolved=ap.stats.time_resolved,
-															  display=ap.meta.display, save=ap.meta.save_path)
-				if ap.stats.time_resolved:
-					# *** Averaged time-resolved metrics
-					results['spiking_activity'][name].update(compute_time_resolved_statistics(spike_list,
-			                        label=population_object.name, time_bin=ap.numerics.time_bin,
-			                        epochs=ap.stats.epochs, color_map=ap.meta.color_map, display=ap.meta.display,
-									plot=ap.meta.plot, save=ap.meta.save_path, window_len=ap.numerics.window_len))
-
-	else:
-		# TODO give a WARNING / ERROR here, if the network is not spiking...
-		print("# TODO give a WARNING / ERROR here, the network is not spiking...")
-		pass
-
-	# ########################################################################################################
-	# # AIness
-	# if population_object.spiking_activity and ap.stats.ainess is not None:
-	# 	ainess_result = compute_ainess_new(results, prng=prng, template_resolution=parameter_set.kernel_pars.resolution,
-	# 									   template_duration=analysis_interval[0] - analysis_interval[1],
-	# 									   analysis_pars=analysis_pars)
-
-	########################################################################################################
-	# Analog activity analysis
-	if population_object.analog_activity and base_population_object is not None:
-		results['analog_activity'] = {}
-		for pop_n, pop in enumerate(base_population_object.populations):
-			if bool(pop.analog_activity):
-				results['analog_activity'].update({pop.name: {}})
-				pop_idx = parameter_set.net_pars.pop_names.index(pop.name)
-				if parameter_set.net_pars.analog_device_pars[pop_idx] is None:
-					break
-				variable_names = list(np.copy(parameter_set.net_pars.analog_device_pars[pop_idx]['record_from']))
-
-				results['analog_activity'][pop.name].update(compute_analog_stats(pop, parameter_set, variable_names,
-				                                                                 analysis_interval, ap.meta.plot))
-	if ap.meta.plot:
-		visualization.plot_state_analysis(parameter_set, results, summary_only=bool(ap.depth % 2 != 0),
-										  start=analysis_interval[0], stop=analysis_interval[1],
-										  display=ap.meta.display, save=ap.meta.save_path)
-	return results
-
-# def compute_ainess_new(results, pop=None, prng=None, template_duration=10000., template_resolution=0.1,
-# 					   analysis_pars=None):
-# 	"""
-# 	:return:
-# 	"""
-# 	ap = analysis_pars
-#
-# 	# TODO remove this requirement and adapt the function to deal with the case when no sub-populations are analyzed!
-# 	if ap.depth < 3:
-# 		print ("AIness currently requires an analysis depth of minimum 3 (for the analysis of subpopulations)."
-# 			   "Returning None.")
-# 		return None
-#
-# 	if isinstance(ap.stats.ainess, basestring):
-# 		raise TypeError('AIness parameter must be a list!')
-#
-# 	result 	= {}
-# 	keys 	= ap.stats.ainess
-# 	if pop is not None:
-# 		results = {'metadata': results['metadata'], 'spiking_activity': {pop: results['spiking_activity'][pop]}}
-#
-# 	for population in results['spiking_activity'].keys():
-# 		if population in results['metadata']['sub_population_names']:
-# 			pop_idx = results['metadata']['sub_population_names'].index(population)
-# 			neurons = results['metadata']['sub_population_gids'][pop_idx]
-# 		else:
-# 			neurons = list(itertools.chain(*results['metadata']['sub_population_gids']))
-# 		rate = results['spiking_activity'][population]['mean_rates'][0]
-#
-# 		# retrieve vector of results from population
-# 		result_vector = extract_results_vector(results['spiking_activity'][population], keys)
-#
-# 		# generate Poisson template with same rate, number of spiking neurons and resolution
-# 		template = ips.generate_template(len(neurons), rate, duration=template_duration+2000.,
-# 		                                 resolution=template_resolution, rng=prng,
-# 		                                 store=False).time_slice(1000., template_duration+1000.)
-#
-# 		template_measurements = compute_spikelist_metrics_new(template, 'template', time_bin=ap.numerics.time_bin,
-# 															  n_pairs=ap.numerics.n_pairs, tau=ap.numerics.tau,
-# 														  	  depth=ap.depth, time_resolved=ap.stats.time_resolved)
-#
-# 		# retrieve vector of results from template
-# 		result_template = extract_results_vector(template_measurements['template'], keys)
-#
-# 		while np.isnan(result_template).any():
-# 			idx = np.where(np.isnan(result_template))[0][0]
-# 			print("Removing key {0}".format(str(keys[idx])))
-# 			result_vector = np.delete(result_vector, idx)
-# 			result_template = np.delete(result_template, idx)
-#
-#
-# 		# compute distance - use various metrics to test...
-# 		test_distances = ['cosine', 'euclidean', 'manhattan', 'mahalanobis', 'seuclidean', 'minkowski']
-# 		result.update({population: {}})
-#
-# 		for metric in test_distances:
-# 			try:
-# 				result[population].update({
-# 					metric: pairwise_distances(result_vector.reshape(1, -1), result_template.reshape(1, -1),
-# 					                           metric=metric, n_jobs=-1)})
-# 				print("\nPopulation {0} AIness for metric {1} = {2}".format(str(population), metric, str(result[population][metric])))
-# 			except:
-# 				continue
-#
-# 	return result
-
-
-def characterize_population_activity(population_object, parameter_set, analysis_interval, epochs=None,
-									 time_bin=1., n_pairs=500, tau=20., window_len=100,
-									 color_map='jet', summary_only=False, complete=True, time_resolved=True,
-									 plot=True, display=True, save=False, prng=None, label="global",
-									 color_subpop=False):
-	"""
-	Compute all the relevant metrics of recorded activity (spiking and analog signals), providing
-	a thorough characterization and quantification of population dynamics
-
-	:return results: dict
-	:param population_object: Population or Network object whose activity should be analyzed
-	:param parameter_set: complete ParameterSet
-	:param analysis_interval: list or tuple with [start_time, stop time] specifying the time interval to analyse
-	:param epochs:
-	:param time_bin:
-	:param n_pairs:
-	:param tau:
-	:param window_len:
-	:param color_map:
-	:param summary_only:
-	:param complete:
-	:param time_resolved:
-	:param plot:
-	:param display:
-	:param save:
-	:param prng: numpy.random object for precise experiment reproduction
-	:param label: TODO should be removed, ParameterSet adds a label key to the dictionaries...
-	:return:
-	"""
-	# TODO - reduce function parameters??
-	# TODO - fix label bug
-	if isinstance(population_object, net_architect.Population):
-		gids = None
-		base_population_object = None
-	elif isinstance(population_object, net_architect.Network):
-		new_population = population_object.merge_subpopulations(sub_populations=population_object.populations,
-																name='Global', merge_activity=True, store=False)
-		gids = [n.id_list for n in list(sg.iterate_obj_list(population_object.spiking_activity))]
-		subpop_names = population_object.population_names
-
-		if not gids:
-			gids = [np.array(n.gids) for n in list(sg.iterate_obj_list(population_object.populations))]
-
-		base_population_object 	= population_object
-		population_object 		= new_population
-	else:
-		raise TypeError("Incorrect population object. Must be Population or Network object")
-
-	results = {'spiking_activity': {}, 'analog_activity': {}, 'metadata': {'population_name': population_object.name}}
-
-	########################################################################################################
-	# Spiking activity analysis
-	if population_object.spiking_activity:
-		spike_list = population_object.spiking_activity
-		assert isinstance(spike_list, sg.SpikeList), "Spiking activity should be SpikeList object"
-		spike_list = spike_list.time_slice(analysis_interval[0], analysis_interval[1])
-
-		# TODO remove, debug
-		# print ("gonna animate raster plot...")
-		# response_matrix = spike_list.compile_binary_response_matrix(dt=.1)
-		# visualization.plot_trajectory(response_matrix, save=save)
-		# # ai = ActivityAnimator(spike_list, populations=population_object, ids=gids, vm_list=[])
-		# # ai.animate_activity(time_window=100, save=True)
-		# exit(0)
-		#######
-		results['spiking_activity'].update(compute_spikelist_metrics(spike_list, population_object.name,
-		                                        time_bin=time_bin, n_pairs=n_pairs, tau=tau,
-		                                        summary_only=summary_only, complete=complete,
-		                                        time_resolved=time_resolved))
-
-		if plot and not summary_only:
-			visualization.plot_isi_data(results['spiking_activity'][population_object.name],
-			                            data_label=population_object.name,
-							  color_map=color_map, location=0, display=display, save=save)
-			if has_pyspike:
-				visualization.plot_synchrony_measures(results['spiking_activity'][population_object.name],
-											label=population_object.name, time_resolved=time_resolved,
+											label=population_object.name, time_resolved=pars_activity.time_resolved,
 											epochs=epochs, display=display, save=save)
 
-		if time_resolved:
+		if pars_activity.time_resolved:
 			# *** Averaged time-resolved metrics
 			results['spiking_activity'][population_object.name].update(compute_time_resolved_statistics(spike_list,
-			                        label=population_object.name, time_bin=time_bin, window_len=window_len,
-			                        epochs=epochs, color_map=color_map, display=display, plot=plot, save=save))
+			                        label=population_object.name, time_bin=pars_activity.time_bin, epochs=epochs,
+									window_len=pars_activity.window_len, color_map=color_map,
+									display=display, plot=plot, save=save))
 		if plot:
 			results['metadata']['spike_list'] = spike_list
 
@@ -1498,32 +1143,31 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 			results['metadata'].update({'sub_population_names': subpop_names, 'sub_population_gids': gids,
 									'spike_data_file': ''})
 
-		if gids and complete:
+		if gids and ap.depth >= 3:
 			if len(gids) == 2:
 				locations = [-1, 1]
 			else:
 				locations = [0 for _ in range(len(gids))]
 
 			for indice, name in enumerate(subpop_names):
-				# results['spiking_activity'].update({name: {}})
-				act = spike_list.id_slice(gids[indice])
-				results['spiking_activity'].update(compute_spikelist_metrics(spike_list, name,
-		                                        time_bin=time_bin, n_pairs=n_pairs, tau=tau,
-		                                        summary_only=summary_only, complete=complete,
-		                                        time_resolved=time_resolved))
-				if plot and not summary_only:
-					visualization.plot_isi_data(results['spiking_activity'][name], data_label=name,
-								 color_map=color_map, location=locations[indice], display=display, save=save)
+				results['spiking_activity'][name].update(compute_spikelist_metrics(spike_list, name, ap))
+				if plot and ap.depth % 2 == 0: # save all data
+					visualization.plot_isi_data(results['spiking_activity'][name], data_label=name, color_map=color_map,
+												location=locations[indice], display=display, save=save)
 					if has_pyspike:
 						visualization.plot_synchrony_measures(results['spiking_activity'][name], label=name,
-						                        time_resolved=time_resolved, display=display, save=save)
-				if time_resolved:
+						                        			  time_resolved=pars_activity.time_resolved,
+															  display=display, save=save)
+				if pars_activity.time_resolved:
 					# *** Averaged time-resolved metrics
 					results['spiking_activity'][name].update(compute_time_resolved_statistics(spike_list,
-			                        label=population_object.name, time_bin=time_bin, window_len=window_len,
-			                        epochs=epochs, color_map=color_map, display=display, plot=plot, save=save))
+			                        label=population_object.name, time_bin=pars_activity.time_bin,
+			                        epochs=epochs, color_map=color_map, display=display,
+									plot=plot, save=save, window_len=pars_activity.window_len))
 
-	########################################################################################################
+	else:
+		print("Warning, the network is not spiking!")
+
 	# Analog activity analysis
 	if population_object.analog_activity and base_population_object is not None:
 		results['analog_activity'] = {}
@@ -1534,14 +1178,16 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 				if parameter_set.net_pars.analog_device_pars[pop_idx] is None:
 					break
 				variable_names = list(np.copy(parameter_set.net_pars.analog_device_pars[pop_idx]['record_from']))
+
 				results['analog_activity'][pop.name].update(compute_analog_stats(pop, parameter_set, variable_names,
 				                                                                 analysis_interval, plot))
 	if plot:
-		visualization.plot_state_analysis(parameter_set, results, summary_only, start=analysis_interval[0],
-										  stop=analysis_interval[1], display=display, save=save)
+		visualization.plot_state_analysis(parameter_set, results, summary_only=bool(ap.depth % 2 != 0),
+										  start=analysis_interval[0], stop=analysis_interval[1],
+										  display=display, save=save)
 	return results
 
-
+# TODO needed?
 # def extract_results_vector(results_dict, keys):
 # 	"""
 # 	Retrieves an ordered vector whose entries correspond to the provided dictionary keys
@@ -1565,79 +1211,6 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 # 			out_mean[idx] = results_dict[k]
 # 			out_var[idx] = 0.
 # 	return out_mean, out_var
-
-
-# def compute_ainess(results, keys, pop=None, template_duration=10000., template_resolution=0.1, prng=None,
-#                    **analysis_parameters):
-# 	"""
-# 	Determine the level of asynchronous, irregular population activity as the normalized Euclidean distance between
-# 	the results obtained for keys and those obtained for a Poisson process, with the same mean rate
-#
-# 	:param results: results dictionary
-# 	:param keys:
-# 	:param pop: None (analyses all results) or str with the name of population to analyse
-# 	:param template_duration:
-# 	:param template_resolution:
-# 	:param prng: numpy.random object for reproducing experiments
-# 	:return:
-# 	"""
-# 	result = {}
-# 	if pop is not None:
-# 		results = {'metadata': results['metadata'], 'spiking_activity': {pop: results['spiking_activity'][pop]}}
-#
-# 	for population in results['spiking_activity'].keys():
-#
-# 		if 'sub_population_names' in results['metadata'].keys():
-# 			if population in results['metadata']['sub_population_names']:
-# 				pop_idx = results['metadata']['sub_population_names'].index(population)
-# 				neurons = results['metadata']['sub_population_gids'][pop_idx]
-# 			else:
-# 				neurons = list(itertools.chain(*results['metadata']['sub_population_gids']))
-# 		else:
-# 			neurons = results['metadata']['spike_list'].id_list
-# 		rate = results['spiking_activity'][population]['mean_rates'][0]
-#
-# 		# retrieve vector of results from population
-# 		result_vector, result_variance = extract_results_vector(results['spiking_activity'][population], keys)
-#
-# 		# generate Poisson template with same rate, number of spiking neurons and resolution
-# 		template = ips.generate_template(len(neurons), rate, duration=template_duration+2000.,
-# 		                                 resolution=template_resolution, rng=prng,
-# 		                                 store=False).time_slice(1000., template_duration+1000.)
-#
-# 		analysis_pars = {k: v for k, v in analysis_parameters.items() if k in ['time_bin', 'n_pairs', 'tau',
-# 		                                                                       'summary_only', 'complete',
-# 		                                                                       'time_resolved']}
-# 		template_measurements = compute_spikelist_metrics(template, 'template', **analysis_pars)
-#
-# 		# retrieve vector of results from template
-# 		result_template, _ = extract_results_vector(template_measurements['template'], keys)
-#
-# 		weights = result_variance
-# 		while np.isnan(result_template).any():
-# 			idx = np.where(np.isnan(result_template))[0][0]
-# 			print("Removing key {0}".format(str(keys[idx])))
-# 			result_vector = np.delete(result_vector, idx)
-# 			result_template = np.delete(result_template, idx)
-# 			weights = np.delete(weights, idx)
-#
-# 		# compute distance - use various metrics to test...
-# 		test_distances = ['cosine', 'euclidean', 'seuclidean']
-# 		result.update({population: {}})
-#
-# 		for metric in test_distances:
-# 			try:
-# 				if metric == 'seuclidean':
-# 					result[population].update({
-# 						metric: pairwise_distances(result_vector.reshape(1, -1), result_template.reshape(1, -1),
-# 						                           metric=metric, n_jobs=-1, V=weights)[0][0]})
-# 				else:
-# 					result[population].update({
-# 						metric: pairwise_distances(result_vector.reshape(1, -1), result_template.reshape(1, -1),
-# 						                           metric=metric, n_jobs=-1)[0][0]})
-# 			except:
-# 				continue
-# 	return result
 
 
 def epoch_based_analysis(population_object, epochs):
@@ -1717,7 +1290,7 @@ def analyse_activity_dynamics(activity_matrix, epochs=None, label='', plot=False
 
 
 def compute_time_resolved_statistics(spike_list, label='', time_bin=1., window_len=100, epochs=None,
-                                     color_map='jet', display=True, plot=False, save=False):
+                                     color_map='colorwarm', display=True, plot=False, save=False):
 	"""
 
 	:return:
@@ -1753,47 +1326,29 @@ def compute_time_resolved_statistics(spike_list, label='', time_bin=1., window_l
 		                            color_map=color_map, display=display, save=save)
 
 
-def compute_spikelist_metrics_new(spike_list, label, time_bin=1., n_pairs=500, tau=20., time_resolved=False, depth=1):
+def compute_spikelist_metrics(spike_list, label, analysis_pars):
 	"""
 
 	:return:
 	"""
+	ap = analysis_pars
+	pars_activity = ap.population_activity
 	results = {label: {}}
 
+	# TODO when isi_stats and spike_stats are finished / integrated into classes, update summary_only parameters
 	# ISI statistics
-	results[label].update(compute_isi_stats_new(spike_list, depth=depth))
+	results[label].update(compute_isi_stats(spike_list, summary_only=bool(ap.depth % 2 != 0)))
 
 	# Firing activity statistics
-	results[label].update(compute_spike_stats_new(spike_list, time_bin=time_bin, depth=depth))
+	results[label].update(compute_spike_stats(spike_list, time_bin=pars_activity.time_bin,
+											  summary_only=bool(ap.depth % 2 != 0)))
 
 	# Synchrony measures
-	results[label].update(compute_synchrony_new(spike_list, n_pairs=n_pairs, time_bin=time_bin, tau=tau,
-	                                        time_resolved=time_resolved, depth=depth))
+	results[label].update(compute_synchrony(spike_list, n_pairs=pars_activity.n_pairs,
+											time_bin=pars_activity.time_bin, tau=pars_activity.tau,
+											time_resolved=pars_activity.time_resolved, depth=ap.depth))
 
 	return results
-
-
-def compute_spikelist_metrics(spike_list, label, time_bin=1., n_pairs=500, tau=20.,
-							  summary_only=True, complete=False, time_resolved=False):
-	"""
-
-	:return:
-	"""
-	results = {label: {}}
-
-	# ISI statistics
-	results[label].update(compute_isi_stats(spike_list, summary_only=summary_only))
-
-	# Firing activity statistics
-	results[label].update(compute_spike_stats(spike_list, time_bin=time_bin, summary_only=summary_only))
-
-	# Synchrony measures
-	results[label].update(compute_synchrony(spike_list, n_pairs=n_pairs, bin=time_bin, tau=tau,
-	                                        time_resolved=time_resolved,
-	                                        summary_only=summary_only, complete=complete))
-
-	return results
-
 
 def single_neuron_dcresponse(population_object, parameter_set, start=None, stop=None, plot=True, display=True,
 							 save=False):
@@ -2494,7 +2049,7 @@ def evaluate_encoding(enc_layer, parameter_set, analysis_interval, input_signal,
 		#                                                                   parameter_set=new_pars,
 		#                                                                   analysis_interval=analysis_interval,
 		#                                                                   epochs=None, time_bin=1., complete=False,
-		#                                                                   time_resolved=False, color_map='jet',
+		#                                                                   time_resolved=False, color_map='colorwarm',
 		#                                                                   plot=plot, display=display, save=save)
 
 		if isinstance(n_enc.spiking_activity, sg.SpikeList) and not n_enc.spiking_activity.empty():

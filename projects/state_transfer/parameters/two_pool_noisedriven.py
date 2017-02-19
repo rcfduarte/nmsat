@@ -19,8 +19,12 @@ data_label = 'state_transfer_twopool_noisedriven'
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'nu_x':		[20.],
-	'gamma': 	[8., 14.]
+	'nu_x':		[1200.],
+	'gamma': 	[5.]
+
+	# 'nu_x': np.arange(4, 30, 1),
+	# 'gamma': np.arange(4., 30, 0.5)
+
 }
 
 
@@ -42,7 +46,7 @@ def build_parameters(nu_x, gamma):
 	# ##################################################################################################################
 	# Neuron, Synapse and Network Parameters
 	# ##################################################################################################################
-	N = 12500
+	N = 1250
 	nE = 0.8 * N
 	delay = 1.5
 	epsilon = 0.1
@@ -52,27 +56,38 @@ def build_parameters(nu_x, gamma):
 	wI = -gamma * wE
 
 	recurrent_synapses = dict(
-		connected_populations=[('E1', 'E1'), ('E2', 'E1'), ('E2', 'E2'), ('E1', 'E2'),
-		                       ('I1', 'I1'), ('E1', 'I1'), ('I1', 'E1'), ('I2', 'I2'),
-		                       ('E2', 'I2'), ('I2', 'E2')],
+		connected_populations=[('E1', 'E1'), ('E2', 'E1'), ('I1', 'E1'), ('I2', 'E1'),
+							   ('I1', 'I1'), ('E1', 'I1'), ('I2', 'I1'),
+							   ('E2', 'E2'), ('E1', 'E2'), ('I2', 'E2'),
+							   ('I2', 'I2'), ('E2', 'I2'), ('I1', 'I2'),],
 		synapse_models=['static_synapse', 'static_synapse', 'static_synapse', 'static_synapse',
-		                'static_synapse', 'static_synapse', 'static_synapse', 'static_synapse',
-		                'static_synapse', 'static_synapse'],
-		synapse_model_parameters=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {}],
-		pre_computedW=[None, None, None, None, None, None, None, None, None, None],
-		weights=[wE, wE, wE, wE, wI, wI, wE, wI, wI, wE],
-		delays=[delay, delay, delay, delay, delay, delay, delay, delay, delay, delay],
-		conn_specs=[{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon}],
-		syn_specs=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {}]
+						'static_synapse', 'static_synapse', 'static_synapse',
+						'static_synapse', 'static_synapse', 'static_synapse',
+		                'static_synapse', 'static_synapse', 'static_synapse'],
+		synapse_model_parameters=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}],
+		pre_computedW=[None, None, None, None, None, None, None, None, None, None, None, None, None],
+		weights=[wE, wE, wE, wE,
+				 wI, wI, wI,
+				 wE, wE, wE,
+				 wI, wI, wI],
+		delays=[delay, delay, delay, delay, delay, delay, delay, delay, delay, delay, delay, delay, delay],
+		conn_specs=[{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.}, # E1<-E1
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},	# E2<-E1
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},	# I1<-E1
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},	# I2<-E1
+
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},	# I1<-I1
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},	# E1<-I1
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},	# I2<-I1
+
+					{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.}, # E2<-E2
+					{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.}, # E1<-E2
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.}, # I2<-E2
+
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},	# I2<-I2
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},	# E2<-I2
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.}],	# I1<-I2
+		syn_specs=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]
 	)
 	neuron_pars, net_pars, connection_pars = set_network_defaults(default_set=2, neuron_set=2, N=N,
 	                                                              **recurrent_synapses)
@@ -87,13 +102,16 @@ def build_parameters(nu_x, gamma):
 	# ##################################################################################################################
 	# nu_x = 20.
 	k_x = epsilon * nE
-	# w_in = 90.
+	w_in = 1900.
 
 	encoding_pars = set_encoding_defaults(default_set=0)
 
 	background_noise = dict(
-		start=0., stop=sys.float_info.max, origin=0.,
-		rate=nu_x * k_x, target_population_names=['E1', 'I1', 'E2', 'I2'],
+		start=0.,
+		stop=sys.float_info.max,
+		origin=0.,
+		rate=nu_x * k_x,
+		target_population_names=['E1', 'I1'],
 		additional_parameters={
 			'syn_specs': {},
 			'models': 'static_synapse',
@@ -102,6 +120,25 @@ def build_parameters(nu_x, gamma):
 			'delay_dist': delay})
 	add_background_noise(encoding_pars, background_noise)
 
+	analysis_pars = {
+		# analysis depth
+		'depth': 4,	# 1: save only summary of data, use only fastest measures
+					# 2: save all data, use only fastest measures
+					# 3: save only summary of data, use all available measures
+					# 4: save all data, use all available measures
+
+		'store_activity': False,	# [int] - store all population activity in the last n steps of the test
+									# phase; if set True the entire test phase will be stored;
+
+		'population_activity': {
+			'time_bin': 	1.,  	# bin width for spike counts, fano factors and correlation coefficients
+			'n_pairs': 		500,  	# number of spike train pairs to consider in correlation coefficient
+			'tau': 			20., 	# time constant of exponential filter (van Rossum distance)
+			'window_len': 	100, 	# length of sliding time window (for time_resolved analysis)
+			'time_resolved': False, # perform time-resolved analysis
+		}
+	}
+
 	# ##################################################################################################################
 	# RETURN dictionary of Parameters dictionaries
 	# ==================================================================================================================
@@ -109,4 +146,5 @@ def build_parameters(nu_x, gamma):
 	             ('neuron_pars', neuron_pars),
 	             ('net_pars', net_pars),
 	             ('encoding_pars', encoding_pars),
-	             ('connection_pars', connection_pars)])
+	             ('connection_pars', connection_pars),
+				 ('analysis_pars', analysis_pars)])

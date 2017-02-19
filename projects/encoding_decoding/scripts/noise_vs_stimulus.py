@@ -205,20 +205,21 @@ if not np.mean(activity) > 0:
 #                                                 **analysis_pars)
 
 analysis_interval = [parameter_set.kernel_pars.transient_t - 500., parameter_set.kernel_pars.transient_t + 500.]
-analysis_pars = {'time_bin': 1.,
-                 'n_pairs': 500,
-                 'tau': 20.,
-                 'window_len': 100,
-                 'summary_only': False,
-                 'complete': True,
-                 'time_resolved': True,
-                 'color_subpop': True}
+# TODO @barni moved this to parameter file
+# analysis_pars = {'time_bin': 1.,
+#                  'n_pairs': 500,
+#                  'tau': 20.,
+#                  'window_len': 100,
+#                  'summary_only': False,
+#                  'complete': True,
+#                  'time_resolved': True,
+#                  'color_subpop': True}
 epochs = {'ongoing': (analysis_interval[0], parameter_set.kernel_pars.transient_t),
           'evoked': (parameter_set.kernel_pars.transient_t, analysis_interval[1])}
 results['transition'] = characterize_population_activity(net, parameter_set, analysis_interval, epochs=epochs,
                                                 color_map='Accent', plot=plot,
                                                 display=display, save=paths['figures']+paths['label']+'Evoked',
-                                                **analysis_pars)
+												color_subpop=True, analysis_pars=parameter_set.analysis_pars)
 
 net.flush_records()
 enc_layer.flush_records()

@@ -213,20 +213,24 @@ def build_parameters(lexicon_size, T):
 	# Extra analysis parameters (specific for this experiment)
 	# ==================================================================================================================
 	analysis_pars = {
-		'store_activity': 5,       # [bool or int] - store all population activity in the last n steps of the test
+		# analysis depth
+		'depth': 3,  	# 1: save only summary of data, use only fastest measures
+						# 2: save all data, use only fastest measures
+						# 3: save only summary of data, use all available measures
+						# 4: save all data, use all available measures
+
+		'store_activity': 5,  		# [int] - store all population activity in the last n steps of the test
 									# phase; if set True the entire test phase will be stored;
 
-		'population_state': {       # if the activity is stored, these are the parameters for the state characterization
-			'time_bin': 1.,         # bin width for spike counts, fano factors and correlation coefficients
-			'n_pairs': 500,         # number of spike train pairs to consider in correlation coefficient
-			'tau': 20.,             # time constant of exponential filter (van Rossum distance)
-			'window_len': 100,      # length of sliding time window (for time_resolved analysis)
-			'summary_only': True,   # how to save the data (only mean and std - True) or entire data set (False)
-			'complete': True,      # use all existing measures or just the fastest / simplest ones
-			'time_resolved': False},
-
-
+		'population_activity': {
+			'time_bin': 1.,  		# bin width for spike counts, fano factors and correlation coefficients
+			'n_pairs': 500,  		# number of spike train pairs to consider in correlation coefficient
+			'tau': 20.,  			# time constant of exponential filter (van Rossum distance)
+			'window_len': 100,  	# length of sliding time window (for time_resolved analysis)
+			'time_resolved': False, # perform time-resolved analysis
+		}
 	}
+
 	# ##################################################################################################################
 	# RETURN dictionary of Parameters dictionaries
 	# ==================================================================================================================

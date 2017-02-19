@@ -12,17 +12,13 @@ Talking points:
 ********************************************
 ***             Questions                ***
 ********************************************
-1. at one point it's trying to extract activity from the last 2 seconds (defined by 'lag') of a template: 2198 - 2200
 
-2. do we want edge_wrap? what if it's not defined, then default is..? or we make it compulsory?
-    - I actually added a padding, that changes the probabilities no? Also, in the paper the edges of the grid have unit
-    length, that again influences the connections eventually
 
-********************************************
-***                 TODO                 ***
-********************************************
 
-#### ANALYSIS
+
+#################################################
+####            REFACTORING ANALYSIS         ####
+#################################################
 class ActivityAnalysis:
     - analyse_spiking (new)
         - compute_synchrony
@@ -31,14 +27,21 @@ class ActivityAnalysis:
         - compute_time_resolved_statistics
     - analyse_analog (new)
         - compute_analog_stats
-    - analyse_state_divergence
-    -= analyse_activity_dynamics [RENAME?]
-    -= analyse_state_matrix [redundant?]
-    x characterize_population_activity
     
+    [do the following belong here?]
+    - analyse_state_divergence
+    - analyse_activity_dynamics [RENAME?]
+    - analyse_state_matrix      [redundant with analyse_activity_dynamics?]
+
+    [remove]
+    x characterize_population_activity - this can go as it's replaced by analyse_spiking and analyse_analog
+    
+###
 class PerformanceAnalysis:
     - analyse_performance_results
+    - ... some other functions?
 
+###
 Other stuff:
     - readout_test / train should be methods of the Readout class.. they're getting a readout as a parameter.
     - structure results dict. Turn it into a Result(dict) class, and make a clear structure in it, with variables created during class creation:
@@ -47,6 +50,7 @@ Other stuff:
             - rank
             - dimensionality
             - ...
-      = easier to pass around
-    - comment some functions, don't know where they belong
-    - manifold_learning?
+        +++ Advantages:
+            +++ easier to pass around between activity / performance - analysis, other functions
+            +++ easier to document it: users might want to know what metrics are stored by which key in results{...}, 
+                in order to do some custom post processing. 
