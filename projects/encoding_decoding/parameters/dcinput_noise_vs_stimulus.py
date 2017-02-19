@@ -210,6 +210,28 @@ def build_parameters():
 	                                      **decoders)
 
 	# ##################################################################################################################
+	# Extra analysis parameters (specific for this experiment)
+	# ==================================================================================================================
+	analysis_pars = {
+		# analysis depth
+		'depth': 4,  	# 1: save only summary of data, use only fastest measures
+						# 2: save all data, use only fastest measures
+						# 3: save only summary of data, use all available measures
+						# 4: save all data, use all available measures
+
+		'store_activity': False,  	# [int] - store all population activity in the last n steps of the test
+									# phase; if set True the entire test phase will be stored;
+
+		'population_activity': {
+			'time_bin': 1.,  # bin width for spike counts, fano factors and correlation coefficients
+			'n_pairs': 500,  # number of spike train pairs to consider in correlation coefficient
+			'tau': 20.,  # time constant of exponential filter (van Rossum distance)
+			'window_len': 100,  # length of sliding time window (for time_resolved analysis)
+			'time_resolved': True,  # perform time-resolved analysis
+		}
+	}
+
+	# ##################################################################################################################
 	# RETURN dictionary of Parameters dictionaries
 	# ==================================================================================================================
 	return dict([('kernel_pars', kernel_pars),
@@ -220,6 +242,7 @@ def build_parameters():
 	             ('input_pars', input_pars),
 	             ('decoding_pars', decoding_pars),
 	             ('task_pars', task_pars),
+	             ('analysis_pars', analysis_pars),
 	             ('stim_pars', stim_pars)])
 
 # ######################################################################################################################

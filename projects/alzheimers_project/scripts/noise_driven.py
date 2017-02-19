@@ -101,7 +101,7 @@ analysis_interval = [parameter_set.kernel_pars.transient_t,
 
 
 results.update(characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
-                                                color_map='coolwarm', plot=plot,
+                                                color_map='jet', plot=plot,
                                                 display=display, save=paths['figures']+paths['label'],
                                                 analysis_pars=parameter_set.analysis_pars))
 
