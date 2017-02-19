@@ -1464,14 +1464,6 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 		assert isinstance(spike_list, sg.SpikeList), "Spiking activity should be SpikeList object"
 		spike_list = spike_list.time_slice(analysis_interval[0], analysis_interval[1])
 
-		# TODO remove, debug
-		# print ("gonna animate raster plot...")
-		# response_matrix = spike_list.compile_binary_response_matrix(dt=.1)
-		# visualization.plot_trajectory(response_matrix, save=save)
-		# # ai = ActivityAnimator(spike_list, populations=population_object, ids=gids, vm_list=[])
-		# # ai.animate_activity(time_window=100, save=True)
-		# exit(0)
-		#######
 		results['spiking_activity'].update(compute_spikelist_metrics(spike_list, population_object.name,
 		                                        time_bin=time_bin, n_pairs=n_pairs, tau=tau,
 		                                        summary_only=summary_only, complete=complete,
@@ -1522,7 +1514,8 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 					results['spiking_activity'][name].update(compute_time_resolved_statistics(spike_list,
 			                        label=population_object.name, time_bin=time_bin, window_len=window_len,
 			                        epochs=epochs, color_map=color_map, display=display, plot=plot, save=save))
-
+	else:
+		print("Warning: network is not spiking!")
 	########################################################################################################
 	# Analog activity analysis
 	if population_object.analog_activity and base_population_object is not None:
