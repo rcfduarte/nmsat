@@ -68,10 +68,10 @@ def build_parameters(lexicon_size, T):
 		syn_specs=[{}, {}, {}, {}])
 	neuron_pars, net_pars, connection_pars = set_network_defaults(N=N, **recurrent_synapses)
 	net_pars['record_spikes'] = [True, True]
-	net_pars['record_analogs'] = [True, False]
-	multimeter = rec_device_defaults(device_type='multimeter')
-	multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1000})
-	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': ''}), {}]
+	# net_pars['record_analogs'] = [True, False]
+	# multimeter = rec_device_defaults(device_type='multimeter')
+	# multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1000})
+	# net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': ''}), {}]
 
 	# ######################################################################################################################
 	# Task and Stimulus Parameters
@@ -88,7 +88,7 @@ def build_parameters(lexicon_size, T):
 	# lexicon_size = 4
 	n_distractors = 0  # (if applicable)
 	# T = 10
-	T_discard = 10  # number of elements to discard (>=1, for some weird reasons..)
+	T_discard = 2  # number of elements to discard (>=1, for some weird reasons..)
 
 	random_dt = False  # if True, dt becomes maximum distance (?)
 	dt = 3  # delay (if applicable)
@@ -182,15 +182,15 @@ def build_parameters(lexicon_size, T):
 	readout_algorithms = ['pinv']
 
 	decoders = dict(
-		decoded_population=[['E', 'I']],
-		state_variable=['V_m'],
+		decoded_population=[['E', 'I'], ['E', 'I']],
+		state_variable=['V_m', 'spikes'],
 		filter_time=filter_tau,
 		readouts=readout_labels,
 		readout_algorithms=readout_algorithms,
 		sampling_times=state_sampling,
-		reset_states=[False],
-		average_states=[False],
-		standardize=[False]
+		reset_states=[False, False],
+		average_states=[False, False],
+		standardize=[False, False]
 	)
 
 	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)
@@ -246,6 +246,6 @@ def build_parameters(lexicon_size, T):
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'lexicon_size': [40],
+	'lexicon_size': [10],
 	'T': [50]
 }
