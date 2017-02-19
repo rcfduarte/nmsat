@@ -701,3 +701,11 @@ def time_keep(start_time, idx, set_size, t1):
 # 						if plot:
 # 							analyse_state_matrix(state_matrix, stim.full_set_labels, label=n_pop.name + var + stim_set,
 # 							                     plot=plot, display=display, save=paths['figures'] + paths['label'])
+
+
+def iterate_sequence(net, enc_layer, parameter_set, stimulus_set, input_signal_set, set_name, record=True,
+                           store_activity=False):
+	"""
+	Testing alternative...
+	:return:
+	"""

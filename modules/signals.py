@@ -3162,25 +3162,25 @@ class AnalogSignalList(object):
 			dt = np.mean(np.diff(np.unique(times)))
 		# print "min time: ", min(times)
 		# print "max time: ", max(times)
-		self.dt = np.round(float(dt), 2) #1)
+		self.dt = np.round(float(dt), determine_decimal_digits(dt))
 
 		if t_start is None and times is None:
 			t_start = 0.
 		elif t_start is None and times is not None:
 			t_start = min(times)
-			if abs(np.round(min(times) - np.round(min(times)), 1)) <= self.dt:
-					t_start = np.round(min(times))
+			if abs(np.round(min(times) - np.round(min(times)), determine_decimal_digits(self.dt))) <= self.dt:
+					t_start = np.round(min(times), determine_decimal_digits(self.dt))
 		self.t_start = t_start
 		#
 		if t_stop is None and times is None:
 			t_stop = len(signals) * self.dt
 		elif t_stop is None and times is not None:
 			t_stop = max(times)
-			if abs(np.round(max(times) - np.round(max(times)), 1)) <= self.dt:
-				t_stop = np.round(max(times))
+			if abs(np.round(max(times) - np.round(max(times)), determine_decimal_digits(self.dt))) <= self.dt:
+				t_stop = np.round(max(times), determine_decimal_digits(self.dt))
 				if t_stop == max(times) and self.dt >= 1.:
 					t_stop += self.dt
-		self.t_stop = round(t_stop, 1)
+		self.t_stop = round(t_stop, determine_decimal_digits(self.dt))
 
 		self.dimensions = dims
 		self.analog_signals = {}

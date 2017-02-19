@@ -4,22 +4,22 @@ from preset import *
 import numpy as np
 
 """
-dc_input
-- test spike_pattern_input stimulus processing
+spike_pattern_input
+- main spike_input stimulus processing
 """
 
 run = 'local'
-data_label = 'ED_DCNoise_global_stats'
+data_label = 'ED_spikepatterninput_training_parameters'
 
 
-def build_parameters():
+def build_parameters(lexicon_size, T):
 	# ######################################################################################################################
 	# System / Kernel Parameters
 	# ######################################################################################################################
 	system = dict(
 		nodes=1,
 		ppn=16,
-		mem=32000,
+		mem=48000,
 		walltime='01-00:00:00',
 		queue='defqueue',
 		transient_time=1000.,
@@ -31,7 +31,7 @@ def build_parameters():
 	# ##################################################################################################################
 	# Neuron, Synapse and Network Parameters
 	# ##################################################################################################################
-	N = 10
+	N = 10000
 	nE = 0.8 * N
 	nI = 0.2 * N
 	dE = 1.0
@@ -44,7 +44,7 @@ def build_parameters():
 	pII = 0.2
 
 	# connection weights
-	g = 13.5
+	g = 11.
 	wE = 1.2
 	wI = -g * wE
 
@@ -67,40 +67,62 @@ def build_parameters():
 		            {'rule': 'pairwise_bernoulli', 'p': pII}],
 		syn_specs=[{}, {}, {}, {}])
 	neuron_pars, net_pars, connection_pars = set_network_defaults(N=N, **recurrent_synapses)
-
-	net_pars['record_analogs'] = [False, False]
-	multimeter = rec_device_defaults(device_type='multimeter')
-	multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1})
-	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': ''}), {}]
+	net_pars['record_spikes'] = [True, True]
+	# net_pars['record_analogs'] = [True, False]
+	# multimeter = rec_device_defaults(device_type='multimeter')
+	# multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1000})
+	# net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': ''}), {}]
 
 	# ######################################################################################################################
-	# Stimulus Parameters
+	# Task and Stimulus Parameters
 	# ######################################################################################################################
-	n_trials = 5
-	n_discard = 0
+	task = 1  # Accepted tasks:
+	# - identity mapping (1);
+	# - delayed identity mapping (2);
+	# - delayed identity mapping with distractors (3);
+	# - adjacent dependencies (4);
+	# - non-adjacent dependencies (5);
+	# - pattern mapping with cross dependencies (6);
+	# - hierarchical dependencies (7);
 
-	n_stim = 5
+	# lexicon_size = 4
+	n_distractors = 0  # (if applicable)
+	# T = 10
+	T_discard = 2  # number of elements to discard (>=1, for some weird reasons..)
+
+	random_dt = False  # if True, dt becomes maximum distance (?)
+	dt = 3  # delay (if applicable)
+
+	pause_t = 1  # pause between 2 items
+
+	C_len = 2  # length of patterns (if applicable) - only 2! (?)
+
+	task_pars = {'task': task,
+	             'lexicon_size': lexicon_size,
+	             'T': T + T_discard,
+	             'random_dt': random_dt,
+	             'dt': dt,
+	             'pause_t': pause_t,
+	             'C_len': C_len,
+	             'n_distractors': n_distractors}
 
 	stim_pars = dict(
-		n_stim=n_stim,
-		elements=np.arange(0, n_stim, 1).astype(int),
-		grammar=None,
-		full_set_length=int(n_trials + n_discard),
-		transient_set_length=int(n_discard),
-		train_set_length=int(n_trials * 0.8),
-		test_set_length=int(n_trials * 0.2),
-	)
+		n_stim=lexicon_size,
+		full_set_length=int(T + T_discard),
+		transient_set_length=int(T_discard),
+		train_set_length=int(0.8 * T),
+		test_set_length=int(0.2 * T))
 
 	# ######################################################################################################################
 	# Input Parameters
 	# ######################################################################################################################
-	inp_resolution = 0.1  # resolution of spike patterns (spike times)
-	inp_amplitude = 20000. #20.
+	inp_resolution = 0.1
+	inp_amplitude = 14.
 	inp_duration = 200.
 	inter_stim_interval = 0.
 
 	input_pars = {'signal': {
-		'N': n_stim,
+		'N': lexicon_size,
 		'durations': [inp_duration],
 		'i_stim_i': [inter_stim_interval],
 		'kernel': ('box', {}),
@@ -109,32 +131,27 @@ def build_parameters():
 		'max_amplitude': [inp_amplitude],
 		'min_amplitude': 0.,
 		'resolution': inp_resolution},
-		'noise': {
-			'N': 0,
-			'noise_source': ['GWN'],
-			'noise_pars': {'amplitude': 5., 'mean': 1., 'std': 0.25},
-			'rectify': True,
-			'start_time': 0.,
-			'stop_time': sys.float_info.max,
-			'resolution': inp_resolution, }}
+		# 'noise': {
+		# 	'N': 0,
+		# 	'noise_source': ['GWN'],
+		# 	'noise_pars': {'amplitude': 5., 'mean': 1., 'std': 0.25},
+		# 	'rectify': True,
+		# 	'start_time': 0.,
+		# 	'stop_time': sys.float_info.max,
+		# 	'resolution': inp_resolution, }
+	}
 
 	# ######################################################################################################################
 	# Encoding Parameters
 	# ######################################################################################################################
 	n_afferents = int(nE)  # number of stimulus-specific afferents (if necessary)
+	n_stim = lexicon_size  # number of different input stimuli
 
 	# wIn structure
 	gamma_in = pEE
 	r = 0.5
 	w_in = 1.
 	sig_w = 0.5 * w_in
-
-	# generator to encoder (allows dedicated labelled lines, with r_u = 1.)
-	gamma_u = 1.
-	r_u = 0.01
-	w_u = 1.
-	sig_u = 0.
-	# generator_to_encoder = generate_input_connections(n_stim, gamma_u, n_afferents, r_u, w_u, sig_u)
 
 	# Input connectivity
 	input_synapses = dict(
@@ -144,53 +161,72 @@ def build_parameters():
 		syn_specs=[{}, {}],
 		models=['static_synapse', 'static_synapse'],
 		model_pars=[{}, {}],
-		weight_dist=[{'distribution': 'normal_clipped', 'mu': w_in, 'sigma': 0.5 * w_in, 'low': 0.0001,
-		              'high': 10. * w_in},
-		             {'distribution': 'normal_clipped', 'mu': w_in, 'sigma': 0.5 * w_in, 'low': 0.0001,
-		              'high': 10. * w_in}],
+		weight_dist=[
+			{'distribution': 'normal_clipped', 'mu': w_in, 'sigma': 0.5 * w_in, 'low': 0.0001, 'high': 10. * w_in},
+			{'distribution': 'normal_clipped', 'mu': w_in, 'sigma': 0.5 * w_in, 'low': 0.0001, 'high': 10. * w_in}],
 		delay_dist=[0.1, 0.1],
 		preset_W=[None, None],
 		gen_to_enc_W=None,
-		jitter=(10., True))  # jitter=None or jitter=(value[float], correct_borders[bool])
+		jitter=None)
 
-	encoding_pars = set_encoding_defaults(default_set=4, input_dimensions=n_stim,
-	                                      n_encoding_neurons=n_afferents, **input_synapses)
-	add_parrots(encoding_pars, n_afferents, decode=True, **{})
-
-	# ##################################################################################################################
+	encoding_pars = set_encoding_defaults(default_set=4, input_dimensions=n_stim, n_encoding_neurons=n_afferents,
+	                                      **input_synapses)
+	add_parrots(encoding_pars, n_afferents, decode=False, **{}) # encoder parrots are necessary
+	# #################################################################################################################
 	# Decoding / Readout Parameters
 	# ##################################################################################################################
 	out_resolution = 0.1
 	filter_tau = 20.  # time constant of exponential filter (applied to spike trains)
 	state_sampling = None  # 1.(cannot start at 0)
-	readout_labels = ['ridge_classifier', 'pinv_classifier']
-	readout_algorithms = ['ridge', 'pinv']
+	readout_labels = ['pinv_classifier']
+	readout_algorithms = ['pinv']
 
 	decoders = dict(
-		decoded_population=[['E', 'I'], ['E', 'I'], ['E', 'I'], 'E'],
-		state_variable=['spikes', 'V_m', 'spikes', 'V_m'],
+		decoded_population=[['E', 'I'], ['E', 'I']],
+		state_variable=['V_m', 'spikes'],
 		filter_time=filter_tau,
 		readouts=readout_labels,
 		readout_algorithms=readout_algorithms,
 		sampling_times=state_sampling,
-		reset_states=[True, False, False, False],
-		average_states=[True, True, True, True]
+		reset_states=[False, False],
+		average_states=[False, False],
+		standardize=[False, False]
 	)
 
 	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)
 
 	## Set decoders for input population (if applicable)
-	input_decoder = dict(
-		state_variable=['spikes'],
-		filter_time=filter_tau,
-		readouts=readout_labels,
-		readout_algorithms=readout_algorithms,
-		output_resolution=out_resolution,
-		sampling_times=state_sampling,
-		reset_states=[True],
-		average_states=[True])
+	# input_decoder = dict(
+	# 	state_variable=['spikes'],
+	# 	filter_time=filter_tau,
+	# 	readouts=readout_labels,
+	# 	readout_algorithms=readout_algorithms,
+	# 	output_resolution=out_resolution,
+	# 	sampling_times=state_sampling,
+	# 	reset_states=[True],
+	# 	average_states=[True],
+	# 	standardize=[False]
+	# )
+	#
+	# encoding_pars = add_input_decoders(encoding_pars, input_decoder, kernel_pars)
+	# ##################################################################################################################
+	# Extra analysis parameters (specific for this experiment)
+	# ==================================================================================================================
+	analysis_pars = {
+		'store_activity': 5,       # [bool or int] - store all population activity in the last n steps of the test
+									# phase; if set True the entire test phase will be stored;
 
-	encoding_pars = add_input_decoders(encoding_pars, input_decoder, kernel_pars)
+		'population_state': {       # if the activity is stored, these are the parameters for the state characterization
+			'time_bin': 1.,         # bin width for spike counts, fano factors and correlation coefficients
+			'n_pairs': 500,         # number of spike train pairs to consider in correlation coefficient
+			'tau': 20.,             # time constant of exponential filter (van Rossum distance)
+			'window_len': 100,      # length of sliding time window (for time_resolved analysis)
+			'summary_only': True,   # how to save the data (only mean and std - True) or entire data set (False)
+			'complete': True,      # use all existing measures or just the fastest / simplest ones
+			'time_resolved': False},
+
+
+	}
 	# ##################################################################################################################
 	# RETURN dictionary of Parameters dictionaries
 	# ==================================================================================================================
@@ -200,12 +236,16 @@ def build_parameters():
 	             ('encoding_pars', encoding_pars),
 	             ('connection_pars', connection_pars),
 	             ('input_pars', input_pars),
+	             ('task_pars', task_pars),
 	             ('decoding_pars', decoding_pars),
-	             ('stim_pars', stim_pars)])
+	             ('stim_pars', stim_pars),
+	             ('analysis_pars', analysis_pars)])
 
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
+	'lexicon_size': [10],
+	'T': [50]
 }

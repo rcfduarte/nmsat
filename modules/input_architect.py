@@ -2111,9 +2111,9 @@ class InputSignalSet(object):
 		:return:
 		"""
 		self.generate_full_set(stim)
-		if stim.transient_set_labels:
+		if not signals.empty(stim.transient_set_labels):
 			self.generate_transient_set(stim)
-		if hasattr(stim, "unique_set"):
+		if hasattr(stim, "unique_set") and not signals.empty(stim.unique_set):
 			self.generate_unique_set(stim)
 		self.generate_train_set(stim)
 		self.generate_test_set(stim)
