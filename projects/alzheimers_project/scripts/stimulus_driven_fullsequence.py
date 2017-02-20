@@ -4,7 +4,7 @@ from modules.input_architect import EncodingLayer, StimulusSet, InputSignalSet
 from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
-from modules.visualization import set_global_rcParams, InputPlots, extract_encoder_connectivity, TopologyPlots
+from modules.visualization import set_global_rcParams, InputPlots, extract_encoder_connectivity, TopologyPlots, plot_input_example
 from modules.analysis import analyse_state_matrix, get_state_rank, readout_train, readout_test
 from modules.auxiliary import iterate_input_sequence
 import cPickle as pickle
@@ -72,11 +72,8 @@ for n in list(iterate_obj_list(net.populations)):
 # ======================================================================================================================
 # Create StimulusSet
 stim_set_time = time.time()
-stim = StimulusSet(parameter_set, unique_set=True)
-stim.create_set(parameter_set.stim_pars.full_set_length)
-stim.discard_from_set(parameter_set.stim_pars.transient_set_length)
-stim.divide_set(parameter_set.stim_pars.transient_set_length, parameter_set.stim_pars.train_set_length,
-                parameter_set.stim_pars.test_set_length)
+stim = StimulusSet(parameter_set, unique_set=False)
+stim.generate_datasets(parameter_set.stim_pars)
 print "- Elapsed Time: {0}".format(str(time.time()-stim_set_time))
 
 # Create InputSignalSet
@@ -85,19 +82,12 @@ inputs = InputSignalSet(parameter_set, stim, online=online)
 inputs.generate_datasets(stim)
 print "- Elapsed Time: {0}".format(str(time.time() - input_set_time))
 
-# Plot example signal
-if plot and debug and not online:
-	fig_inp = pl.figure()
-	ax1 = fig_inp.add_subplot(211)
-	ax2 = fig_inp.add_subplot(212)
-	fig_inp.suptitle('Input Stimulus / Signal')
-	inp_plot = InputPlots(stim_obj=stim, input_obj=inputs.train_set_signal, noise_obj=inputs.train_set_noise)
-	inp_plot.plot_stimulus_matrix(set='train', ax=ax1, save=False, display=False)
-	inp_plot.plot_input_signal(ax=ax2, save=paths['figures']+paths['label'], display=display)
-	inp_plot.plot_input_signal(save=paths['figures']+paths['label'], display=display)
-	inp_plot.plot_signal_and_noise(save=paths['figures']+paths['label'], display=display)
 parameter_set.kernel_pars.sim_time = inputs.train_stimulation_time + inputs.test_stimulation_time
 
+# Plot example signal
+if plot and debug and not online:
+	plot_input_example(stim, inputs, set_name='test', display=display, save=paths['figures'] + paths[
+		'label'])
 if save:
 	stim.save(paths['inputs'])
 	if debug:

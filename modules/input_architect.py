@@ -1146,6 +1146,21 @@ class StimulusSet(object):
 		with open(path + 'StimulusSet.pkl', 'w') as fp:
 			pickle.dump(self, fp, -1)
 
+	def generate_datasets(self, parameters, external_sequence=None):
+		"""
+		Generate full_set, discard and divide..
+		:param parameters:
+		:param external_sequence: Complete data sequence
+		:return:
+		"""
+		if external_sequence is None:
+			self.create_set(parameters.full_set_length)
+		else:
+			self.load_data(external_sequence, type='full_set_labels')
+		self.discard_from_set(parameters.transient_set_length)
+		self.divide_set(parameters.transient_set_length, parameters.train_set_length,
+		                parameters.test_set_length)
+
 
 ########################################################################################################################
 class InputSignal(object):
@@ -2111,9 +2126,9 @@ class InputSignalSet(object):
 		:return:
 		"""
 		self.generate_full_set(stim)
-		if stim.transient_set_labels:
+		if not signals.empty(stim.transient_set_labels):
 			self.generate_transient_set(stim)
-		if hasattr(stim, "unique_set"):
+		if hasattr(stim, "unique_set") and not signals.empty(stim.unique_set):
 			self.generate_unique_set(stim)
 		self.generate_train_set(stim)
 		self.generate_test_set(stim)

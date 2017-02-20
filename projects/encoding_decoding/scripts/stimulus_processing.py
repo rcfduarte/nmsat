@@ -4,7 +4,7 @@ from modules.input_architect import EncodingLayer, StimulusSet, InputSignalSet
 from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
-from modules.visualization import set_global_rcParams, InputPlots
+from modules.visualization import set_global_rcParams, InputPlots, plot_input_example
 from modules.analysis import compute_dimensionality, analyse_state_matrix, get_state_rank, readout_train, \
 	readout_test, characterize_population_activity
 from modules.auxiliary import iterate_input_sequence
@@ -90,17 +90,11 @@ input_sequence, output_sequence = stim_pattern.as_index()
 
 # Convert to StimulusSet object
 stim_set = StimulusSet(unique_set=False)
-stim_set.load_data(input_sequence, type='full_set_labels')
-stim_set.discard_from_set(parameter_set.stim_pars.transient_set_length)
-stim_set.divide_set(parameter_set.stim_pars.transient_set_length, parameter_set.stim_pars.train_set_length,
-                    parameter_set.stim_pars.test_set_length)
+stim_set.generate_datasets(parameter_set.stim_pars, external_sequence=input_sequence)
 
 # Specify target and convert to StimulusSet object
 target_set = StimulusSet(unique_set=False)
-target_set.load_data(output_sequence, type='full_set_labels')
-target_set.discard_from_set(parameter_set.stim_pars.transient_set_length)
-target_set.divide_set(parameter_set.stim_pars.transient_set_length, parameter_set.stim_pars.train_set_length,
-                    parameter_set.stim_pars.test_set_length)
+target_set.generate_datasets(parameter_set.stim_pars, external_sequence=output_sequence)
 
 print "- Elapsed Time: {0}".format(str(time.time()-stim_set_startbuild))
 stim_set_buildtime = time.time()-stim_set_startbuild
@@ -113,36 +107,22 @@ parameter_set.input_pars.signal.N = len(np.unique(input_sequence))
 
 # Create InputSignalSet
 inputs = InputSignalSet(parameter_set, stim_set, online=online)
-if not empty(stim_set.transient_set_labels):
-	inputs.generate_transient_set(stim_set)
-	parameter_set.kernel_pars.transient_t = inputs.transient_stimulation_time
-if not online:
-	inputs.generate_full_set(stim_set)
-#inputs.generate_unique_set(stim)
-inputs.generate_train_set(stim_set)
-inputs.generate_test_set(stim_set)
+inputs.generate_datasets(stim_set)
+
+input_set_buildtime = time.time() - input_set_time
+print "- Elapsed Time: {0}".format(str(input_set_buildtime))
+
+parameter_set.kernel_pars.sim_time = inputs.train_stimulation_time + inputs.test_stimulation_time
 
 # Plot example signal
 if plot and debug and not online:
-	fig_inp = pl.figure()
-	ax1 = fig_inp.add_subplot(211)
-	ax2 = fig_inp.add_subplot(212)
-	fig_inp.suptitle('Input Stimulus / Signal')
-	inp_plot = InputPlots(stim_obj=stim_set, input_obj=inputs.test_set_signal, noise_obj=inputs.test_set_noise)
-	inp_plot.plot_stimulus_matrix(set='test', ax=ax1, save=False, display=False)
-	inp_plot.plot_input_signal(ax=ax2, save=paths['figures']+paths['label'], display=display)
-	inp_plot.plot_input_signal(save=paths['figures']+paths['label'], display=display)
-	inp_plot.plot_signal_and_noise(save=paths['figures']+paths['label'], display=display)
-parameter_set.kernel_pars.sim_time = inputs.train_stimulation_time + inputs.test_stimulation_time
-
+	plot_input_example(stim_set, inputs, set_name='test', display=display, save=paths['figures'] + paths[
+		'label'])
 if save:
 	stim_pattern.save(paths['inputs'])
 	stim_set.save(paths['inputs'])
 	if debug:
 		inputs.save(paths['inputs'])
-
-print "- Elapsed Time: {0}".format(str(time.time() - input_set_time))
-inputs_build_time = time.time() - input_set_time
 
 # ######################################################################################################################
 # Encode Input
