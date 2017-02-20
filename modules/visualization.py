@@ -3110,3 +3110,21 @@ def pretty_raster(global_spike_list, analysis_interval, sub_pop_gids=None, n_tot
 	# ax.set_xticks([])
 	# ax.set_yticks([])
 	pl.show()
+
+
+def plot_input_example(stim_set, input_signal_set, set_name='test', display=True, save=False):
+	"""
+
+	:return:
+	"""
+	fig_inp = pl.figure()
+	ax1 = fig_inp.add_subplot(211)
+	ax2 = fig_inp.add_subplot(212)
+	fig_inp.suptitle('Input Stimulus / Signal')
+	input_obj = getattr(input_signal_set, "{0}_set_signal".format(set_name))
+	noise_obj = getattr(input_signal_set, "{0}_set_noise".format(set_name))
+	inp_plot = InputPlots(stim_obj=stim_set, input_obj=input_obj, noise_obj=noise_obj)
+	inp_plot.plot_stimulus_matrix(set=set_name, ax=ax1, save=False, display=False)
+	inp_plot.plot_input_signal(ax=ax2, save=save, display=display)
+	inp_plot.plot_input_signal(save=save, display=display)
+	inp_plot.plot_signal_and_noise(save=save, display=display)

@@ -3,16 +3,16 @@ import numpy as np
 import matplotlib.pyplot as pl
 from modules.signals import AnalogSignalList
 
-dt = 0.1
+dt = 0.01
 
 nest.SetKernelStatus({'resolution': dt})
 
 
 neurons = nest.Create('iaf_psc_exp', 10, {'V_m': -60., 'I_e': 400.})
 
-mm1 = nest.Create('multimeter', 1, {'start': 0.1, 'interval': dt, 'record_from': ['V_m']})
-mm2 = nest.Create('multimeter', 1, {'start': 0.5, 'interval': 10*dt, 'record_from': ['V_m']})
-mm3 = nest.Create('multimeter', 1, {'start': 0.1, 'interval': 100.*dt, 'record_from': ['V_m']})
+mm1 = nest.Create('multimeter', 1, {'start': 0.0, 'interval': dt, 'record_from': ['V_m']})
+mm2 = nest.Create('multimeter', 1, {'origin': 0.5, 'interval': 10*dt, 'record_from': ['V_m']})
+mm3 = nest.Create('multimeter', 1, {'origin': 0.5, 'interval': 100.*dt, 'record_from': ['V_m']})
 
 nest.Connect(mm1, neurons)
 nest.Connect(mm2, neurons)
