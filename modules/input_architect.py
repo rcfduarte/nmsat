@@ -1190,7 +1190,6 @@ class InputSignal(object):
 		else:
 			if isinstance(initializer, dict):
 				initializer = parameters.ParameterSet(initializer)
-
 			if isinstance(initializer, parameters.ParameterSet):
 				self.dimensions = initializer.N
 				self.dt = initializer.resolution
@@ -1378,9 +1377,9 @@ class InputSignal(object):
 			for ii0 in list(tmp[tmp.nonzero()]):
 				self.onset_times[n].append(ii0)
 			if seq.toarray()[n, 0] and onset == 0. and self.online:
-				self.onset_times[n].insert(0, 0.0)
-			elif seq.toarray()[n, 0] and not self.online:
-				self.onset_times[n].insert(0, 0.0)
+				self.onset_times[n].insert(0, self.global_start) #.0)
+			# elif seq.toarray()[n, 0] and not self.online:  TODO: why was this here??
+			# 	self.onset_times[n].insert(0, self.global_start)
 
 			offset_times[n, :] = seq.toarray()[n, :] * offsets
 			tmp = offset_times[n, :]
@@ -1411,8 +1410,11 @@ class InputSignal(object):
 			# for each stimulus presentation, mark the mid-point..
 			onsets = np.array(self.onset_times[nn])
 			offsets = np.array(self.offset_times[nn])
+			# print onsets
+			# print offsets
 			mid_points = ((onsets / self.dt) + (offsets / self.dt)) / 2.
-			signal[nn, mid_points.astype(int)] = 1.
+			# print mid_points.astype(int), (mid_points - (self.global_start / self.dt)).astype(int)
+			signal[nn, (mid_points - (self.global_start / self.dt)).astype(int)] = 1.
 
 		tmp_durations = np.array(list(itertools.chain(*self.durations)))
 		tmp_amplitudes = np.array(list(itertools.chain(*self.amplitudes)))
@@ -1515,7 +1517,7 @@ class InputSignal(object):
 		"""
 		Generate the final signal
 		"""
-		if self.input_signal:
+		if not signals.empty(self.input_signal):
 			self.input_signal = self.compress_signals()
 		elif self.online:
 			self.input_signal = None

@@ -67,16 +67,19 @@ net.merge_subpopulations([net.populations[0], net.populations[1]])
 for n in list(iterate_obj_list(net.populations)):
 	n.randomize_initial_states('V_m', randomization_function=np.random.uniform, low=0.0, high=15.)
 
-# ######################################################################################################################
-# Build and connect input
-# ======================================================================================================================
-# Create StimulusSet
+###################################################################################
+# Build Stimulus Set
+# =================================================================================
 stim_set_time = time.time()
+
+# Create StimulusSet object
 stim = StimulusSet(parameter_set, unique_set=False)
 stim.generate_datasets(parameter_set.stim_pars)
 print "- Elapsed Time: {0}".format(str(time.time()-stim_set_time))
 
-# Create InputSignalSet
+###################################################################################
+# Build Input Signal Set
+# =================================================================================
 input_set_time = time.time()
 inputs = InputSignalSet(parameter_set, stim, online=online)
 inputs.generate_datasets(stim)

@@ -31,7 +31,7 @@ def build_parameters(lexicon_size, T):
 	# ##################################################################################################################
 	# Neuron, Synapse and Network Parameters
 	# ##################################################################################################################
-	N = 100
+	N = 10000
 	nE = 0.8 * N
 	nI = 0.2 * N
 	dE = 1.0
@@ -68,7 +68,7 @@ def build_parameters(lexicon_size, T):
 		syn_specs=[{}, {}, {}, {}])
 	neuron_pars, net_pars, connection_pars = set_network_defaults(N=N, **recurrent_synapses)
 
-	net_pars['record_spikes'] = [True, True]
+	# net_pars['record_spikes'] = [True, True]
 
 	# net_pars['record_analogs'] = [True, False]
 	# multimeter = rec_device_defaults(device_type='multimeter')
@@ -172,7 +172,7 @@ def build_parameters(lexicon_size, T):
 	# ##################################################################################################################
 	# Decoding / Readout Parameters
 	# ##################################################################################################################
-	out_resolution = 0.1
+	out_resolution = inp_duration #0.1
 	filter_tau = 20.  # time constant of exponential filter (applied to spike trains)
 	state_sampling = None  # 1.(cannot start at 0)
 	readout_labels = ['ridge_classifier', 'pinv_classifier']
@@ -190,13 +190,13 @@ def build_parameters(lexicon_size, T):
 		standardize=[False, False]
 	)
 
-	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)
+	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, origin=0.1, to_memory=True, **decoders)
 
 	# ##################################################################################################################
 	# Extra analysis parameters (specific for this experiment)
 	# ==================================================================================================================
 	analysis_pars = {
-		'store_activity': 5,       # [bool or int] - store all population activity in the last n steps of the test
+		'store_activity': False,       # [bool or int] - store all population activity in the last n steps of the test
 									# phase; if set True the entire test phase will be stored;
 
 		'population_state': {       # if the activity is stored, these are the parameters for the state characterization
@@ -229,6 +229,6 @@ def build_parameters(lexicon_size, T):
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'lexicon_size': [50], #np.arange(5, 505, 5),
-	'T': [50] #np.arange(100, 1100, 100)
+	'lexicon_size': [10], #np.arange(5, 505, 5),
+	'T': [20] #np.arange(100, 1100, 100)
 }

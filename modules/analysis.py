@@ -1187,31 +1187,6 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 										  display=display, save=save)
 	return results
 
-# TODO needed?
-# def extract_results_vector(results_dict, keys):
-# 	"""
-# 	Retrieves an ordered vector whose entries correspond to the provided dictionary keys
-# 	:param results_dict: low-level dictionary
-# 	:param keys: list
-# 	:return:
-# 	"""
-# 	# reduce(getitem, keys, results_dict)
-# 	valid_keys = [k for k in keys if k in results_dict.keys()]
-# 	# assert(all([k in results_dict.keys() for k in keys])), "Key `{0}`not in dictionary".format(k)
-# 	out_mean = np.empty((len(valid_keys)))
-# 	out_var = np.empty((len(valid_keys)))
-# 	for idx, k in enumerate(valid_keys):
-# 		if isinstance(results_dict[k], tuple):
-# 			out_mean[idx] = results_dict[k][0]
-# 			out_var[idx] = results_dict[k][0]
-# 		elif isinstance(results_dict[k], list) or isinstance(results_dict[k], np.ndarray):
-# 			out_mean[idx] = np.mean(results_dict[k])
-# 			out_var[idx] = np.var(results_dict[k])
-# 		else:
-# 			out_mean[idx] = results_dict[k]
-# 			out_var[idx] = 0.
-# 	return out_mean, out_var
-
 
 def epoch_based_analysis(population_object, epochs):
 	"""
@@ -1255,38 +1230,6 @@ def analyse_activity_dynamics(activity_matrix, epochs=None, label='', plot=False
 			                                                     display=False, save=False))
 	# TODO extend to other standard measurements
 	return results
-
-
-# def compute_time_resolved_dimensionality(spike_list=None, activity_matrix=None, time_bin=1., window_len=100,
-#                                          display=True):
-# 	"""
-# 	Determines the effective state-space dimensionality (with the PCA method), in a moving window
-# 	:return:
-# 	"""
-# 	time_axis = spike_list.time_axis(time_bin=time_bin)
-# 	steps = len(list(sg.moving_window(time_axis, window_len)))
-# 	mw = sg.moving_window(time_axis, window_len)
-# 	rr = dict()
-# 	print "\nAnalysing activity in moving window.."
-# 	if activity_matrix is None and spike_list is not None:
-# 		population_response = spike_list.compile_response_matrix()
-# 	else:
-# 		population_response = activity_matrix
-# 	pca_obj = sk.PCA(n_components=population_response.shape[0])
-#
-# 	rr = {'dimensionality_profile': []}
-# 	for n in range(steps):
-# 		if display:
-# 			visualization.progress_bar(float(float(n) / steps))
-# 		time_window = mw.next()
-# 		local_list = spike_list.time_slice(t_start=min(time_window), t_stop=max(time_window))
-# 		local_response = local_list.compile_response_matrix()
-# 		X = pca_obj.fit_transform(local_response.T)
-# 		local_dimensionality = compute_dimensionality(local_response, pca_obj=pca_obj,
-# 		                                                                 display=False)
-# 		rr['dimensionality_profile'].append(local_dimensionality)
-#
-# 	return rr
 
 
 def compute_time_resolved_statistics(spike_list, label='', time_bin=1., window_len=100, epochs=None,

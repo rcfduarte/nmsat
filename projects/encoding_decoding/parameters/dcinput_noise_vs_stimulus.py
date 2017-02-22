@@ -12,7 +12,7 @@ dcinput_ongoing_evoked
 """
 
 run = 'local'
-data_label = 'ED_DCNoise_global_stats'
+data_label = 'ED_dcinput_noise_vs_stimulus'
 
 
 def build_parameters():
@@ -25,8 +25,8 @@ def build_parameters():
 		mem=32000,
 		walltime='01-00:00:00',
 		queue='defqueue',
-		transient_time=500.,  # ongoing
-		sim_time=500.)  # evoked
+		transient_time=1100.,  # ongoing
+		sim_time=2100.)  # evoked
 
 	kernel_pars = set_kernel_defaults(run_type=run, data_label=data_label, **system)
 	np.random.seed(kernel_pars['np_seed'])
@@ -47,7 +47,7 @@ def build_parameters():
 	pII = 0.2
 
 	# connection weights
-	g = 13.5
+	g = 15.
 	wE = 1.2
 	wI = -g * wE
 
@@ -120,9 +120,19 @@ def build_parameters():
 	# Input Parameters
 	# ######################################################################################################################
 	inp_resolution = 1.
-	inp_amplitude = 1100.
+	inp_amplitude = 1500.
 	inp_duration = 200.
 	inter_stim_interval = 0.
+
+	noise_pars = {
+		'noise': {
+			'N': 1,
+			'noise_source': ['GWN'],
+			'noise_pars': {'amplitude': inp_amplitude, 'mean': 1., 'std': 0.1},
+			'rectify': False,
+			'start_time': 0.,
+			'stop_time': kernel_pars['transient_t'],
+			'resolution': 0.1}}
 
 	input_pars = {
 		'signal': {
@@ -134,15 +144,7 @@ def build_parameters():
 			'stop_time': sys.float_info.max,
 			'max_amplitude': [inp_amplitude],
 			'min_amplitude': 0.,
-			'resolution': inp_resolution},
-		'noise': {
-			'N': 1,
-			'noise_source': ['GWN'],
-			'noise_pars': {'amplitude': 5., 'mean': 1., 'std': 0.25},
-			'rectify': True,
-			'start_time': 0.,
-			'stop_time': kernel_pars['transient_t'],
-			'resolution': inp_resolution, }}
+			'resolution': inp_resolution}}
 
 	# ######################################################################################################################
 	# Encoding Parameters
@@ -167,47 +169,35 @@ def build_parameters():
 		preset_W=[None, None],
 		gen_to_enc_W=None)
 
-	encoding_pars = set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=0., **input_synapses)
-
-	nu_x = 10.
-	k_x = pEE * nE
-
-	background_noise = dict(
-		start=0., stop=sys.float_info.max, origin=0.,
-		rate=nu_x * k_x, target_population_names=['E', 'I'],
-		additional_parameters={
-			'syn_specs': {},
-			'models': 'static_synapse',
-			'model_pars': {},
-			'weight_dist': {'distribution': 'normal_clipped', 'mu': w_in, 'sigma': 0.5 * w_in, 'low': 0.0001,
-			                'high': 10. * w_in},
-			'delay_dist': 0.1})
-	add_background_noise(encoding_pars, background_noise)
+	noise_encoding_pars = set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=0.,
+	                                            gen_label='InputNoise', **input_synapses)
+	stim_encoding_pars = set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=0.,
+	                                            gen_label='InputStimulus', **input_synapses)
 
 	# ######################################################################################################################
 	# Decoding Parameters
 	# ######################################################################################################################
-	filter_tau = 20.
-	state_sampling = None
-	readout_labels = ['pinv', 'ridge']  # , 'class0', 'class0']#, 'class0']
-	readout_algorithms = ['pinv', 'ridge']  # , 'logistic', 'svm-linear']#, 'svm-rbf']
-
-	# Specify readouts
-	decoders = dict(
-		N=len(readout_labels),
-		decoded_population=[['E', 'I'], ['E', 'I']],
-		state_variable=['V_m', 'spikes'],
-		filter_time=filter_tau,
-		readouts=readout_labels,
-		readout_algorithms=readout_algorithms,
-		sampling_times=state_sampling,
-		reset_states=[False, False],
-		average_states=[False, False],
-		standardize=[False, False]
-	)
-
-	decoding_pars = set_decoding_defaults(output_resolution=1., to_memory=True, kernel_pars=kernel_pars,
-	                                      **decoders)
+	# filter_tau = 20.
+	# state_sampling = None
+	# readout_labels = ['pinv', 'ridge']  # , 'class0', 'class0']#, 'class0']
+	# readout_algorithms = ['pinv', 'ridge']  # , 'logistic', 'svm-linear']#, 'svm-rbf']
+	#
+	# # Specify readouts
+	# decoders = dict(
+	# 	N=len(readout_labels),
+	# 	decoded_population=[['E', 'I'], ['E', 'I']],
+	# 	state_variable=['V_m', 'spikes'],
+	# 	filter_time=filter_tau,
+	# 	readouts=readout_labels,
+	# 	readout_algorithms=readout_algorithms,
+	# 	sampling_times=state_sampling,
+	# 	reset_states=[False, False],
+	# 	average_states=[False, False],
+	# 	standardize=[False, False]
+	# )
+	#
+	# decoding_pars = set_decoding_defaults(output_resolution=1., to_memory=True, kernel_pars=kernel_pars,
+	#                                       **decoders)
 
 	# ##################################################################################################################
 	# Extra analysis parameters (specific for this experiment)
@@ -227,7 +217,7 @@ def build_parameters():
 			'n_pairs': 500,  # number of spike train pairs to consider in correlation coefficient
 			'tau': 20.,  # time constant of exponential filter (van Rossum distance)
 			'window_len': 100,  # length of sliding time window (for time_resolved analysis)
-			'time_resolved': True,  # perform time-resolved analysis
+			'time_resolved': False,  # perform time-resolved analysis
 		}
 	}
 
@@ -237,10 +227,13 @@ def build_parameters():
 	return dict([('kernel_pars', kernel_pars),
 	             ('neuron_pars', neuron_pars),
 	             ('net_pars', net_pars),
-	             ('encoding_pars', encoding_pars),
+	             ('noise_encoding_pars', noise_encoding_pars),
+	             ('stim_encoding_pars', stim_encoding_pars),
+	             ('encoding_pars', stim_encoding_pars), # to avoid an error
 	             ('connection_pars', connection_pars),
 	             ('input_pars', input_pars),
-	             ('decoding_pars', decoding_pars),
+	             ('noise_pars', noise_pars),
+	             # ('decoding_pars', decoding_pars),
 	             ('task_pars', task_pars),
 	             ('analysis_pars', analysis_pars),
 	             ('stim_pars', stim_pars)])
