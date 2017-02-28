@@ -971,7 +971,7 @@ def compute_analog_stats(population, parameter_set, variable_names, analysis_int
 		return results
 
 
-def compute_dimensionality(activity_matrix, pca_obj=None, display=False):
+def compute_dimensionality(activity_matrix, pca_obj=None, label='', plot=False, display=True, save=False):
 	"""
 	Measure the effective dimensionality of population responses. Based on Abbott et al. (). Interactions between
 	intrinsic and stimilus-evoked activity in recurrent neural networks
@@ -980,7 +980,6 @@ def compute_dimensionality(activity_matrix, pca_obj=None, display=False):
 	:return:
 	"""
 	assert(check_dependency('sklearn')), "PCA analysis requires scikit learn"
-	import sklearn.decomposition as sk
 	if display:
 		print("Determining effective dimensionality..")
 		t_start = time.time()
@@ -993,6 +992,9 @@ def compute_dimensionality(activity_matrix, pca_obj=None, display=False):
 	if display:
 		print("Effective dimensionality = {0}".format(str(round(dimensionality, 2))))
 		print("Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3))))
+	if plot:
+		X = pca_obj.fit_transform(activity_matrix.T).T
+		visualization.plot_dimensionality(dimensionality, pca_obj, X, data_label=label, display=display, save=save)
 	return dimensionality
 
 
@@ -1150,7 +1152,7 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 				locations = [0 for _ in range(len(gids))]
 
 			for indice, name in enumerate(subpop_names):
-				results['spiking_activity'][name].update(compute_spikelist_metrics(spike_list, name, ap))
+				results['spiking_activity'].update(compute_spikelist_metrics(spike_list, name, ap))
 				if plot and ap.depth % 2 == 0: # save all data
 					visualization.plot_isi_data(results['spiking_activity'][name], data_label=name, color_map=color_map,
 												location=locations[indice], display=display, save=save)
@@ -1166,7 +1168,7 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 									plot=plot, save=save, window_len=pars_activity.window_len))
 
 	else:
-		print("Warning, the network is not spiking!")
+		print("Warning, the network is not spiking or no spike recording devices were attached.")
 
 	# Analog activity analysis
 	if population_object.analog_activity and base_population_object is not None:
@@ -1186,31 +1188,6 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 										  start=analysis_interval[0], stop=analysis_interval[1],
 										  display=display, save=save)
 	return results
-
-# TODO needed?
-# def extract_results_vector(results_dict, keys):
-# 	"""
-# 	Retrieves an ordered vector whose entries correspond to the provided dictionary keys
-# 	:param results_dict: low-level dictionary
-# 	:param keys: list
-# 	:return:
-# 	"""
-# 	# reduce(getitem, keys, results_dict)
-# 	valid_keys = [k for k in keys if k in results_dict.keys()]
-# 	# assert(all([k in results_dict.keys() for k in keys])), "Key `{0}`not in dictionary".format(k)
-# 	out_mean = np.empty((len(valid_keys)))
-# 	out_var = np.empty((len(valid_keys)))
-# 	for idx, k in enumerate(valid_keys):
-# 		if isinstance(results_dict[k], tuple):
-# 			out_mean[idx] = results_dict[k][0]
-# 			out_var[idx] = results_dict[k][0]
-# 		elif isinstance(results_dict[k], list) or isinstance(results_dict[k], np.ndarray):
-# 			out_mean[idx] = np.mean(results_dict[k])
-# 			out_var[idx] = np.var(results_dict[k])
-# 		else:
-# 			out_mean[idx] = results_dict[k]
-# 			out_var[idx] = 0.
-# 	return out_mean, out_var
 
 
 def epoch_based_analysis(population_object, epochs):
@@ -1257,38 +1234,6 @@ def analyse_activity_dynamics(activity_matrix, epochs=None, label='', plot=False
 	return results
 
 
-# def compute_time_resolved_dimensionality(spike_list=None, activity_matrix=None, time_bin=1., window_len=100,
-#                                          display=True):
-# 	"""
-# 	Determines the effective state-space dimensionality (with the PCA method), in a moving window
-# 	:return:
-# 	"""
-# 	time_axis = spike_list.time_axis(time_bin=time_bin)
-# 	steps = len(list(sg.moving_window(time_axis, window_len)))
-# 	mw = sg.moving_window(time_axis, window_len)
-# 	rr = dict()
-# 	print "\nAnalysing activity in moving window.."
-# 	if activity_matrix is None and spike_list is not None:
-# 		population_response = spike_list.compile_response_matrix()
-# 	else:
-# 		population_response = activity_matrix
-# 	pca_obj = sk.PCA(n_components=population_response.shape[0])
-#
-# 	rr = {'dimensionality_profile': []}
-# 	for n in range(steps):
-# 		if display:
-# 			visualization.progress_bar(float(float(n) / steps))
-# 		time_window = mw.next()
-# 		local_list = spike_list.time_slice(t_start=min(time_window), t_stop=max(time_window))
-# 		local_response = local_list.compile_response_matrix()
-# 		X = pca_obj.fit_transform(local_response.T)
-# 		local_dimensionality = compute_dimensionality(local_response, pca_obj=pca_obj,
-# 		                                                                 display=False)
-# 		rr['dimensionality_profile'].append(local_dimensionality)
-#
-# 	return rr
-
-
 def compute_time_resolved_statistics(spike_list, label='', time_bin=1., window_len=100, epochs=None,
                                      color_map='colorwarm', display=True, plot=False, save=False):
 	"""
@@ -1324,6 +1269,8 @@ def compute_time_resolved_statistics(spike_list, label='', time_bin=1., window_l
 	if plot:
 		visualization.plot_averaged_time_resolved(results, spike_list, label=label, epochs=epochs,
 		                            color_map=color_map, display=display, save=save)
+
+	return results
 
 
 def compute_spikelist_metrics(spike_list, label, analysis_pars):
@@ -1899,74 +1846,75 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 
 		return results
 
-# TODO maybe move this and test to Readout class? later.
-def readout_train(readout, state, target, index=None, accepted=None, display=True, plot=False, save=False):
-	"""
-	Train readout object
-	:param readout: Readout object
-	:param state: np.ndarray state matrix
-	:param target: np.ndarray target_matrix
-	:param index: time_shift state and target
-	:param accepted: indices of accepted time steps
-	:return norm_wout: norm of readout weights, weights are stored in Readout object
-	"""
-	assert (isinstance(state, np.ndarray)), "Provide state matrix as array"
-	assert (isinstance(target, np.ndarray)), "Provide target matrix as array"
-	assert (isinstance(readout, Readout)), "Provide Readout object"
-
-	if accepted is not None:
-		state = state[:, accepted]
-		target = target[:, accepted]
-
-	if index is not None and index < 0:
-		index = -index
-		state = state[:, index:]
-		target = target[:, :-index]
-	elif index is not None and index > 0:
-		state = state[:, :-index]
-		target = target[:, index:]
-
-	readout.train(state, target)
-	norm_wout = readout.measure_stability()
-	if display:
-		print("|W_out| [{0}] = {1}".format(readout.name, str(norm_wout)))
-	if plot:
-		readout.plot_weights(display=display, save=save)
-
-	return norm_wout
-
-
-def readout_test(readout, state, target, index=None, accepted=None, display=True, plot=False, save=False):
-	"""
-
-	:param state:
-	:param target:
-	:param readout:
-	:param index:
-	:return:
-	"""
-	assert (isinstance(state, np.ndarray)), "Provide state matrix as array"
-	assert (isinstance(target, np.ndarray)), "Provide target matrix as array"
-	assert (isinstance(readout, Readout)), "Provide Readout object"
-
-	if accepted is not None:
-		state = state[:, accepted]
-		target = target[:, accepted]
-
-	if index is not None and index < 0:
-		index = -index
-		state = state[:, index:]
-		target = target[:, :-index]
-	elif index is not None and index > 0:
-		state = state[:, :-index]
-		target = target[:, index:]
-
-	readout.test(state)
-	performance = readout.measure_performance(target, display=display)
-	return performance
+# # TODO maybe move this and test to Readout class? later.
+# def readout_train(readout, state, target, index=None, accepted=None, display=True, plot=False, save=False):
+# 	"""
+# 	Train readout object
+# 	:param readout: Readout object
+# 	:param state: np.ndarray state matrix
+# 	:param target: np.ndarray target_matrix
+# 	:param index: time_shift state and target
+# 	:param accepted: indices of accepted time steps
+# 	:return norm_wout: norm of readout weights, weights are stored in Readout object
+# 	"""
+# 	assert (isinstance(state, np.ndarray)), "Provide state matrix as array"
+# 	assert (isinstance(target, np.ndarray)), "Provide target matrix as array"
+# 	assert (isinstance(readout, Readout)), "Provide Readout object"
+#
+# 	if accepted is not None:
+# 		state = state[:, accepted]
+# 		target = target[:, accepted]
+#
+# 	if index is not None and index < 0:
+# 		index = -index
+# 		state = state[:, index:]
+# 		target = target[:, :-index]
+# 	elif index is not None and index > 0:
+# 		state = state[:, :-index]
+# 		target = target[:, index:]
+#
+# 	readout.train(state, target)
+# 	norm_wout = readout.measure_stability()
+# 	if display:
+# 		print("|W_out| [{0}] = {1}".format(readout.name, str(norm_wout)))
+# 	if plot:
+# 		readout.plot_weights(display=display, save=save)
+#
+# 	return norm_wout
 
 
-# TODO is this not redundant with analyse_activity_dynamics?
+# def readout_test(readout, state, target, index=None, accepted=None, display=True, plot=False, save=False):
+# 	"""
+#
+# 	:param state:
+# 	:param target:
+# 	:param readout:
+# 	:param index:
+# 	:return:
+# 	"""
+# 	assert (isinstance(state, np.ndarray)), "Provide state matrix as array"
+# 	assert (isinstance(target, np.ndarray)), "Provide target matrix as array"
+# 	assert (isinstance(readout, Readout)), "Provide Readout object"
+#
+# 	if accepted is not None:
+# 		state = state[:, accepted]
+# 		target = target[:, accepted]
+#
+# 	if index is not None and index < 0:
+# 		index = -index
+# 		state = state[:, index:]
+# 		target = target[:, :-index]
+# 	elif index is not None and index > 0:
+# 		state = state[:, :-index]
+# 		target = target[:, index:]
+#
+# 	readout.test(state)
+# 	performance = readout.measure_performance(target, display=display)
+# 	return performance
+
+
+# TODO is this not redundant with analyse_activity_dynamics? - should be combined, but now they are doing different
+# things..
 def analyse_state_matrix(state, stim_labels, label='', plot=True, display=True, save=False):
 	"""
 
@@ -2032,7 +1980,8 @@ def advanced_state_analysis(state, stim_labels, label='', plot=True, display=Tru
 	"""
 	pass
 
-# TODO is this still needed? there's the same function in DecodingLayer
+
+# TODO is this still needed? there's the same function in DecodingLayer - that is evaluate_decoding
 def evaluate_encoding(enc_layer, parameter_set, analysis_interval, input_signal, plot=True, display=True, save=False):
 	"""
 	Determine the quality of the encoding method (if there are encoders), by reading out the state of the encoders
@@ -2104,6 +2053,7 @@ def analyse_performance_results(net, enc_layer=None, plot=True, display=True, sa
 	Re-organizes performance results
 	(may be too case-sensitive!!)
 	"""
+	# TODO - deprecated...
 	from modules.signals import empty
 	results = {}
 
@@ -2162,6 +2112,7 @@ def analyse_performance_results(net, enc_layer=None, plot=True, display=True, sa
 def compile_performance_results(readout_set, state_variable=''):
 	"""
 	"""
+	# TODO - deprecated
 	results = {
 		'accuracy': np.array([n.performance['label']['performance'] for n in readout_set]),
 		'performance': np.array([n.performance['max']['performance'] for n in readout_set if not sg.empty(
@@ -2397,9 +2348,26 @@ class Readout(object):
 		else:
 			self.index = index
 
-	def train(self, state_train, target_train, display=True):
+	def train(self, state_train, target_train, index=None, accepted=None, display=True):
 		"""
+		Train readout
+		:param state_train: np.ndarray state matrix
+		:param target_train: np.ndarray()
 		"""
+		assert (isinstance(state_train, np.ndarray)), "Provide state matrix as array"
+		assert (isinstance(target_train, np.ndarray)), "Provide target matrix as array"
+		if accepted is not None:
+			state_train = state_train[:, accepted]
+			target_train = target_train[:, accepted]
+
+		if index is not None and index < 0:
+			index = -index
+			state_train = state_train[:, index:]
+			target_train = target_train[:, :-index]
+		elif index is not None and index > 0:
+			state_train = state_train[:, :-index]
+			target_train = target_train[:, index:]
+
 		if display:
 			print(("\nTraining Readout {0} [{1}]".format(str(self.name), str(self.rule))))
 		if self.rule == 'pinv':
@@ -2480,15 +2448,31 @@ class Readout(object):
 
 		return self.weights, self.fit_obj
 
-	def test(self, state_test, display=True):
+	def test(self, state_test, target_test, index=None, accepted=None, display=True):
 		"""
+		Acquire readout output in test phase
 		"""
+		assert (isinstance(state_test, np.ndarray)), "Provide state matrix as array"
+		assert (isinstance(target_test, np.ndarray)), "Provide target matrix as array"
+
+		if accepted is not None:
+			state_test = state_test[:, accepted]
+			target_test = target_test[:, accepted]
+
+		if index is not None and index < 0:
+			index = -index
+			state_test = state_test[:, index:]
+			target_test = target_test[:, :-index]
+		elif index is not None and index > 0:
+			state_test = state_test[:, :-index]
+			target_test = target_test[:, index:]
+
 		if display:
 			print("\nTesting Readout {0}".format(str(self.name)))
 		self.output = None
 		self.output = self.fit_obj.predict(state_test.T)
 
-		return self.output
+		return self.output, target_test
 
 	@staticmethod
 	def parse_outputs(output, target, dimensions, set_size, method='WTA', k=1):
@@ -2628,12 +2612,14 @@ class Readout(object):
 		self.performance = performance
 		return performance
 
-	def measure_stability(self):
+	def measure_stability(self, display=True):
 		"""
 		Determine the stability of the solution (norm of weights)
 		"""
 		self.norm_wout = np.linalg.norm(self.weights)
-		return np.linalg.norm(self.weights)
+		if display:
+			print("|W_out| [{0}] = {1}".format(self.name, str(self.norm_wout)))
+		return self.norm_wout
 
 	def copy(self):
 		"""
@@ -2698,7 +2684,7 @@ class DecodingLayer(object):
 
 		for state_idx, state_variable in enumerate(self.state_variables):
 			state_specs = initializer.state_specs[state_idx]
-			if state_variable == 'V_m': # TODO - implement any other recordables from the neuron!!
+			if state_variable == 'V_m':
 				mm_specs = prs.extract_nestvalid_dict(state_specs, param_type='device')
 				mm = nest.Create('multimeter', 1, mm_specs)
 				self.extractors.append(mm)
@@ -2711,25 +2697,27 @@ class DecodingLayer(object):
 				                   'tau_m': state_specs['tau_m'],
 				                   'V_th': sys.float_info.max, 'V_reset': 0.,
 				                   'V_min': 0.}
-				rec_neuron_pars.update(state_specs)
+				# rec_neuron_pars.update(state_specs)
 				filter_neuron_specs = prs.extract_nestvalid_dict(rec_neuron_pars, param_type='neuron')
 
 				rec_neurons = nest.Create(rec_neuron_pars['model'], len(population.gids), filter_neuron_specs)
-				if 'start' in state_specs.keys():
+				if 'origin' in state_specs.keys():
 					rec_mm = nest.Create('multimeter', 1, {'record_from': ['V_m'],
 					                                       'record_to': ['memory'],
-					                                       'interval': rec_neuron_pars['interval'],
-					                                       'start': state_specs['start']})
+					                                       'interval': state_specs['interval'],
+					                                       'origin': state_specs['origin']})
 				else:
 					rec_mm = nest.Create('multimeter', 1, {'record_from': ['V_m'],
 					                                       'record_to': ['memory'],
-					                                       'interval': rec_neuron_pars['interval']})
+					                                       'interval': state_specs['interval']})
 				self.extractors.append(rec_mm)
 				nest.Connect(rec_mm, rec_neurons)
+				# connect population to recording neurons with fixed delay == 0.1 (was rec_neuron_pars['interval'])
 				nest.Connect(population.gids, rec_neurons, 'one_to_one',
-				             syn_spec={'weight': 1., 'delay': rec_neuron_pars['interval'], 'model': 'static_synapse'})
+				             syn_spec={'weight': 1., 'delay': 0.1, 'model': 'static_synapse'})
+
 				self.initial_states[state_idx] = np.zeros((len(rec_neurons),))
-				self.extractor_resolution[state_idx] = rec_neuron_pars['interval']
+				self.extractor_resolution[state_idx] = state_specs['interval']
 			else:
 				if state_variable in nest.GetStatus(population.gids[0])[0]['recordables']:
 					mm_specs = prs.extract_nestvalid_dict(state_specs, param_type='device')

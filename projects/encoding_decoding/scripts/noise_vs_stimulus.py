@@ -2,11 +2,11 @@ __author__ = 'duarte'
 import sys
 sys.path.insert(0, "../")
 from modules.parameters import ParameterSet, ParameterSpace, extract_nestvalid_dict
-from modules.input_architect import EncodingLayer, StimulusSet, InputSignalSet
+from modules.input_architect import EncodingLayer, StimulusSet, InputSignalSet, InputNoise
 from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
-from modules.visualization import set_global_rcParams, InputPlots, extract_encoder_connectivity
+from modules.visualization import set_global_rcParams, InputPlots, extract_encoder_connectivity, plot_input_example
 from modules.analysis import characterize_population_activity
 from stimulus_generator import StimulusPattern
 import cPickle as pickle
@@ -20,16 +20,16 @@ import nest
 # Experiment options
 # ======================================================================================================================
 online = False # strictly False!
-plot = False
-display = True
+plot = True
+display = False
 save = True
 debug = True
 
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/dcinput_noise_vs_stimulus.py'
-# params_file = '../parameters/spikeinput_ongoing_evoked.py'
+# params_file = '../parameters/dcinput_noise_vs_stimulus.py'
+params_file = '../parameters/spike_noise_vs_stimulus.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -62,7 +62,7 @@ nest.SetKernelStatus(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(),
 # Build network
 # =================================================================================
 net = Network(parameter_set.net_pars)
-net.merge_subpopulations([net.populations[0], net.populations[1]], name='EI')
+# net.merge_subpopulations([net.populations[0], net.populations[1]], name='EI')
 
 ###################################################################################
 # Randomize initial variable values
@@ -72,6 +72,28 @@ for idx, n in enumerate(list(iterate_obj_list(net.populations))):
 		randomize = parameter_set.net_pars.randomize_neuron_pars[idx]
 		for k, v in randomize.items():
 			n.randomize_initial_states(k, randomization_function=v[0], **v[1])
+
+# ######################################################################################################################
+# Build and connect noise input
+# ======================================================================================================================
+if hasattr(parameter_set, "noise_pars"):
+	# Current input (need to build noise signal)
+	input_noise = InputNoise(parameter_set.noise_pars.noise,
+	                         stop_time=parameter_set.kernel_pars.transient_t)
+	input_noise.generate()
+	input_noise.re_seed(parameter_set.kernel_pars.np_seed)
+
+	if plot:
+		inp_plot = InputPlots(stim_obj=None, input_obj=None, noise_obj=input_noise)
+		inp_plot.plot_noise_component(display=display, save=False)
+
+	enc_layer_noise = EncodingLayer(parameter_set.noise_encoding_pars, signal=input_noise,
+	                                prng=parameter_set.kernel_pars.np_seed)
+	enc_layer_noise.connect(parameter_set.noise_encoding_pars, net)
+else:
+	# Poisson input
+	enc_layer_noise = EncodingLayer(parameter_set.noise_encoding_pars)
+	enc_layer_noise.connect(parameter_set.noise_encoding_pars, net)
 
 ###################################################################################
 # Build Stimulus Set
@@ -85,18 +107,12 @@ stim_pattern.generate()
 input_sequence, output_sequence = stim_pattern.as_index()
 
 # Convert to StimulusSet object
-stim_set = StimulusSet(unique_set=None)
-stim_set.load_data(input_sequence, type='full_set_labels')
-stim_set.discard_from_set(parameter_set.stim_pars.transient_set_length)
-stim_set.divide_set(parameter_set.stim_pars.transient_set_length, parameter_set.stim_pars.train_set_length,
-                    parameter_set.stim_pars.test_set_length)
+stim_set = StimulusSet(unique_set=False)
+stim_set.generate_datasets(parameter_set.stim_pars, external_sequence=input_sequence)
 
 # Specify target and convert to StimulusSet object
-target_set = StimulusSet(unique_set=None)
-target_set.load_data(output_sequence, type='full_set_labels')
-target_set.discard_from_set(parameter_set.stim_pars.transient_set_length)
-target_set.divide_set(parameter_set.stim_pars.transient_set_length, parameter_set.stim_pars.train_set_length,
-                    parameter_set.stim_pars.test_set_length)
+target_set = StimulusSet(unique_set=False)
+target_set.generate_datasets(parameter_set.stim_pars, external_sequence=output_sequence)
 
 print "- Elapsed Time: {0}".format(str(time.time()-stim_set_startbuild))
 stim_set_buildtime = time.time()-stim_set_startbuild
@@ -106,37 +122,25 @@ stim_set_buildtime = time.time()-stim_set_startbuild
 # =================================================================================
 input_set_time = time.time()
 parameter_set.input_pars.signal.N = len(np.unique(input_sequence))
+
 # Create InputSignalSet
 inputs = InputSignalSet(parameter_set, stim_set, online=online)
-if not empty(stim_set.transient_set_labels):
-	inputs.generate_transient_set(stim_set)
-	# parameter_set.kernel_pars.transient_t = inputs.transient_stimulation_time
-if not online:
-	inputs.generate_full_set(stim_set)
-#inputs.generate_unique_set(stim)
-inputs.generate_train_set(stim_set)
-inputs.generate_test_set(stim_set)
+inputs.generate_datasets(stim_set)
 
-inputs.time_offset(parameter_set.kernel_pars.transient_t)
+# inputs.time_offset(parameter_set.kernel_pars.transient_t)
 
-# # Plot example signal
+input_set_buildtime = time.time() - input_set_time
+print "- Elapsed Time: {0}".format(str(input_set_buildtime))
+
+# Plot example signal
 if plot and debug and not online:
-	fig_inp = pl.figure()
-	ax1 = fig_inp.add_subplot(211)
-	ax2 = fig_inp.add_subplot(212)
-	fig_inp.suptitle('Input Stimulus / Signal')
-	inp_plot = InputPlots(stim_obj=stim_set, input_obj=inputs.train_set_signal, noise_obj=inputs.train_set_noise)
-	inp_plot.plot_stimulus_matrix(set='train', ax=ax1, save=False, display=False)
-	inp_plot.plot_input_signal(ax=ax2, save=paths['figures']+paths['label'], display=display)
-	inp_plot.plot_input_signal(save=paths['figures']+paths['label'], display=display)
-	inp_plot.plot_signal_and_noise(save=paths['figures']+paths['label'], display=display)
-#parameter_set.kernel_pars.sim_time = inputs.train_stimulation_time + inputs.test_stimulation_time
-
+	plot_input_example(stim_set, inputs, set_name='full', display=display, save=paths['figures'] + paths[
+		'label'])
 if save:
-	stim_set.save(paths['inputs'] + paths['label'])
+	stim_pattern.save(paths['inputs'])
+	stim_set.save(paths['inputs'])
 	if debug:
-		inputs.save(paths['inputs'] + paths['label'])
-		stim_pattern.save(paths['inputs'] + paths['label'])
+		inputs.save(paths['inputs'])
 
 #######################################################################################
 # Encode Input
@@ -145,21 +149,22 @@ if not online:
 	input_signal = inputs.full_set_signal
 else:
 	input_signal = inputs.transient_set_signal
-enc_layer = EncodingLayer(parameter_set.encoding_pars, signal=input_signal, online=online)
-enc_layer.connect(parameter_set.encoding_pars, net)
 
-# Attach decoders to input encoding populations
-if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input_decoder"):
-	enc_layer.connect_decoders(parameter_set.encoding_pars.input_decoder)
-
-if plot and debug:
-	extract_encoder_connectivity(enc_layer, net, display, save=paths['figures']+paths['label'])
+enc_layer = EncodingLayer(parameter_set.stim_encoding_pars, signal=input_signal, online=online)
+enc_layer.connect(parameter_set.stim_encoding_pars, net)
 
 #######################################################################################
 # Set-up Analysis
 # =====================================================================================
 net.connect_devices()
-net.connect_decoders(parameter_set.decoding_pars)
+
+if hasattr(parameter_set, "decoding_pars"):
+	net.connect_decoders(parameter_set.decoding_pars)
+
+# Attach decoders to input encoding populations
+if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input_decoder") and \
+				parameter_set.encoding_pars.input_decoder is not None:
+	enc_layer.connect_decoders(parameter_set.encoding_pars.input_decoder)
 
 ######################################################################################
 # Connect Network
@@ -184,36 +189,29 @@ if not np.mean(activity) > 0:
 # ######################################################################################################################
 # Analyse / plot data
 # ======================================================================================================================
-# analysis_interval = [100, parameter_set.kernel_pars.transient_t] # discard the first 100 ms
-# analysis_pars = {'time_bin': 1.,
-#                  'n_pairs': 500,
-#                  'tau': 20.,
-#                  'window_len': 100,
-#                  'summary_only': False,
-#                  'complete': True,
-#                  'time_resolved': False}
-# results['ongoing'] = characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
-#                                                 color_map='Accent', plot=plot,
-#                                                 display=display, save=paths['figures']+paths['label']+'Ongoing',
-#                                                 **analysis_pars)
-#
-# analysis_interval = [parameter_set.kernel_pars.transient_t, parameter_set.kernel_pars.transient_t +
-#                      parameter_set.kernel_pars.sim_time]
-# results['evoked'] = characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
-#                                                 color_map='Accent', plot=plot,
-#                                                 display=display, save=paths['figures']+paths['label']+'Evoked',
-#                                                 **analysis_pars)
+analysis_interval = [100, parameter_set.kernel_pars.transient_t] # discard the first 100 ms
+
+results['ongoing'] = characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
+                                                color_map='Accent', plot=plot, color_subpop=True,
+                                                display=display, save=paths['figures']+paths['label']+'Ongoing',
+                                                analysis_pars=parameter_set.analysis_pars)
+
+analysis_interval = [parameter_set.kernel_pars.transient_t, parameter_set.kernel_pars.transient_t +
+                     parameter_set.kernel_pars.sim_time]
+
+results['evoked'] = characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
+                                                color_map='Accent', plot=plot, color_subpop=True,
+                                                display=display, save=paths['figures']+paths['label']+'Evoked',
+                                                     analysis_pars=parameter_set.analysis_pars)
 
 analysis_interval = [parameter_set.kernel_pars.transient_t - 500., parameter_set.kernel_pars.transient_t + 500.]
-# TODO @barni moved this to parameter file
-# analysis_pars = {'time_bin': 1.,
-#                  'n_pairs': 500,
-#                  'tau': 20.,
-#                  'window_len': 100,
-#                  'summary_only': False,
-#                  'complete': True,
-#                  'time_resolved': True,
-#                  'color_subpop': True}
+
+parameter_set.analysis_pars.population_activity.update({
+	'time_bin': 1.,
+	'time_resolved': True,
+	'window_len': 50})
+
+
 epochs = {'ongoing': (analysis_interval[0], parameter_set.kernel_pars.transient_t),
           'evoked': (parameter_set.kernel_pars.transient_t, analysis_interval[1])}
 results['transition'] = characterize_population_activity(net, parameter_set, analysis_interval, epochs=epochs,
@@ -221,8 +219,8 @@ results['transition'] = characterize_population_activity(net, parameter_set, ana
                                                 display=display, save=paths['figures']+paths['label']+'Evoked',
 												color_subpop=True, analysis_pars=parameter_set.analysis_pars)
 
-net.flush_records()
-enc_layer.flush_records()
+# net.flush_records()
+# enc_layer.flush_records()
 
 #######################################################################################
 # Save data

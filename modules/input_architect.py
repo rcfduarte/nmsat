@@ -1190,7 +1190,6 @@ class InputSignal(object):
 		else:
 			if isinstance(initializer, dict):
 				initializer = parameters.ParameterSet(initializer)
-
 			if isinstance(initializer, parameters.ParameterSet):
 				self.dimensions = initializer.N
 				self.dt = initializer.resolution
@@ -1313,7 +1312,7 @@ class InputSignal(object):
 			for ii in list(tmp[tmp.nonzero()]):
 				self.amplitudes[n].append(ii)
 
-	def set_stimulus_times(self, seq):
+	def set_stimulus_times(self, seq, spk_patterns=False):
 		"""
 		Extract the onset and offset times for the stimulus, using the durations and intervals
 		:param seq: binary or symbolic stimulus sequence
@@ -1379,7 +1378,7 @@ class InputSignal(object):
 				self.onset_times[n].append(ii0)
 			if seq.toarray()[n, 0] and onset == 0. and self.online:
 				self.onset_times[n].insert(0, 0.0)
-			elif seq.toarray()[n, 0] and not self.online:
+			elif seq.toarray()[n, 0] and onset == 0. and not self.online and spk_patterns:
 				self.onset_times[n].insert(0, 0.0)
 
 			offset_times[n, :] = seq.toarray()[n, :] * offsets
@@ -1411,8 +1410,11 @@ class InputSignal(object):
 			# for each stimulus presentation, mark the mid-point..
 			onsets = np.array(self.onset_times[nn])
 			offsets = np.array(self.offset_times[nn])
+			# print onsets
+			# print offsets
 			mid_points = ((onsets / self.dt) + (offsets / self.dt)) / 2.
-			signal[nn, mid_points.astype(int)] = 1.
+			# print mid_points.astype(int), (mid_points - (self.global_start / self.dt)).astype(int)
+			signal[nn, (mid_points - (self.global_start / self.dt)).astype(int)] = 1.
 
 		tmp_durations = np.array(list(itertools.chain(*self.durations)))
 		tmp_amplitudes = np.array(list(itertools.chain(*self.amplitudes)))
@@ -1515,7 +1517,7 @@ class InputSignal(object):
 		"""
 		Generate the final signal
 		"""
-		if self.input_signal:
+		if not signals.empty(self.input_signal):
 			self.input_signal = self.compress_signals()
 		elif self.online:
 			self.input_signal = None
@@ -1946,7 +1948,10 @@ class InputSignalSet(object):
 			self.full_set = self.full_set_signal.generate_iterative(stimulus_set.full_set)
 		else:
 			self.full_set_signal.set_stimulus_amplitudes(stimulus_set.full_set)
-			self.full_set_signal.set_stimulus_times(stimulus_set.full_set)
+			if not signals.empty(self.spike_patterns):
+				self.full_set_signal.set_stimulus_times(stimulus_set.full_set, spk_patterns=True)
+			else:
+				self.full_set_signal.set_stimulus_times(stimulus_set.full_set)
 			self.full_set_signal.generate()
 			self.full_stimulation_time = len(self.full_set_signal.time_data) * self.full_set_signal.dt
 			if hasattr(self.parameters, "noise") and self.parameters.noise.N:
@@ -1976,7 +1981,10 @@ class InputSignalSet(object):
 			self.transient_set = self.transient_set_signal.generate_iterative(stimulus_set.transient_set)
 		else:
 			self.transient_set_signal.set_stimulus_amplitudes(stimulus_set.transient_set)
-			self.transient_set_signal.set_stimulus_times(stimulus_set.transient_set)
+			if not signals.empty(self.spike_patterns):
+				self.transient_set_signal.set_stimulus_times(stimulus_set.transient_set, True)
+			else:
+				self.transient_set_signal.set_stimulus_times(stimulus_set.transient_set)
 			self.transient_set_signal.generate()
 			self.transient_stimulation_time = len(self.transient_set_signal.time_data) * self.transient_set_signal.dt
 			if hasattr(self.parameters, "noise") and self.parameters.noise.N:
@@ -2007,7 +2015,10 @@ class InputSignalSet(object):
 			self.unique_set = self.unique_set_signal.generate_iterative(stimulus_set.unique_set)
 		else:
 			self.unique_set_signal.set_stimulus_amplitudes(stimulus_set.unique_set)
-			self.unique_set_signal.set_stimulus_times(stimulus_set.unique_set)
+			if not signals.empty(self.spike_patterns):
+				self.unique_set_signal.set_stimulus_times(stimulus_set.unique_set, True)
+			else:
+				self.unique_set_signal.set_stimulus_times(stimulus_set.unique_set)
 			self.unique_set_signal.generate()
 			# correct time stamp:
 			self.unique_set_signal.time_offset(self.transient_stimulation_time)
@@ -2042,7 +2053,10 @@ class InputSignalSet(object):
 			self.train_set = self.train_set_signal.generate_iterative(stimulus_set.train_set)
 		else:
 			self.train_set_signal.set_stimulus_amplitudes(stimulus_set.train_set)
-			self.train_set_signal.set_stimulus_times(stimulus_set.train_set)
+			if not signals.empty(self.spike_patterns):
+				self.train_set_signal.set_stimulus_times(stimulus_set.train_set, True)
+			else:
+				self.train_set_signal.set_stimulus_times(stimulus_set.train_set)
 			self.train_set_signal.generate()
 
 			# correct time stamp:
@@ -2086,7 +2100,10 @@ class InputSignalSet(object):
 			self.test_set = self.train_set_signal.generate_iterative(stimulus_set.test_set)
 		else:
 			self.test_set_signal.set_stimulus_amplitudes(stimulus_set.test_set)
-			self.test_set_signal.set_stimulus_times(stimulus_set.test_set)
+			if not signals.empty(self.spike_patterns):
+				self.test_set_signal.set_stimulus_times(stimulus_set.test_set, True)
+			else:
+				self.test_set_signal.set_stimulus_times(stimulus_set.test_set)
 			self.test_set_signal.generate()
 
 			# correct time stamp:

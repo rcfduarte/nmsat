@@ -235,7 +235,7 @@ def set_connection_defaults(syn_pars=None):
 
 
 def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=0, encoder_neuron_pars=None,
-                          **synapse_pars):
+                          gen_label=None, **synapse_pars):
 	"""
 
 	:param default_set:
@@ -281,7 +281,8 @@ def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=
 		# ###################################################################
 		# Encoding Type 1 - DC injection to target populations
 		# ###################################################################
-		gen_label = 'DC_input'
+		if gen_label is None:
+			gen_label = 'DC_input'
 		keys = ['target_population_names', 'conn_specs', 'syn_specs', 'models', 'model_pars',
 		        'weight_dist', 'delay_dist', 'preset_W']
 		if not np.mean([n in synapse_pars.keys() for n in keys]).astype(bool):
@@ -516,7 +517,7 @@ def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=
 	return ParameterSet(encoding_pars)
 
 
-def set_decoding_defaults(output_resolution=1., to_memory=True, **decoder_pars):
+def set_decoding_defaults(output_resolution=1., origin=0., to_memory=True, **decoder_pars):
 	"""
 
 	:return:
@@ -536,11 +537,12 @@ def set_decoding_defaults(output_resolution=1., to_memory=True, **decoder_pars):
 	state_specs = []
 	for state_var in dec_pars.state_variable:
 		if state_var == 'spikes':
-			state_specs.append({'tau_m': dec_pars.filter_time, 'interval': output_resolution})
+			state_specs.append({'tau_m': dec_pars.filter_time, 'interval': output_resolution, 'origin': origin})
 		else:
 			state_specs.append(copy_dict(rec_device, {'model': 'multimeter',
 			                                          'record_n': None,
 			                                          'record_from': [state_var],
+			                                          'origin': origin
 			                                          }))
 
 	if 'N' in decoder_pars.keys():

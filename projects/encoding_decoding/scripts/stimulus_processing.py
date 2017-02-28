@@ -212,7 +212,7 @@ for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc
 
 		train_idx = []
 		for idx in accept_idx:
-			stop =  parameter_set.stim_pars.train_set_length +  parameter_set.stim_pars.transient_set_length
+			stop = parameter_set.stim_pars.train_set_length + parameter_set.stim_pars.transient_set_length
 			if idx >= parameter_set.stim_pars.transient_set_length and idx < stop:
 				train_idx.append(idx - parameter_set.stim_pars.transient_set_length)
 		assert (len(train_idx) == target.shape[1]), "Incorrect train labels"

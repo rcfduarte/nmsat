@@ -7,7 +7,7 @@ from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
 from modules.visualization import set_global_rcParams, InputPlots, extract_encoder_connectivity, TopologyPlots
-from modules.analysis import characterize_population_activity, compute_ainess
+from modules.analysis import characterize_population_activity
 from modules.auxiliary import iterate_input_sequence
 import cPickle as pickle
 import matplotlib.pyplot as pl
@@ -27,7 +27,7 @@ online = False
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/dc_input.py'
+params_file = '../parameters/dc_stimulus_input.py'
 # params_file = '../parameters/spike_pattern_input.py'
 
 parameter_set = ParameterSpace(params_file)[0]

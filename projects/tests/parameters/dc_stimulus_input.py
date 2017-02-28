@@ -11,6 +11,14 @@ dc_input
 run = 'local'
 data_label = 'ED_dcinput_tests1'
 
+# ######################################################################################################################
+# PARAMETER RANGE declarations
+# ======================================================================================================================
+parameter_range = {
+	'lexicon_size': [10], #np.arange(5, 505, 5),
+	'T': [20] #np.arange(100, 1100, 100)
+}
+
 
 def build_parameters(lexicon_size, T):
 	# ######################################################################################################################
@@ -26,12 +34,20 @@ def build_parameters(lexicon_size, T):
 		sim_time=1000.)
 
 	kernel_pars = set_kernel_defaults(run_type=run, data_label=data_label, **system)
+
+	# override seeds (replication tests)
+	kernel_pars['grng_seed'] = 22118373677
+	kernel_pars['rng_seeds'] = [22118373678, 22118373679, 22118373680, 22118373681, 22118373682, 22118373683,
+	                            22118373684, 22118373685, 22118373686, 22118373687, 22118373688, 22118373689,
+	                            22118373690, 22118373691, 22118373692, 22118373693]
+	kernel_pars['np_seed'] = 235329953
+
 	np.random.seed(kernel_pars['np_seed'])
 
 	# ##################################################################################################################
 	# Neuron, Synapse and Network Parameters
 	# ##################################################################################################################
-	N = 100
+	N = 10000
 	nE = 0.8 * N
 	nI = 0.2 * N
 	dE = 1.0
@@ -68,7 +84,7 @@ def build_parameters(lexicon_size, T):
 		syn_specs=[{}, {}, {}, {}])
 	neuron_pars, net_pars, connection_pars = set_network_defaults(N=N, **recurrent_synapses)
 
-	net_pars['record_spikes'] = [True, True]
+	# net_pars['record_spikes'] = [True, True]
 
 	# net_pars['record_analogs'] = [True, False]
 	# multimeter = rec_device_defaults(device_type='multimeter')
@@ -190,25 +206,28 @@ def build_parameters(lexicon_size, T):
 		standardize=[False, False]
 	)
 
-	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)
+	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, origin=0.0, to_memory=True, **decoders)
 
 	# ##################################################################################################################
 	# Extra analysis parameters (specific for this experiment)
 	# ==================================================================================================================
 	analysis_pars = {
-		'store_activity': 5,       # [bool or int] - store all population activity in the last n steps of the test
+		# analysis depth
+		'depth': 1,  	# 1: save only summary of data, use only fastest measures
+						# 2: save all data, use only fastest measures
+						# 3: save only summary of data, use all available measures
+						# 4: save all data, use all available measures
+
+		'store_activity': False,  		# [int] - store all population activity in the last n steps of the test
 									# phase; if set True the entire test phase will be stored;
 
-		'population_state': {       # if the activity is stored, these are the parameters for the state characterization
-			'time_bin': 1.,         # bin width for spike counts, fano factors and correlation coefficients
-			'n_pairs': 500,         # number of spike train pairs to consider in correlation coefficient
-			'tau': 20.,             # time constant of exponential filter (van Rossum distance)
-			'window_len': 100,      # length of sliding time window (for time_resolved analysis)
-			'summary_only': True,   # how to save the data (only mean and std - True) or entire data set (False)
-			'complete': True,      # use all existing measures or just the fastest / simplest ones
-			'time_resolved': False},
-
-
+		'population_activity': {
+			'time_bin': 1.,  		# bin width for spike counts, fano factors and correlation coefficients
+			'n_pairs': 500,  		# number of spike train pairs to consider in correlation coefficient
+			'tau': 20.,  			# time constant of exponential filter (van Rossum distance)
+			'window_len': 100,  	# length of sliding time window (for time_resolved analysis)
+			'time_resolved': False, # perform time-resolved analysis
+		}
 	}
 	# ##################################################################################################################
 	# RETURN dictionary of Parameters dictionaries
@@ -224,11 +243,3 @@ def build_parameters(lexicon_size, T):
 	             ('stim_pars', stim_pars),
 	             ('analysis_pars', analysis_pars)])
 
-
-# ######################################################################################################################
-# PARAMETER RANGE declarations
-# ======================================================================================================================
-parameter_range = {
-	'lexicon_size': [50], #np.arange(5, 505, 5),
-	'T': [50] #np.arange(100, 1100, 100)
-}

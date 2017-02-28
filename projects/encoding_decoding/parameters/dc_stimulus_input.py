@@ -12,6 +12,15 @@ run = 'local'
 data_label = 'ED_dcinput_example2'
 
 
+# ######################################################################################################################
+# PARAMETER RANGE declarations
+# ======================================================================================================================
+parameter_range = {
+	'lexicon_size': [10], #np.arange(5, 505, 5),
+	'T': [100] #np.arange(100, 1100, 100)
+}
+
+
 def build_parameters(lexicon_size, T):
 	# ######################################################################################################################
 	# System / Kernel Parameters
@@ -26,6 +35,13 @@ def build_parameters(lexicon_size, T):
 		sim_time=1000.)
 
 	kernel_pars = set_kernel_defaults(run_type=run, data_label=data_label, **system)
+	# override seeds (replication tests)
+	kernel_pars['grng_seed'] = 22118373677
+	kernel_pars['rng_seeds'] = [22118373678, 22118373679, 22118373680, 22118373681, 22118373682, 22118373683,
+	                            22118373684, 22118373685, 22118373686, 22118373687, 22118373688, 22118373689,
+	                            22118373690, 22118373691, 22118373692, 22118373693]
+	kernel_pars['np_seed'] = 235329953
+
 	np.random.seed(kernel_pars['np_seed'])
 
 	# ##################################################################################################################
@@ -68,7 +84,7 @@ def build_parameters(lexicon_size, T):
 		syn_specs=[{}, {}, {}, {}])
 	neuron_pars, net_pars, connection_pars = set_network_defaults(N=N, **recurrent_synapses)
 
-	net_pars['record_spikes'] = [True, True]
+	net_pars['record_spikes'] = [False, False]
 
 	# net_pars['record_analogs'] = [True, False]
 	# multimeter = rec_device_defaults(device_type='multimeter')
@@ -90,7 +106,7 @@ def build_parameters(lexicon_size, T):
 	# lexicon_size = 4
 	n_distractors = 0  # (if applicable)
 	# T = 10
-	T_discard = 10  # number of elements to discard (>=1, for some weird reasons..)
+	T_discard = 10  # number of elements to discard (>=1, for some weird reason..)
 
 	random_dt = False  # if True, dt becomes maximum distance (?)
 	dt = 3  # delay (if applicable)
@@ -202,7 +218,7 @@ def build_parameters(lexicon_size, T):
 						# 3: save only summary of data, use all available measures
 						# 4: save all data, use all available measures
 
-		'store_activity': 5,  		# [int] - store all population activity in the last n steps of the test
+		'store_activity': True,  		# [int] - store all population activity in the last n steps of the test
 									# phase; if set True the entire test phase will be stored;
 
 		'population_activity': {
@@ -227,11 +243,3 @@ def build_parameters(lexicon_size, T):
 	             ('stim_pars', stim_pars),
 	             ('analysis_pars', analysis_pars)])
 
-
-# ######################################################################################################################
-# PARAMETER RANGE declarations
-# ======================================================================================================================
-parameter_range = {
-	'lexicon_size': [50], #np.arange(5, 505, 5),
-	'T': [50] #np.arange(100, 1100, 100)
-}

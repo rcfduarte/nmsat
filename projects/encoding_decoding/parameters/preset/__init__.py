@@ -235,7 +235,7 @@ def set_connection_defaults(syn_pars=None):
 
 
 def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=0, encoder_neuron_pars=None,
-                          **synapse_pars):
+                          gen_label=None, **synapse_pars):
 	"""
 
 	:param default_set:
@@ -281,7 +281,8 @@ def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=
 		# ###################################################################
 		# Encoding Type 1 - DC injection to target populations
 		# ###################################################################
-		gen_label = 'DC_input'
+		if gen_label is None:
+			gen_label = 'DC_input'
 		keys = ['target_population_names', 'conn_specs', 'syn_specs', 'models', 'model_pars',
 		        'weight_dist', 'delay_dist', 'preset_W']
 		if not np.mean([n in synapse_pars.keys() for n in keys]).astype(bool):
@@ -540,8 +541,7 @@ def set_decoding_defaults(output_resolution=1., to_memory=True, **decoder_pars):
 		else:
 			state_specs.append(copy_dict(rec_device, {'model': 'multimeter',
 			                                          'record_n': None,
-			                                          'record_from': [state_var],
-			                                          }))
+			                                          'record_from': [state_var]}))
 
 	if 'N' in decoder_pars.keys():
 		N = decoder_pars['N']
@@ -677,7 +677,10 @@ def add_input_decoders(encoding_pars, input_decoder_pars, kernel_pars):
 		input_decoder_pars = ParameterSet(input_decoder_pars)
 	if isinstance(encoding_pars, ParameterSet):
 		encoding_pars = encoding_pars.as_dict()
-	enc_label = encoding_pars['input_decoder'].pop('encoder_label')
+	if encoding_pars['input_decoder'] is not None:
+		enc_label = encoding_pars['input_decoder'].pop('encoder_label')
+	else:
+		enc_label = 'parrots'
 	encoding_pars['input_decoder'] = {}
 	decoder_dict = copy_dict(input_decoder_pars.as_dict(), {'decoded_population': [enc_label for _ in range(len(
 		input_decoder_pars.state_variable))]})

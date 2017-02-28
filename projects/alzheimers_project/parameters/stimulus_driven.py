@@ -10,6 +10,14 @@ stimulus_driven parameter file
 run = 'local'
 data_label = 'AD_StimulusDriven_kEE_test'
 
+# ######################################################################################################################
+# PARAMETER RANGE declarations
+# ======================================================================================================================
+parameter_range = {
+	'kEE': [100],
+	'trial': [1] #np.arange(10)
+}
+
 
 def build_parameters(kEE, trial):
 	# ##################################################################################################################
@@ -90,14 +98,15 @@ def build_parameters(kEE, trial):
 		'max_amplitude': [inp_amplitude],
 		'min_amplitude': 0.,
 		'resolution': inp_resolution},
-		'noise': {
-			'N': 0,
-			'noise_source': ['GWN'],
-			'noise_pars': {'amplitude': 5., 'mean': 1., 'std': 0.25},
-			'rectify': True,
-			'start_time': 0.,
-			'stop_time': sys.float_info.max,
-			'resolution': inp_resolution, }}
+		# 'noise': {
+		# 	'N': 0,
+		# 	'noise_source': ['GWN'],
+		# 	'noise_pars': {'amplitude': 5., 'mean': 1., 'std': 0.25},
+		# 	'rectify': True,
+		# 	'start_time': 0.,
+		# 	'stop_time': sys.float_info.max,
+		# 	'resolution': inp_resolution, }
+	}
 
 	# ##################################################################################################################
 	# Encoding Parameters
@@ -122,7 +131,9 @@ def build_parameters(kEE, trial):
 
 	encoding_pars = set_encoding_defaults(default_set=4, input_dimensions=n_stim,
 	                                      n_encoding_neurons=n_afferents, **input_synapses)
-	add_parrots(encoding_pars, n_afferents, decode=True, **{})
+	encoding_pars['encoder']['n_neurons'] = [n_afferents]
+
+	# add_parrots(encoding_pars, n_afferents, decode=True, **{})
 
 	# ##################################################################################################################
 	# Decoding / Readout Parameters
@@ -148,19 +159,19 @@ def build_parameters(kEE, trial):
 	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)
 
 	## Set decoders for input population (if applicable)
-	input_decoder = dict(
-		state_variable=['spikes'],
-		filter_time=filter_tau,
-		readouts=readout_labels,
-		readout_algorithms=readout_algorithms,
-		output_resolution=out_resolution,
-		sampling_times=state_sampling,
-		reset_states=[True],
-		average_states=[True],
-		standardize=[False]
-	)
-
-	encoding_pars = add_input_decoders(encoding_pars, input_decoder, kernel_pars)
+	# input_decoder = dict(
+	# 	state_variable=['spikes'],
+	# 	filter_time=filter_tau,
+	# 	readouts=readout_labels,
+	# 	readout_algorithms=readout_algorithms,
+	# 	output_resolution=out_resolution,
+	# 	sampling_times=state_sampling,
+	# 	reset_states=[True],
+	# 	average_states=[True],
+	# 	standardize=[False]
+	# )
+	#
+	# encoding_pars = add_input_decoders(encoding_pars, input_decoder, kernel_pars)
 
 	# ##################################################################################################################
 	# RETURN dictionary of Parameters dictionaries
@@ -173,11 +184,3 @@ def build_parameters(kEE, trial):
 				 ('decoding_pars', 	decoding_pars),
 				 ('stim_pars', 		stim_pars),
 				 ('connection_pars',connection_pars)])
-
-# ######################################################################################################################
-# PARAMETER RANGE declarations
-# ======================================================================================================================
-parameter_range = {
-	'kEE': [5, 30, 60, 100],
-	'trial': np.arange(10)
-}
