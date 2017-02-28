@@ -881,6 +881,7 @@ class ParameterSpace:
 				param_set.kernel_pars.system.system_label = cluster
 				param_set.kernel_pars.system.jdf_template = paths[cluster]['jdf_template']
 				param_set.kernel_pars.system.remote_directory = paths[cluster]['remote_directory']
+				param_set.kernel_pars.system.queueing_system = paths[cluster]['queueing_system']
 
 	def iter_sets(self):
 		"""
@@ -992,6 +993,7 @@ class ParameterSpace:
 			for par_set in self.parameter_sets:
 				system2 			= par_set.kernel_pars.system
 				template_file 		= system2['jdf_template']
+				queueing_system     = system2['queueing_system']
 				exec_file_name 		= remote_run_folder + par_set.label + '.sh'
 				local_exec_file 	= main_experiment_folder + par_set.label + '.sh'
 				computation_file 	= main_experiment_folder + par_set.label + '.py'
@@ -1019,18 +1021,29 @@ class ParameterSpace:
 				fp.write("\twith open('{0}') as fp:\n\t\tfor idx, line in enumerate(fp):\n".format('./job_list.txt'))
 				fp.write("\t\t\tif stop_idx is not None:\n")
 				fp.write("\t\t\t\tif (idx>=start_idx) and (idx<=stop_idx):\n")
-				fp.write("\t\t\t\t\tos.system('sbatch {0}'.format(line))\n")
-				fp.write("\t\t\telse:\n")
-				fp.write("\t\t\t\tos.system('sbatch {0}'.format(line))")
+				if queueing_system == 'slurm':
+					fp.write("\t\t\t\t\tos.system('sbatch {0}'.format(line))\n\t\t\telse:\n\t\t\t\tos.system('sbatch {0}'.format(line))")
+				elif queueing_system == 'sge':
+					fp.write(
+						"\t\t\t\t\tos.system('qsub {0}'.format(line))\n\t\t\telse:\n\t\t\t\tos.system('qsub {"
+						"0}'.format(line))")
+				# fp.write("\t\t\telse:\n")
+				# fp.write("\t\t\t\tos.system('sbatch {0}'.format(line))")
 				fp.write("\n\n")
 				fp.write("if __name__=='__main__':\n\tif len(sys.argv)>1:\n\t\tsubmit_jobs(int(sys.argv[1]), "
 						 "int(sys.argv[2]))")
 
 			with open(cancel_jobs_file, 'w') as fp:
-				fp.write(
-					"import os\nimport numpy as np\nimport sys\ndef cancel_range(init, end):\n\trang = np.arange("
-					"init, end)\n\tfor n in rang:\n\t\tos.system('scancel '+ str(n))\n\nif "
-					"__name__=='__main__':\n\tcancel_range(int(sys.argv[1]), int(sys.argv[2]))")
+				if queueing_system == 'slurm':
+					fp.write(
+						"import os\nimport numpy as np\nimport sys\ndef cancel_range(init, end):\n\trang = np.arange("
+						"init, end)\n\tfor n in rang:\n\t\tos.system('scancel '+ str(n))\n\nif "
+						"__name__=='__main__':\n\tcancel_range(int(sys.argv[1]), int(sys.argv[2]))")
+				elif queueing_system == 'sge':
+					fp.write(
+						"import os\nimport numpy as np\nimport sys\ndef cancel_range(init, end):\n\trang = np.arange("
+						"init, end)\n\tfor n in rang:\n\t\tos.system('qdel '+ str(n))\n\nif "
+						"__name__=='__main__':\n\tcancel_range(int(sys.argv[1]), int(sys.argv[2]))")
 
 	def print_stored_keys(self, data_path):
 		"""

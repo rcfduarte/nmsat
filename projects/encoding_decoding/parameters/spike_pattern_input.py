@@ -11,6 +11,14 @@ spike_pattern_input
 run = 'local'
 data_label = 'ED_spikepatterninput_training_parameters'
 
+# ######################################################################################################################
+# PARAMETER RANGE declarations
+# ======================================================================================================================
+parameter_range = {
+	'lexicon_size': [10],
+	'T': [20]
+}
+
 
 def build_parameters(lexicon_size, T):
 	# ######################################################################################################################
@@ -26,6 +34,13 @@ def build_parameters(lexicon_size, T):
 		sim_time=1000.)
 
 	kernel_pars = set_kernel_defaults(run_type=run, data_label=data_label, **system)
+	# override seeds (replication tests)
+	kernel_pars['grng_seed'] = 22118373677
+	kernel_pars['rng_seeds'] = [22118373678, 22118373679, 22118373680, 22118373681, 22118373682, 22118373683,
+	                            22118373684, 22118373685, 22118373686, 22118373687, 22118373688, 22118373689,
+	                            22118373690, 22118373691, 22118373692, 22118373693]
+	kernel_pars['np_seed'] = 235329953
+
 	np.random.seed(kernel_pars['np_seed'])
 
 	# ##################################################################################################################
@@ -67,7 +82,8 @@ def build_parameters(lexicon_size, T):
 		            {'rule': 'pairwise_bernoulli', 'p': pII}],
 		syn_specs=[{}, {}, {}, {}])
 	neuron_pars, net_pars, connection_pars = set_network_defaults(N=N, **recurrent_synapses)
-	net_pars['record_spikes'] = [True, True]
+
+	net_pars['record_spikes'] = [False, False]
 	# net_pars['record_analogs'] = [True, False]
 	# multimeter = rec_device_defaults(device_type='multimeter')
 	# multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1000})
@@ -88,7 +104,7 @@ def build_parameters(lexicon_size, T):
 	# lexicon_size = 4
 	n_distractors = 0  # (if applicable)
 	# T = 10
-	T_discard = 2  # number of elements to discard (>=1, for some weird reasons..)
+	T_discard = 10  # number of elements to discard (>=1, for some weird reasons..)
 
 	random_dt = False  # if True, dt becomes maximum distance (?)
 	dt = 3  # delay (if applicable)
@@ -171,15 +187,16 @@ def build_parameters(lexicon_size, T):
 
 	encoding_pars = set_encoding_defaults(default_set=4, input_dimensions=n_stim, n_encoding_neurons=n_afferents,
 	                                      **input_synapses)
-	add_parrots(encoding_pars, n_afferents, decode=False, **{}) # encoder parrots are necessary
+	encoding_pars['encoder']['n_neurons'] = [n_afferents]
+	# add_parrots(encoding_pars, n_afferents, decode=False, **{}) # encoder parrots are necessary
 	# #################################################################################################################
 	# Decoding / Readout Parameters
 	# ##################################################################################################################
 	out_resolution = 0.1
 	filter_tau = 20.  # time constant of exponential filter (applied to spike trains)
 	state_sampling = None  # 1.(cannot start at 0)
-	readout_labels = ['pinv_classifier']
-	readout_algorithms = ['pinv']
+	readout_labels = ['ridge_classifier', 'pinv_classifier']
+	readout_algorithms = ['ridge', 'pinv']
 
 	decoders = dict(
 		decoded_population=[['E', 'I'], ['E', 'I']],
@@ -204,7 +221,7 @@ def build_parameters(lexicon_size, T):
 	# 	output_resolution=out_resolution,
 	# 	sampling_times=state_sampling,
 	# 	reset_states=[True],
-	# 	average_states=[True],
+	# 	average_states=[False],
 	# 	standardize=[False]
 	# )
 	#
@@ -214,12 +231,12 @@ def build_parameters(lexicon_size, T):
 	# ==================================================================================================================
 	analysis_pars = {
 		# analysis depth
-		'depth': 3,  	# 1: save only summary of data, use only fastest measures
+		'depth': 1,  	# 1: save only summary of data, use only fastest measures
 						# 2: save all data, use only fastest measures
 						# 3: save only summary of data, use all available measures
 						# 4: save all data, use all available measures
 
-		'store_activity': 5,  		# [int] - store all population activity in the last n steps of the test
+		'store_activity': False,  		# [int] - store all population activity in the last n steps of the test
 									# phase; if set True the entire test phase will be stored;
 
 		'population_activity': {
@@ -246,10 +263,3 @@ def build_parameters(lexicon_size, T):
 	             ('analysis_pars', analysis_pars)])
 
 
-# ######################################################################################################################
-# PARAMETER RANGE declarations
-# ======================================================================================================================
-parameter_range = {
-	'lexicon_size': [10],
-	'T': [50]
-}

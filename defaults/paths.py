@@ -17,11 +17,20 @@ paths = {
 		'data_path':            NETWORK_HOME + '/data/',
 		'jdf_template':         NETWORK_HOME + '/defaults/cluster_templates/Blaustein_jdf.sh',
 		'matplotlib_rc':        NETWORK_HOME + '/defaults/matplotlib_rc',
-		'remote_directory':     NETWORK_HOME + '/export/'},
+		'remote_directory':     NETWORK_HOME + '/export/',
+		'queueing_system':      'slurm'},
 
 	'Jureca': {
 		'data_path':            '/work/jias61/jias6101/',
 		'jdf_template':         NETWORK_HOME + '/defaults/cluster_templates/Jureca_jdf.sh',
 		'matplotlib_rc':        NETWORK_HOME + '/defaults/matplotlib_rc',
-		'remote_directory':     NETWORK_HOME + '/export/'},
+		'remote_directory':     NETWORK_HOME + '/export/',
+		'queueing_system':      'slurm'},
+
+	'MPI': {
+		'data_path':            NETWORK_HOME + '/data/',
+		'jdf_template':         NETWORK_HOME + '/defaults/cluster_templates/MPI_jdf.sh',
+		'matplotlib_rc':        NETWORK_HOME + '/defaults/matplotlib_rc',
+		'remote_directory':     NETWORK_HOME + '/export/',
+		'queueing_system':      'sge'},
 }

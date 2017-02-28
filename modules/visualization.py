@@ -2883,7 +2883,7 @@ def plot_isi_data(results, data_label, color_map='jet', location=0, fig_handles=
 		fig2 = fig_handles[1]
 		axes_histograms = axes
 	data_list = [results[k] for k in keys]
-	args = [{'xlabel': r'{0}'.format(k), 'ylabel': r'Frequency'} for k in keys]
+	args = [{'xlabel': r'${0}$'.format(k), 'ylabel': r'Frequency'} for k in keys]
 	bins = [100 for k in keys]
 	plot_histograms(axes_histograms, data_list, bins, args, cmap=color_map)
 
@@ -2912,16 +2912,18 @@ def plot_synchrony_measures(results, label='', time_resolved=False, epochs=None,
 	:return:
 	"""
 	# Synchrony distance matrices
-	fig3 = pl.figure()
-	fig3.suptitle('{0} - Pairwise Distances'.format(str(label)))
-	ax31 = fig3.add_subplot(221)
-	ax32 = fig3.add_subplot(222)
-	ax33 = fig3.add_subplot(223)
-	ax34 = fig3.add_subplot(224)
-	image_arrays = [results['d_vr'], results['ISI_distance_matrix'], results['SPIKE_distance_matrix'],
-	                results['SPIKE_sync_matrix']]
-	plot_2d_parscans(image_arrays=image_arrays, axis=[ax31, ax32, ax33, ax34],
-	                     fig_handle=fig3, labels=[r'$D_{vR}$', r'$D_{ISI}$', r'$D_{SPIKE}$', r'$D_{SPIKE_{S}}$'])
+	keys = ['d_vr', 'ISI_distance_matrix', 'SPIKE_distance_matrix', 'SPIKE_sync_matrix']
+	if all([k in results.keys() for k in keys]):
+		fig3 = pl.figure()
+		fig3.suptitle('{0} - Pairwise Distances'.format(str(label)))
+		ax31 = fig3.add_subplot(221)
+		ax32 = fig3.add_subplot(222)
+		ax33 = fig3.add_subplot(223)
+		ax34 = fig3.add_subplot(224)
+		image_arrays = [results['d_vr'], results['ISI_distance_matrix'], results['SPIKE_distance_matrix'],
+		                results['SPIKE_sync_matrix']]
+		plot_2d_parscans(image_arrays=image_arrays, axis=[ax31, ax32, ax33, ax34],
+		                     fig_handle=fig3, labels=[r'$D_{vR}$', r'$D_{ISI}$', r'$D_{SPIKE}$', r'$D_{SPIKE_{S}}$'])
 	if time_resolved:
 		# Time resolved synchrony
 		fig4 = pl.figure()
@@ -2936,16 +2938,19 @@ def plot_synchrony_measures(results, label='', time_resolved=False, epochs=None,
 		ax1.plot(x, y, '-g', alpha=0.4)
 		ax1.set_ylabel(r'$S_{\mathrm{SPIKE_{s}}}(t)$')
 		ax1.plot(x, signals.smooth(y, window_len=100, window='hamming'), '-g', lw=2.5)
+		ax1.set_xlim([min(x), max(x)])
 
 		x3, y3 = results['ISI_profile'].get_plottable_data()
 		ax2.plot(x3, y3, '-b', alpha=0.4)
 		ax2.plot(x3, signals.smooth(y3, window_len=100, window='hamming'), '-b', lw=2.5)
 		ax2.set_ylabel(r'$d_{\mathrm{ISI}}(t)$')
+		ax2.set_xlim([min(x3), max(x3)])
 
 		x5, y5 = results['SPIKE_profile'].get_plottable_data()
 		ax3.plot(x5, y5, '-k', alpha=0.4)
 		ax3.plot(x5, signals.smooth(y5, window_len=100, window='hamming'), '-k', lw=2.5)
 		ax3.set_ylabel(r'$d_{\mathrm{SPIKE}}(t)$')
+		ax3.set_xlim([min(x5), max(x5)])
 
 	if display:
 		pl.show(False)
@@ -2990,42 +2995,42 @@ def plot_averaged_time_resolved(results, spike_list, label='', epochs=None, colo
 	# activity plots
 	fig6 = pl.figure()
 	fig6.suptitle('{0} - Activity Analysis'.format(str(label)))
-	if not "dimensionality_profile" in results.keys():
-		ax61 = pl.subplot2grid((25, 1), (0, 0), rowspan=20, colspan=1)
-		ax62 = pl.subplot2grid((25, 1), (20, 0), rowspan=5, colspan=1, sharex=ax61)
-	else:
-		ax61 = pl.subplot2grid((24, 1), (0, 0), rowspan=20, colspan=1)
-		ax62 = pl.subplot2grid((24, 1), (20, 0), rowspan=2, colspan=1, sharex=ax61)
-		ax63 = pl.subplot2grid((24, 1), (22, 0), rowspan=2, colspan=1, sharex=ax61)
+	# if not "dimensionality_profile" in results.keys():
+	ax61 = pl.subplot2grid((25, 1), (0, 0), rowspan=20, colspan=1)
+	ax62 = pl.subplot2grid((25, 1), (20, 0), rowspan=5, colspan=1, sharex=ax61)
+	# else:
+	# 	ax61 = pl.subplot2grid((24, 1), (0, 0), rowspan=20, colspan=1)
+	# 	ax62 = pl.subplot2grid((24, 1), (20, 0), rowspan=2, colspan=1, sharex=ax61)
+	# 	ax63 = pl.subplot2grid((24, 1), (22, 0), rowspan=2, colspan=1, sharex=ax61)
 	plot_raster(spike_list, 1., ax61, **{'color': 'k', 'alpha': 0.8, 'marker': '|', 'markersize': 2})
 	stats = ['ffs_profile']
-	if "dimensionality_profile" in results.keys():
-		stats.append("dimensionality_profile")
+	# if "dimensionality_profile" in results.keys():
+	# 	stats.append("dimensionality_profile")
 
 	cm = get_cmap(len(stats), color_map)
 	for idx, n in enumerate(stats):
-		if n != "dimensionality_profile":
-			data_mean = np.array([results[n][i][0] for i in range(len(results[n]))])
-			data_std = np.array([results[n][i][1] for i in range(len(results[n]))])
-			t_axis = np.linspace(spike_list.t_start, spike_list.t_stop, len(data_mean))
-			ax62.plot(t_axis, data_mean, c=cm(idx), lw=2.5)
-			ax62.fill_between(t_axis, data_mean - data_std, data_mean +
-			                  data_std, facecolor=cm(idx), alpha=0.2)
-			ax62.set_ylabel(r'$\mathrm{FF}$')
-			ax62.set_xlabel('Time [ms]')
-			ax62.set_xlim(spike_list.time_parameters())
-		else:
-			data_mean = np.array(results[n])
-			t_axis = np.linspace(spike_list.t_start, spike_list.t_stop, len(data_mean))
-			ax63.plot(t_axis, data_mean, c=cm(idx), lw=2.5)
-			ax63.set_ylabel(r'$\lambda_{\mathrm{Eff}}$')
-			ax63.set_xlabel('Time [ms]')
-			ax63.set_xlim(spike_list.time_parameters())
+		# if n != "dimensionality_profile":
+		data_mean = np.array([results[n][i][0] for i in range(len(results[n]))])
+		data_std = np.array([results[n][i][1] for i in range(len(results[n]))])
+		t_axis = np.linspace(spike_list.t_start, spike_list.t_stop, len(data_mean))
+		ax62.plot(t_axis, data_mean, c=cm(idx), lw=2.5)
+		ax62.fill_between(t_axis, data_mean - data_std, data_mean +
+		                  data_std, facecolor=cm(idx), alpha=0.2)
+		ax62.set_ylabel(r'$\mathrm{FF}$')
+		ax62.set_xlabel('Time [ms]')
+		ax62.set_xlim(spike_list.time_parameters())
+		# else:
+		# 	data_mean = np.array(results[n])
+		# 	t_axis = np.linspace(spike_list.t_start, spike_list.t_stop, len(data_mean))
+		# 	ax63.plot(t_axis, data_mean, c=cm(idx), lw=2.5)
+		# 	ax63.set_ylabel(r'$\lambda_{\mathrm{Eff}}$')
+		# 	ax63.set_xlabel('Time [ms]')
+		# 	ax63.set_xlim(spike_list.time_parameters())
 	if epochs is not None:
 		mark_epochs(ax61, epochs, color_map)
 		mark_epochs(ax62, epochs, color_map)
-		if "dimensionality_profile" in results.keys():
-			mark_epochs(ax63, epochs, color_map)
+		# if "dimensionality_profile" in results.keys():
+		# 	mark_epochs(ax63, epochs, color_map)
 
 	if display:
 		pl.show(False)
@@ -3034,7 +3039,7 @@ def plot_averaged_time_resolved(results, spike_list, label='', epochs=None, colo
 		fig6.savefig(save + '{0}_activity_analysis.pdf'.format(str(label)))
 
 
-def plot_dimensionality(results, pca_obj, rotated_data, data_label='', display=True, save=False):
+def plot_dimensionality(result, pca_obj, rotated_data=None, data_label='', display=True, save=False):
 	fig7 = pl.figure()
 	ax71 = fig7.add_subplot(121, projection='3d')
 	ax71.grid(False)
@@ -3045,13 +3050,17 @@ def plot_dimensionality(results, pca_obj, rotated_data, data_label='', display=T
 		pca_obj.explained_variance_ratio_[:3]), 1))))
 	ax72.plot(pca_obj.explained_variance_ratio_, 'ob')
 	ax72.plot(pca_obj.explained_variance_ratio_, '-b')
-	ax72.plot(np.ones_like(pca_obj.explained_variance_ratio_) * results['dimensionality'], np.linspace(0.,
+	ax72.plot(np.ones_like(pca_obj.explained_variance_ratio_) * result, np.linspace(0.,
 	                        np.max(pca_obj.explained_variance_ratio_), len(pca_obj.explained_variance_ratio_)),
 	          '--r', lw=2.5)
 	ax72.set_xlabel(r'PC')
 	ax72.set_ylabel(r'Variance Explained (%)')
-	ax72.set_xlim([0, round(results['dimensionality']) * 2])
+	ax72.set_xlim([0, round(result) * 2])
 	ax72.set_ylim([0, np.max(pca_obj.explained_variance_ratio_)])
+	if display:
+		pl.show(False)
+	if save:
+		fig7.savefig(save + '{0}_dimensionality.pdf'.format(str(save)))
 
 
 def plot_synaptic_currents(I_ex, I_in, time_axis):

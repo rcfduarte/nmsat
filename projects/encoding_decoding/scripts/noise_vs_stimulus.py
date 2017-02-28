@@ -21,15 +21,15 @@ import nest
 # ======================================================================================================================
 online = False # strictly False!
 plot = True
-display = True
+display = False
 save = True
 debug = True
 
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/dcinput_noise_vs_stimulus.py'
-# params_file = '../parameters/spikeinput_ongoing_evoked.py'
+# params_file = '../parameters/dcinput_noise_vs_stimulus.py'
+params_file = '../parameters/spike_noise_vs_stimulus.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -209,7 +209,7 @@ analysis_interval = [parameter_set.kernel_pars.transient_t - 500., parameter_set
 parameter_set.analysis_pars.population_activity.update({
 	'time_bin': 1.,
 	'time_resolved': True,
-	'window_len': 100})
+	'window_len': 50})
 
 
 epochs = {'ongoing': (analysis_interval[0], parameter_set.kernel_pars.transient_t),

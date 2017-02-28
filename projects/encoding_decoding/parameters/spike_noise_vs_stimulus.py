@@ -4,7 +4,7 @@ from preset import *
 import numpy as np
 
 """
-dcinput_noise_vs_stimulus
+spike_noise_vs_stimulus
 - analyse the transition from background, noise input to the active state (stimulus input)
 - quantify population states - in both conditions and time-resolved for the transition
 - run with noise_vs_stimulus in computations
@@ -12,7 +12,7 @@ dcinput_noise_vs_stimulus
 """
 
 run = 'local'
-data_label = 'ED_dcinput_noise_vs_stimulus'
+data_label = 'ED_spike_noise_vs_stimulus_test0'
 
 
 def build_parameters():
@@ -25,8 +25,8 @@ def build_parameters():
 		mem=32000,
 		walltime='01-00:00:00',
 		queue='defqueue',
-		transient_time=5000.,  # ongoing
-		sim_time=5000.)  # evoked
+		transient_time=1000.,  # ongoing
+		sim_time=1000.)  # evoked
 
 	kernel_pars = set_kernel_defaults(run_type=run, data_label=data_label, **system)
 	np.random.seed(kernel_pars['np_seed'])
@@ -34,7 +34,7 @@ def build_parameters():
 	# ##################################################################################################################
 	# Neuron, Synapse and Network Parameters
 	# ##################################################################################################################
-	N = 1000
+	N = 10000
 	nE = 0.8 * N
 	nI = 0.2 * N
 	dE = 1.0
@@ -47,7 +47,7 @@ def build_parameters():
 	pII = 0.2
 
 	# connection weights
-	g = 15.
+	g = 11.
 	wE = 1.2
 	wI = -g * wE
 
@@ -119,36 +119,48 @@ def build_parameters():
 	# ######################################################################################################################
 	# Input Parameters
 	# ######################################################################################################################
-	inp_resolution = 1.
-	inp_amplitude = 1500.
+	inp_resolution = 0.1
+	inp_amplitude = 14.
 	inp_duration = 200.
 	inter_stim_interval = 0.
 
-	noise_pars = {
-		'noise': {
-			'N': 1,
-			'noise_source': ['GWN'],
-			'noise_pars': {'amplitude': inp_amplitude, 'mean': 1., 'std': 0.1},
-			'rectify': False,
-			'start_time': 0.,
-			'stop_time': kernel_pars['transient_t'],
-			'resolution': 0.1}}
-
-	input_pars = {
-		'signal': {
-			'N': lexicon_size,
-			'durations': [inp_duration],
-			'i_stim_i': [inter_stim_interval],
-			'kernel': ('box', {}),
-			'start_time': kernel_pars['transient_t'],
-			'stop_time': sys.float_info.max,
-			'max_amplitude': [inp_amplitude],
-			'min_amplitude': 0.,
-			'resolution': inp_resolution}}
+	input_pars = {'signal': {
+		'N': lexicon_size,
+		'durations': [inp_duration],
+		'i_stim_i': [inter_stim_interval],
+		'kernel': ('box', {}),
+		'start_time': kernel_pars['transient_t'],
+		'stop_time': sys.float_info.max,
+		'max_amplitude': [inp_amplitude],
+		'min_amplitude': 0.,
+		'resolution': inp_resolution},
+	}
 
 	# ######################################################################################################################
 	# Encoding Parameters
 	# ######################################################################################################################
+	nu_x = 14.
+	k_x = pEE * nE
+	w_in = 1.
+
+	noise_encoding_pars = set_encoding_defaults(default_set=0)
+
+	background_noise = dict(
+		start=0., stop=kernel_pars['transient_t'], origin=0.,
+		rate=nu_x*k_x, target_population_names=['E', 'I'],
+		additional_parameters={
+			'syn_specs': {},
+			'models': 'static_synapse',
+			'model_pars': {},
+			'weight_dist': {'distribution': 'normal_clipped', 'mu': w_in, 'sigma': 0.5*w_in, 'low': 0.0001,
+			                'high': 10.*w_in},
+			'delay_dist': 0.1})
+	add_background_noise(noise_encoding_pars, background_noise)
+
+	n_afferents = int(nE)  # number of stimulus-specific afferents (if necessary)
+	n_stim = lexicon_size  # number of different input stimuli
+
+	# wIn structure
 	gamma_in = pEE
 	r = 0.5
 	w_in = 1.
@@ -167,12 +179,12 @@ def build_parameters():
 			{'distribution': 'normal_clipped', 'mu': w_in, 'sigma': 0.5 * w_in, 'low': 0.0001, 'high': 10. * w_in}],
 		delay_dist=[0.1, 0.1],
 		preset_W=[None, None],
-		gen_to_enc_W=None)
+		gen_to_enc_W=None,
+		jitter=None)
 
-	noise_encoding_pars = set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=0.,
-	                                            gen_label='InputNoise', **input_synapses)
-	stim_encoding_pars = set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=0.,
-	                                            gen_label='InputStimulus', **input_synapses)
+	stim_encoding_pars = set_encoding_defaults(default_set=4, input_dimensions=n_stim, n_encoding_neurons=n_afferents,
+	                                      **input_synapses)
+	add_parrots(stim_encoding_pars, n_afferents, decode=False, **{})  # encoder parrots are necessary
 
 	# ##################################################################################################################
 	# Extra analysis parameters (specific for this experiment)
@@ -195,7 +207,6 @@ def build_parameters():
 			'time_resolved': False,  # perform time-resolved analysis
 		}
 	}
-
 	# ##################################################################################################################
 	# RETURN dictionary of Parameters dictionaries
 	# ==================================================================================================================
@@ -207,13 +218,7 @@ def build_parameters():
 	             ('encoding_pars', stim_encoding_pars), # to avoid an error
 	             ('connection_pars', connection_pars),
 	             ('input_pars', input_pars),
-	             ('noise_pars', noise_pars),
+	             # ('noise_pars', noise_pars),
 	             ('task_pars', task_pars),
 	             ('analysis_pars', analysis_pars),
 	             ('stim_pars', stim_pars)])
-
-# ######################################################################################################################
-# PARAMETER RANGE declarations
-# ======================================================================================================================
-parameter_range = {
-}
