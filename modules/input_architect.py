@@ -2675,9 +2675,11 @@ class EncodingLayer:
 			tget_name = nn[0]
 			#print "    - %s [%s]" % (nn, conn_pars.models[idx])
 			# determine the type of the connecting populations and their parameters
-			if (src_name in encoding_pars.encoder.labels) or (tget_name in encoding_pars.encoder.labels) and \
+			if hasattr(encoding_pars, 'encoder'):
+				if (src_name in encoding_pars.encoder.labels) or (tget_name in
+				                                                            encoding_pars.encoder.labels) and \
 					not encoding_pars.encoder.N:
-				continue
+					continue
 			if hasattr(encoding_pars, 'encoder') and (src_name in encoding_pars.encoder.labels):
 				src_type = 'encoder'
 				src_id = encoding_pars.encoder.labels.index(src_name)

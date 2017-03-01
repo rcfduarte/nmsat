@@ -83,15 +83,15 @@ def run(parameter_set, plot=False, display=False, save=True):
 	# ######################################################################################################################
 	# Extract and store data
 	# ======================================================================================================================
-	net.extract_population_activity(t_start=parameter_set.kernel_pars.transient_t + nest.GetKernelStatus()['resolution'],
-		t_stop=parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t)
+	net.extract_population_activity(t_start=parameter_set.kernel_pars.transient_t,
+	                                t_stop=parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t)
 	net.extract_network_activity()
 	net.flush_records()
 
 	# ######################################################################################################################
 	# Analyse / plot data
 	# ======================================================================================================================
-	analysis_interval = [parameter_set.kernel_pars.transient_t + nest.GetKernelStatus()['resolution'],
+	analysis_interval = [parameter_set.kernel_pars.transient_t,
 	                     parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t]
 
 	for idd, nam in enumerate(net.population_names):
