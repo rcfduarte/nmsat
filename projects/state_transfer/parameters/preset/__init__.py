@@ -316,6 +316,58 @@ def set_network_defaults(default_set=1, neuron_set=0, N=1250, **synapse_pars):
 		# SYNAPSE Parameters
 		# ============================================================================================================
 		connection_pars = set_connection_defaults(syn_pars=syn_pars)
+
+	elif default_set == 3:
+		print "\nLoading Default Network Set 3 - Single Neuron synaptic input"
+		syn_pars = ParameterSet(synapse_pars)
+		if isinstance(neuron_set, int):
+			neuron_pars = set_neuron_defaults(default_set=neuron_set)
+		elif isinstance(neuron_set, dict) or isinstance(neuron_set, ParameterSet):
+			neuron_pars = neuron_set
+		parrots = {'model': 'parrot_neuron'}
+
+		n_pars = {k: v for k, v in neuron_pars.items() if k != 'description'}
+		pop_names = ['{0}'.format(str(n)) for n in n_pars.keys()]
+
+		randomized_neuron_pars = [{} for _ in pop_names]
+		randomized_neuron_pars.extend([{} for _ in n_pars.keys()])
+
+		if len(neuron_pars.keys()) > 1:
+			neuron_params = [n_pars[n] for n in n_pars.keys()]
+		else:
+			neuron_params = [n_pars[n_pars.keys()[0]]]
+		neuron_params.extend([parrots for _ in n_pars.keys()])
+
+		n_neurons = [1 for _ in n_pars.keys()]
+		n_neurons.extend([eval("int(n{0})".format(str(n))) for n in n_pars.keys()])
+
+		devices_flags = [True for _ in range(len(pop_names))]
+		devices_flags.extend([False for _ in range(len(pop_names))])
+
+		sds = [syn_pars.devices[1] for _ in range(len(pop_names))]
+		sds.extend([None for _ in range(len(pop_names))])
+
+		mms = [syn_pars.devices[0] for _ in range(len(pop_names))]
+		mms.extend([None for _ in range(len(pop_names))])
+
+		pop_names.extend(['{0}_inputs'.format(str(n)) for n in n_pars.keys()])
+
+		net_pars = {
+			'n_populations': len(pop_names),
+			'pop_names': pop_names,
+			'n_neurons': n_neurons,
+			'neuron_pars': neuron_params,
+			'randomize_neuron_pars': randomized_neuron_pars,
+			'topology': [False for _ in range(len(pop_names))],
+			'topology_dict': [None for _ in range(len(pop_names))],
+			'record_spikes': devices_flags,
+			'spike_device_pars': sds,
+			'record_analogs': devices_flags,
+			'analog_device_pars': mms,
+			'description': {'topology': 'None'}
+		}
+		##############################################################
+		connection_pars = set_connection_defaults(syn_pars=syn_pars)
 	else:
 		raise NotImplementedError("Default set %s not implemented!" % str(default_set))
 
