@@ -1297,6 +1297,7 @@ def compute_spikelist_metrics(spike_list, label, analysis_pars):
 
 	return results
 
+
 def single_neuron_dcresponse(population_object, parameter_set, start=None, stop=None, plot=True, display=True,
 							 save=False):
 	"""
@@ -1322,6 +1323,12 @@ def single_neuron_dcresponse(population_object, parameter_set, start=None, stop=
 	interval = [input_times[idx], input_times[idx+1]]
 	single_spk = spike_list.time_slice(interval[0], interval[1])
 	single_vm = vm_list.time_slice(interval[0], interval[1])
+
+	if len(population_object.analog_activity) > 1:
+		other_analogs = [x for x in population_object.analog_activity[1:]]
+		single_analogs = [x.time_slice(interval[0], interval[1]) for x in other_analogs]
+	else:
+		other_analogs = None
 
 	if start is not None and stop is not None:
 		spike_list = spike_list.time_slice(start, stop)
@@ -1364,6 +1371,9 @@ def single_neuron_dcresponse(population_object, parameter_set, start=None, stop=
 
 		vm_plot = visualization.AnalogSignalPlots(single_vm, start=interval[0], stop=interval[0]+1000)
 		props = {'xlabel': r'Time [ms]', 'ylabel': '$V_{m} [\mathrm{mV}]$'}
+		if other_analogs is not None:
+			for signal in single_analogs:
+				ax4.plot(signal.time_axis(), signal.as_array()[0, :], 'g')
 		if 'V_reset' in parameter_set.net_pars.neuron_pars[0].keys() and 'V_th' in parameter_set.net_pars.neuron_pars[0].keys():
 			ax4 = vm_plot.plot_Vm(ax=ax4, with_spikes=True, v_reset=parameter_set.net_pars.neuron_pars[0]['V_reset'],
 							 v_th=parameter_set.net_pars.neuron_pars[0]['V_th'], display=False, save=False, **props)

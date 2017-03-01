@@ -50,7 +50,7 @@ def cmp_spaceVSspace(ref_fn, test_fn):
 
 # ######################################################################################################################
 # Run tests
-# test_single_neuron_dcinput_parameterspace("../../Experiments/ParameterSets/single_neuron_dcinput.py",
+# test_single_neuron_dcinput_parameterspace("../../Experiments/ParameterSets/singleneuron_dcinput.py",
 # 										  "../../Experiments/ParameterSets/new_template.py")
 
 # def test_spike_pattern_input_sequence():
