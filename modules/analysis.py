@@ -67,6 +67,7 @@ has_pyspike = check_dependency('pyspike')
 if has_pyspike:
 	import pyspike as spk
 
+
 ############################################################################################
 def ccf(x, y, axis=None):
 	"""
@@ -165,226 +166,7 @@ def cross_correlogram(x, y, max_lag=100., dt=0.1, plot=True):
 		ax.axvline(x=lag[pos_ix], ymin=np.min(corr), ymax=np.max(corr), linewidth=1.5, color='c')
 		pl.show()
 
-# TODO remove? not used?
-# def _dict_max(D):
-# 	"""
-# 	For a dict containing numerical values, return the key for the highest value. If there is more than one item
-# 	with the same highest value, return one of them (arbitrary - depends on the order produced by the iterator).
-# 	"""
-# 	max_val = max(D.values())
-# 	for k in D:
-# 		if D[k] == max_val:
-# 			return k
 
-# TODO remove? doesn't seem to be used
-# def make_kernel(form, sigma, time_stamp_resolution, direction=1):
-# 	"""
-# 	Creates kernel functions for convolution.
-#
-# 	Constructs a numeric linear convolution kernel of basic shape to be used
-# 	for data smoothing (linear low pass filtering) and firing rate estimation
-# 	from single trial or trial-averaged spike trains.
-#
-# 	Exponential and alpha kernels may also be used to represent postynaptic
-# 	currents / potentials in a linear (current-based) model.
-#
-# 	Adapted from original script written by Martin P. Nawrot for the
-# 	FIND MATLAB toolbox [1]_ [2]_.
-#
-# 	Parameters
-# 	----------
-# 	form : {'BOX', 'TRI', 'GAU', 'EPA', 'EXP', 'ALP'}
-# 		Kernel form. Currently implemented forms are BOX (boxcar),
-# 		TRI (triangle), GAU (gaussian), EPA (epanechnikov), EXP (exponential),
-# 		ALP (alpha function). EXP and ALP are aymmetric kernel forms and
-# 		assume optional parameter `direction`.
-# 	sigma : float
-# 		Standard deviation of the distribution associated with kernel shape.
-# 		This parameter defines the time resolution (in ms) of the kernel estimate
-# 		and makes different kernels comparable (cf. [1] for symetric kernels).
-# 		This is used here as an alternative definition to the cut-off
-# 		frequency of the associated linear filter.
-# 	time_stamp_resolution : float
-# 		Temporal resolution of input and output in ms.
-# 	direction : {-1, 1}
-# 		Asymmetric kernels have two possible directions.
-# 		The values are -1 or 1, default is 1. The
-# 		definition here is that for direction = 1 the
-# 		kernel represents the impulse response function
-# 		of the linear filter. Default value is 1.
-#
-# 	Returns
-# 	-------
-# 	kernel : array_like
-# 		Array of kernel. The length of this array is always an odd
-# 		number to represent symmetric kernels such that the center bin
-# 		coincides with the median of the numeric array, i.e for a
-# 		triangle, the maximum will be at the center bin with equal
-# 		number of bins to the right and to the left.
-# 	norm : float
-# 		For rate estimates. The kernel vector is normalized such that
-# 		the sum of all entries equals unity sum(kernel)=1. When
-# 		estimating rate functions from discrete spike data (0/1) the
-# 		additional parameter `norm` allows for the normalization to
-# 		rate in spikes per second.
-#
-# 		For example:
-# 		``rate = norm * scipy.signal.lfilter(kernel, 1, spike_data)``
-# 	m_idx : int
-# 		Index of the numerically determined median (center of gravity)
-# 		of the kernel function.
-#
-# 	Examples
-# 	--------
-# 	To obtain single trial rate function of trial one should use:
-#
-# 		r = norm * scipy.signal.fftconvolve(sua, kernel)
-#
-# 	To obtain trial-averaged spike train one should use:
-#
-# 		r_avg = norm * scipy.signal.fftconvolve(sua, np.mean(X,1))
-#
-# 	where `X` is an array of shape `(l,n)`, `n` is the number of trials and
-# 	`l` is the length of each trial.
-#
-# 	See also
-# 	--------
-# 	SpikeTrain.instantaneous_rate
-# 	SpikeList.averaged_instantaneous_rate
-#
-# 	.. [1] Meier R, Egert U, Aertsen A, Nawrot MP, "FIND - a unified framework
-# 	   for neural data analysis"; Neural Netw. 2008 Oct; 21(8):1085-93.
-#
-# 	.. [2] Nawrot M, Aertsen A, Rotter S, "Single-trial estimation of neuronal
-# 	   firing rates - from single neuron spike trains to population activity";
-# 	   J. Neurosci Meth 94: 81-92; 1999.
-#
-# 	"""
-# 	assert form.upper() in ('BOX', 'TRI', 'GAU', 'EPA', 'EXP', 'ALP'), "form must \
-# 	be one of either 'BOX','TRI','GAU','EPA','EXP' or 'ALP'!"
-#
-# 	assert direction in (1, -1), "direction must be either 1 or -1"
-#
-# 	SI_sigma = sigma / 1000.  # convert to SI units (ms -> s)
-#
-# 	SI_time_stamp_resolution = time_stamp_resolution / 1000.  # convert to SI units (ms -> s)
-#
-# 	norm = 1./SI_time_stamp_resolution
-#
-# 	if form.upper() == 'BOX':
-# 		w = 2.0 * SI_sigma * np.sqrt(3)
-# 		width = 2 * np.floor(w / 2.0 / SI_time_stamp_resolution) + 1  # always odd number of bins
-# 		height = 1. / width
-# 		kernel = np.ones((1, width)) * height  # area = 1
-#
-# 	elif form.upper() == 'TRI':
-# 		w = 2 * SI_sigma * np.sqrt(6)
-# 		halfwidth = np.floor(w / 2.0 / SI_time_stamp_resolution)
-# 		trileft = np.arange(1, halfwidth + 2)
-# 		triright = np.arange(halfwidth, 0, -1)  # odd number of bins
-# 		triangle = np.append(trileft, triright)
-# 		kernel = triangle / triangle.sum()  # area = 1
-#
-# 	elif form.upper() == 'EPA':
-# 		w = 2.0 * SI_sigma * np.sqrt(5)
-# 		halfwidth = np.floor(w / 2.0 / SI_time_stamp_resolution)
-# 		base = np.arange(-halfwidth, halfwidth + 1)
-# 		parabula = base**2
-# 		epanech = parabula.max() - parabula  # inverse parabula
-# 		kernel = epanech / epanech.sum()  # area = 1
-#
-# 	elif form.upper() == 'GAU':
-# 		w = 2.0 * SI_sigma * 2.7  # > 99% of distribution weight
-# 		halfwidth = np.floor(w / 2.0 / SI_time_stamp_resolution)  # always odd
-# 		base = np.arange(-halfwidth, halfwidth + 1) * SI_time_stamp_resolution
-# 		g = np.exp(-(base**2) / 2.0 / SI_sigma**2) / SI_sigma / np.sqrt(2.0 * np.pi)
-# 		kernel = g / g.sum()
-#
-# 	elif form.upper() == 'ALP':
-# 		w = 5.0 * SI_sigma
-# 		alpha = np.arange(1, (2.0 * np.floor(w / SI_time_stamp_resolution / 2.0) + 1) + 1) * SI_time_stamp_resolution
-# 		alpha = (2.0 / SI_sigma**2) * alpha * np.exp(-alpha * np.sqrt(2) / SI_sigma)
-# 		kernel = alpha / alpha.sum()  # normalization
-# 		if direction == -1:
-# 			kernel = np.flipud(kernel)
-#
-# 	elif form.upper() == 'EXP':
-# 		w = 5.0 * SI_sigma
-# 		expo = np.arange(1, (2.0 * np.floor(w / SI_time_stamp_resolution / 2.0) + 1) + 1) * SI_time_stamp_resolution
-# 		expo = np.exp(-expo / SI_sigma)
-# 		kernel = expo / expo.sum()
-# 		if direction == -1:
-# 			kernel = np.flipud(kernel)
-#
-# 	kernel = kernel.ravel()
-# 	m_idx = np.nonzero(kernel.cumsum() >= 0.5)[0].min()
-#
-# 	return kernel, norm, m_idx
-
-# TODO remove? it's duplicate of the one in input_architect.py
-# def make_simple_kernel(shape, width=3, height=1., resolution=1., normalize=False, **kwargs):
-# 	"""
-# 	Simplest way to create a smoothing kernel for 1D convolution
-# 	:param shape: {'box', 'exp', 'alpha', 'double_exp', 'gauss'}
-# 	:param width: kernel width
-# 	:param height: peak amplitude of the kernel
-# 	:param resolution: time step
-# 	:param normalize: [bool]
-# 	:return: kernel k
-# 	"""
-#
-# 	# TODO sinusoidal (*), load external kernel...
-# 	x = np.arange(0., (width / resolution) + 1, resolution)
-#
-# 	if shape == 'box':
-# 		k = np.ones_like(x) * height
-#
-# 	elif shape == 'exp':
-# 		assert 'tau' in kwargs, "for exponential kernel, please specify tau"
-# 		tau = kwargs['tau']
-# 		k = np.exp(-x / tau) * height
-#
-# 	elif shape == 'double_exp':
-# 		assert ('tau_1' in kwargs), "for double exponential kernel, please specify tau_1"
-# 		assert ('tau_2' in kwargs), "for double exponential kernel, please specify tau_2"
-#
-# 		tau_1 = kwargs['tau_1']
-# 		tau_2 = kwargs['tau_2']
-# 		tmp_k = (-np.exp(-x / tau_1) + np.exp(-x / tau_2))
-# 		k = tmp_k * (height / np.max(tmp_k))
-#
-# 	elif shape == 'alpha':
-# 		assert ('tau' in kwargs), "for alpha kernel, please specify tau"
-#
-# 		tau = kwargs['tau']
-# 		tmp_k = ((x / tau) * np.exp(-x / tau))
-# 		k = tmp_k * (height / np.max(tmp_k))
-#
-# 	elif shape == 'gauss':
-# 		assert ('mu' in kwargs), "for Gaussian kernel, please specify mu"
-# 		assert ('sigma' in kwargs), "for Gaussian kernel, please specify sigma"
-#
-# 		sigma = kwargs['sigma']
-# 		mu = kwargs['mu']
-# 		tmp_k = (1. / (sigma * np.sqrt(2. * np.pi))) * np.exp(- ((x - mu) ** 2. / (2. * (sigma ** 2.))))
-# 		k = tmp_k * (height / np.max(tmp_k))
-#
-# 	elif shape == 'tri':
-# 		halfwidth = width / 2
-# 		trileft = np.arange(1, halfwidth + 2)
-# 		triright = np.arange(halfwidth, 0, -1)  # odd number of bins
-# 		k = np.append(trileft, triright)
-# 		k += height
-#
-# 	else:
-# 		print("Kernel not implemented, please choose {'box', 'exp', 'alpha', 'double_exp', 'gauss', 'tri'}")
-# 		k = 0
-# 	if normalize:
-# 		k /= k.sum()
-#
-# 	return k
-
-# TODO used?
 def simple_frequency_spectrum(x):
 	"""
 	Simple frequency spectrum.
@@ -512,14 +294,14 @@ def cross_trial_cc(total_counts, display=True):
 
 	return np.array(r)
 
-# TODO this is ...? :P
+
 def acc_function(x, a, b, tau):
 	"""
-
+	Generic exponential function (to use whenever we want to fit an exponential function to data)
 	:param x:
 	:param a:
 	:param b:
-	:param tau:
+	:param tau: decay time constant
 	:return:
 	"""
 	return a * (np.exp(-x / tau) + b)
@@ -1049,7 +831,9 @@ def manifold_learning(activity_matrix, n_neighbors, standardize=True, plot=True,
 	:return:
 	"""
 	# TODO extend and test - and include in the analyse_activity_dynamics function
-	# QUESTION what is this? :)
+	# QUESTION what is this? - it's an incomplete test of manifold learning algorithms, to visualize the geometrical
+	# organization of the state-space in 3D (some of these methods project the data to a lower dimensional manifold,
+	# but preserve the average point-wise distances in the original space..
 	if display:
 		print("Testing manifold learning algorithms")
 	if plot:
@@ -1563,10 +1347,12 @@ def ssa_lifetime(pop_obj, parameter_set, input_off=1000., display=True):
 
 	return results
 
-# TODO comment, what's this? :-) maybe a more suggestive name?
+
 def fmf_readout(response, target, readout, index, label='', plot=False, display=False, save=False):
 	"""
-
+	(to be removed)
+	This function is specific to the fading memory estimation, and performs all the necessary computations to compute
+	the fading memory function
 	:return:
 	"""
 	label += str(round(np.median(response), 1))
@@ -1621,6 +1407,7 @@ def fmf_readout(response, target, readout, index, label='', plot=False, display=
 
 	return output, {'MAE': MAE, 'MSE': MSE, 'NMSE': NMSE, 'RMSE': RMSE, 'NRMSE': NRMSE, 'norm_wOut': norm_wout,
 					'fmf': fmf}
+
 
 # TODO update
 def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True,
@@ -1856,72 +1643,6 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 
 		return results
 
-# # TODO maybe move this and test to Readout class? later.
-# def readout_train(readout, state, target, index=None, accepted=None, display=True, plot=False, save=False):
-# 	"""
-# 	Train readout object
-# 	:param readout: Readout object
-# 	:param state: np.ndarray state matrix
-# 	:param target: np.ndarray target_matrix
-# 	:param index: time_shift state and target
-# 	:param accepted: indices of accepted time steps
-# 	:return norm_wout: norm of readout weights, weights are stored in Readout object
-# 	"""
-# 	assert (isinstance(state, np.ndarray)), "Provide state matrix as array"
-# 	assert (isinstance(target, np.ndarray)), "Provide target matrix as array"
-# 	assert (isinstance(readout, Readout)), "Provide Readout object"
-#
-# 	if accepted is not None:
-# 		state = state[:, accepted]
-# 		target = target[:, accepted]
-#
-# 	if index is not None and index < 0:
-# 		index = -index
-# 		state = state[:, index:]
-# 		target = target[:, :-index]
-# 	elif index is not None and index > 0:
-# 		state = state[:, :-index]
-# 		target = target[:, index:]
-#
-# 	readout.train(state, target)
-# 	norm_wout = readout.measure_stability()
-# 	if display:
-# 		print("|W_out| [{0}] = {1}".format(readout.name, str(norm_wout)))
-# 	if plot:
-# 		readout.plot_weights(display=display, save=save)
-#
-# 	return norm_wout
-
-
-# def readout_test(readout, state, target, index=None, accepted=None, display=True, plot=False, save=False):
-# 	"""
-#
-# 	:param state:
-# 	:param target:
-# 	:param readout:
-# 	:param index:
-# 	:return:
-# 	"""
-# 	assert (isinstance(state, np.ndarray)), "Provide state matrix as array"
-# 	assert (isinstance(target, np.ndarray)), "Provide target matrix as array"
-# 	assert (isinstance(readout, Readout)), "Provide Readout object"
-#
-# 	if accepted is not None:
-# 		state = state[:, accepted]
-# 		target = target[:, accepted]
-#
-# 	if index is not None and index < 0:
-# 		index = -index
-# 		state = state[:, index:]
-# 		target = target[:, :-index]
-# 	elif index is not None and index > 0:
-# 		state = state[:, :-index]
-# 		target = target[:, index:]
-#
-# 	readout.test(state)
-# 	performance = readout.measure_performance(target, display=display)
-# 	return performance
-
 
 # TODO is this not redundant with analyse_activity_dynamics? - should be combined, but now they are doing different
 # things..
@@ -1991,7 +1712,8 @@ def advanced_state_analysis(state, stim_labels, label='', plot=True, display=Tru
 	pass
 
 
-# TODO is this still needed? there's the same function in DecodingLayer - that is evaluate_decoding
+# TODO is this still needed? there's the same function in DecodingLayer - that is evaluate_decoding - yes,
+# this is evaluate_encoding ;)
 def evaluate_encoding(enc_layer, parameter_set, analysis_interval, input_signal, plot=True, display=True, save=False):
 	"""
 	Determine the quality of the encoding method (if there are encoders), by reading out the state of the encoders
@@ -2040,15 +1762,13 @@ def evaluate_encoding(enc_layer, parameter_set, analysis_interval, input_signal,
 				inherit_from=analysis_signal)
 
 			if plot:
-				from modules.visualization import InputPlots
-				import matplotlib.pyplot as pl
 				figure2 = pl.figure()
 				figure2.suptitle(r'MAE = {0}'.format(str(perf['raw']['MAE'])))
 				ax21 = figure2.add_subplot(211)
 				ax22 = figure2.add_subplot(212, sharex=ax21)
-				InputPlots(input_obj=analysis_signal).plot_input_signal(ax22, save=False, display=False)
+				visualization.InputPlots(input_obj=analysis_signal).plot_input_signal(ax22, save=False, display=False)
 				ax22.set_color_cycle(None)
-				InputPlots(input_obj=input_out).plot_input_signal(ax22, save=False, display=False)
+				visualization.InputPlots(input_obj=input_out).plot_input_signal(ax22, save=False, display=False)
 				ax22.set_ylim([analysis_signal.base-10., analysis_signal.peak+10.])
 				inp_spikes.raster_plot(with_rate=False, ax=ax21, save=False, display=False)
 				if display:
@@ -2058,98 +1778,98 @@ def evaluate_encoding(enc_layer, parameter_set, analysis_interval, input_signal,
 	return results
 
 
-def analyse_performance_results(net, enc_layer=None, plot=True, display=True, save=False):
-	"""
-	Re-organizes performance results
-	(may be too case-sensitive!!)
-	"""
-	# TODO - deprecated...
-	from modules.signals import empty
-	results = {}
+# def analyse_performance_results(net, enc_layer=None, plot=True, display=True, save=False):
+# 	"""
+# 	Re-organizes performance results
+# 	(may be too case-sensitive!!)
+# 	"""
+# 	# TODO - deprecated...
+# 	from modules.signals import empty
+# 	results = {}
+#
+# 	if enc_layer is not None:
+# 		all_populations = list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders]))
+# 	else:
+# 		all_populations = list(itertools.chain(*[net.merged_populations, net.populations]))
+#
+# 	for n_pop in all_populations:
+# 		if hasattr(n_pop, "decoding_pars"):
+# 			results[n_pop.name] = {}
+# 			readout_labels = list(np.sort(n_pop.decoding_pars['readout']['labels']))
+# 			readout_type = [n[:3] for n in readout_labels]
+# 			if 'mem' in readout_type and 'cla' in readout_type: # special case
+# 				last_mem = readout_type[::-1].index('mem')
+# 				readout_labels.insert(last_mem + 1, readout_labels[0])
+# 				readout_labels.pop(0)
+# 				readout_type = [n[:3] for n in readout_labels]
+# 				last_mem = readout_type[::-1].index('mem')
+# 				first_mem = readout_type.index('mem')
+# 				readout_labels[first_mem:last_mem - 1] = readout_labels[first_mem:last_mem - 1][::-1]
+#
+# 			pop_readouts = n_pop.readouts
+# 			pop_state_variables = n_pop.state_variables
+# 			print(pop_state_variables)
+# 			if empty(n_pop.state_sample_times):
+# 				for idx_state, n_state in enumerate(n_pop.state_extractors):
+# 					pop_readout_labels = [n.name for n in pop_readouts[idx_state]]
+# 					readout_idx = [np.where(n == np.array(readout_labels))[0][0] for n in pop_readout_labels]
+# 					readout_set = list(np.array(pop_readouts[idx_state])[readout_idx])
+# 					results[n_pop.name].update({'ReadoutSet{0}'.format(str(idx_state)): {}})
+# 					indices = [n.index for n in readout_set]
+# 					results[n_pop.name]['ReadoutSet{0}'.format(str(idx_state))] = compile_performance_results(
+# 						readout_set, state_variable=pop_state_variables[idx_state])
+# 			else:
+# 				assert (len(pop_readouts) == len(n_pop.state_sample_times)), "Inconsistent readout set"
+# 				n_states = len(pop_readouts[0])
+# 				for n_state in range(n_states):
+# 					results[n_pop.name].update({'ReadoutSet{0}'.format(str(n_state)): {}})
+# 					results[n_pop.name]['ReadoutSet{0}'.format(str(n_state))].update(
+# 						{'sample_times': n_pop.state_sample_times})
+#
+# 					for n_sample_time in range(len(n_pop.state_sample_times)):
+# 						readout_set = pop_readouts[n_sample_time][n_state]
+# 						results[n_pop.name]['ReadoutSet{0}'.format(str(n_state))].update({'sample_{0}'.format(
+# 							n_sample_time): {}})
+# 						results[n_pop.name]['ReadoutSet{0}'.format(str(n_state))]['sample_{0}'.format(
+# 							n_sample_time)] = compile_performance_results(readout_set,
+# 																		  state_variable=pop_state_variables[n_state])
+#
+# 	if plot:
+# 		visualization.plot_readout_performance(results, display=display, save=save)
+# 	return results
 
-	if enc_layer is not None:
-		all_populations = list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders]))
-	else:
-		all_populations = list(itertools.chain(*[net.merged_populations, net.populations]))
 
-	for n_pop in all_populations:
-		if hasattr(n_pop, "decoding_pars"):
-			results[n_pop.name] = {}
-			readout_labels = list(np.sort(n_pop.decoding_pars['readout']['labels']))
-			readout_type = [n[:3] for n in readout_labels]
-			if 'mem' in readout_type and 'cla' in readout_type: # special case
-				last_mem = readout_type[::-1].index('mem')
-				readout_labels.insert(last_mem + 1, readout_labels[0])
-				readout_labels.pop(0)
-				readout_type = [n[:3] for n in readout_labels]
-				last_mem = readout_type[::-1].index('mem')
-				first_mem = readout_type.index('mem')
-				readout_labels[first_mem:last_mem - 1] = readout_labels[first_mem:last_mem - 1][::-1]
-
-			pop_readouts = n_pop.readouts
-			pop_state_variables = n_pop.state_variables
-			print(pop_state_variables)
-			if empty(n_pop.state_sample_times):
-				for idx_state, n_state in enumerate(n_pop.state_extractors):
-					pop_readout_labels = [n.name for n in pop_readouts[idx_state]]
-					readout_idx = [np.where(n == np.array(readout_labels))[0][0] for n in pop_readout_labels]
-					readout_set = list(np.array(pop_readouts[idx_state])[readout_idx])
-					results[n_pop.name].update({'ReadoutSet{0}'.format(str(idx_state)): {}})
-					indices = [n.index for n in readout_set]
-					results[n_pop.name]['ReadoutSet{0}'.format(str(idx_state))] = compile_performance_results(
-						readout_set, state_variable=pop_state_variables[idx_state])
-			else:
-				assert (len(pop_readouts) == len(n_pop.state_sample_times)), "Inconsistent readout set"
-				n_states = len(pop_readouts[0])
-				for n_state in range(n_states):
-					results[n_pop.name].update({'ReadoutSet{0}'.format(str(n_state)): {}})
-					results[n_pop.name]['ReadoutSet{0}'.format(str(n_state))].update(
-						{'sample_times': n_pop.state_sample_times})
-
-					for n_sample_time in range(len(n_pop.state_sample_times)):
-						readout_set = pop_readouts[n_sample_time][n_state]
-						results[n_pop.name]['ReadoutSet{0}'.format(str(n_state))].update({'sample_{0}'.format(
-							n_sample_time): {}})
-						results[n_pop.name]['ReadoutSet{0}'.format(str(n_state))]['sample_{0}'.format(
-							n_sample_time)] = compile_performance_results(readout_set,
-																		  state_variable=pop_state_variables[n_state])
-
-	if plot:
-		visualization.plot_readout_performance(results, display=display, save=save)
-	return results
-
-
-def compile_performance_results(readout_set, state_variable=''):
-	"""
-	"""
-	# TODO - deprecated
-	results = {
-		'accuracy': np.array([n.performance['label']['performance'] for n in readout_set]),
-		'performance': np.array([n.performance['max']['performance'] for n in readout_set if not sg.empty(
-			n.performance['max'])]),
-		'hamming_loss': np.array([n.performance['label']['hamm_loss'] for n in readout_set]),
-		'MSE': np.array([n.performance['max']['MSE'] for n in readout_set if not sg.empty(n.performance['max'])]),
-		'pb_cc': [n.performance['raw']['point_bisserial'] for n in readout_set if not sg.empty(n.performance['raw'])],
-		'raw_MAE': np.array([n.performance['raw']['MAE'] for n in readout_set if not sg.empty(n.performance['raw'])]),
-		'precision': np.array([n.performance['label']['precision'] for n in readout_set]),
-		'f1_score': np.array([n.performance['label']['f1_score'] for n in readout_set]),
-		'recall': np.array([n.performance['label']['recall'] for n in readout_set]),
-		'confusion_matrices': [n.performance['label']['confusion'] for n in readout_set],
-		'jaccard': np.array([n.performance['label']['jaccard'] for n in readout_set]),
-		'class_support': [n.performance['label']['class_support'] for n in readout_set],
-		'norm_wout': np.array([n.measure_stability() for n in readout_set]),
-		'labels': [n.name for n in readout_set],
-		'indices': [n.index for n in readout_set],
-		'state_variable': state_variable}
-	return results
+# def compile_performance_results(readout_set, state_variable=''):
+# 	"""
+# 	"""
+# 	# TODO - deprecated
+# 	results = {
+# 		'accuracy': np.array([n.performance['label']['performance'] for n in readout_set]),
+# 		'performance': np.array([n.performance['max']['performance'] for n in readout_set if not sg.empty(
+# 			n.performance['max'])]),
+# 		'hamming_loss': np.array([n.performance['label']['hamm_loss'] for n in readout_set]),
+# 		'MSE': np.array([n.performance['max']['MSE'] for n in readout_set if not sg.empty(n.performance['max'])]),
+# 		'pb_cc': [n.performance['raw']['point_bisserial'] for n in readout_set if not sg.empty(n.performance['raw'])],
+# 		'raw_MAE': np.array([n.performance['raw']['MAE'] for n in readout_set if not sg.empty(n.performance['raw'])]),
+# 		'precision': np.array([n.performance['label']['precision'] for n in readout_set]),
+# 		'f1_score': np.array([n.performance['label']['f1_score'] for n in readout_set]),
+# 		'recall': np.array([n.performance['label']['recall'] for n in readout_set]),
+# 		'confusion_matrices': [n.performance['label']['confusion'] for n in readout_set],
+# 		'jaccard': np.array([n.performance['label']['jaccard'] for n in readout_set]),
+# 		'class_support': [n.performance['label']['class_support'] for n in readout_set],
+# 		'norm_wout': np.array([n.measure_stability() for n in readout_set]),
+# 		'labels': [n.name for n in readout_set],
+# 		'indices': [n.index for n in readout_set],
+# 		'state_variable': state_variable}
+# 	return results
 
 
 def analyse_state_divergence(parameter_set, net, clone, plot=True, display=True, save=False):
 	"""
-
+	Analyse how responses from net and clone diverge (primarily for perturbation analysis)
 	:param parameter_set:
-	:param net:
-	:param clone:
+	:param net: Network object
+	:param clone: Network object
 	:return:
 	"""
 	results = dict()
@@ -2161,8 +1881,6 @@ def analyse_state_divergence(parameter_set, net, clone, plot=True, display=True,
 									 parameter_set.kernel_pars.resolution)
 	perturbation_time = parameter_set.kernel_pars.perturbation_time + parameter_set.kernel_pars.transient_t
 	observation_time = max(activity_time_vector) - perturbation_time
-	#perturbation_time = parameter_set.kernel_pars.perturbation_time + parameter_set.kernel_pars.transient_t
-	#observation_time = max(time_vec) - perturbation_time
 
 	if not sg.empty(net.populations[pop_idx].spiking_activity.spiketrains):
 		time_vec = net.populations[pop_idx].spiking_activity.time_axis(1)[:-1]
@@ -2458,31 +2176,38 @@ class Readout(object):
 
 		return self.weights, self.fit_obj
 
-	def test(self, state_test, target_test, index=None, accepted=None, display=True):
+	def test(self, state_test, target_test=None, index=None, accepted=None, display=True):
 		"""
 		Acquire readout output in test phase
 		"""
 		assert (isinstance(state_test, np.ndarray)), "Provide state matrix as array"
-		assert (isinstance(target_test, np.ndarray)), "Provide target matrix as array"
+		if target_test is not None:
+			assert (isinstance(target_test, np.ndarray)), "Provide target matrix as array"
 
 		if accepted is not None:
 			state_test = state_test[:, accepted]
-			target_test = target_test[:, accepted]
+			if target_test is not None:
+				target_test = target_test[:, accepted]
 
 		if index is not None and index < 0:
 			index = -index
 			state_test = state_test[:, index:]
-			target_test = target_test[:, :-index]
+			if target_test is not None:
+				target_test = target_test[:, :-index]
 		elif index is not None and index > 0:
 			state_test = state_test[:, :-index]
-			target_test = target_test[:, index:]
+			if target_test is not None:
+				target_test = target_test[:, index:]
 
 		if display:
 			print("\nTesting Readout {0}".format(str(self.name)))
 		self.output = None
 		self.output = self.fit_obj.predict(state_test.T)
 
-		return self.output, target_test
+		if target_test is not None:
+			return self.output, target_test
+		else:
+			return self.output
 
 	@staticmethod
 	def parse_outputs(output, target, dimensions, set_size, method='WTA', k=1):
@@ -2583,7 +2308,8 @@ class Readout(object):
 			binary_output, output_labels, binary_target, target_labels = self.parse_outputs(output, target,
 			                                                    dimensions=n_out, set_size=test_steps,
 			                                                    method=comparison_function)
-		# print binary_output.todense(), output_labels
+		print binary_output.shape, binary_target.shape
+		print output_labels, target_labels
 		# initialize results dictionary - raw takes the direct readout output, max the binarized output and label the
 		#  labels of each step
 		performance = {'raw': {}, 'max': {}, 'label': {}}

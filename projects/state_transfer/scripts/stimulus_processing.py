@@ -25,8 +25,9 @@ online = True
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/dc_stimulus_input.py'
-# params_file = '../../encoding_decoding/parameters/spike_pattern_input.py'
+
+params_file = '../parameters/one_pool_stimulusdriven.py'
+# params_file = '../../legenstein_rescience/parameters/identity.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -45,6 +46,7 @@ if plot:
 paths = set_storage_locations(parameter_set, save)
 
 np.random.seed(parameter_set.kernel_pars['np_seed'])
+# results = dict(performance={}, dimensionality={})
 
 # ######################################################################################################################
 # Set kernel and simulation parameters
@@ -182,4 +184,3 @@ if save:
 	with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
 		pickle.dump(results, f)
 	parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
-

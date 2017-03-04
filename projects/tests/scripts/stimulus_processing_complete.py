@@ -4,33 +4,31 @@ from modules.input_architect import EncodingLayer, StimulusSet, InputSignalSet
 from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
-from modules.visualization import set_global_rcParams, plot_input_example, extract_encoder_connectivity
-from modules.analysis import reset_decoders, analyse_state_matrix
-from modules.auxiliary import process_input_sequence, process_states, set_decoder_times
+from modules.visualization import set_global_rcParams, plot_input_example
+from modules.auxiliary import process_input_sequence, process_states, set_decoder_times, iterate_input_sequence
 import cPickle as pickle
-import matplotlib.pyplot as pl
 import numpy as np
-import time
 import itertools
+import time
 import sys
 import nest
 
 # ######################################################################################################################
 # Experiment options
 # ======================================================================================================================
-plot = False
+plot = True
 display = True
-save = False
+save = True
 debug = False
 online = True
 
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../../encoding_decoding/parameters/dc_stimulus_input.py'
+# params_file = '../../encoding_decoding/parameters/dc_stimulus_input.py'
 # params_file = '../../encoding_decoding/parameters/spike_pattern_input.py'
 # params_file = '../../alzheimers_project/parameters/stimulus_driven.py'
-# params_file = '../../state_transfer/parameters/one_pool_stimulus_driven.py'
+params_file = '../../state_transfer/parameters/one_pool_stimulusdriven.py'
 # params_file = '../../legenstein_rescience/parameters/identity.py'
 
 parameter_set = ParameterSpace(params_file)[0]
@@ -102,7 +100,8 @@ else:
 	stim_set.generate_datasets(parameter_set.stim_pars)
 
 	target_set = StimulusSet(parameter_set, unique_set=False)  # for identity task.
-	target_set.generate_datasets(parameter_set.stim_pars)
+	output_sequence = list(itertools.chain(*stim_set.full_set_labels))
+	target_set.generate_datasets(parameter_set.stim_pars, external_sequence=output_sequence)
 
 # correct N for small sequences
 parameter_set.input_pars.signal.N = len(np.unique(stim_set.full_set_labels))
@@ -153,12 +152,9 @@ net.connect_devices()
 set_decoder_times(enc_layer, parameter_set) # iff using the fast sampling method!
 net.connect_decoders(parameter_set.decoding_pars)
 
-# print [nest.GetStatus(x)[0]['origin'] for x in net.merged_populations[0].decoding_layer.extractors]
-
 # Attach decoders to input encoding populations
 if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input_decoder") and \
 				parameter_set.encoding_pars.input_decoder is not None:
-	# TODO - set_decoder_times should also compensate for input_decoders
 	enc_layer.connect_decoders(parameter_set.encoding_pars.input_decoder)
 
 # ######################################################################################################################
@@ -181,6 +177,7 @@ else:
 target_matrix = np.array(target_set.full_set.todense())
 results = process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, accepted_idx=accept_idx, plot=plot,
                    display=display, save=save, save_paths=paths)
+results.update({'timing_info': timing, 'epochs': epochs})
 
 # ######################################################################################################################
 # Save data

@@ -15,8 +15,8 @@ data_label = 'ED_spikepatterninput_training_parameters'
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'lexicon_size': [10],
-	'T': [20]
+	'lexicon_size': [5],
+	'T': [100]
 }
 
 
