@@ -42,6 +42,7 @@ def set_kernel_defaults(run_type='local', data_label='', **system_pars):
 		'system': {
 			'local': run,
 			'system_label': run_type,
+			'queueing_system': paths[run_type]['queueing_system'],
 			'jdf_template': paths[run_type]['jdf_template'],
 			'remote_directory': paths[run_type]['remote_directory'],
 			'jdf_fields': {'{{ script_folder }}': '',
