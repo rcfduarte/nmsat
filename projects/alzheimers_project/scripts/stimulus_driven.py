@@ -4,14 +4,13 @@ from modules.input_architect import EncodingLayer, StimulusSet, InputSignalSet
 from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
-from modules.visualization import set_global_rcParams, InputPlots, extract_encoder_connectivity, TopologyPlots, plot_input_example
-from modules.analysis import analyse_state_matrix, get_state_rank, readout_train, readout_test
-from modules.auxiliary import iterate_input_sequence
+from modules.visualization import set_global_rcParams, plot_input_example
+from modules.auxiliary import process_input_sequence, process_states, set_decoder_times, iterate_input_sequence
 import cPickle as pickle
-import matplotlib.pyplot as pl
 import numpy as np
-import time
 import itertools
+import time
+import sys
 import nest
 
 # ######################################################################################################################
@@ -26,7 +25,7 @@ online = True
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/stimulusdriven.py'
+params_file = '../parameters/stimulus_driven.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -45,7 +44,6 @@ if plot:
 paths = set_storage_locations(parameter_set, save)
 
 np.random.seed(parameter_set.kernel_pars['np_seed'])
-results = dict(rank={}, performance={})
 
 # ######################################################################################################################
 # Set kernel and simulation parameters
@@ -59,63 +57,83 @@ nest.SetKernelStatus(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(),
 # Build network
 # ======================================================================================================================
 net = Network(parameter_set.net_pars)
-net.merge_subpopulations([net.populations[0], net.populations[1]])
+net.merge_subpopulations([net.populations[0], net.populations[1]], name='EI')  # merge for EI case
 
 # ######################################################################################################################
 # Randomize initial variable values
 # ======================================================================================================================
-for n in list(iterate_obj_list(net.populations)):
-	n.randomize_initial_states('V_m', randomization_function=np.random.uniform, low=0.0, high=15.)
+for idx, n in enumerate(list(iterate_obj_list(net.populations))):
+	if hasattr(parameter_set.net_pars, "randomize_neuron_pars"):
+		randomize = parameter_set.net_pars.randomize_neuron_pars[idx]
+		for k, v in randomize.items():
+			n.randomize_initial_states(k, randomization_function=v[0], **v[1])
 
-###################################################################################
-# Build Stimulus Set
-# =================================================================================
-stim_set_time = time.time()
+########################################################################################################################
+# Build Stimulus/Target Sets
+# ======================================================================================================================
+stim_set_startbuild = time.time()
 
-# Create StimulusSet object
-stim = StimulusSet(parameter_set, unique_set=False)
-stim.generate_datasets(parameter_set.stim_pars)
-print "- Elapsed Time: {0}".format(str(time.time()-stim_set_time))
+if hasattr(parameter_set, "task_pars"):
+	sys.path.append('../')
+	from stimulus_generator import StimulusPattern
 
-###################################################################################
-# Build Input Signal Set
-# =================================================================================
+	# Create or Load StimulusPattern
+	stim_pattern = StimulusPattern(parameter_set.task_pars)
+	stim_pattern.generate()
+
+	input_sequence, output_sequence = stim_pattern.as_index()
+
+	# Convert to StimulusSet object
+	stim_set = StimulusSet(unique_set=False)
+	stim_set.generate_datasets(parameter_set.stim_pars, external_sequence=input_sequence)
+
+	# Specify target and convert to StimulusSet object
+	target_set = StimulusSet(unique_set=False)
+	target_set.generate_datasets(parameter_set.stim_pars, external_sequence=output_sequence)
+else:
+	stim_set = StimulusSet(parameter_set, unique_set=False)
+	stim_set.generate_datasets(parameter_set.stim_pars)
+
+	target_set = StimulusSet(parameter_set, unique_set=False)  # for identity task.
+	output_sequence = list(itertools.chain(*stim_set.full_set_labels))
+	target_set.generate_datasets(parameter_set.stim_pars, external_sequence=output_sequence)
+
+# correct N for small sequences
+parameter_set.input_pars.signal.N = len(np.unique(stim_set.full_set_labels))
+
+stim_set_buildtime = time.time()-stim_set_startbuild
+print "- Elapsed Time: {0}".format(str(stim_set_buildtime))
+
+########################################################################################################################
+# Build Input Signal Sets
+# ======================================================================================================================
 input_set_time = time.time()
-inputs = InputSignalSet(parameter_set, stim, online=online)
-inputs.generate_datasets(stim)
-print "- Elapsed Time: {0}".format(str(time.time() - input_set_time))
+
+inputs = InputSignalSet(parameter_set, stim_set, online=online)
+inputs.generate_datasets(stim_set)
+
+input_set_buildtime = time.time() - input_set_time
+print "- Elapsed Time: {0}".format(str(input_set_buildtime))
 
 parameter_set.kernel_pars.sim_time = inputs.train_stimulation_time + inputs.test_stimulation_time
 
 # Plot example signal
 if plot and debug and not online:
-	plot_input_example(stim, inputs, set_name='test', display=display, save=paths['figures'] + paths[
+	plot_input_example(stim_set, inputs, set_name='test', display=display, save=paths['figures'] + paths[
 		'label'])
 if save:
-	stim.save(paths['inputs'])
+	if hasattr(parameter_set, "task_pars"):
+		stim_pattern.save(paths['inputs'])
+	stim_set.save(paths['inputs'])
 	if debug:
 		inputs.save(paths['inputs'])
 
 # ######################################################################################################################
 # Encode Input
 # ======================================================================================================================
-if not online:
-	input_signal = inputs.full_set_signal
-else:
-	input_signal = inputs.transient_set_signal
-enc_layer = EncodingLayer(parameter_set.encoding_pars, signal=input_signal, online=online)
+enc_layer = EncodingLayer(parameter_set.encoding_pars, signal=inputs.full_set_signal, online=online)
 enc_layer.connect(parameter_set.encoding_pars, net)
-enc_layer.extract_connectivity(net)
-
-# ######################################################################################################################
-# Set-up Analysis
-# ======================================================================================================================
-net.connect_devices()
-net.connect_decoders(parameter_set.decoding_pars)
-
-# Attach decoders to input encoding populations
-if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input_decoder"):
-	enc_layer.connect_decoders(parameter_set.encoding_pars.input_decoder)
+enc_layer.extract_connectivity(net, sub_set=True, progress=False)
 
 # ######################################################################################################################
 # Connect Network
@@ -123,53 +141,34 @@ if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input
 net.connect_populations(parameter_set.connection_pars)
 
 # ######################################################################################################################
-# Simulate (Full Set)
+# Set-up Analysis
 # ======================================================================================================================
-store_activity = False  # put in analysis_pars
-iterate_input_sequence(net, enc_layer, parameter_set, stim, inputs, set_name='full', record=True,
-                       store_activity=store_activity)
+net.connect_devices()
+set_decoder_times(enc_layer, parameter_set) # iff using the fast sampling method!
+net.connect_decoders(parameter_set.decoding_pars)
 
-sub_sets = ['transient', 'unique', 'train', 'test']
-target_matrix = stim.full_set.todense()
-for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
-					                net.populations]))):#, enc_layer.encoders]))):
-	if n_pop.decoding_layer is not None:
-		dec_layer = n_pop.decoding_layer
-		if store_activity and debug:
-			dec_layer.evaluate_decoding(n_neurons=10, display=display, save=paths['figures']+paths['label'])
+# Attach decoders to input encoding populations
+if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input_decoder") and \
+				parameter_set.encoding_pars.input_decoder is not None:
+	enc_layer.connect_decoders(parameter_set.encoding_pars.input_decoder)
 
-		results['rank'].update({n_pop.name: {}})
-		results['performance'].update({n_pop.name: {}})
+# ######################################################################################################################
+# Run Simulation (full sequence)
+# ======================================================================================================================
+epochs, timing = process_input_sequence(parameter_set, net, enc_layer, stim_set, inputs, set_name='full', record=True)
 
-		# parse state variables
-		for idx_var, var in enumerate(dec_layer.state_variables):
-			results['performance'][n_pop.name].update({var: {}})
-			time_steps = 0
-			end_step = 0
-			state_matrix = dec_layer.state_matrix[idx_var]
-			readouts = dec_layer.readouts[idx_var]
-			for stim_set in sub_sets:
-				labels = getattr(stim, "{0}_set_labels".format(stim_set))
-				if not empty(labels) and not empty(state_matrix):
-					end_step += len(labels)
-					state = state_matrix[:, time_steps:end_step]
-					print "Population {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, stim_set,
-					                                                          str(state.shape))
-					target = target_matrix[:, time_steps:end_step]
-					time_steps += len(labels)
-					if stim_set == 'unique':
-						results['rank'][n_pop.name].update({var+str(idx_var): get_state_rank(state)})
-					elif stim_set == 'train':
-						for readout in readouts:
-							readout_train(readout, state, target=np.array(target), index=None, accepted=None,
-							              display=display, plot=plot, save=paths['figures']+paths['label'])
-					elif stim_set == 'test':
-						for readout in readouts:
-							results['performance'][n_pop.name][var].update({readout.name: readout_test(readout, state,
-							                    target=np.array(target), index=None, accepted=None, display=display)})
-					if plot:
-						analyse_state_matrix(state_matrix, stim.full_set_labels, label=n_pop.name+var+stim_set,
-						                     plot=plot, display=display, save=paths['figures']+paths['label'])
+# ######################################################################################################################
+# Process data
+# ======================================================================================================================
+if hasattr(parameter_set, "task_pars"):
+	accept_idx = np.where(np.array(stim_pattern.Output['Accepted']) == 'A')[0]
+else:
+	accept_idx = None
+
+target_matrix = np.array(target_set.full_set.todense())
+results = process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, accepted_idx=accept_idx, plot=plot,
+                   display=display, save=save, save_paths=paths)
+results.update({'timing_info': timing, 'epochs': epochs})
 
 # ######################################################################################################################
 # Save data
@@ -178,3 +177,4 @@ if save:
 	with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
 		pickle.dump(results, f)
 	parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
+

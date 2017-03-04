@@ -16,14 +16,13 @@ import nest
 
 def run(parameter_set, plot=False, display=False, save=True, debug=False, online=True):
 	"""
-	Main stimulus processing task
-	:param parameter_set: must be consistent with the computation
+	Simulate stimulus driven network - presenting full sequence and analysing after full simulation is complete
+	:param parameter_set: must be consistent with the computation, i.e. input must be poisson...
 	:param plot: plot results - either show them or save to file
 	:param display: show figures/reports
 	:param save: save results
 	:return results_dictionary:
 	"""
-
 	if not isinstance(parameter_set, ParameterSet):
 		if isinstance(parameter_set, basestring) or isinstance(parameter_set, dict):
 			parameter_set = ParameterSet(parameter_set)
@@ -152,11 +151,6 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 	# ======================================================================================================================
 	epochs, timing = process_input_sequence(parameter_set, net, enc_layer, stim_set, inputs, set_name='full',
 	                                        record=True)
-
-	# Slow state sampling
-	# epochs, timing = iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name='full',
-	# record=True,
-	#                        store_activity=False)
 
 	# ######################################################################################################################
 	# Process data

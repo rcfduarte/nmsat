@@ -251,10 +251,10 @@ axes.axisbelow      : False   # whether axis gridlines and ticks are below
                                    # separator in the fr_FR locale.
 axes.formatter.use_mathtext : True # When True, use mathtext for scientific
                                      # notation.
-#axes.formatter.useoffset      : True    # If True, the tick label formatter 
-                                         # will default to labeling ticks relative 
-                                         # to an offset when the data range is very 
-                                         # small compared to the minimum absolute 
+#axes.formatter.useoffset      : True    # If True, the tick label formatter
+                                         # will default to labeling ticks relative
+                                         # to an offset when the data range is very
+                                         # small compared to the minimum absolute
                                          # value of the data.
 
 #axes.unicode_minus  : True    # use unicode for the minus symbol
@@ -484,5 +484,5 @@ pdf.fonttype       : 3         # Output Type 3 (Type3) or Type 42 (TrueType)
                                    # $PATH is searched
 #animation.mencoder_args: ''       # Additional arguments to pass to mencoder
 #animation.convert_path: 'convert' # Path to ImageMagick's convert binary.
-                                   # On Windows use the full path since convert 
+                                   # On Windows use the full path since convert
                                    # is also the name of a system tool.

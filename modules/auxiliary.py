@@ -553,7 +553,7 @@ def set_decoder_times(enc_layer, parameter_set):
 	encoder_delay = enc_layer.total_delay
 	stim_duration = parameter_set.input_pars.signal.durations
 	stim_isi = parameter_set.input_pars.signal.i_stim_i
-	# print parameter_set.decoding_pars
+
 	if (len(stim_duration) != 1 and np.mean(stim_duration) != stim_duration[0]) or all(stim_isi):
 		raise NotImplementedError("Stimulus durations should be fixed and constant and inter-stimulus intervals == 0.")
 	else:
@@ -907,6 +907,8 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 	for set_name in data_sets:
 		if hasattr(stim_set, "{0}_set_labels".format(set_name)):
 			labels = getattr(stim_set, "{0}_set_labels".format(set_name))
+			if isinstance(labels[0], list):
+				labels = list(itertools.chain(*getattr(stim_set, "{0}_set_labels".format(set_name))))
 			set_start = start_idx
 			set_end = len(labels) + set_start
 			start_idx += len(labels)
@@ -942,7 +944,7 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 						results['performance'][n_pop.name].update({var + str(idx_var): {}})
 						results['dimensionality'][n_pop.name].update({var + str(idx_var): {}})
 
-						print "Population {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
+						print "\nPopulation {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
 						                                                          str(state_matrix.shape))
 						if set_name == 'unique':
 							results['rank'][n_pop.name].update({var + str(idx_var): analysis.get_state_rank(state_matrix)})
@@ -950,6 +952,10 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 							for readout in readouts:
 								readout.train(state_matrix, np.array(target), index=None, accepted=accepted_ids,
 								              display=display)
+								# analysis.readout_train(readout, state_matrix, np.array(target), index=None,
+								#                      accepted=None, display=True,
+								#               plot=False, save=False)
+
 								readout.measure_stability(display=display)
 								if plot and save:
 									readout.plot_weights(display=display, save=save_paths['figures'] + save_paths[
@@ -961,8 +967,13 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 							for readout in readouts:
 								output, target = readout.test(state_matrix, np.array(target), index=None,
 									                            accepted=accepted_ids, display=display)
+								# analysis.readout_test(readout, state_matrix, np.array(target), index=None,
+								#                      accepted=None, display=True,
+								#              plot=False, save=False)
 								results['performance'][n_pop.name][var + str(idx_var)].update(
 									{readout.name: readout.measure_performance(target, output, display=display)})
+								results['performance'][n_pop.name][var + str(idx_var)].update(
+									{readout.name: readout.measure_performance(target, display=display)})
 								results['performance'][n_pop.name][var + str(idx_var)][readout.name].update({'norm_wOut':
 								                                                                             readout.norm_wout})
 								results['dimensionality'][n_pop.name].update(

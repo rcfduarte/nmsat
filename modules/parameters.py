@@ -927,7 +927,7 @@ class ParameterSpace:
 		Save the full ParameterSpace by re-writing the parameter file
 		:return:
 		"""
-		with open(target_full_path, 'w') as fp:
+		with open(target_full_path, 'wb') as fp:
 			fp.writelines(self.parameter_file)
 
 	def compare_sets(self, parameter):

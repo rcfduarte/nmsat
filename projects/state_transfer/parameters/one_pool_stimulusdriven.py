@@ -8,18 +8,16 @@ stimulus_driven parameter file
 """
 
 run = 'local'
-data_label = 'AD_StimulusDriven_kEE_test'
+data_label = 'ST_StimulusDriven_test'
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'kEE': [100],
-	'trial': [1] #np.arange(10)
 }
 
 
-def build_parameters(kEE, trial):
+def build_parameters():
 	# ##################################################################################################################
 	# System / Kernel Parameters
 	# ##################################################################################################################
@@ -38,17 +36,13 @@ def build_parameters(kEE, trial):
 	# Neuron, Synapse and Network Parameters
 	# ##################################################################################################################
 	N = 1250
-	delay = 1.
+	nE = 0.8 * N
+	delay = 1.5
 	epsilon = 0.1
-	kE = int(epsilon * (N * 0.8))
-	kI = int(epsilon * (N * 0.2))
 
-	gamma = 6.
-
-	wE = 32.29
+	gamma = 8.
+	wE = 20.
 	wI = -gamma * wE
-
-	# kEE = 5
 
 	recurrent_synapses = dict(
 		connected_populations=[('E', 'E'), ('E', 'I'), ('I', 'E'), ('I', 'I')],
@@ -57,13 +51,13 @@ def build_parameters(kEE, trial):
 		pre_computedW=[None, None, None, None],
 		weights=[wE, wI, wE, wI],
 		delays=[delay, delay, delay, delay],
-		conn_specs=[{'rule': 'fixed_indegree', 'indegree': kEE, 'autapses': False, 'multapses': False},
-		            {'rule': 'fixed_indegree', 'indegree': kI, 'autapses': False, 'multapses': False},
-		            {'rule': 'fixed_indegree', 'indegree': kE, 'autapses': False, 'multapses': False},
-		            {'rule': 'fixed_indegree', 'indegree': kI, 'autapses': False, 'multapses': False}],
+		conn_specs=[{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon}],
 		syn_specs=[{}, {}, {}, {}]
 	)
-	neuron_pars, net_pars, connection_pars = set_network_defaults(N=N, kernel_pars=kernel_pars, **recurrent_synapses)
+	neuron_pars, net_pars, connection_pars = set_network_defaults(default_set=1, neuron_set=1, N=N, **recurrent_synapses)
 
 	# ##################################################################################################################
 	# Stimulus Parameters
@@ -132,16 +126,17 @@ def build_parameters(kEE, trial):
 		gen_to_enc_W=None,
 		jitter=None) # jitter=None or jitter=(value[float], correct_borders[bool])
 
+	# TODO - use default_set 3 - inh_poisson
 	encoding_pars = set_encoding_defaults(default_set=4, input_dimensions=n_stim,
 	                                      n_encoding_neurons=n_afferents, **input_synapses)
 	encoding_pars['encoder']['n_neurons'] = [n_afferents]
 
-	add_parrots(encoding_pars, n_afferents, decode=True, **{})
+	# add_parrots(encoding_pars, n_afferents, decode=True, **{})
 
 	# ##################################################################################################################
 	# Decoding / Readout Parameters
 	# ##################################################################################################################
-	out_resolution = encoder_delay # advisable!
+	out_resolution = 0.1
 	filter_tau = 20.  # time constant of exponential filter (applied to spike trains)
 	state_sampling = None  # 1.(cannot start at 0)
 	readout_labels = ['ridge_classifier', 'pinv_classifier']
@@ -162,19 +157,19 @@ def build_parameters(kEE, trial):
 	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)
 
 	## Set decoders for input population (if applicable)
-	input_decoder = dict(
-		state_variable=['spikes'],
-		filter_time=filter_tau,
-		readouts=readout_labels,
-		readout_algorithms=readout_algorithms,
-		output_resolution=out_resolution,
-		sampling_times=state_sampling,
-		reset_states=[True],
-		average_states=[True],
-		standardize=[False]
-	)
-
-	encoding_pars = add_input_decoders(encoding_pars, input_decoder, kernel_pars)
+	# input_decoder = dict(
+	# 	state_variable=['spikes'],
+	# 	filter_time=filter_tau,
+	# 	readouts=readout_labels,
+	# 	readout_algorithms=readout_algorithms,
+	# 	output_resolution=out_resolution,
+	# 	sampling_times=state_sampling,
+	# 	reset_states=[True],
+	# 	average_states=[True],
+	# 	standardize=[False]
+	# )
+	#
+	# encoding_pars = add_input_decoders(encoding_pars, input_decoder, kernel_pars)
 
 	# ##################################################################################################################
 	# RETURN dictionary of Parameters dictionaries

@@ -23,7 +23,6 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 	:param save: save results
 	:return results_dictionary:
 	"""
-
 	if not isinstance(parameter_set, ParameterSet):
 		if isinstance(parameter_set, basestring) or isinstance(parameter_set, dict):
 			parameter_set = ParameterSet(parameter_set)
