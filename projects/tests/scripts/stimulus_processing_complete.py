@@ -27,7 +27,7 @@ online = True
 # ======================================================================================================================
 # params_file = '../../encoding_decoding/parameters/dc_stimulus_input.py'
 # params_file = '../../encoding_decoding/parameters/spike_pattern_input.py'
-# params_file = '../../alzheimers_project/parameters/stimulus_driven.py'
+# params_file = '../../alzheimers_project/parameters/stimulusdriven.py'
 params_file = '../../state_transfer/parameters/one_pool_stimulusdriven.py'
 # params_file = '../../legenstein_rescience/parameters/identity.py'
 
