@@ -2381,8 +2381,7 @@ class Generator:
 		be updated
 		"""
 		if isinstance(signal, signals.SpikeList):
-			# TODO - check spike_generator properties; if allow_offgrid_spikes, there's no need to round.. (the spike
-			#  times
+			# TODO - check spike_generator properties; if allow_offgrid_spikes, there's no need to round..
 			rounding_precision = signals.determine_decimal_digits(signal.raw_data()[:, 0][0])
 			for nn in signal.id_list:
 				spk_times = [round(n, rounding_precision) for n in signal[nn].spike_times]  # to be sure
