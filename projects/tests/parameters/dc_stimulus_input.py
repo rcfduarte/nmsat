@@ -27,6 +27,7 @@ def build_parameters(ppn):
 	system = dict(
 		nodes=1,
 		ppn=ppn,
+		n_th=1,
 		mem=8,
 		walltime='01-00:00:00',
 		queue='batch',

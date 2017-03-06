@@ -15,7 +15,7 @@ def set_kernel_defaults(run_type='local', data_label='', **system_pars):
 		run = True
 	else:
 		run = False
-	keys = ['nodes', 'ppn', 'mem', 'walltime', 'queue', 'sim_time', 'transient_time']
+	keys = ['nodes', 'ppn', 'mem', 'walltime', 'queue', 'sim_time', 'transient_time', 'n_th']
 	if not np.mean(np.sort(system_pars.keys()) == np.sort(keys)).astype(bool):
 		raise TypeError("system parameters dictionary must contain the following keys {0}".format(str(keys)))
 
