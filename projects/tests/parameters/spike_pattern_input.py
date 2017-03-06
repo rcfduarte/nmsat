@@ -9,17 +9,26 @@ spike_pattern_input
 """
 
 run = 'local'
-data_label = 'ED_spikepatterninput_training_parameters'
+data_label = 'Spikepatterninput_scaling_{0}'.format(run)
+
+# ######################################################################################################################
+# PARAMETER RANGE declarations
+# ======================================================================================================================
+parameter_range = {
+	'ppn': np.arange(2, 24, 2),
+	# 'n_th': np.arange(1, 10, 1)
+}
 
 
-def build_parameters(lexicon_size, T):
+def build_parameters(ppn):
 	# ######################################################################################################################
 	# System / Kernel Parameters
 	# ######################################################################################################################
 	system = dict(
 		nodes=1,
-		ppn=16,
-		mem=48000,
+		ppn=ppn,
+		n_th=1,
+		mem=64000,
 		walltime='01-00:00:00',
 		queue='defqueue',
 		transient_time=1000.,
@@ -85,9 +94,9 @@ def build_parameters(lexicon_size, T):
 	# - pattern mapping with cross dependencies (6);
 	# - hierarchical dependencies (7);
 
-	# lexicon_size = 4
+	lexicon_size = 10
 	n_distractors = 0  # (if applicable)
-	# T = 10
+	T = 1000
 	T_discard = 2  # number of elements to discard (>=1, for some weird reasons..)
 
 	random_dt = False  # if True, dt becomes maximum distance (?)
@@ -242,10 +251,3 @@ def build_parameters(lexicon_size, T):
 	             ('analysis_pars', analysis_pars)])
 
 
-# ######################################################################################################################
-# PARAMETER RANGE declarations
-# ======================================================================================================================
-parameter_range = {
-	'lexicon_size': [10],
-	'T': [50]
-}
