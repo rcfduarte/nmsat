@@ -2383,9 +2383,15 @@ class Generator:
 		if isinstance(signal, signals.SpikeList):
 			# TODO - check spike_generator properties; if allow_offgrid_spikes, there's no need to round..
 			rounding_precision = signals.determine_decimal_digits(signal.raw_data()[:, 0][0])
+			check_timing = []
 			for nn in signal.id_list:
 				spk_times = [round(n, rounding_precision) for n in signal[nn].spike_times]  # to be sure
-				nest.SetStatus(self.gids[nn], {'spike_times': np.round(spk_times, rounding_precision)}) # to be double sure
+				nest.SetStatus(self.gids[nn], {'spike_times': spk_times})
+				check_timing.append(all(spk_times == np.round(nest.GetStatus(self.gids[nn], 'spike_times')[0],
+				                                rounding_precision)))
+
+			print(all(check_timing)) #debug
+
 		else:
 			if isinstance(signal, InputSignal):
 				signal = signal.input_signal
