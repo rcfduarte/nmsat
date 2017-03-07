@@ -204,7 +204,7 @@ results['evoked'] = characterize_population_activity(net, parameter_set, analysi
                                                 display=display, save=paths['figures']+paths['label']+'Evoked',
                                                      analysis_pars=parameter_set.analysis_pars)
 
-analysis_interval = [parameter_set.kernel_pars.transient_t - 500., parameter_set.kernel_pars.transient_t + 500.]
+analysis_interval = [parameter_set.kernel_pars.transient_t - 1000., parameter_set.kernel_pars.transient_t + 1000.]
 
 parameter_set.analysis_pars.population_activity.update({
 	'time_bin': 1.,
