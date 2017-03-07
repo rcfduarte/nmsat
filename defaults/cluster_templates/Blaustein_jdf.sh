@@ -6,7 +6,8 @@
 
 #SBATCH -N {{ nodes }}
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task={{ ppn }}
+#SBATCH --ntasks-per-node={{ ppn }}
+# #SBATCH --cpus-per-task={{ ppn }}
 #SBATCH --time {{ walltime }}
 #SBATCH --mem={{ mem }}
 

@@ -9,24 +9,25 @@ dc_input
 """
 
 run = 'local'
-data_label = 'ED_dcinput_tests1'
+data_label = 'DCinput_scaling_{0}'.format(run)
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'lexicon_size': [10], #np.arange(5, 505, 5),
-	'T': [20] #np.arange(100, 1100, 100)
+	'ppn': np.arange(2, 24, 2),
+	# 'n_th': np.arange(1, 10, 1)
 }
 
 
-def build_parameters(lexicon_size, T):
+def build_parameters(ppn):
 	# ######################################################################################################################
 	# System / Kernel Parameters
 	# ######################################################################################################################
 	system = dict(
 		nodes=1,
-		ppn=16,
+		ppn=ppn,
+		n_th=1,
 		mem=8,
 		walltime='01-00:00:00',
 		queue='batch',
@@ -34,15 +35,6 @@ def build_parameters(lexicon_size, T):
 		sim_time=1000.)
 
 	kernel_pars = set_kernel_defaults(run_type=run, data_label=data_label, **system)
-
-	# override seeds (replication tests)
-	kernel_pars['grng_seed'] = 22118373677
-	kernel_pars['rng_seeds'] = [22118373678, 22118373679, 22118373680, 22118373681, 22118373682, 22118373683,
-	                            22118373684, 22118373685, 22118373686, 22118373687, 22118373688, 22118373689,
-	                            22118373690, 22118373691, 22118373692, 22118373693]
-	kernel_pars['np_seed'] = 235329953
-
-	np.random.seed(kernel_pars['np_seed'])
 
 	# ##################################################################################################################
 	# Neuron, Synapse and Network Parameters
@@ -103,10 +95,10 @@ def build_parameters(lexicon_size, T):
 	# - pattern mapping with cross dependencies (6);
 	# - hierarchical dependencies (7);
 
-	# lexicon_size = 4
+	lexicon_size = 10
 	n_distractors = 0  # (if applicable)
-	# T = 10
-	T_discard = 10  # number of elements to discard (>=1, for some weird reasons..)
+	T = 1000
+	T_discard = 2  # number of elements to discard (>=1, for some weird reasons..)
 
 	random_dt = False  # if True, dt becomes maximum distance (?)
 	dt = 3  # delay (if applicable)
