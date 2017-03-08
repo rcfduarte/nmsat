@@ -6,7 +6,7 @@ from modules.input_architect import EncodingLayer, StimulusSet, InputSignalSet, 
 from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
-from modules.visualization import set_global_rcParams, InputPlots, extract_encoder_connectivity, plot_input_example
+from modules.visualization import set_global_rcParams, InputPlots, ActivityAnimator, plot_input_example
 from modules.analysis import characterize_population_activity
 from stimulus_generator import StimulusPattern
 import cPickle as pickle
@@ -21,15 +21,15 @@ import nest
 # ======================================================================================================================
 online = False # strictly False!
 plot = True
-display = True
+display = False
 save = True
 debug = True
 
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/dcinput_noise_vs_stimulus.py'
-# params_file = '../parameters/spike_noise_vs_stimulus.py'
+# params_file = '../parameters/dcinput_noise_vs_stimulus.py'
+params_file = '../parameters/spike_noise_vs_stimulus.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -223,8 +223,13 @@ results['transition'] = characterize_population_activity(net, parameter_set, ana
 # enc_layer.flush_records()
 
 # animate raster
-
-
+net.merge_subpopulations([net.populations[0], net.populations[1]], name='EI')
+spk_list, _ = net.merge_population_activity(start=analysis_interval[0], stop=analysis_interval[1])
+gids = [x.gids for x in net.populations]
+ai = ActivityAnimator(net.populations[0].spiking_activity, populations=net, ids=gids, vm_list=[])
+ai.animate_activity(time_interval=50, time_window=50, sim_res=0.1, colors=['b', 'r'], activities=[
+	"raster"], save=True, filename=paths['figures']+paths['label']+'test', display=False)
+print ("gonna animate raster plot... @done")
 #######################################################################################
 # Save data
 # =====================================================================================

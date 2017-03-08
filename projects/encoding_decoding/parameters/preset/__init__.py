@@ -493,7 +493,7 @@ def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=
 				'N': 1,
 				'labels': ['spike_pattern'],
 				'models': ['spike_generator'],
-				'model_pars': [{'start': 0., 'stop': sys.float_info.max, 'origin': 0.}],
+				'model_pars': [{'start': 0., 'stop': sys.float_info.max, 'origin': 0., 'precise_times': True}],
 				'jitter': jitter,
 				'topology': [False],
 				'topology_pars': [None],
