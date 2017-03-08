@@ -21,7 +21,7 @@ import nest
 # ======================================================================================================================
 online = False # strictly False!
 plot = True
-display = False
+display = True
 save = True
 debug = True
 
@@ -204,7 +204,7 @@ results['evoked'] = characterize_population_activity(net, parameter_set, analysi
                                                 display=display, save=paths['figures']+paths['label']+'Evoked',
                                                      analysis_pars=parameter_set.analysis_pars)
 
-analysis_interval = [parameter_set.kernel_pars.transient_t - 1000., parameter_set.kernel_pars.transient_t + 1000.]
+analysis_interval = [parameter_set.kernel_pars.transient_t - 2000., parameter_set.kernel_pars.transient_t + 2000.]
 
 parameter_set.analysis_pars.population_activity.update({
 	'time_bin': 1.,
@@ -221,6 +221,9 @@ results['transition'] = characterize_population_activity(net, parameter_set, ana
 
 # net.flush_records()
 # enc_layer.flush_records()
+
+# animate raster
+
 
 #######################################################################################
 # Save data

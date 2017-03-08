@@ -14,12 +14,13 @@ data_label = 'AD_StimulusDriven_kEE_test'
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'kEE': [100],
+	# 'kEE': [100],
+	'n_stim': [5],#np.arange(),
 	'trial': [1] #np.arange(10)
 }
 
 
-def build_parameters(kEE, trial):
+def build_parameters(n_stim, trial):
 	# ##################################################################################################################
 	# System / Kernel Parameters
 	# ##################################################################################################################
@@ -48,7 +49,7 @@ def build_parameters(kEE, trial):
 	wE = 32.29
 	wI = -gamma * wE
 
-	# kEE = 5
+	kEE = 100
 
 	recurrent_synapses = dict(
 		connected_populations=[('E', 'E'), ('E', 'I'), ('I', 'E'), ('I', 'I')],
@@ -68,10 +69,10 @@ def build_parameters(kEE, trial):
 	# ##################################################################################################################
 	# Stimulus Parameters
 	# ##################################################################################################################
-	n_trials = 100
+	n_trials = 10000
 	n_discard = 10
 
-	n_stim = 5
+	# n_stim = 5
 
 	stim_pars = dict(
 		n_stim=n_stim,
