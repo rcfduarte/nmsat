@@ -796,7 +796,6 @@ def plot_2d_parscans(image_arrays=[], axis=[], fig_handle=None, labels=[], cmap=
 			raise ValueError('ax must be matplotlib.axes.Axes instance.')
 		else:
 			plt1 = ax.imshow(image_arrays[idx], aspect='auto', origin=origin, cmap=cmap,  interpolation='nearest')
-
 			if boundaries:
 				cont = ax.contour(image_arrays[idx], boundaries[idx], origin='lower', colors='k', linewidths=2)
 				pl.clabel(cont, fmt='%2.1f', colors='k', fontsize=12)
@@ -806,7 +805,6 @@ def plot_2d_parscans(image_arrays=[], axis=[], fig_handle=None, labels=[], cmap=
 			cax = divider.append_axes("right", "10%", pad="4%")
 			if fig_handle is not None:
 				cbar = fig_handle.colorbar(plt1, cax=cax)
-
 			ax.set(**kwargs)
 			pl.draw()
 	pl.show(block=False)
@@ -1181,8 +1179,8 @@ class SpikePlots(object):
 			stats = {}
 			stats.update(analysis.compute_isi_stats(tt, summary_only=True, display=True))
 			stats.update(analysis.compute_spike_stats(tt, time_bin=1., summary_only=True, display=True))
-			stats.update(analysis.compute_synchrony(tt, n_pairs=n_pairs, bin=1., tau=20., time_resolved=False,
-	                                summary_only=True, complete=False))
+			stats.update(analysis.compute_synchrony(tt, n_pairs=n_pairs, time_bin=1., tau=20., time_resolved=False,
+	                                depth=1))
 		else:
 			stats = results
 

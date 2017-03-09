@@ -22,8 +22,8 @@ debug = False
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/dc_noise_input.py'
-# params_file = '../parameters/spike_noise_input.py'
+#params_file = '../parameters/dc_noise_input.py'
+params_file = '../parameters/spike_noise_input.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')

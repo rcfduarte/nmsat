@@ -1143,7 +1143,7 @@ def single_neuron_dcresponse(population_object, parameter_set, start=None, stop=
 		props = {'xlabel': r'I [pA]', 'ylabel': r'Firing Rate [spikes/s]'}
 		visualization.plot_fI_curve(input_amplitudes[:-1], output_rate, ax=ax1, display=False, save=False, **props)
 
-		props.update({'xlabel': r'$\mathrm{ISI} #$', 'ylabel': r'$\mathrm{ISI} [\mathrm{ms}]$',
+		props.update({'xlabel': r'$\mathrm{ISI}$', 'ylabel': r'$\mathrm{ISI} [\mathrm{ms}]$',
 							   'title': r'$AI = {0}$'.format(str(A2))})
 		pr2 = props.copy()
 		pr2.update({'inset': {'isi': isiis}})

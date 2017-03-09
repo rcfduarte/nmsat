@@ -17,8 +17,9 @@ project = 'state_transfer'
 data_type = 'SpikeNoise'  # 'SpikeNoise'
 trial = 0
 population_of_interest = 'Global'  # results are provided for only one population (choose Global to get the totals)
-data_path = "/home/zajzon/code/nst/network_simulation_testbed/data/"
-data_label = 'state_transfer_onepool_noisedriven_complete'
+data_path = "/home/zajzon/code/nst/network_simulation_testbed/data/state_transfer_cond/"
+# data_path = "/home/zajzon/code/nst/network_simulation_testbed/data/state_transfer/"
+data_label = 'state_transfer_onepool_noisedriven_complete_wE=1_coarse'
 
 # set defaults and paths
 set_project_paths(project)
@@ -38,7 +39,7 @@ results_arrays = {'activity': {'mean_rates': np.zeros_like(results[0]), 'ffs': n
                         'cvs_log': np.zeros_like(results[0]), 'ents': np.zeros_like(results[0]),
                         'isi_5p': np.zeros_like(results[0]), 'ai': np.zeros_like(results[0])},
                'synchrony': {'ccs': np.zeros_like(results[0]), 'ccs_pearson': np.zeros_like(results[0]),
-                        'd_vp': np.zeros_like(results[0]), 'd_vr': np.zeros_like(results[0]),
+                        # 'd_vp': np.zeros_like(results[0]), 'd_vr': np.zeros_like(results[0]),
                         'ISI_distance': np.zeros_like(results[0]), 'SPIKE_distance': np.zeros_like(results[0]),
                         'SPIKE_sync_distance': np.zeros_like(results[0])},
                'analogs': {'EI_CC': np.zeros_like(results[0]), 'mean_V_m': np.zeros_like(results[0]),
@@ -54,9 +55,11 @@ for x_value in pars.parameter_axes['xticks']:
 	for y_value in pars.parameter_axes['yticks']:
 		label = data_label + '_' + pars.parameter_axes['xlabel'] + '={0}_'.format(str(x_value)) + \
 		        pars.parameter_axes['ylabel'] + '={0}'.format(str(y_value))
+
 		idx = np.where(results[0] == label)
+		if idx[0].size == 0:
+			continue
 		d = results[1][idx][0]
-		# print("{0} {1}".format(label, str(idx)))
 
 		if d is not None and bool(d['spiking_activity']):
 			metrics = d['spiking_activity'][population_of_interest].keys()
@@ -98,12 +101,13 @@ for x_value in pars.parameter_axes['xticks']:
 pl_props = copy_dict(pars.parameter_axes, {
 										   'xlabel': r'$' + pars.parameter_axes['ylabel'] + '$',
                                            'ylabel': r'$' + pars.parameter_axes['xlabel'] + '$',
-                                           'xticklabels': pars.parameter_axes['yticklabels'][::6],
+                                           'xticklabels': pars.parameter_axes['yticklabels'][::4],
                                            'yticklabels': pars.parameter_axes['xticklabels'][::2],
-                                           'xticks': np.arange(0., len(pars.parameter_axes['yticks']), 6.),
-                                           'yticks': np.arange(0., len(pars.parameter_axes['xticks']), 2.),})
+                                           'xticks': np.arange(0., len(pars.parameter_axes['yticks']), 4.),
+                                           'yticks': np.arange(0., len(pars.parameter_axes['xticks']), 2.),
+})
 
-fig1 = pl.figure()
+fig1 = pl.figure(1)
 fig1.suptitle('Regularity metrics')
 ax11 = fig1.add_subplot(241)
 ax12 = fig1.add_subplot(242)
@@ -114,6 +118,7 @@ ax16 = fig1.add_subplot(246)
 ax17 = fig1.add_subplot(247)
 ax18 = fig1.add_subplot(248)
 
+
 image_arrays = [x.astype(float) for x in results_arrays['regularity'].values()]
 boundaries = []
 for x in results_arrays['regularity'].keys():
@@ -121,11 +126,11 @@ for x in results_arrays['regularity'].keys():
 		boundaries.append([expected_values['regularity'][x]])
 	else:
 		boundaries.append([None])
-labels = [r'$'+x+'$' for x in results_arrays['regularity'].keys()]
+labels = [x for x in results_arrays['regularity'].keys()]
 plot_2d_parscans(image_arrays=image_arrays, axis=[ax11, ax12, ax13, ax14, ax15, ax16, ax17, ax18],
                  fig_handle=fig1, labels=labels, cmap='rainbow', boundaries=boundaries, **pl_props)
-pl.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.6)
-fig1.savefig("regularity.pdf")
+fig1.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.6)
+fig1.savefig("regularity.pdf", format='pdf')
 
 fig2 = pl.figure()
 fig2.suptitle('Synchrony metrics')
@@ -134,8 +139,6 @@ ax22 = fig2.add_subplot(242)
 ax23 = fig2.add_subplot(243)
 ax24 = fig2.add_subplot(244)
 ax25 = fig2.add_subplot(245)
-ax26 = fig2.add_subplot(246)
-ax27 = fig2.add_subplot(247)
 
 image_arrays = [x.astype(float) for x in results_arrays['synchrony'].values()]
 boundaries = []
@@ -145,11 +148,12 @@ for x in results_arrays['synchrony'].keys():
 	else:
 		boundaries.append([None])
 labels = [r'$'+x+'$' for x in results_arrays['synchrony'].keys()]
-plot_2d_parscans(image_arrays=image_arrays, axis=[ax21, ax22, ax23, ax24, ax25, ax26, ax27],#, ax18],
+# print len(labels)
+# print len(image_arrays)
+plot_2d_parscans(image_arrays=image_arrays, axis=[ax21, ax22, ax23, ax24, ax25],
                  fig_handle=fig2, labels=labels, cmap='rainbow', boundaries=boundaries, **pl_props)
-pl.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.6)
+fig2.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.6)
 fig2.savefig("synchrony.pdf")
-
 
 fig3 = pl.figure()
 fig3.suptitle('Activity metrics')
@@ -169,27 +173,27 @@ pl.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.6)
 fig3.savefig("activity_metrics.pdf")
 
 
-fig4 = pl.figure()
-fig4.suptitle('Analog signal metrics')
-ax41 = fig4.add_subplot(231)
-ax42 = fig4.add_subplot(232)
-ax43 = fig4.add_subplot(233)
-ax44 = fig4.add_subplot(234)
-ax45 = fig4.add_subplot(235)
-use_keys = ['mean_V_m', 'mean_I_ex', 'mean_I_in', 'IE_ratio', 'EI_CC']
-labels = ['$\langle V_{m} \rangle$', '$\langle I_{E} \rangle$', '$\langle I_{I} \rangle$',
-          '$\langle I_{I}-I_{E} \rangle$', '$CC_{EI}$']
-image_arrays = [x.astype(float) for k, x in results_arrays['analogs'].items() if k in use_keys]
-boundaries = []
-for x in results_arrays['analogs'].keys():
-	if x in expected_values['analogs'].keys():
-		boundaries.append([expected_values['analogs'][x]])
-	else:
-		boundaries.append([None])
-plot_2d_parscans(image_arrays=image_arrays, axis=[ax41, ax42, ax43, ax44, ax45],
-                 fig_handle=fig4, labels=labels, cmap='rainbow', boundaries=boundaries, **pl_props)
-pl.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.6)
-fig4.savefig("analog_signal.pdf")
+# fig4 = pl.figure()
+# fig4.suptitle('Analog signal metrics')
+# ax41 = fig4.add_subplot(231)
+# ax42 = fig4.add_subplot(232)
+# ax43 = fig4.add_subplot(233)
+# ax44 = fig4.add_subplot(234)
+# ax45 = fig4.add_subplot(235)
+# use_keys = ['mean_V_m', 'mean_I_ex', 'mean_I_in', 'IE_ratio', 'EI_CC']
+# labels = ['$\langle V_{m} \rangle$', '$\langle I_{E} \rangle$', '$\langle I_{I} \rangle$',
+#           '$\langle I_{I}-I_{E} \rangle$', '$CC_{EI}$']
+# image_arrays = [x.astype(float) for k, x in results_arrays['analogs'].items() if k in use_keys]
+# boundaries = []
+# for x in results_arrays['analogs'].keys():
+# 	if x in expected_values['analogs'].keys():
+# 		boundaries.append([expected_values['analogs'][x]])
+# 	else:
+# 		boundaries.append([None])
+# plot_2d_parscans(image_arrays=image_arrays, axis=[ax41, ax42, ax43, ax44, ax45],
+#                  fig_handle=fig4, labels=labels, cmap='rainbow', boundaries=boundaries, **pl_props)
+# pl.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.6)
+# fig4.savefig("analog_signal.pdf")
 
 fig5 = pl.figure()
 fig5.suptitle('Summary')
@@ -231,15 +235,14 @@ sync_summary = image_arrays[labels.index('synchrony')]
 reg_summary = image_arrays[labels.index('regularity')]
 activity_summary = image_arrays[labels.index('activity')]
 analogs_summary = image_arrays[labels.index('analogs')]
-# exit(0)
-# normalize
+
 sync_summary = (sync_summary - np.min(sync_summary[~np.isnan(sync_summary)])) / (np.max(sync_summary[~np.isnan(sync_summary)]) - np.min(sync_summary[~np.isnan(sync_summary)]))
 reg_summary = (reg_summary - np.min(reg_summary[~np.isnan(reg_summary)])) / (np.max(reg_summary[~np.isnan(reg_summary)]) - np.min(reg_summary[~np.isnan(reg_summary)]))
 activity_summary = (activity_summary - np.min(activity_summary)) / (np.max(activity_summary) - np.min(activity_summary))
 analogs_summary = (analogs_summary - np.min(analogs_summary)) / (np.max(analogs_summary) - np.min(analogs_summary))
 
 ai_ness = ((sync_summary + reg_summary) / 2.)
-print ai_ness
+# print ai_ness
 plot_2d_parscans(image_arrays=[ai_ness.astype(float)], axis=[ax61],
                  fig_handle=fig6, labels=[], cmap='rainbow', boundaries=[], **{}) # coolwarm, rainbow
 
@@ -259,11 +262,13 @@ values = ((sync_summary + reg_summary + activity_summary + analogs_summary) / 4.
 plot_2d_parscans(image_arrays=[values.astype(float)], axis=[ax71],
                  fig_handle=fig7, labels=[], cmap='rainbow', boundaries=[], **{}) # coolwarm, rainbow
 
-ax71.scatter(np.where(values == values.min())[1][0], np.where(values == values.min())[0][0], s=20, c='red',
-             marker='o')
+print values
+print np.where(values == values.min())
+
+ax71.scatter(np.where(values == values.min())[1][0], np.where(values == values.min())[0][0], s=20, c='red', marker='o')
 ax71.set(**pl_props)
 ax71.grid(False)
 pl.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.6)
 fig7.savefig("all_constraints.pdf")
 
-pl.show()
+#pl.show()
