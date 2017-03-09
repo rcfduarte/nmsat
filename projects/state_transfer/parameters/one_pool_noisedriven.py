@@ -12,16 +12,20 @@ one_pool_noisedriven
 """
 
 run = 'local'
-data_label = 'state_transfer_onepool_noisedriven_wE=1.2'
+data_label = 'state_transfer_onepool_noisedriven_plot'
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'nu_x': np.arange(3, 15, 1.),
-	'gamma': np.arange(8., 15, 1.)
-	# 'nu_x': [5.],
-	# 'gamma': [12.]
+	# 'nu_x': np.arange(2, 4, 1.),
+	# 'nu_x': np.arange(5, 7, 1.),
+	'nu_x': np.arange(2, 20, 1.),
+	'gamma': np.arange(3., 20, 1.)
+	# 'gamma': np.arange(10., 14, 1.)
+	# 'gamma': np.arange(10., 14, 1.)
+	# 'nu_x': [2.],
+	# 'gamma': [15.]
 }
 
 
@@ -35,8 +39,8 @@ def build_parameters(nu_x, gamma):
 		mem=32000,
 		walltime='00-20:00:00',
 		queue='defqueue',
-		transient_time=500.,
-		sim_time=500.)
+		transient_time=1000.,
+		sim_time=1000.)
 
 	kernel_pars = set_kernel_defaults(run_type=run, data_label=data_label, **system)
 
@@ -49,7 +53,7 @@ def build_parameters(nu_x, gamma):
 	epsilon = 0.1
 
 	# gamma = 8.
-	wE = 1.2
+	wE = 1.
 	wI = -gamma * wE
 
 	recurrent_synapses = dict(
@@ -113,9 +117,13 @@ def build_parameters(nu_x, gamma):
 			'tau': 			20., 	# time constant of exponential filter (van Rossum distance)
 			'window_len': 	100, 	# length of sliding time window (for time_resolved analysis)
 			'time_resolved': False, # perform time-resolved analysis
-		}
+		},
+		'nu_x': nu_x,
+		'gamma': gamma
 	}
 
+	# report_pars = set_report_defaults(5, run, paths, kernel_pars, neuron_pars, net_pars, connection_pars,
+	# 								  encoding_pars, decoding_pars={})
 	# ##################################################################################################################
 	# RETURN dictionary of Parameters dictionaries
 	# ==================================================================================================================
@@ -124,4 +132,5 @@ def build_parameters(nu_x, gamma):
 	             ('net_pars', 		 net_pars),
 	             ('encoding_pars', 	 encoding_pars),
 	             ('connection_pars', connection_pars),
-				 ('analysis_pars', 	 analysis_pars)])
+				 ('analysis_pars', 	 analysis_pars),])
+				 # ('report_pars', 	 report_pars)])
