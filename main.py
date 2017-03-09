@@ -11,6 +11,7 @@ from os import path
 import importlib
 from modules.parameters import ParameterSpace
 
+
 def run_experiment(params_file_full_path, computation_function="noise_driven_dynamics", cluster=None, **parameters):
 	"""
 	Entry point, parses parameters and runs experiments locally or creates scripts to be run on a cluster.

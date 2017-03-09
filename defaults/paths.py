@@ -11,7 +11,8 @@ paths = {
 		'data_path': 			NETWORK_HOME + '/data/',
 		'jdf_template': 		None,
 		'matplotlib_rc': 		NETWORK_HOME + '/defaults/matplotlib_rc',
-		'remote_directory': 	NETWORK_HOME + '/experiments/export/'},
+		'remote_directory': 	NETWORK_HOME + '/experiments/export/',
+		'queueing_system':      None},
 
 	'Blaustein': {
 		'data_path':            NETWORK_HOME + '/data/',

@@ -2,7 +2,7 @@
 #$ -cwd
 #$ -j y
 #$ -q {{ queue }}.q
-#$ -l slots={{ ppn }}
+#$ -pe {{ ppn }}
 #$ -S /bin/bash
 
 cd $SGE_O_WORKDIR

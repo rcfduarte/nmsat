@@ -1,21 +1,18 @@
 __author__ = 'duarte'
 import nest
 import numpy as np
-from modules.signals import determine_decimal_digits
 np.set_printoptions(threshold=np.nan, suppress=True)
 
-dt = 0.1
-rounding_precision = determine_decimal_digits(dt)
-
 nest.ResetKernel()
-# nest.set_verbosity('M_WARNING')
-nest.SetKernelStatus({'resolution': dt})
+nest.SetKernelStatus({'resolution': 0.1})
+sg = nest.Create('spike_generator', 1, {'precise_times': True})#, {'allow_offgrid_spikes': True})#
 
-sg = nest.Create('spike_generator', 1)#, {'precise_times': True})#, {'allow_offgrid_spikes': True})#,
-# {'precise_times': True})#,
-# {'allow_offgrid_spikes': True})
+
+start = 1e+06
 
 # Setting all at one doesn't seem to cause any problem (except some of the times are not the same
+all_times = np.sort()
+
 # times = np.round(np.arange(1000000., 10000000., 0.1), rounding_precision)
 # nest.SetStatus(sg, {'spike_times': np.round(times, rounding_precision)})
 # print all(np.round(times, rounding_precision) == np.round(nest.GetStatus(sg, 'spike_times')[0], rounding_precision))
@@ -32,7 +29,7 @@ sg = nest.Create('spike_generator', 1)#, {'precise_times': True})#, {'allow_offg
 # 	print all(np.round(tt, rounding_precision) == nest.GetStatus(sg, 'spike_times')[0])
 
 
-start = 100000000.
+start = 1000000.
 tt = np.sort(np.random.sample(250) * 200.)
 starts = []
 comp = []
@@ -46,7 +43,6 @@ while True:
 		tt += start
 		# ttt = np.array([eval('%f' % np.round(x, rounding_precision)) for x in tt])
 		times = [round(x, rounding_precision) for x in tt]
-		nest.SetStatus(sg, {'spike_times': []})
 		nest.SetStatus(sg, {'spike_times': times})
 		# nest.Simulate(200.)
 		print np.min(nest.GetStatus(sg, 'spike_times')[0])

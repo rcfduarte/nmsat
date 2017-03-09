@@ -15,11 +15,12 @@ def set_kernel_defaults(run_type='local', data_label='', **system_pars):
 		run = True
 	else:
 		run = False
-	keys = ['nodes', 'ppn', 'mem', 'walltime', 'queue', 'sim_time', 'transient_time']
+	keys = ['nodes', 'ppn', 'mem', 'walltime', 'queue', 'sim_time', 'transient_time', 'n_th']
 	if not np.mean(np.sort(system_pars.keys()) == np.sort(keys)).astype(bool):
 		raise TypeError("system parameters dictionary must contain the following keys {0}".format(str(keys)))
 
 	N_vp = system_pars['nodes'] * system_pars['ppn']
+	N_th = system_pars['n_th']
 	np_seed = np.random.randint(1000000000) + 1
 	np.random.seed(np_seed)
 	msd = np.random.randint(100000000000)
@@ -36,12 +37,13 @@ def set_kernel_defaults(run_type='local', data_label='', **system_pars):
 		'rng_seeds': range(msd + N_vp + 1, msd + 2 * N_vp + 1),
 		'grng_seed': msd + N_vp,
 		'total_num_virtual_procs': N_vp,
-		'local_num_threads': system_pars['ppn'],
+		'local_num_threads': system_pars['ppn'] * N_th,
 		'np_seed': np_seed,
 
 		'system': {
 			'local': run,
 			'system_label': run_type,
+			'queueing_system': paths[run_type]['queueing_system'],
 			'jdf_template': paths[run_type]['jdf_template'],
 			'remote_directory': paths[run_type]['remote_directory'],
 			'jdf_fields': {'{{ script_folder }}': '',
@@ -492,7 +494,7 @@ def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=
 				'N': 1,
 				'labels': ['spike_pattern'],
 				'models': ['spike_generator'],
-				'model_pars': [{'start': 0., 'stop': sys.float_info.max, 'origin': 0.}],
+				'model_pars': [{'start': 0., 'stop': sys.float_info.max, 'origin': 0., 'precise_times': True}],
 				'jitter': jitter,
 				'topology': [False],
 				'topology_pars': [None],

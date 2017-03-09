@@ -51,8 +51,7 @@ import imp
 
 from defaults.paths import paths
 
-np.set_printoptions(threshold=np.nan)
-
+np.set_printoptions(threshold=np.nan, suppress=True)
 
 
 ##########################################################################################
