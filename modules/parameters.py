@@ -47,6 +47,7 @@ import scipy.stats as st
 import inspect
 import nest
 import errno
+import imp
 
 from defaults.paths import paths
 
@@ -143,6 +144,8 @@ def import_mod_file(full_path_to_module):
 	module_name, module_ext = os.path.splitext(module_file)
 	sys.path.append(module_dir)
 	try:
+		# open_file, file_name, description = imp.find_module(module_name)
+		# module_obj = imp.load_module(module_name, open_file, module_name,('.py', 'rb', imp.PY_SOURCE))
 		module_obj = __import__(module_name)
 		module_obj.__file__ = full_path_to_module
 		globals()[module_name] = module_obj
@@ -851,7 +854,7 @@ class ParameterSpace:
 			try:
 				validate_parameter_sets([param_set])
 			except ValueError as error:
-				print(("Invalid parameter file! Error: %s" % error))
+				print("Invalid parameter file! Error: %s" % error)
 
 			param_axes	= {}
 			label 		= param_set.kernel_pars["data_prefix"]
@@ -862,6 +865,19 @@ class ParameterSpace:
 			self.parameter_sets, self.parameter_axes, self.label, self.dimensions = parse_parameters_file(initializer)
 		else:
 			self.parameter_sets, self.parameter_axes, self.label, self.dimensions = parse_parameters_dict(initializer)
+
+	# TODO this is temporary only
+	def compile_parameters_table(self):
+		"""
+		Use the first parameter set to generate the standard table...
+		:return:
+		"""
+		template_file = self[0].report_pars.report_templates_path + 'StandardTable.tex'
+		out_file = self[0].report_pars.report_path + self[0].report_pars.report_filename
+		fields = self[0].report_pars.table_fields.as_dict()
+		tmp = io.process_template(template_file, fields, save_to=out_file)
+
+		return tmp, out_file
 
 	def update_run_parameters(self, cluster=None):
 		"""

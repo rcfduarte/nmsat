@@ -21,7 +21,7 @@ def build_parameters():
 	# ==================================================================================================================
 	total_time = 1000000.
 	analysis_interval = 1000.
-	min_current = 0.
+	min_current = 200.
 	max_current = 800.
 
 	times = list(np.arange(0., total_time, analysis_interval))
@@ -46,22 +46,35 @@ def build_parameters():
 	# ##################################################################################################################
 	neuron_pars = {
 		'E': {
+			# 'model': 'amat2_psc_exp',
+			# 'alpha_1': -0.5,
+			# 'alpha_2': 0.35,
+			# 'beta': -0.3,
+			# 'omega': -65.,
+			# 'I_e': 91.,
+			# 'tau_m': 10.,
+			# 'tau_1': 10.,
+			# 'tau_2': 200.,
+			# 't_ref': 2.,
+			# 'C_m': 200.,}}
 			'model': 'amat2_psc_exp',
-			'alpha_1': -0.5,
-			'alpha_2': 0.35,
-			'beta': -0.3,
-			'omega': -65.,
-			'I_e': 91.,
+			'alpha_1': 180.,
+			'alpha_2': 3.,
+			'beta': 0.2,
+			'omega': -55.,
+			'I_e': 0.,
 			'tau_m': 10.,
 			'tau_1': 10.,
 			'tau_2': 200.,
 			't_ref': 2.,
-			'C_m': 200.,}}
+			'C_m': 200., }}
+
 	n_pars = {k: v for k, v in neuron_pars.items() if k != 'description'}
 	multimeter = rec_device_defaults(device_type='multimeter')
 	multimeter.update({'record_from': ['V_m', 'V_th'], 'record_n': 1})
 	pop_names = ['{0}'.format(str(n)) for n in n_pars.keys()]
 	n_neurons = [1 for _ in n_pars.keys()]
+
 	if len(neuron_pars.keys()) > 1:
 		neuron_params = [n_pars[n] for n in n_pars.keys()]
 	else:

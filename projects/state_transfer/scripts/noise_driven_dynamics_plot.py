@@ -82,29 +82,11 @@ net.connect_devices()
 # ======================================================================================================================
 net.connect_populations(parameter_set.connection_pars, progress=True)
 
-### TODO REMOVE debug
-# for pop in net.populations:
-# 	in_conn = nest.GetConnections(target=pop.gids)
-# 	out_conn = nest.GetConnections(source=pop.gids)
-# 	self_conn = nest.GetConnections(source=pop.gids, target=pop.gids)
-# 	print "Population: " + pop.name + "; incoming connections: " + str(len(in_conn))
-# 	print "Population: " + pop.name + "; outgoing connections: " + str(len(out_conn))
-# 	print "Population: " + pop.name + "; self connections: " + str(len(self_conn))
-# exit(0)
-
 # ######################################################################################################################
 # Simulate
 # ======================================================================================================================
 if parameter_set.kernel_pars.transient_t:
 	net.simulate(parameter_set.kernel_pars.transient_t)
-	# # TODO remove; only for plotting
-
-	# net.extract_population_activity()
-	# net.extract_network_activity()
-	# sp = SpikePlots(net.populations[0].spiking_activity.id_slice(list(net.populations[0].gids[:500])))
-	# sp.dot_display(save="raster_nu_x=18_gamma=14.0.pdf", with_rate=False)
-	# net.flush_records()
-	# exit(0)
 
 net.simulate(parameter_set.kernel_pars.sim_time + 1.)
 # ######################################################################################################################
@@ -114,21 +96,8 @@ net.extract_population_activity()
 net.extract_network_activity()
 net.flush_records()
 
-# ######################################################################################################################
-# Analyse / plot data
-# ======================================================================================================================
-analysis_interval = [parameter_set.kernel_pars.transient_t,
-	                 parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t]
-
-results.update(characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
-                                                color_map='coolwarm', plot=plot, display=display,
-                                                save=paths['figures']+paths['label'], color_subpop=True,
-                                                analysis_pars=parameter_set.analysis_pars))
-
-# ######################################################################################################################
-# Save data
-# ======================================================================================================================
-if save:
-	with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
-		pickle.dump(results, f)
-	parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
+sp = SpikePlots(net.populations[0].spiking_activity.id_slice(list(net.populations[0].gids[:1000])))
+nu_x = parameter_set.analysis_pars.nu_x
+gamma = parameter_set.analysis_pars.gamma
+sp.dot_display(save="{0}/raster_nu_x={1}_gamma={2}.pdf".format(paths['figures'] + paths['label'],nu_x, gamma),
+			   with_rate=True)

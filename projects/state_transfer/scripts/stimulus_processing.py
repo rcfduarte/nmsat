@@ -27,7 +27,6 @@ online = True
 # ======================================================================================================================
 
 params_file = '../parameters/one_pool_stimulusdriven.py'
-# params_file = '../../legenstein_rescience/parameters/identity.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -122,8 +121,7 @@ parameter_set.kernel_pars.sim_time = inputs.train_stimulation_time + inputs.test
 
 # Plot example signal
 if plot and debug and not online:
-	plot_input_example(stim_set, inputs, set_name='test', display=display, save=paths['figures'] + paths[
-		'label'])
+	plot_input_example(stim_set, inputs, set_name='test', display=display, save=paths['figures'] + paths['label'])
 if save:
 	if hasattr(parameter_set, "task_pars"):
 		stim_pattern.save(paths['inputs'])
