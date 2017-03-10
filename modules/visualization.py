@@ -782,7 +782,8 @@ def scatter_variability(variable, ax):
 	ax.set_ylabel('Variance')
 
 
-def plot_2d_parscans(image_arrays=[], axis=[], fig_handle=None, labels=[], cmap='jet', boundaries=[], **kwargs):
+def plot_2d_parscans(image_arrays=[], axis=[], fig_handle=None, labels=[], cmap='jet', boundaries=[],
+                     display=True, **kwargs):
 	"""
 	Plots a list of arrays as images in the corresponding axis with the corresponding colorbar
 
@@ -809,7 +810,8 @@ def plot_2d_parscans(image_arrays=[], axis=[], fig_handle=None, labels=[], cmap=
 
 			ax.set(**kwargs)
 			pl.draw()
-	pl.show(block=False)
+	if display:
+		pl.show(block=False)
 
 
 def plot_3d_volume(X):
@@ -2943,7 +2945,8 @@ def plot_synchrony_measures(results, label='', time_resolved=False, epochs=None,
 		image_arrays = [results['ISI_distance_matrix'], results['SPIKE_distance_matrix'],
 		                results['SPIKE_sync_matrix']]
 		plot_2d_parscans(image_arrays=image_arrays, axis=[ax32, ax33, ax34],
-		                     fig_handle=fig3, labels=[r'$D_{ISI}$', r'$D_{SPIKE}$', r'$D_{SPIKE_{S}}$'])
+		                     fig_handle=fig3, labels=[r'$D_{ISI}$', r'$D_{SPIKE}$', r'$D_{SPIKE_{S}}$'],
+		                 display=display)
 	if time_resolved:
 		# Time resolved synchrony
 		fig4 = pl.figure()

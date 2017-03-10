@@ -31,7 +31,8 @@ online = True
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../../encoding_decoding/parameters/dc_stimulus_input.py'
+# params_file = '../../encoding_decoding/parameters/dc_stimulus_input.py'
+params_file = '../../encoding_decoding/parameters/spike_pattern_input.py'
 # params_file = '../parameters/spike_pattern_input.py'
 
 parameter_set = ParameterSpace(params_file)[0]

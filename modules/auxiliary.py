@@ -912,8 +912,8 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 			set_start = start_idx
 			set_end = len(labels) + set_start
 			start_idx += len(labels)
-			print set_start, set_end
-			print labels
+			#print set_start, set_end
+			#print labels
 
 			if accepted_idx is not None:
 				accepted_ids = []
