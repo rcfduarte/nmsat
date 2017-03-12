@@ -350,7 +350,7 @@ def box_plot(ax, data, pos):
 	:param pos: list of x positions
 	:return:
 	"""
-	ax.boxplot(data, notch=1, positions=pos, vert=1)
+	ax.boxplot(data, notch=1, positions=pos, vert=1, sym='k+')
 
 
 def summary_statistics(data_list, labels, loc=0, fig=None, cmap='jet'):
@@ -708,6 +708,27 @@ def test_offline_filtering(spike_list, N, dt, tau):
 	ax.plot(t, activity_matrix[mat_idx, :], 'g')
 
 	pl.show()
+
+
+def plot_single_raster(times, ax, t_start=0, t_stop=1000):
+	"""
+	Plot the spike times of a single SpikeTrain
+	:param times:
+	:param ax:
+	:param t_start:
+	:param t_stop:
+	:return:
+	"""
+	for tt in times:
+		ax.vlines(tt, 0.5, 1.5, color='k', linewidth=2)
+		ax.set_xlabel('')
+		ax.set_ylabel(r'$\mathrm{S}_{i}$')
+		ax.set_xlim([t_start, t_stop])
+		ax.set_ylim([0.5, 1.6])
+		ax.set_yticks([])
+		ax.set_yticklabels([])
+		ax.set_xticklabels([])
+
 
 
 def plot_acc(t, accs, fit_params, acc_function, title='', ax=None, display=True, save=False):

@@ -25,8 +25,8 @@ online = False
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-# params_file = '../parameters/dc_stimulus_input.py'
-params_file = '../parameters/spike_pattern_input.py'
+params_file = '../parameters/dc_stimulus_input.py'
+# params_file = '../parameters/spike_pattern_input.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -120,7 +120,7 @@ parameter_set.kernel_pars.sim_time = inputs.train_stimulation_time + inputs.test
 
 # Plot example signal
 if plot and debug and not online:
-	plot_input_example(stim_set, inputs, set_name='test', display=display, save=paths['figures'] + paths[
+	plot_input_example(stim_set, inputs, set_name='full', display=display, save=paths['figures'] + paths[
 		'label'])
 if save:
 	if hasattr(parameter_set, "task_pars"):
@@ -145,7 +145,7 @@ net.connect_populations(parameter_set.connection_pars)
 # Set-up Analysis
 # ======================================================================================================================
 net.connect_devices()
-set_decoder_times(enc_layer, parameter_set) # iff using the fast sampling method!
+# set_decoder_times(enc_layer, parameter_set) # iff using the fast sampling method!
 net.connect_decoders(parameter_set.decoding_pars)
 
 # Attach decoders to input encoding populations
@@ -156,30 +156,54 @@ if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input
 # ######################################################################################################################
 # Run Simulation (full sequence)
 # ======================================================================================================================
-epochs, timing = process_input_sequence(parameter_set, net, enc_layer, stim_set, inputs, set_name='full', record=True)
+# epochs, timing = process_input_sequence(parameter_set, net, enc_layer, stim_set, inputs, set_name='full', record=True)
 
 # Slow state sampling
-# epochs, timing = iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name='full', record=True,
-#                        store_activity=False)
+epochs, timing = iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name='full', record=True,
+                       store_activity=parameter_set.analysis_pars.store_activity)
 
+# t0 = 200.
+# net.extract_population_activity(t_start=t0, t_stop=nest.GetKernelStatus()['time'] - simulation_resolution)
+# net.extract_network_activity()
+# enc_layer.extract_encoder_activity(t_start=t0, t_stop=nest.GetKernelStatus()['time'] - simulation_resolution)
+# if not empty(net.merged_populations):
+# 	net.merge_population_activity(start=t0, stop=nest.GetKernelStatus()['time'] - simulation_resolution,
+# 	                              save=True)
+
+for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
+                                                   net.populations]))):  # , enc_layer.encoders]))):
+	if n_pop.decoding_layer is not None:
+		# n_pop.decoding_layer.extract_activity(start=t0, stop=nest.GetKernelStatus()['time'] -
+		#                                                      2 * simulation_resolution,
+		#                                       save=True)
+		if parameter_set.analysis_pars.store_activity:  # and debug:
+			if isinstance(parameter_set.analysis_pars.store_activity, int) and \
+							parameter_set.analysis_pars.store_activity <= parameter_set.stim_pars.test_set_length:
+				n_pop.decoding_layer.sampled_times = n_pop.decoding_layer.sampled_times[
+				                                     -parameter_set.analysis_pars.store_activity:]
+			else:
+				n_pop.decoding_layer.sampled_times = n_pop.decoding_layer.sampled_times[
+				                                     -parameter_set.stim_pars.test_set_length:]
+			n_pop.decoding_layer.evaluate_decoding(n_neurons=50, display=display,
+			                                       save=paths['figures'] + paths['label'])
 # ######################################################################################################################
 # Process data
 # ======================================================================================================================
-if hasattr(parameter_set, "task_pars"):
-	accept_idx = np.where(np.array(stim_pattern.Output['Accepted']) == 'A')[0]
-else:
-	accept_idx = None
-
-target_matrix = np.array(target_set.full_set.todense())
-results = process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, accepted_idx=accept_idx, plot=plot,
-                   display=display, save=save, save_paths=paths)
-results.update({'timing_info': timing, 'epochs': epochs})
+# if hasattr(parameter_set, "task_pars"):
+# 	accept_idx = np.where(np.array(stim_pattern.Output['Accepted']) == 'A')[0]
+# else:
+# 	accept_idx = None
+#
+# target_matrix = np.array(target_set.full_set.todense())
+# results = process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, accepted_idx=accept_idx, plot=plot,
+#                    display=display, save=save, save_paths=paths)
+# results.update({'timing_info': timing, 'epochs': epochs})
 
 # ######################################################################################################################
 # Save data
 # ======================================================================================================================
-if save:
-	with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
-		pickle.dump(results, f)
-	parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
+# if save:
+# 	with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
+# 		pickle.dump(results, f)
+# 	parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
 

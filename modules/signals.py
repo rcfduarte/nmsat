@@ -307,6 +307,59 @@ def determine_decimal_digits(x):
 	return len(s) - s.index('.') - 1
 
 
+######################################################################################
+def gather_analog_activity(parameter_set, net, t_start=None, t_stop=None):
+	"""
+	Retrieve all analog activity data recorded in [t_start, t_stop]
+	:param parameter_set: global ParameterSet
+	:param net: Network object
+	:param t_start: start time
+	:param t_stop: stop time
+	:return results: organized dictionary with all analogs (can be very large!)
+	"""
+	results = {}
+	for pop_n, pop in enumerate(net.populations):
+		results.update({pop.name: {}})
+		if pop.name[-5:] == 'clone':
+			pop_name = pop.name[:-6]
+		else:
+			pop_name = pop.name
+		pop_idx = parameter_set.net_pars.pop_names.index(pop_name)
+		if parameter_set.net_pars.analog_device_pars[pop_idx] is None:
+			break
+		variable_names = pop.analog_activity_names
+
+		if not pop.analog_activity:
+			results[pop.name]['recorded_neurons'] = []
+			break
+		elif isinstance(pop.analog_activity, list):
+			for idx, nn in enumerate(pop.analog_activity_names):
+				locals()[nn] = pop.analog_activity[idx]
+				assert isinstance(locals()[nn], AnalogSignalList), "Analog Activity should be AnalogSignalList"
+		else:
+			locals()[pop.analog_activity_names[0]] = pop.analog_activity
+
+		reversals = []
+		single_idx = np.random.permutation(locals()[pop.analog_activity_names[0]].id_list())[0]
+		results[pop.name]['recorded_neurons'] = locals()[pop.analog_activity_names[0]].id_list()
+
+		for idx, nn in enumerate(pop.analog_activity_names):
+			if (t_start is not None) and (t_stop is not None):
+				locals()[nn] = locals()[nn].time_slice(t_start, t_stop)
+
+			time_axis = locals()[nn].time_axis()
+
+			if 'E_{0}'.format(nn[-2:]) in parameter_set.net_pars.neuron_pars[pop_idx]:
+				reversals.append(parameter_set.net_pars.neuron_pars[pop_idx]['E_{0}'.format(nn[-2:])])
+
+			results[pop.name]['{0}'.format(nn)] = locals()[nn].as_array()
+
+			# if len(results['analog_activity'][pop.name]['recorded_neurons']) > 1:
+			# 	results[pop.name]['{0}'.format(nn)] = locals()[nn].mean(axis=1)
+				#esults[pop.name]['std_{0}'.format(nn)] = locals()[nn].std(axis=1)
+	return results
+
+
 ######################################################################################################
 class SpikeTrain(object):
 	"""
