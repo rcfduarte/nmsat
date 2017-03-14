@@ -12,20 +12,16 @@ one_pool_noisedriven
 """
 
 run = 'local'
-data_label = 'state_transfer_onepool_noisedriven_plot'
+data_label = 'ST_onepool_noisedriven_paramtable'
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	# 'nu_x': np.arange(2, 4, 1.),
-	# 'nu_x': np.arange(5, 7, 1.),
-	'nu_x': np.arange(2, 20, 1.),
-	'gamma': np.arange(3., 20, 1.)
-	# 'gamma': np.arange(10., 14, 1.)
-	# 'gamma': np.arange(10., 14, 1.)
-	# 'nu_x': [2.],
-	# 'gamma': [15.]
+	# 'nu_x': np.arange(2, 14.1, .5),
+	# 'gamma': np.arange(9., 17.1, .5)
+	'nu_x': [6.],
+	'gamma': [15.]
 }
 
 
@@ -93,8 +89,6 @@ def build_parameters(nu_x, gamma):
 			'models': 'static_synapse',
 			'model_pars': {},
 			'weight_dist': wE,
-			# 'weight_dist': {'distribution': 'normal_clipped', 'mu': w_in, 'sigma': 0.5*w_in, 'low': 0.0001,
-			#                 'high': 10.*w_in},
 			'delay_dist': delay})
 	add_background_noise(encoding_pars, background_noise)
 

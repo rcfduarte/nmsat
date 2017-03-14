@@ -763,7 +763,7 @@ def process_input_sequence(parameter_set, net, enc_layer, stimulus_set, input_si
 
 	####################################################################################################################
 	if sampling_times is None:  # one sample for each stimulus (acquired at the last time point of each stimulus)
-		print(("\n\nSimulating {0} steps".format(str(set_size))))
+		print("\n\nSimulating {0} steps".format(str(set_size)))
 
 		# ################################ Main Loop ###################################
 		stim_idx = 0
@@ -781,9 +781,8 @@ def process_input_sequence(parameter_set, net, enc_layer, stimulus_set, input_si
 				epochs[set_labels[stim_idx]].append((stimulus_onset, state_sample_time))
 				state_sample_time += encoder_delay  # correct sampling time
 
-				print(
-				"\n\nSimulating step {0} / {1} - stimulus {2} [{3} ms]".format(str(stim_idx + 1), str(set_size), str(
-					set_labels[stim_idx]), str(simulation_time)))
+				print("\n\nSimulating step {0} / {1} - stimulus {2} [{3} ms]".format(str(stim_idx + 1),
+					  str(set_size), str(set_labels[stim_idx]), str(simulation_time)))
 
 				# update inputs / encoders
 				if all(['spike_pattern' in n for n in list(signals.iterate_obj_list(enc_layer.generator_names))]):

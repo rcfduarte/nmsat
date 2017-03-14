@@ -113,8 +113,8 @@ def set_neuron_defaults(default_set=1):
 				'V_reset': -60.0,
 				'g_L': 16.7,
 				't_ref': 2.,
-				# 'tau_minus': 20., # What are these and why we bother setting them?
-				# 'tau_minus_triplet': 200.,
+				'tau_minus': 20., # What are these and why we bother setting them?
+				'tau_minus_triplet': 200.,
 				'E_ex': 0.,
 				'g_ex': 1.8,
 				'tau_syn_ex': 5.,
@@ -133,8 +133,8 @@ def set_neuron_defaults(default_set=1):
 				'V_reset': -60.0,
 				'g_L': 16.7,
 				't_ref': 2.,
-				# 'tau_minus': 20.,
-				# 'tau_minus_triplet': 200.,
+				'tau_minus': 20.,
+				'tau_minus_triplet': 200.,
 				'E_ex': 0.,
 				'g_ex': 1.8,
 				'tau_syn_ex': 5.,
@@ -436,9 +436,9 @@ def set_connection_defaults(syn_pars=None):
 		'delay_dist': syn_pars.delays,
 		'conn_specs': syn_pars.conn_specs,
 		'syn_specs': syn_pars.syn_specs,
-	# 	'description': {
-	# 		'connectivity': 'Sparse, Random with density 0.1 (all connections)',
-	# 		'plasticity': 'None'}
+		'description': {
+			'connectivity': 'Sparse, Random with density 0.1 (all connections)',
+			'plasticity': 'None'}
 	}
 
 	return connection_pars
@@ -503,7 +503,7 @@ def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=
 		# n_connections = len(syn_pars.target_population_names)
 		connections = [(n, gen_label) for n in syn_pars.target_population_names]
 		synapse_names = [gen_label+'syn' for _ in syn_pars.target_population_names]
-		print(("\nLoading Default Encoding Set 1 - DC input to {0}".format(str(syn_pars.target_population_names))))
+		print("\nLoading Default Encoding Set 1 - DC input to {0}".format(str(syn_pars.target_population_names)))
 		encoding_pars = {
 			'encoder': {
 				'N': 0,
@@ -576,10 +576,10 @@ def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=
 		else:
 			preset_W = syn_pars.preset_W
 
-		print(("\nLoading Default Encoding Set 2 - Deterministic spike encoding, {0} input populations of {1} [{2} " \
+		print("\nLoading Default Encoding Set 2 - Deterministic spike encoding, {0} input populations of {1} [{2} " \
 		      "neurons] connected to {3}".format(
 				str(input_dimensions), str(n_encoding_neurons), str(encoder_neuron_pars['model']), str(
-				syn_pars.target_population_names))))
+				syn_pars.target_population_names)))
 
 		encoding_pars = {
 			'encoder': {
@@ -621,15 +621,16 @@ def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=
 		# ###################################################################
 		gen_label = 'inh_poisson'
 		keys = ['target_population_names', 'conn_specs', 'syn_specs', 'models', 'model_pars',
-		        'weight_dist', 'delay_dist', 'preset_W']
-		if not np.mean([n in synapse_pars.keys() for n in keys]).astype(bool):
+				'weight_dist', 'delay_dist', 'preset_W']
+		if not all([n in synapse_pars.keys() for n in keys]):
 			raise TypeError("Incorrect Synapse Parameters")
+
 		syn_pars = ParameterSet(synapse_pars)
-		# n_connections = len(syn_pars.target_population_names)
 		connections = [(n, gen_label) for n in syn_pars.target_population_names]
-		synapse_names = [gen_label+'syn' for _ in syn_pars.target_population_names]
-		print(("\nLoading Default Encoding Set 3 - Stochastic spike encoding, independent realizations of "
-		      "inhomogeneous Poisson processes connected to {0}".format(str(syn_pars.target_population_names))))
+		synapse_names = [gen_label + 'syn' for _ in syn_pars.target_population_names]
+
+		print("\nLoading Default Encoding Set 3 - Stochastic spike encoding, independent realizations of "
+		      "inhomogeneous Poisson processes connected to {0}".format(str(syn_pars.target_population_names)))
 
 		encoding_pars = {
 			'encoder': {
@@ -646,7 +647,7 @@ def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=
 				'record_analogs': [],
 				'analog_device_pars': []},
 			'generator': {
-				'N': input_dimensions,
+				'N': 1, #input_dimensions,
 				'labels': ['inh_poisson'],
 				'models': ['inh_poisson_generator'],
 				'model_pars': [{'start': 0., 'stop': sys.float_info.max, 'origin': 0.}],
@@ -722,7 +723,55 @@ def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=
 				'preset_W': syn_pars.preset_W},
 			'input_decoder': {}
 		}
+	elif default_set == 5:
+		# ###################################################################
+		# Encoding Type 3 - Stochastic spike encoding layer - JUST TRYIN' @barni
+		# ###################################################################
+		gen_labels = ['inh_poisson{0}'.format(n) for n in range(input_dimensions)]
+		keys = ['target_population_names', 'conn_specs', 'syn_specs', 'models', 'model_pars',
+		        'weight_dist', 'delay_dist', 'preset_W']
+		if not all([n in synapse_pars.keys() for n in keys]):
+			raise TypeError("Incorrect Synapse Parameters")
 
+		syn_pars 		= ParameterSet(synapse_pars)
+		connections 	= [(n, gen_labels[n]) for n in syn_pars.target_population_names]
+		synapse_names 	= [gen_labels[n]+'syn' for _ in syn_pars.target_population_names]
+		print("\nLoading Default Encoding Set 3 - Stochastic spike encoding, independent realizations of "
+		      "inhomogeneous Poisson processes connected to {0}".format(str(syn_pars.target_population_names)))
+
+		encoding_pars = {
+			'encoder': {
+				'N': 0,
+				'labels': [],
+				'models': [],
+				'model_pars': [],
+				'n_neurons': [],
+				'neuron_pars': [],
+				'topology': [],
+				'topology_dict': [],
+				'record_spikes': [],
+				'spike_device_pars': [],
+				'record_analogs': [],
+				'analog_device_pars': []},
+			'generator': {
+				'N': input_dimensions,
+				'labels': gen_labels,
+				'models': ['inh_poisson_generator'  for _ in range(input_dimensions)],
+				'model_pars': [{'start': 0., 'stop': sys.float_info.max, 'origin': 0.} for _ in range(input_dimensions)],
+				'topology': [False for _ in range(input_dimensions)],
+				'topology_pars': [None for _ in range(input_dimensions)]},
+			'connectivity': {
+				'synapse_name': synapse_names,
+				'connections': connections,
+				'topology_dependent': [False, False],
+				'conn_specs': syn_pars.conn_specs,
+				'syn_specs': syn_pars.syn_specs,
+				'models': syn_pars.models,
+				'model_pars': syn_pars.model_pars,
+				'weight_dist': syn_pars.weight_dist,
+				'delay_dist': syn_pars.delay_dist,
+				'preset_W': syn_pars.preset_W}
+		}
 	else:
 		raise IOError("default_set not defined")
 
@@ -834,692 +883,179 @@ def add_background_noise(encoding_pars, noise_pars):
 	encoding_pars.connectivity.preset_W.extend([None for _ in range(len(connections))])
 
 
-# def set_report_defaults(default_set, run_type, paths, kernel_pars, neuron_pars, net_pars, connection_pars,
-#                         encoding_pars, decoding_pars):
-# 	"""
-#
-# 	:param default_set:
-# 	:return:
-# 	"""
-# 	# ==============================================================================================================
-# 	if net_pars.items():
-# 		topology_description = net_pars.description.topology
-# 	else:
-# 		topology_description = ''
-# 	if connection_pars.items():
-# 		connectivity_description = connection_pars.description.connectivity
-# 		plasticity_description = connection_pars.description.plasticity
-# 	else:
-# 		connectivity_description = ''
-# 		plasticity_description = ''
-# 	if neuron_pars.items():
-# 		neurons_description = neuron_pars.description.neurons
-# 		synapse_description = neuron_pars.description.synapses
-# 	else:
-# 		neurons_description = ''
-# 		synapse_description = ''
-#
-# 	input_full_description = ''
-# 	connectivity_full_description = ''
-# 	if encoding_pars.items():
-# 		input_description = encoding_pars.description.general
-# 		input_specific_description = encoding_pars.description.specific
-# 		input_parameters = encoding_pars.description.parameters
-# 		input_generators = list(itertools.chain(encoding_pars.generator.models))
-# 		for n_inp, inp in enumerate(input_generators):
-# 			targets = [xx[0] for xx in encoding_pars.connectivity.connections if xx[1] ==
-# 			           encoding_pars.generator.labels[n_inp]]
-# 			input_full_description += '{0} & {1} & {2}'.format(r'\verb+' + inp + '+', str(targets),
-# 			                                                   input_specific_description + r'\tabularnewline' + ' \hline ')
-# 	else:
-# 		input_description = ''
-# 		input_specific_description = ''
-# 		input_parameters = ''
-# 		input_full_description = ''
-# 	if decoding_pars.items():
-# 		measurements_description = decoding_pars.description.measurements
-# 	else:
-# 		measurements_description = ''
-#
-# 	if isinstance(net_pars['neuron_pars'][0], list):
-# 		neuron_models = [x['model'] for x in list(itertools.chain(*net_pars['neuron_pars'])) if x != 'global' and
-# 		x.has_key('model')]
-# 		N_neurons = list(itertools.chain(net_pars['n_neurons']))
-# 		pops = list(itertools.chain(net_pars['pop_names']))
-# 	else:
-# 		neuron_models = [x['model'] for x in list(itertools.chain(net_pars['neuron_pars'])) if x != 'global' and
-# 		                 x.has_key('model')]
-# 		N_neurons = list(itertools.chain(net_pars['n_neurons']))
-# 		pops = list(itertools.chain(net_pars['pop_names']))
-#
-# 	#### network description (populations) ##############################
-# 	population_full_description = ''
-# 	population_parameters = ''
-# 	for idxxx, nnn in enumerate(pops):
-# 		population_full_description += ('{0} & {1} & {2}'.format(str(nnn), r'\verb+' + str(neuron_models[idxxx]) + '+',
-# 		                                                         str(N_neurons[
-# 			                                                             idxxx])) + r'\tabularnewline' + ' \hline ')
-# 		population_parameters += ('$N^{0}$ & {1} & {2}'.format('{' + str(nnn) + '}', str(N_neurons[idxxx]),
-# 		                                                       str(
-# 			                                                       nnn) + ' Population Size') + r'\tabularnewline' + ' \hline ')
-# 	if connection_pars.items():
-# 		#### Connectivity description ########################################
-# 		connectivity_parameters = r'\epsilon & $0.1$ & Connection Probability (for all synapses)' + r'\tabularnewline' + ' \hline '
-# 		for idx in range(connection_pars['n_synapse_types']):
-# 			connectivity_full_description += ('{0} & {1} & {2} & {3}'.format(str(connection_pars['synapse_names'][idx]),
-# 		                                                                 str(connection_pars['synapse_types'][idx][1]),
-# 		                                                                 str(connection_pars['synapse_types'][idx][0]),
-# 		                                                                 'Random, ') + r'\tabularnewline' + ' \hline ')
-# 			connectivity_parameters += '$w^{0}$ & {1} & Connection strength'.format('{' + str(connection_pars[
-# 				                                                                                  'synapse_names'][
-# 				                                                                                  idx]) + '}', str(
-# 																				connection_pars['weight_dist'][idx])) + \
-# 		                                                                         r'\tabularnewline' + ' \hline '
-# 	else:
-# 		connectivity_parameters = r'' + r'\tabularnewline' + ' \hline '
-#
-# 	if default_set == 1:
-# 		# ### Extract single neuron parameters from dictionaries ###############
-# 		keys = neuron_pars.keys()
-# 		keys.remove('description')
-# 		keys.remove('label')
-# 		neuron_pars_description = {}
-# 		for neuron_name in keys:
-# 			rec_time_constants = dict(rise={}, d1={}, d2={}, rec_bal={}, rec_cond={})
-# 			if hasattr(neuron_pars[neuron_name], 'rec_names'):
-# 				for n_rec in range(len(neuron_pars[neuron_name]['rec_names'])):
-# 					k = "{0}".format(neuron_pars[neuron_name]['rec_names'][n_rec])
-# 					v = neuron_pars[neuron_name]['tau_syn_rise'][n_rec]
-# 					rec_time_constants['rise'].update({k: v})
-#
-# 					v = neuron_pars[neuron_name]['tau_syn_d1'][n_rec]
-# 					rec_time_constants['d1'].update({k: v})
-#
-# 					v = neuron_pars[neuron_name]['tau_syn_d2'][n_rec]
-# 					rec_time_constants['d2'].update({k: v})
-#
-# 					v = neuron_pars[neuron_name]['rec_bal'][n_rec]
-# 					rec_time_constants['rec_bal'].update({k: v})
-#
-# 					v = neuron_pars[neuron_name]['rec_cond'][n_rec]
-# 					rec_time_constants['rec_cond'].update({k: v})
-#
-# 				neuron_pars_description.update({neuron_name: {
-# 					'Parameters': [
-# 						Parameter(name='C_{m}', value=neuron_pars[neuron_name]['C_m'], units=r'\pF'),
-# 						Parameter(name='V_{\mathrm{rest}}', value=neuron_pars[neuron_name]['E_L'], units=r'\mV'),
-# 						Parameter(name='V_{\mathrm{th}}', value=neuron_pars[neuron_name]['V_th'], units=r'\mV'),
-# 						Parameter(name='V_{\mathrm{reset}}', value=neuron_pars[neuron_name]['V_reset'], units=r'\mV'),
-# 						Parameter(name='g_{\mathrm{leak}}', value=neuron_pars[neuron_name]['g_L'], units=r'\nS'),
-# 						Parameter(name='a', value=neuron_pars[neuron_name]['a'], units=r'\nS'),
-# 						Parameter(name='b', value=neuron_pars[neuron_name]['b'], units=r'\mV'),
-# 						Parameter(name='N_{\syn}', value=len(neuron_pars[neuron_name]['rec_bal']), units=None),
-# 						Parameter(name='R_{\syn}', value=neuron_pars[neuron_name]['rec_names'], units=None),
-# 						Parameter(name='E_{\syn}', value=neuron_pars[neuron_name]['rec_reversal'], units=r'\mV'),
-# 						Parameter(name=r'\bar{g}_{\syn}', value=rec_time_constants['rec_cond'], units=r'\nS'),
-# 						Parameter(name=r'\tau^{r}_{\syn}', value=rec_time_constants['rise'], units=r'\ms'),
-# 						Parameter(name=r'\tau^{d1}_{\syn}', value=rec_time_constants['d1'], units=r'\ms'),
-# 						Parameter(name=r'\tau^{d2}_{\syn}', value=rec_time_constants['d2'], units=r'\ms'),
-# 						Parameter(name='r_{\syn}', value=rec_time_constants['rec_bal'], units=None),
-# 						Parameter(name='t_{\mathrm{ref}}', value=neuron_pars[neuron_name]['t_ref'], units=r'\ms'),
-# 						Parameter(name=r'\tau_{w}', value=neuron_pars[neuron_name]['tau_w'], units=r'\ms')],
-# 					'Descriptions': [
-# 						'Membrane Capacitance',
-# 						'Resting Membrane Potential',
-# 						'Fixed Firing Threshold',
-# 						'Reset Potential',
-# 						'Leak Conductance',
-# 						'Sub-threshold intrinsic adaptation parameter',
-# 						'Spike-triggered intrinsic adaptation parameter',
-# 						'Absolute number of synaptic receptors',
-# 						'Synaptic Receptor types',
-# 						'Reversal Potentials',
-# 						'Fixed synaptic conductance',
-# 						'Synaptic conductance rise time constants',
-# 						'Synaptic conductance first decay time constants',
-# 						'Synaptic conductance second decay time constants',
-# 						'Balance between decay time constants',
-# 						'Absolute Refractory time',
-# 						'Adaptation time constant']}
-# 				})
-#
-# 		neuron_pars = list(itertools.chain(net_pars['neuron_pars']))
-# 		if len(neuron_pars) == 1:
-# 			neuron_name = [pops[0]]
-# 		else:
-# 			if np.mean([compare_dict(x, y) for x, y in zip(neuron_pars, neuron_pars[1:])]) == 1.:
-# 				neuron_name = [pops[0]]
-# 			else:
-# 				neuron_name = [n_pop for idx_pop, n_pop in enumerate(pops) if neuron_pars[idx_pop][
-# 					'model']!='parrot_neuron']
-#
-# 		neuron_parameters = ''
-# 		for idd, nam in enumerate(neuron_name):
-# 			neuron_parameters += (
-# 			'{0} & {1} & {2}'.format('Name', str(nam), 'Neuron name') + r'\tabularnewline ' + ' \hline ')
-#
-# 			for iid, par in enumerate(neuron_pars_description[nam]['Parameters']):
-# 				if par.name == 'R_{\syn}':
-# 					name = par.name
-# 					value = ''
-# 					for i in par.value:
-# 						value += str(i) + ', '
-# 					units = ''
-# 				elif par.name == r'\tau^{r}_{\syn}' or par.name == r'\tau^{d1}_{\syn}' or par.name == r'\tau^{d2}_{\syn}' or \
-# 								par.name == 'r_{\syn}' or par.name == r'\bar{g}_{\syn}':
-# 					name = par.name
-# 					value = str(par.value.values())
-# 					units = str(par.units)
-# 				else:
-# 					name = par.name
-# 					value = str(par.value)
-# 					units = str(par.units)
-#
-# 				neuron_parameters += ('{0} & {1} & {2}'.format('$' + name + '$', '$' + value + units + '$',
-# 				                                               neuron_pars_description[nam]['Descriptions'][iid]) +
-# 				                      r'\tabularnewline ' + ' \hline ')
-#
-# 		#### Synapse parameters ######################################
-# 		synapse_parameters = 'None & None & None' + r'\tabularnewline' + ' \hline '
-#
-# 		#### Plasticity Parameters ###################################
-# 		plasticity_parameters = 'None & None & None' + r'\tabularnewline' + ' \hline '
-#
-# 		########################################
-# 		report_pars = {
-# 			'report_templates_path': paths[run_type]['report_templates_path'],
-# 			'report_path': paths[run_type]['report_path'],
-# 			'report_filename': kernel_pars['data_prefix'] + '.tex',
-# 			'table_fields': {
-# 				'{{ net_populations_description }}': '{0} Main Populations: {1}'.format(str(net_pars['n_populations']),
-# 				                                                                        str(net_pars['pop_names'])),
-# 				'{{ net_populations_topology }}': topology_description,
-# 				'{{ net_connectivity_description }}': connectivity_description,
-# 				'{{ net_neuron_models }}': neurons_description,
-# 				'{{ net_synapse_models }}': synapse_description,
-# 				'{{ net_plasticity }}': plasticity_description,
-# 				'{{ input_general_description }}': input_description,
-# 				'{{ input_description }}': input_full_description,
-# 				'{{ measurements_description }}': measurements_description,
-#
-# 				'{{ population_names_elements_sizes }}': population_full_description,
-# 				'{{ connectivity_name_src_tgt_pattern }}': connectivity_full_description,
-# 				'{{ measurements }}': measurements_description,
-# 				'{{ population_parameters }}': population_parameters,
-# 				'{{ connectivity_parameters }}': connectivity_parameters,
-# 				'{{ neuron_parameters }}': neuron_parameters,
-# 				'{{ synapse_parameters }}': synapse_parameters,
-# 				'{{ plasticity_parameters }}': plasticity_parameters,
-# 				'{{ input_parameters }}': input_parameters,
-# 			},
-# 		}
-# 	elif default_set == 2:
-# 		# ### Extract single neuron parameters from dictionaries ###############
-# 		keys = neuron_pars.keys()
-# 		keys.remove('description')
-# 		keys.remove('label')
-# 		neuron_pars_description = {}
-# 		for neuron_name in keys:
-# 			neuron_pars_description.update({neuron_name: {
-# 				'Parameters': [
-# 					Parameter(name='\tau_{m}', value=neuron_pars[neuron_name]['tau_m'], units=r'\ms'),
-# 					Parameter(name='V_{\mathrm{rest}}', value=neuron_pars[neuron_name]['E_L'], units=r'\mV'),
-# 					Parameter(name='V_{\mathrm{th}_{0}}', value=neuron_pars[neuron_name]['omega'], units=r'\mV'),
-# 					Parameter(name='\alpha_{1}', value=neuron_pars[neuron_name]['alpha_1'], units=None),
-# 					Parameter(name='\alpha_{2}', value=neuron_pars[neuron_name]['alpha_2'], units=None),
-# 					Parameter(name='\beta', value=neuron_pars[neuron_name]['beta'], units=None),
-# 					Parameter(name=r'\tau^{E}_{\syn}', value=neuron_pars[neuron_name]['tau_syn_ex'], units=r'\ms'),
-# 					Parameter(name=r'\tau^{I}_{\syn}', value=neuron_pars[neuron_name]['tau_syn_in'], units=r'\ms'),
-# 					Parameter(name='t_{\mathrm{ref}}', value=neuron_pars[neuron_name]['t_ref'], units=r'\ms')],
-# 				'Descriptions': [
-# 					'Membrane Capacitance',
-# 					'Resting Membrane Potential',
-# 					'Initial Firing Threshold',
-# 					'Weight of the first adaptation time constant',
-# 					'Weight of the second adaptation time constant',
-# 					'Weight of Voltage-dependent term',
-# 					'Synaptic conductance rise time constants',
-# 					'Synaptic conductance first decay time constants',
-# 					'Absolute Refractory time']}
-# 			})
-#
-# 		neuron_pars = list(itertools.chain(net_pars['neuron_pars']))
-# 		if len(neuron_pars) == 1:
-# 			neuron_name = [pops[0]]
-# 		else:
-# 			if np.mean([compare_dict(x, y) for x, y in zip(neuron_pars, neuron_pars[1:])]) == 1.:
-# 				neuron_name = [pops[0]]
-# 			else:
-# 				neuron_name = [n_pop for idx_pop, n_pop in enumerate(pops) if neuron_pars[idx_pop][
-# 					'model'] != 'parrot_neuron']
-#
-# 		neuron_parameters = ''
-# 		for idd, nam in enumerate(neuron_name):
-# 			neuron_parameters += (
-# 				'{0} & {1} & {2}'.format('Name', str(nam), 'Neuron name') + r'\tabularnewline ' + ' \hline ')
-#
-# 			for iid, par in enumerate(neuron_pars_description[nam]['Parameters']):
-# 				name = par.name
-# 				value = str(par.value)
-# 				units = str(par.units)
-#
-# 				neuron_parameters += ('{0} & {1} & {2}'.format('$' + name + '$', '$' + value + units + '$',
-# 				                                               neuron_pars_description[nam]['Descriptions'][iid]) +
-# 				                      r'\tabularnewline ' + ' \hline ')
-#
-# 		#### Synapse parameters ######################################
-# 		synapse_parameters = 'None & None & None' + r'\tabularnewline' + ' \hline '
-#
-# 		#### Plasticity Parameters ###################################
-# 		plasticity_parameters = 'None & None & None' + r'\tabularnewline' + ' \hline '
-#
-# 		########################################
-# 		report_pars = {
-# 			'report_templates_path': paths[run_type]['report_templates_path'],
-# 			'report_path': paths[run_type]['report_path'],
-# 			'report_filename': kernel_pars['data_prefix'] + '.tex',
-# 			'table_fields': {
-# 				'{{ net_populations_description }}': '{0} Main Populations: {1}'.format(str(net_pars['n_populations']),
-# 				                                                                        str(net_pars['pop_names'])),
-# 				'{{ net_populations_topology }}': topology_description,
-# 				'{{ net_connectivity_description }}': connectivity_description,
-# 				'{{ net_neuron_models }}': neurons_description,
-# 				'{{ net_synapse_models }}': synapse_description,
-# 				'{{ net_plasticity }}': plasticity_description,
-# 				'{{ input_general_description }}': input_description,
-# 				'{{ input_description }}': input_full_description,
-# 				'{{ measurements_description }}': measurements_description,
-#
-# 				'{{ population_names_elements_sizes }}': population_full_description,
-# 				'{{ connectivity_name_src_tgt_pattern }}': connectivity_full_description,
-# 				'{{ measurements }}': measurements_description,
-# 				'{{ population_parameters }}': population_parameters,
-# 				'{{ connectivity_parameters }}': connectivity_parameters,
-# 				'{{ neuron_parameters }}': neuron_parameters,
-# 				'{{ synapse_parameters }}': synapse_parameters,
-# 				'{{ plasticity_parameters }}': plasticity_parameters,
-# 				'{{ input_parameters }}': input_parameters,
-# 			},
-# 		}
-# 	elif default_set == 3:
-# 		# ### Extract single neuron parameters from dictionaries ###############
-# 		keys = neuron_pars.keys()
-# 		keys.remove('description')
-# 		keys.remove('label')
-# 		neuron_pars_description = {}
-# 		for neuron_name in keys:
-# 			neuron_pars_description.update({neuron_name: {
-# 				'Parameters': [
-# 					Parameter(name='C_{m}', value=neuron_pars[neuron_name]['C_m'], units=r'\pF'),
-# 					Parameter(name='V_{\mathrm{rest}}', value=neuron_pars[neuron_name]['E_L'], units=r'\mV'),
-# 					Parameter(name='V_{\mathrm{reset}}', value=neuron_pars[neuron_name]['V_reset'], units=r'\mV'),
-# 					Parameter(name='V_{\mathrm{th}}', value=neuron_pars[neuron_name]['V_th'], units=r'\mV'),
-# 					Parameter(name=r'\tau_{m}', value=neuron_pars[neuron_name]['tau_m'], units=r'\ms'),
-# 					Parameter(name=r'\tau_{E}', value=neuron_pars[neuron_name]['tau_syn_ex'], units=r'\ms'),
-# 					Parameter(name=r'\tau_{I}', value=neuron_pars[neuron_name]['tau_syn_in'], units=r'\ms'),
-# 					Parameter(name='t_{\mathrm{ref}}', value=neuron_pars[neuron_name]['t_ref'], units=r'\ms')],
-# 				'Descriptions': [
-# 					'Membrane Capacitance',
-# 					'Resting Membrane Potential',
-# 					'Reset Potential',
-# 					'Firing Threshold',
-# 					'Membrane time constant',
-# 					'Excitatory Synaptic time constants',
-# 					'Inhibitory Synaptic time constants',
-# 					'Absolute Refractory time']}
-# 			})
-#
-# 		neuron_pars = list(itertools.chain(net_pars['neuron_pars']))
-# 		if len(neuron_pars) == 1:
-# 			neuron_name = [pops[0]]
-# 		else:
-# 			if np.mean([compare_dict(x, y) for x, y in zip(neuron_pars, neuron_pars[1:])]) == 1.:
-# 				neuron_name = [pops[0]]
-# 			else:
-# 				neuron_name = [n_pop for idx_pop, n_pop in enumerate(pops) if neuron_pars[idx_pop][
-# 					'model'] != 'parrot_neuron']
-#
-# 		neuron_parameters = ''
-# 		for idd, nam in enumerate(neuron_name):
-# 			neuron_parameters += (
-# 				'{0} & {1} & {2}'.format('Name', str(nam), 'Neuron name') + r'\tabularnewline ' + ' \hline ')
-#
-# 			for iid, par in enumerate(neuron_pars_description[nam]['Parameters']):
-# 				name = par.name
-# 				value = str(par.value)
-# 				units = str(par.units)
-#
-# 				neuron_parameters += ('{0} & {1} & {2}'.format('$' + name + '$', '$' + value + units + '$',
-# 				                                               neuron_pars_description[nam]['Descriptions'][iid]) +
-# 				                      r'\tabularnewline ' + ' \hline ')
-#
-# 		#### Synapse parameters ######################################
-# 		synapse_parameters = 'None & None & None' + r'\tabularnewline' + ' \hline '
-#
-# 		#### Plasticity Parameters ###################################
-# 		plasticity_parameters = 'None & None & None' + r'\tabularnewline' + ' \hline '
-#
-# 		########################################
-# 		report_pars = {
-# 			'report_templates_path': paths[run_type]['report_templates_path'],
-# 			'report_path': paths[run_type]['report_path'],
-# 			'report_filename': kernel_pars['data_prefix'] + '.tex',
-# 			'table_fields': {
-# 				'{{ net_populations_description }}': '{0} Main Populations: {1}'.format(str(net_pars['n_populations']),
-# 				                                                                        str(net_pars['pop_names'])),
-# 				'{{ net_populations_topology }}': topology_description,
-# 				'{{ net_connectivity_description }}': connectivity_description,
-# 				'{{ net_neuron_models }}': neurons_description,
-# 				'{{ net_synapse_models }}': synapse_description,
-# 				'{{ net_plasticity }}': plasticity_description,
-# 				'{{ input_general_description }}': input_description,
-# 				'{{ input_description }}': input_full_description,
-# 				'{{ measurements_description }}': measurements_description,
-#
-# 				'{{ population_names_elements_sizes }}': population_full_description,
-# 				'{{ connectivity_name_src_tgt_pattern }}': connectivity_full_description,
-# 				'{{ measurements }}': measurements_description,
-# 				'{{ population_parameters }}': population_parameters,
-# 				'{{ connectivity_parameters }}': connectivity_parameters,
-# 				'{{ neuron_parameters }}': neuron_parameters,
-# 				'{{ synapse_parameters }}': synapse_parameters,
-# 				'{{ plasticity_parameters }}': plasticity_parameters,
-# 				'{{ input_parameters }}': input_parameters,
-# 			},
-# 		}
-# 	elif default_set == 4:
-# 		# ### Extract single neuron parameters from dictionaries ###############
-# 		keys = neuron_pars.keys()
-# 		keys.remove('description')
-# 		keys.remove('label')
-# 		neuron_pars_description = {}
-# 		for neuron_name in keys:
-# 			neuron_pars_description.update({neuron_name: {
-# 				'Parameters': [
-# 					Parameter(name='C_{m}', value=neuron_pars[neuron_name]['C_m'], units=r'\pF'),
-# 					Parameter(name='V_{\mathrm{rest}}', value=neuron_pars[neuron_name]['E_L'], units=r'\mV'),
-# 					Parameter(name='V_{\mathrm{th}}', value=neuron_pars[neuron_name]['V_th'], units=r'\mV'),
-# 					Parameter(name='V_{\mathrm{reset}}', value=neuron_pars[neuron_name]['V_reset'], units=r'\mV'),
-# 					Parameter(name='g_{\mathrm{leak}}', value=neuron_pars[neuron_name]['g_L'], units=r'\nS'),
-# 					Parameter(name='\Delta_{T}', value=neuron_pars[neuron_name]['Delta_T'], units=r'None'),
-# 					Parameter(name='g_{E}', value=neuron_pars[neuron_name]['g_ex'], units=r'\nS'),
-# 					Parameter(name='g_{I}', value=neuron_pars[neuron_name]['g_in'], units=r'\nS'),
-# 					Parameter(name='E_{E}', value=neuron_pars[neuron_name]['E_ex'], units=r'\mV'),
-# 					Parameter(name='E_{I}', value=neuron_pars[neuron_name]['E_in'], units=r'\mV'),
-# 					Parameter(name='a', value=neuron_pars[neuron_name]['a'], units=r'\nS'),
-# 					Parameter(name='b', value=neuron_pars[neuron_name]['b'], units=r'\mV'),
-# 					Parameter(name='t_{\mathrm{ref}}', value=neuron_pars[neuron_name]['t_ref'], units=r'\ms'),
-# 					Parameter(name=r'\tau_{E}', value=neuron_pars[neuron_name]['tau_syn_ex'], units=r'\ms'),
-# 					Parameter(name=r'\tau_{I}', value=neuron_pars[neuron_name]['tau_syn_in'], units=r'\ms'),
-# 					Parameter(name=r'\tau_{w}', value=neuron_pars[neuron_name]['tau_w'], units=r'\ms')],
-# 				'Descriptions': [
-# 					'Membrane Capacitance',
-# 					'Resting Membrane Potential',
-# 					'Fixed Firing Threshold',
-# 					'Reset Potential',
-# 					'Leak Conductance',
-# 					'Adaptation sharpness parameter',
-# 					'Excitatory conductance',
-# 					'Inhibitory conductance',
-# 					'Excitatory reversal potential',
-# 					'Inhibitory reversal potential',
-# 					'Sub-threshold intrinsic adaptation parameter',
-# 					'Spike-triggered intrinsic adaptation parameter',
-# 					'Absolute Refractory time',
-# 					'Excitatory synaptic time constant',
-# 					'Inhbitory synaptic time constant',
-# 					'Adaptation time constant']}
-# 			})
-#
-# 		neuron_pars = list(itertools.chain(net_pars['neuron_pars']))
-# 		if len(neuron_pars) == 1:
-# 			neuron_name = [pops[0]]
-# 		else:
-# 			if np.mean([compare_dict(x, y) for x, y in zip(neuron_pars, neuron_pars[1:])]) == 1.:
-# 				neuron_name = [pops[0]]
-# 			else:
-# 				neuron_name = [n_pop for idx_pop, n_pop in enumerate(pops) if neuron_pars[idx_pop][
-# 					'model'] != 'parrot_neuron']
-#
-# 		neuron_parameters = ''
-# 		for idd, nam in enumerate(neuron_name):
-# 			neuron_parameters += (
-# 				'{0} & {1} & {2}'.format('Name', str(nam), 'Neuron name') + r'\tabularnewline ' + ' \hline ')
-#
-# 			for iid, par in enumerate(neuron_pars_description[nam]['Parameters']):
-# 				name = par.name
-# 				value = str(par.value)
-# 				units = str(par.units)
-#
-# 				neuron_parameters += ('{0} & {1} & {2}'.format('$' + name + '$', '$' + value + units + '$',
-# 				                                               neuron_pars_description[nam]['Descriptions'][iid]) +
-# 				                      r'\tabularnewline ' + ' \hline ')
-#
-# 		#### Synapse parameters ######################################
-# 		synapse_parameters = 'None & None & None' + r'\tabularnewline' + ' \hline '
-#
-# 		#### Plasticity Parameters ###################################
-# 		plasticity_parameters = 'None & None & None' + r'\tabularnewline' + ' \hline '
-#
-# 		########################################
-# 		report_pars = {
-# 			'report_templates_path': paths[run_type]['report_templates_path'],
-# 			'report_path': paths[run_type]['report_path'],
-# 			'report_filename': kernel_pars['data_prefix'] + '.tex',
-# 			'table_fields': {
-# 				'{{ net_populations_description }}': '{0} Main Populations: {1}'.format(str(net_pars['n_populations']),
-# 				                                                                        str(net_pars['pop_names'])),
-# 				'{{ net_populations_topology }}': topology_description,
-# 				'{{ net_connectivity_description }}': connectivity_description,
-# 				'{{ net_neuron_models }}': neurons_description,
-# 				'{{ net_synapse_models }}': synapse_description,
-# 				'{{ net_plasticity }}': plasticity_description,
-# 				'{{ input_general_description }}': input_description,
-# 				'{{ input_description }}': input_full_description,
-# 				'{{ measurements_description }}': measurements_description,
-#
-# 				'{{ population_names_elements_sizes }}': population_full_description,
-# 				'{{ connectivity_name_src_tgt_pattern }}': connectivity_full_description,
-# 				'{{ measurements }}': measurements_description,
-# 				'{{ population_parameters }}': population_parameters,
-# 				'{{ connectivity_parameters }}': connectivity_parameters,
-# 				'{{ neuron_parameters }}': neuron_parameters,
-# 				'{{ synapse_parameters }}': synapse_parameters,
-# 				'{{ plasticity_parameters }}': plasticity_parameters,
-# 				'{{ input_parameters }}': input_parameters,
-# 			},
-# 		}
-# 	elif default_set == 5:
-# 		# ### Extract single neuron parameters from dictionaries ###############
-# 		keys = neuron_pars.keys()
-# 		keys.remove('description')
-# 		keys.remove('label')
-# 		neuron_pars_description = {}
-# 		for neuron_name in keys:
-# 			neuron_pars_description.update({neuron_name: {
-# 				'Parameters': [
-# 					Parameter(name='C_{m}', value=neuron_pars[neuron_name]['C_m'], units=r'\pF'),
-# 					Parameter(name='V_{\mathrm{rest}}', value=neuron_pars[neuron_name]['E_L'], units=r'\mV'),
-# 					Parameter(name='V_{\mathrm{reset}}', value=neuron_pars[neuron_name]['V_reset'], units=r'\mV'),
-# 					Parameter(name='V_{\mathrm{th}}', value=neuron_pars[neuron_name]['V_th'], units=r'\mV'),
-# 					Parameter(name=r'g_{\mathrm{leak}}', value=neuron_pars[neuron_name]['g_L'], units=r'\ms'),
-# 					Parameter(name=r'E_{E}', value=neuron_pars[neuron_name]['E_ex'], units=r'\mV'),
-# 					Parameter(name=r'E_{I}', value=neuron_pars[neuron_name]['E_in'], units=r'\mV'),
-# 					Parameter(name=r'\tau_{E}', value=neuron_pars[neuron_name]['tau_syn_ex'], units=r'\ms'),
-# 					Parameter(name=r'\tau_{I}', value=neuron_pars[neuron_name]['tau_syn_in'], units=r'\ms'),
-# 					Parameter(name='t_{\mathrm{ref}}', value=neuron_pars[neuron_name]['t_ref'], units=r'\ms')],
-# 				'Descriptions': [
-# 					'Membrane Capacitance',
-# 					'Resting Membrane Potential',
-# 					'Reset Potential',
-# 					'Firing Threshold',
-# 					'Membrane leak conductance',
-# 					'Excitatory Reversal potential',
-# 					'Inhibitory Reversal potential',
-# 					'Excitatory Synaptic time constants',
-# 					'Inhibitory Synaptic time constants',
-# 					'Absolute Refractory time']}
-# 			})
-#
-# 		neuron_pars = list(itertools.chain(net_pars['neuron_pars']))
-# 		if len(neuron_pars) == 1:
-# 			neuron_name = [pops[0]]
-# 		else:
-# 			if np.mean([compare_dict(x, y) for x, y in zip(neuron_pars, neuron_pars[1:])]) == 1.:
-# 				neuron_name = [pops[0]]
-# 			else:
-# 				neuron_name = [n_pop for idx_pop, n_pop in enumerate(pops) if neuron_pars[idx_pop][
-# 					'model'] != 'parrot_neuron']
-#
-# 		neuron_parameters = ''
-# 		for idd, nam in enumerate(neuron_name):
-# 			neuron_parameters += (
-# 				'{0} & {1} & {2}'.format('Name', str(nam), 'Neuron name') + r'\tabularnewline ' + ' \hline ')
-#
-# 			for iid, par in enumerate(neuron_pars_description[nam]['Parameters']):
-# 				name = par.name
-# 				value = str(par.value)
-# 				units = str(par.units)
-#
-# 				neuron_parameters += ('{0} & {1} & {2}'.format('$' + name + '$', '$' + value + units + '$',
-# 				                                               neuron_pars_description[nam]['Descriptions'][iid]) +
-# 				                      r'\tabularnewline ' + ' \hline ')
-#
-# 		#### Synapse parameters ######################################
-# 		synapse_parameters = 'None & None & None' + r'\tabularnewline' + ' \hline '
-#
-# 		#### Plasticity Parameters ###################################
-# 		plasticity_parameters = 'None & None & None' + r'\tabularnewline' + ' \hline '
-#
-# 		########################################
-# 		report_pars = {
-# 			'report_templates_path': paths[run_type]['report_templates_path'],
-# 			'report_path': paths[run_type]['report_path'],
-# 			'report_filename': kernel_pars['data_prefix'] + '.tex',
-# 			'table_fields': {
-# 				'{{ net_populations_description }}': '{0} Main Populations: {1}'.format(str(net_pars['n_populations']),
-# 				                                                                        str(net_pars['pop_names'])),
-# 				'{{ net_populations_topology }}': topology_description,
-# 				'{{ net_connectivity_description }}': connectivity_description,
-# 				'{{ net_neuron_models }}': neurons_description,
-# 				'{{ net_synapse_models }}': synapse_description,
-# 				'{{ net_plasticity }}': plasticity_description,
-# 				'{{ input_general_description }}': input_description,
-# 				'{{ input_description }}': input_full_description,
-# 				'{{ measurements_description }}': measurements_description,
-#
-# 				'{{ population_names_elements_sizes }}': population_full_description,
-# 				'{{ connectivity_name_src_tgt_pattern }}': connectivity_full_description,
-# 				'{{ measurements }}': measurements_description,
-# 				'{{ population_parameters }}': population_parameters,
-# 				'{{ connectivity_parameters }}': connectivity_parameters,
-# 				'{{ neuron_parameters }}': neuron_parameters,
-# 				'{{ synapse_parameters }}': synapse_parameters,
-# 				'{{ plasticity_parameters }}': plasticity_parameters,
-# 				'{{ input_parameters }}': input_parameters,
-# 			},
-# 		}
-# 	elif default_set == 6:
-# 		# ### Extract single neuron parameters from dictionaries ###############
-# 		keys = neuron_pars.keys()
-# 		keys.remove('description')
-# 		keys.remove('label')
-# 		neuron_pars_description = {}
-# 		for neuron_name in keys:
-# 			neuron_pars_description.update({neuron_name: {
-# 				'Parameters': [
-# 					Parameter(name='C_{m}', value=neuron_pars[neuron_name]['C_m'], units=r'\pF'),
-# 					Parameter(name='V_{\mathrm{rest}}', value=neuron_pars[neuron_name]['E_L'], units=r'\mV'),
-# 					Parameter(name='V_{\mathrm{reset}}', value=neuron_pars[neuron_name]['V_reset'], units=r'\mV'),
-# 					Parameter(name='V_{\mathrm{th}}', value=neuron_pars[neuron_name]['V_th'], units=r'\mV'),
-# 					Parameter(name=r'g_{\mathrm{leak}}', value=neuron_pars[neuron_name]['g_L'], units=r'\nS'),
-# 					Parameter(name=r'E_{E}', value=neuron_pars[neuron_name]['E_ex'], units=r'\mV'),
-# 					Parameter(name=r'E_{I}', value=neuron_pars[neuron_name]['E_in'], units=r'\mV'),
-# 					Parameter(name=r'\tau_{E}', value=neuron_pars[neuron_name]['tau_syn_ex'], units=r'\ms'),
-# 					Parameter(name=r'\tau_{I}', value=neuron_pars[neuron_name]['tau_syn_in'], units=r'\ms'),
-# 					Parameter(name='t_{\mathrm{ref}}', value=neuron_pars[neuron_name]['t_ref'], units=r'\ms'),
-# 					Parameter(name='q_{\mathrm{sra}}', value=neuron_pars[neuron_name]['q_sfa'], units=r'\nS'),
-# 					Parameter(name='q_{\mathrm{ref}}', value=neuron_pars[neuron_name]['q_rr'], units=r'\nS'),
-# 					Parameter(name='\tau_{\mathrm{sra}}', value=neuron_pars[neuron_name]['tau_sfa'], units=r'\ms'),
-# 					Parameter(name='\tau_{\mathrm{ref}}', value=neuron_pars[neuron_name]['tau_rr'], units=r'\ms'),
-# 					Parameter(name='E_{\mathrm{sra}}', value=neuron_pars[neuron_name]['E_sfa'], units=r'\mV'),
-# 					Parameter(name='E_{\mathrm{rr}}', value=neuron_pars[neuron_name]['E_rr'], units=r'\mV'),
-# 					Parameter(name='I_{\mathrm{E}}', value=neuron_pars[neuron_name]['I_e'], units=r'\pA')],
-# 				'Descriptions': [
-# 					'Membrane Capacitance',
-# 					'Resting Membrane Potential',
-# 					'Reset Potential',
-# 					'Firing Threshold',
-# 					'Membrane leak conductance',
-# 					'Excitatory Reversal potential',
-# 					'Inhibitory Reversal potential',
-# 					'Excitatory Synaptic time constants',
-# 					'Inhibitory Synaptic time constants',
-# 					'Absolute Refractory time',
-# 					'Quantal increment of spike rate adaptation',
-# 					'Quantal increment of relative refractory mechanism',
-# 					'Spike rate adaptation time constant',
-# 					'Relative refractory period time constant',
-# 					'Reversal potential for SRA mechanism',
-# 					'Reversal potential for RR mechanism',
-# 					'Background input current']}
-# 			})
-# 		neuron_pars = list(itertools.chain(net_pars['neuron_pars']))
-# 		if len(neuron_pars) == 1:
-# 			neuron_name = [pops[0]]
-# 		else:
-# 			if np.mean([compare_dict(x, y) for x, y in zip(neuron_pars, neuron_pars[1:])]) == 1.:
-# 				neuron_name = [pops[0]]
-# 			else:
-# 				neuron_name = [n_pop for idx_pop, n_pop in enumerate(pops) if neuron_pars[idx_pop][
-# 					'model'] != 'parrot_neuron']
-#
-# 		neuron_parameters = ''
-# 		for idd, nam in enumerate(neuron_name):
-# 			neuron_parameters += (
-# 				'{0} & {1} & {2}'.format('Name', str(nam), 'Neuron name') + r'\tabularnewline ' + ' \hline ')
-#
-# 			for iid, par in enumerate(neuron_pars_description[nam]['Parameters']):
-# 				name = par.name
-# 				value = str(par.value)
-# 				units = str(par.units)
-#
-# 				neuron_parameters += ('{0} & {1} & {2}'.format('$' + name + '$', '$' + value + units + '$',
-# 				                                               neuron_pars_description[nam]['Descriptions'][iid]) +
-# 				                      r'\tabularnewline ' + ' \hline ')
-#
-# 		#### Synapse parameters ######################################
-# 		synapse_parameters = 'None & None & None' + r'\tabularnewline' + ' \hline '
-#
-# 		#### Plasticity Parameters ###################################
-# 		plasticity_parameters = 'None & None & None' + r'\tabularnewline' + ' \hline '
-#
-# 		########################################
-# 		report_pars = {
-# 			'report_templates_path': paths[run_type]['report_templates_path'],
-# 			'report_path': paths[run_type]['report_path'],
-# 			'report_filename': kernel_pars['data_prefix'] + '.tex',
-# 			'table_fields': {
-# 				'{{ net_populations_description }}': '{0} Main Populations: {1}'.format(
-# 					str(net_pars['n_populations']),
-# 					str(net_pars['pop_names'])),
-# 				'{{ net_populations_topology }}': topology_description,
-# 				'{{ net_connectivity_description }}': connectivity_description,
-# 				'{{ net_neuron_models }}': neurons_description,
-# 				'{{ net_synapse_models }}': synapse_description,
-# 				'{{ net_plasticity }}': plasticity_description,
-# 				'{{ input_general_description }}': input_description,
-# 				'{{ input_description }}': input_full_description,
-# 				'{{ measurements_description }}': measurements_description,
-# 				'{{ population_names_elements_sizes }}': population_full_description,
-# 				'{{ connectivity_name_src_tgt_pattern }}': connectivity_full_description,
-# 				'{{ measurements }}': measurements_description,
-# 				'{{ population_parameters }}': population_parameters,
-# 				'{{ connectivity_parameters }}': connectivity_parameters,
-# 				'{{ neuron_parameters }}': neuron_parameters,
-# 				'{{ synapse_parameters }}': synapse_parameters,
-# 				'{{ plasticity_parameters }}': plasticity_parameters,
-# 				'{{ input_parameters }}': input_parameters,
-# 			},
-# 		}
-# 	return ParameterSet(report_pars)
+def set_report_defaults(default_set, run_type, paths, kernel_pars, neuron_pars, net_pars, connection_pars,
+                        encoding_pars, decoding_pars):
+	"""
+
+	:param default_set:
+	:return:
+	"""
+	# ==============================================================================================================
+	if net_pars.items():
+		topology_description = net_pars.description.topology
+	else:
+		topology_description = ''
+	if connection_pars.items():
+		connectivity_description = connection_pars.description.connectivity
+		plasticity_description = connection_pars.description.plasticity
+	else:
+		connectivity_description = ''
+		plasticity_description = ''
+	if neuron_pars.items():
+		neurons_description = neuron_pars.description.neurons
+		synapse_description = neuron_pars.description.synapses
+	else:
+		neurons_description = ''
+		synapse_description = ''
+
+	input_full_description = ''
+	connectivity_full_description = ''
+	if encoding_pars.items():
+		input_description = encoding_pars.description.general
+		input_specific_description = encoding_pars.description.specific
+		input_parameters = encoding_pars.description.parameters
+		input_generators = list(itertools.chain(encoding_pars.generator.models))
+		for n_inp, inp in enumerate(input_generators):
+			targets = [xx[0] for xx in encoding_pars.connectivity.connections if xx[1] ==
+			           encoding_pars.generator.labels[n_inp]]
+			input_full_description += '{0} & {1} & {2}'.format(r'\verb+' + inp + '+', str(targets),
+			                                                   input_specific_description + r'\tabularnewline' + ' \hline ')
+	else:
+		input_description = ''
+		input_specific_description = ''
+		input_parameters = ''
+		input_full_description = ''
+	if decoding_pars.items():
+		measurements_description = decoding_pars.description.measurements
+	else:
+		measurements_description = ''
+
+	if isinstance(net_pars['neuron_pars'][0], list):
+		neuron_models = [x['model'] for x in list(itertools.chain(*net_pars['neuron_pars'])) if x != 'global' and
+		x.has_key('model')]
+		N_neurons = list(itertools.chain(net_pars['n_neurons']))
+		pops = list(itertools.chain(net_pars['pop_names']))
+	else:
+		neuron_models = [x['model'] for x in list(itertools.chain(net_pars['neuron_pars'])) if x != 'global' and
+		                 x.has_key('model')]
+		N_neurons = list(itertools.chain(net_pars['n_neurons']))
+		pops = list(itertools.chain(net_pars['pop_names']))
+
+	#### network description (populations) ##############################
+	population_full_description = ''
+	population_parameters = ''
+	for idxxx, nnn in enumerate(pops):
+		population_full_description += ('{0} & {1} & {2}'.format(str(nnn), r'\verb+' + str(neuron_models[idxxx]) + '+',
+		                                                         str(N_neurons[
+			                                                             idxxx])) + r'\tabularnewline' + ' \hline ')
+		population_parameters += ('$N^{0}$ & {1} & {2}'.format('{' + str(nnn) + '}', str(N_neurons[idxxx]),
+		                                                       str(
+			                                                       nnn) + ' Population Size') + r'\tabularnewline' + ' \hline ')
+	if connection_pars.items():
+		#### Connectivity description ########################################
+		connectivity_parameters = r'\epsilon & $0.1$ & Connection Probability (for all synapses)' + r'\tabularnewline' + ' \hline '
+		for idx in range(connection_pars['n_synapse_types']):
+			connectivity_full_description += ('{0} & {1} & {2} & {3}'.format(str(connection_pars['synapse_names'][idx]),
+		                                                                 str(connection_pars['synapse_types'][idx][1]),
+		                                                                 str(connection_pars['synapse_types'][idx][0]),
+		                                                                 'Random, ') + r'\tabularnewline' + ' \hline ')
+			connectivity_parameters += '$w^{0}$ & {1} & Connection strength'.format('{' + str(connection_pars[
+				                                                                                  'synapse_names'][
+				                                                                                  idx]) + '}', str(
+																				connection_pars['weight_dist'][idx])) + \
+		                                                                         r'\tabularnewline' + ' \hline '
+	else:
+		connectivity_parameters = r'' + r'\tabularnewline' + ' \hline '
+
+	if default_set == 5:
+		# ### Extract single neuron parameters from dictionaries ###############
+		keys = neuron_pars.keys()
+		keys.remove('description')
+		keys.remove('label')
+		neuron_pars_description = {}
+		for neuron_name in keys:
+			neuron_pars_description.update({neuron_name: {
+				'Parameters': [
+					Parameter(name='C_{m}', value=neuron_pars[neuron_name]['C_m'], units=r'\pF'),
+					Parameter(name='V_{\mathrm{rest}}', value=neuron_pars[neuron_name]['E_L'], units=r'\mV'),
+					Parameter(name='V_{\mathrm{reset}}', value=neuron_pars[neuron_name]['V_reset'], units=r'\mV'),
+					Parameter(name='V_{\mathrm{th}}', value=neuron_pars[neuron_name]['V_th'], units=r'\mV'),
+					Parameter(name=r'g_{\mathrm{leak}}', value=neuron_pars[neuron_name]['g_L'], units=r'\ms'),
+					Parameter(name=r'E_{E}', value=neuron_pars[neuron_name]['E_ex'], units=r'\mV'),
+					Parameter(name=r'E_{I}', value=neuron_pars[neuron_name]['E_in'], units=r'\mV'),
+					Parameter(name=r'\tau_{E}', value=neuron_pars[neuron_name]['tau_syn_ex'], units=r'\ms'),
+					Parameter(name=r'\tau_{I}', value=neuron_pars[neuron_name]['tau_syn_in'], units=r'\ms'),
+					Parameter(name='t_{\mathrm{ref}}', value=neuron_pars[neuron_name]['t_ref'], units=r'\ms')],
+				'Descriptions': [
+					'Membrane Capacitance',
+					'Resting Membrane Potential',
+					'Reset Potential',
+					'Firing Threshold',
+					'Membrane leak conductance',
+					'Excitatory Reversal potential',
+					'Inhibitory Reversal potential',
+					'Excitatory Synaptic time constants',
+					'Inhibitory Synaptic time constants',
+					'Absolute Refractory time']}
+			})
+
+		neuron_pars = list(itertools.chain(net_pars['neuron_pars']))
+		if len(neuron_pars) == 1:
+			neuron_name = [pops[0]]
+		else:
+			if np.mean([compare_dict(x, y) for x, y in zip(neuron_pars, neuron_pars[1:])]) == 1.:
+				neuron_name = [pops[0]]
+			else:
+				neuron_name = [n_pop for idx_pop, n_pop in enumerate(pops) if neuron_pars[idx_pop][
+					'model'] != 'parrot_neuron']
+
+		neuron_parameters = ''
+		for idd, nam in enumerate(neuron_name):
+			neuron_parameters += (
+				'{0} & {1} & {2}'.format('Name', str(nam), 'Neuron name') + r'\tabularnewline ' + ' \hline ')
+
+			for iid, par in enumerate(neuron_pars_description[nam]['Parameters']):
+				name = par.name
+				value = str(par.value)
+				units = str(par.units)
+
+				neuron_parameters += ('{0} & {1} & {2}'.format('$' + name + '$', '$' + value + units + '$',
+				                                               neuron_pars_description[nam]['Descriptions'][iid]) +
+				                      r'\tabularnewline ' + ' \hline ')
+
+		#### Synapse parameters ######################################
+		synapse_parameters = 'None & None & None' + r'\tabularnewline' + ' \hline '
+
+		#### Plasticity Parameters ###################################
+		plasticity_parameters = 'None & None & None' + r'\tabularnewline' + ' \hline '
+
+		########################################
+		report_pars = {
+			'report_templates_path': paths[run_type]['report_templates_path'],
+			'report_path': paths[run_type]['report_path'],
+			'report_filename': kernel_pars['data_prefix'] + '.tex',
+			'table_fields': {
+				'{{ net_populations_description }}': '{0} Main Populations: {1}'.format(str(net_pars['n_populations']),
+				                                                                        str(net_pars['pop_names'])),
+				'{{ net_populations_topology }}': topology_description,
+				'{{ net_connectivity_description }}': connectivity_description,
+				'{{ net_neuron_models }}': neurons_description,
+				'{{ net_synapse_models }}': synapse_description,
+				'{{ net_plasticity }}': plasticity_description,
+				'{{ input_general_description }}': input_description,
+				'{{ input_description }}': input_full_description,
+				'{{ measurements_description }}': measurements_description,
+
+				'{{ population_names_elements_sizes }}': population_full_description,
+				'{{ connectivity_name_src_tgt_pattern }}': connectivity_full_description,
+				'{{ measurements }}': measurements_description,
+				'{{ population_parameters }}': population_parameters,
+				'{{ connectivity_parameters }}': connectivity_parameters,
+				'{{ neuron_parameters }}': neuron_parameters,
+				'{{ synapse_parameters }}': synapse_parameters,
+				'{{ plasticity_parameters }}': plasticity_parameters,
+				'{{ input_parameters }}': input_parameters,
+			},
+		}
+
+	return ParameterSet(report_pars)
