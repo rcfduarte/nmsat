@@ -3243,11 +3243,6 @@ class EncodingLayer:
 		:param progress: show progress bar
 		:return:
 		"""
-		print "gandalf \n\n @@@@ --- \n\n"
-		print src_gids
-		print tget_gids
-		print syn_name
-		exit()
 		if src_gids is None:
 			for con in list(np.unique(self.connection_types)):
 				status_dict = nest.GetStatus(nest.GetConnections(synapse_model=con))
