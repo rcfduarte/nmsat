@@ -320,8 +320,8 @@ legend.scatterpoints : 1 # number of scatter points
 
 ### FIGURE
 # See http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure
-figure.figsize   : 6, 4    # figure size in inches
-#figure.dpi       : 100      # figure dots per inch
+figure.figsize   : 15, 9    # figure size in inches
+figure.dpi       : 100      # figure dots per inch
 figure.facecolor : 0.75    # figure facecolor; 0.75 is scalar gray
 figure.edgecolor : white   # figure edgecolor
 figure.autolayout : False  # When True, automatically adjust subplot
