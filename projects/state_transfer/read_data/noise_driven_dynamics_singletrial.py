@@ -95,15 +95,15 @@ for x_value in pars.parameter_axes['xticks']:
 						if not empty(d['analog_activity'][population_of_interest][x]):
 							results_arrays['analogs'][x][idx] = np.mean(d['analog_activity'][population_of_interest][x])
 
-
+cmap = "coolwarm"
 ########################################################################################################################
 # Plot
 pl_props = copy_dict(pars.parameter_axes, {
 										   'xlabel': r'$' + pars.parameter_axes['ylabel'] + '$',
                                            'ylabel': r'$' + pars.parameter_axes['xlabel'] + '$',
-                                           'xticklabels': pars.parameter_axes['yticklabels'][::4],
+                                           'xticklabels': pars.parameter_axes['yticklabels'][::2],
                                            'yticklabels': pars.parameter_axes['xticklabels'][::2],
-                                           'xticks': np.arange(0., len(pars.parameter_axes['yticks']), 4.),
+                                           'xticks': np.arange(0., len(pars.parameter_axes['yticks']), 2.),
                                            'yticks': np.arange(0., len(pars.parameter_axes['xticks']), 2.),
 })
 
@@ -148,10 +148,8 @@ for x in results_arrays['synchrony'].keys():
 	else:
 		boundaries.append([None])
 labels = [r'$'+x+'$' for x in results_arrays['synchrony'].keys()]
-# print len(labels)
-# print len(image_arrays)
 plot_2d_parscans(image_arrays=image_arrays, axis=[ax21, ax22, ax23, ax24, ax25],
-                 fig_handle=fig2, labels=labels, cmap='rainbow', boundaries=boundaries, **pl_props)
+                 fig_handle=fig2, labels=labels, cmap=cmap, boundaries=boundaries, **pl_props)
 fig2.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.6)
 fig2.savefig("synchrony.pdf")
 
@@ -168,7 +166,7 @@ for x in results_arrays['activity'].keys():
 		boundaries.append([None])
 labels = [r'$'+x+'$' for x in results_arrays['activity'].keys()]
 plot_2d_parscans(image_arrays=image_arrays, axis=[ax31, ax32],
-                 fig_handle=fig3, labels=labels, cmap='rainbow', boundaries=boundaries, **pl_props)
+                 fig_handle=fig3, labels=labels, cmap=cmap, boundaries=boundaries, **pl_props)
 pl.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.6)
 fig3.savefig("activity_metrics.pdf")
 
@@ -191,7 +189,7 @@ fig3.savefig("activity_metrics.pdf")
 # 	else:
 # 		boundaries.append([None])
 # plot_2d_parscans(image_arrays=image_arrays, axis=[ax41, ax42, ax43, ax44, ax45],
-#                  fig_handle=fig4, labels=labels, cmap='rainbow', boundaries=boundaries, **pl_props)
+#                  fig_handle=fig4, labels=labels, cmap=cmap, boundaries=boundaries, **pl_props)
 # pl.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.6)
 # fig4.savefig("analog_signal.pdf")
 
@@ -214,7 +212,7 @@ for k, v in expected_values.items():
 	image_arrays.append(summary_result.astype(float))
 
 plot_2d_parscans(image_arrays=image_arrays, axis=[ax51, ax52, ax53, ax54],
-                 fig_handle=fig5, labels=labels, cmap='rainbow', boundaries=[], **pl_props)
+                 fig_handle=fig5, labels=labels, cmap=cmap, boundaries=[], **pl_props)
 pl.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.6)
 fig5.savefig("summary.pdf")
 
@@ -242,9 +240,8 @@ activity_summary = (activity_summary - np.min(activity_summary)) / (np.max(activ
 analogs_summary = (analogs_summary - np.min(analogs_summary)) / (np.max(analogs_summary) - np.min(analogs_summary))
 
 ai_ness = ((sync_summary + reg_summary) / 2.)
-# print ai_ness
 plot_2d_parscans(image_arrays=[ai_ness.astype(float)], axis=[ax61],
-                 fig_handle=fig6, labels=[], cmap='rainbow', boundaries=[], **{}) # coolwarm, rainbow
+                 fig_handle=fig6, labels=[], cmap=cmap, boundaries=[], **{}) # coolwarm, rainbow
 
 ax61.scatter(np.where(ai_ness == ai_ness.min())[1][0], np.where(ai_ness == ai_ness.min())[0][0], s=20, c='red',
              marker='o')
@@ -258,12 +255,9 @@ fig7 = pl.figure()
 fig7.suptitle("All constraints")
 ax71 = fig7.add_subplot(111)
 
-values = ((sync_summary + reg_summary + activity_summary + analogs_summary) / 4.)
+values = ((sync_summary + reg_summary + activity_summary) / 3.)
 plot_2d_parscans(image_arrays=[values.astype(float)], axis=[ax71],
-                 fig_handle=fig7, labels=[], cmap='rainbow', boundaries=[], **{}) # coolwarm, rainbow
-
-print values
-print np.where(values == values.min())
+                 fig_handle=fig7, labels=[], cmap=cmap, boundaries=[], **{}) # coolwarm, rainbow
 
 ax71.scatter(np.where(values == values.min())[1][0], np.where(values == values.min())[0][0], s=20, c='red', marker='o')
 ax71.set(**pl_props)

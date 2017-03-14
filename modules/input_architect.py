@@ -1899,7 +1899,7 @@ class InputSignalSet(object):
 						duration += (parameter_set.encoding_pars.generator.jitter[0] * 2)
 
 					spattern = generate_template(n_neurons=n_input_neurons, rate=rt, duration=duration,
-				                                             resolution=resolution, rng=rng)
+												 resolution=resolution, rng=rng)
 					self.spike_patterns.append(spattern)
 			else:
 				# weighted input (modulate rates)
@@ -1940,7 +1940,7 @@ class InputSignalSet(object):
 	def generate_full_set(self, stimulus_set):
 		assert(stimulus_set.full_set is not None), "No full set in the provided StimulusSet object, skipping..."
 		self.full_set_signal = InputSignal(self.parameters.signal, self.online)
-		print(("- Generating {0}-dimensional input signal [full_set]".format(str(stimulus_set.dims))))
+		print("- Generating {0}-dimensional input signal [full_set]".format(str(stimulus_set.dims)))
 		if self.online:
 			print("- InputSignal will be generated online. full_set is now a generator.. (no noise is added...)")
 			# TODO: Noise is not added
@@ -2320,34 +2320,26 @@ class Generator:
 			if isinstance(input_signal, InputSignal):
 				# 1 generator per input channel
 				self.input_dimension = input_signal.dimensions
-				self.time_data = input_signal.time_data
-				signal = input_signal.input_signal
+				self.time_data 		 = input_signal.time_data
 			elif isinstance(input_signal, InputNoise):
 				# 1 generator per channel
 				self.input_dimension = input_signal.N
-				self.time_data = input_signal.time_data
-				signal = input_signal.noise_signal
+				self.time_data 		 = input_signal.time_data
 			elif isinstance(input_signal, signals.AnalogSignalList) or isinstance(input_signal, signals.SpikeList):
 				self.input_dimension = len(input_signal)
-				self.time_data = input_signal.time_axis()
-				signal = input_signal
+				self.time_data 		 = input_signal.time_axis()
 			else:
 				raise TypeError("input_signal must be InputSignal, AnalogSignalList or SpikeList")
-		elif dims is not None:  # if dimensions are provided, overrides current value
-			self.input_dimension = dims
-			self.time_data = []
-			signal = []
 		else:
-			self.input_dimension = 1
 			self.time_data = []
-			signal = []
+
 		if dims is not None:  # if dimensions are provided, overrides current value
 			self.input_dimension = dims
-		####
-		self.gids = []
-		self.layer_gid = None
-		self.topology = initializer.topology
-		self.model = initializer.model
+
+		self.gids 		= []
+		self.layer_gid 	= None
+		self.topology 	= initializer.topology
+		self.model 		= initializer.model
 
 		if len(initializer.label) == self.input_dimension:
 			self.name = initializer.label
@@ -2368,7 +2360,6 @@ class Generator:
 				gen_layer = tp.CreateLayer(tp_dict)
 				self.layer_gid = gen_layer
 				self.gids.append(nest.GetLeaves(gen_layer)[0])
-			###
 			else:
 				self.gids.append(nest.Create(self.name[nn]))
 
@@ -2377,8 +2368,10 @@ class Generator:
 
 	def update_state(self, signal):
 		"""
-		For online generation, the input signal is given iteratively and the state of the generator objects needs to
-		be updated
+		For online generation, the input signal is given iteratively
+		and the state of the generator objects needs tobe updated
+		:param signal:
+		:return
 		"""
 		if isinstance(signal, signals.SpikeList):
 			# TODO - check spike_generator properties; if allow_offgrid_spikes, there's no need to round..
@@ -2387,6 +2380,7 @@ class Generator:
 			for nn in signal.id_list:
 				spk_times = [round(n, rounding_precision) for n in signal[nn].spike_times]  # to be sure
 				nest.SetStatus(self.gids[nn], {'spike_times': spk_times})
+				# TODO check this, seems a bit off...
 				check_timing.append(all(spk_times == np.round(nest.GetStatus(self.gids[nn], 'spike_times')[0],
 				                                rounding_precision)))
 
@@ -2592,16 +2586,20 @@ class EncodingLayer:
 			"""
 			Create all necessary generator objects
 			:param encoding_pars: global encoding parameters
+			:param signal:
+			:param input_dim:
 			:return:
 			"""
 			print("\nCreating Generators: ")
-			pars = encoding_pars.generator
+			pars 			 = encoding_pars.generator
+			generators 		 = []
 			generator_labels = []
-			generators = []
+
 			for n in range(pars.N):
 				# assess where the input to this generator comes from
 				tmp = list(signals.iterate_obj_list(encoding_pars.connectivity.connections))
 				targets = [x[0] for x in tmp]
+
 				if pars.labels[n] in targets:
 					idx = targets.index(pars.labels[n])
 					source = tmp[idx][1]
@@ -2626,6 +2624,7 @@ class EncodingLayer:
 				                 'topology': pars.topology[n],
 				                 'topology_pars': pars.topology_pars[n]}
 				gen = Generator(gen_pars_dict, signal, dims=input_dims)
+				# @barni as it was, gen.name could be a list of strings if input_dims > 1
 				generators.append(gen)
 				generator_labels.append(gen.name)
 				print("- {0} [{1}-{2}]".format(pars.labels[n], str(min(gen.gids)), str(max(gen.gids))))
@@ -2678,7 +2677,8 @@ class EncodingLayer:
 		for idx, nn in enumerate(conn_pars.connections):
 			src_name = nn[1]
 			tget_name = nn[0]
-			#print "    - %s [%s]" % (nn, conn_pars.models[idx])
+			print "    - %s [%s]" % (nn, conn_pars.models[idx])
+
 			# determine the type of the connecting populations and their parameters
 			if hasattr(encoding_pars, 'encoder'):
 				if (src_name in encoding_pars.encoder.labels) or (tget_name in
@@ -2686,7 +2686,6 @@ class EncodingLayer:
 					not encoding_pars.encoder.N:
 					continue
 			if hasattr(encoding_pars, 'encoder') and (src_name in encoding_pars.encoder.labels):
-				src_type = 'encoder'
 				src_id = encoding_pars.encoder.labels.index(src_name)
 				src_dims = self.encoders[src_id].size
 				if conn_pars.topology_dependent[idx]:
@@ -2695,7 +2694,6 @@ class EncodingLayer:
 					src_gids = self.encoders[src_id].gids
 				src_tp = self.encoders[src_id].topology
 			elif hasattr(encoding_pars, 'generator') and (src_name in encoding_pars.generator.labels):
-				src_type = 'generator'
 				src_id = encoding_pars.generator.labels.index(src_name)
 				src_dims = self.generators[src_id].input_dimension
 				if conn_pars.topology_dependent[idx]:
@@ -3211,6 +3209,8 @@ class EncodingLayer:
 		Determine the connection weights between src_gids and tget_gids
 		:param src_gids:
 		:param tget_gids:
+		:param syn_name:
+		:param progress:
 		:return:
 		"""
 		if src_gids is None and tget_gids is None:
@@ -3222,26 +3222,32 @@ class EncodingLayer:
 					#self.connection_weights.append({con: np.array([status_dict[n]['weight'] for n in range(len(
 					#	status_dict))])})
 					self.connection_weights.update({con: net_architect.extract_weights_matrix(list(np.unique(src_gids)),
-					                                                           list(np.unique(tget_gids)),
-					                                                                          progress=progress)})
+																							  list(np.unique(tget_gids)),
+																							  progress=progress)})
 
 		elif src_gids and tget_gids:
 			if syn_name is None:
 				syn_name = str(nest.GetStatus(nest.GetConnections([src_gids[0]], [tget_gids[0]]))[0]['synapse_model'])
 			self.connection_weights.update({syn_name: net_architect.extract_weights_matrix(list(np.unique(src_gids)),
-			                                                                 list(np.unique(tget_gids)),
+																						   list(np.unique(tget_gids)),
 			                                                                               progress=progress)})
-
 		else:
 			print("Provide gids!!")
 
 	def extract_synaptic_delays(self, src_gids=None, tget_gids=None, syn_name=None, progress=True):
 		"""
-
-		:param src_gids:
-		:param tget_gids:
+		Determine the synaptic delays between src_gids and tget_gids for synapses syn_name
+		:param src_gids: source NEST ids
+		:param tget_gids: target NEST ids
+		:param syn_name: name of synapse
+		:param progress: show progress bar
 		:return:
 		"""
+		print "gandalf \n\n @@@@ --- \n\n"
+		print src_gids
+		print tget_gids
+		print syn_name
+		exit()
 		if src_gids is None:
 			for con in list(np.unique(self.connection_types)):
 				status_dict = nest.GetStatus(nest.GetConnections(synapse_model=con))
@@ -3250,12 +3256,14 @@ class EncodingLayer:
 				# self.connection_weights.append({con: np.array([status_dict[n]['delay'] for n in range(len(
 				# 	status_dict))])})
 				self.connection_delays.update({con: net_architect.extract_delays_matrix(list(np.unique(src_gids)),
-				                                                            list(np.unique(tget_gids)), progress=progress)})
+																						list(np.unique(tget_gids)),
+																						progress=progress)})
 		elif src_gids and tget_gids:
 			if syn_name is None:
 				syn_name = str(nest.GetStatus(nest.GetConnections([src_gids[0]], [tget_gids[0]]))[0]['synapse_model'])
-			self.connection_delays.update({syn_name: net_architect.extract_delays_matrix(list(np.unique(src_gids)), list(np.unique(
-					tget_gids)), progress=progress)})
+			self.connection_delays.update({syn_name: net_architect.extract_delays_matrix(list(np.unique(src_gids)),
+																						 list(np.unique(tget_gids)),
+																						 progress=progress)})
 		else:
 			print("Provide gids!!")
 
@@ -3358,9 +3366,10 @@ class EncodingLayer:
 		:return:
 		"""
 		assert (not signals.empty(self.connection_delays)), "Please run extract_connectivity first..."
+
 		for k, v in self.connection_delays.items():
 			delay = np.unique(np.array(v[v.nonzero()].todense()))
 			assert (len(delay) == 1), "Heterogeneous delays in encoding layer are not supported.."
 
 		self.total_delay = float(delay)
-		print(("\nTotal delays in EncodingLayer: {0} ms".format(str(self.total_delay))))
+		print("\nTotal delays in EncodingLayer: {0} ms".format(str(self.total_delay)))
