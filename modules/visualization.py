@@ -350,7 +350,7 @@ def box_plot(ax, data, pos):
 	:param pos: list of x positions
 	:return:
 	"""
-	ax.boxplot(data, notch=1, positions=pos, vert=1)
+	ax.boxplot(data, notch=1, positions=pos, vert=1, sym='k+')
 
 
 def summary_statistics(data_list, labels, loc=0, fig=None, cmap='jet'):
@@ -710,6 +710,27 @@ def test_offline_filtering(spike_list, N, dt, tau):
 	pl.show()
 
 
+def plot_single_raster(times, ax, t_start=0, t_stop=1000):
+	"""
+	Plot the spike times of a single SpikeTrain
+	:param times:
+	:param ax:
+	:param t_start:
+	:param t_stop:
+	:return:
+	"""
+	for tt in times:
+		ax.vlines(tt, 0.5, 1.5, color='k', linewidth=2)
+		ax.set_xlabel('')
+		ax.set_ylabel(r'$\mathrm{S}_{i}$')
+		ax.set_xlim([t_start, t_stop])
+		ax.set_ylim([0.5, 1.6])
+		ax.set_yticks([])
+		ax.set_yticklabels([])
+		ax.set_xticklabels([])
+
+
+
 def plot_acc(t, accs, fit_params, acc_function, title='', ax=None, display=True, save=False):
 	"""
 
@@ -782,7 +803,8 @@ def scatter_variability(variable, ax):
 	ax.set_ylabel('Variance')
 
 
-def plot_2d_parscans(image_arrays=[], axis=[], fig_handle=None, labels=[], cmap='jet', boundaries=[], **kwargs):
+def plot_2d_parscans(image_arrays=[], axis=[], fig_handle=None, labels=[], cmap='jet', boundaries=[],
+                     display=True, **kwargs):
 	"""
 	Plots a list of arrays as images in the corresponding axis with the corresponding colorbar
 
@@ -807,7 +829,8 @@ def plot_2d_parscans(image_arrays=[], axis=[], fig_handle=None, labels=[], cmap=
 				cbar = fig_handle.colorbar(plt1, cax=cax)
 			ax.set(**kwargs)
 			pl.draw()
-	pl.show(block=False)
+	if display:
+		pl.show(block=False)
 
 
 def plot_3d_volume(X):
@@ -987,13 +1010,33 @@ def plot_2d_regression_fit(fit_obj, state_matrix, target_labels, readout, displa
 		pl.show(False)
 
 
-def plot_raster(spike_list, dt, ax, **kwargs):
+def plot_raster(spike_list, dt, ax, sub_set=None, **kwargs):
+	"""
+	Plot a nice-looking line raster
+	:param spike_list: SpikeList object
+	:param dt: shortest bin width
+	:param ax: axis to plot on
+	:param sub_set: display only subset of spiking neurons
+	:param kwargs:
+	:return:
+	"""
+	if sub_set is not None:
+		# plot a subset of the spiking neurons
+		ids = np.random.permutation([x for ii, x in enumerate(spike_list.id_list) if spike_list.mean_rates()[ii]])[
+		      :sub_set]
+		tmp = []
+		for n_id, idd in enumerate(ids):
+			tmp.append([(n_id, t) for t in spike_list.spiketrains[idd].spike_times])
+		tmp = list(itertools.chain(*tmp))
+		spks = signals.SpikeList(tmp, list(np.arange(sub_set)))
+	else:
+		spks = spike_list
 	ax1a = pl.twinx(ax)
-	spike_list.raster_plot(ax=ax, display=False, **kwargs)
+	spks.raster_plot(ax=ax, display=False, **kwargs)
 	ax.grid(False)
 	ax.set_ylabel(r'Neuron')
 	ax.set_xlabel(r'Time $[\mathrm{ms}]$')
-	ax1a.plot(spike_list.time_axis(dt)[:-1], spike_list.firing_rate(dt, average=True), 'k', lw=1., alpha=0.7)
+	ax1a.plot(spike_list.time_axis(dt)[:-1], spike_list.firing_rate(dt, average=True), 'k', lw=1., alpha=0.5)
 	ax1a.plot(spike_list.time_axis(10.)[:-1], spike_list.firing_rate(10., average=True), 'r', lw=2.)
 	ax1a.grid(False)
 	ax1a.set_ylabel(r'Rate $[\mathrm{sps}/s]$')
@@ -2910,18 +2953,19 @@ def plot_synchrony_measures(results, label='', time_resolved=False, epochs=None,
 	:return:
 	"""
 	# Synchrony distance matrices
-	keys = ['d_vr', 'ISI_distance_matrix', 'SPIKE_distance_matrix', 'SPIKE_sync_matrix']
+	keys = ['ISI_distance_matrix', 'SPIKE_distance_matrix', 'SPIKE_sync_matrix']
 	if all([k in results.keys() for k in keys]):
 		fig3 = pl.figure()
 		fig3.suptitle('{0} - Pairwise Distances'.format(str(label)))
-		ax31 = fig3.add_subplot(221)
+		#ax31 = fig3.add_subplot(221)
 		ax32 = fig3.add_subplot(222)
 		ax33 = fig3.add_subplot(223)
 		ax34 = fig3.add_subplot(224)
-		image_arrays = [results['d_vr'], results['ISI_distance_matrix'], results['SPIKE_distance_matrix'],
+		image_arrays = [results['ISI_distance_matrix'], results['SPIKE_distance_matrix'],
 		                results['SPIKE_sync_matrix']]
-		plot_2d_parscans(image_arrays=image_arrays, axis=[ax31, ax32, ax33, ax34],
-		                     fig_handle=fig3, labels=[r'$D_{vR}$', r'$D_{ISI}$', r'$D_{SPIKE}$', r'$D_{SPIKE_{S}}$'])
+		plot_2d_parscans(image_arrays=image_arrays, axis=[ax32, ax33, ax34],
+		                     fig_handle=fig3, labels=[r'$D_{ISI}$', r'$D_{SPIKE}$', r'$D_{SPIKE_{S}}$'],
+		                 display=display)
 	if time_resolved:
 		# Time resolved synchrony
 		fig4 = pl.figure()
@@ -2993,21 +3037,14 @@ def plot_averaged_time_resolved(results, spike_list, label='', epochs=None, colo
 	# activity plots
 	fig6 = pl.figure()
 	fig6.suptitle('{0} - Activity Analysis'.format(str(label)))
-	# if not "dimensionality_profile" in results.keys():
 	ax61 = pl.subplot2grid((25, 1), (0, 0), rowspan=20, colspan=1)
-	ax62 = pl.subplot2grid((25, 1), (20, 0), rowspan=5, colspan=1, sharex=ax61)
-	# else:
-	# 	ax61 = pl.subplot2grid((24, 1), (0, 0), rowspan=20, colspan=1)
-	# 	ax62 = pl.subplot2grid((24, 1), (20, 0), rowspan=2, colspan=1, sharex=ax61)
-	# 	ax63 = pl.subplot2grid((24, 1), (22, 0), rowspan=2, colspan=1, sharex=ax61)
-	plot_raster(spike_list, 1., ax61, **{'color': 'k', 'alpha': 0.8, 'marker': '|', 'markersize': 2})
+	ax62 = pl.subplot2grid((25, 1), (20, 0), rowspan=5, colspan=1)
+	pretty_raster(spike_list, analysis_interval=[spike_list.t_start, spike_list.t_stop], n_total_neurons=100, ax=ax61)
+	# plot_raster(spike_list, 1., ax61, sub_set=100, **{'color': 'k', 'alpha': 0.8, 'marker': '|', 'markersize': 2})
 	stats = ['ffs_profile']
-	# if "dimensionality_profile" in results.keys():
-	# 	stats.append("dimensionality_profile")
 
 	cm = get_cmap(len(stats), color_map)
 	for idx, n in enumerate(stats):
-		# if n != "dimensionality_profile":
 		data_mean = np.array([results[n][i][0] for i in range(len(results[n]))])
 		data_std = np.array([results[n][i][1] for i in range(len(results[n]))])
 		t_axis = np.linspace(spike_list.t_start, spike_list.t_stop, len(data_mean))
@@ -3017,18 +3054,9 @@ def plot_averaged_time_resolved(results, spike_list, label='', epochs=None, colo
 		ax62.set_ylabel(r'$\mathrm{FF}$')
 		ax62.set_xlabel('Time [ms]')
 		ax62.set_xlim(spike_list.time_parameters())
-		# else:
-		# 	data_mean = np.array(results[n])
-		# 	t_axis = np.linspace(spike_list.t_start, spike_list.t_stop, len(data_mean))
-		# 	ax63.plot(t_axis, data_mean, c=cm(idx), lw=2.5)
-		# 	ax63.set_ylabel(r'$\lambda_{\mathrm{Eff}}$')
-		# 	ax63.set_xlabel('Time [ms]')
-		# 	ax63.set_xlim(spike_list.time_parameters())
 	if epochs is not None:
 		mark_epochs(ax61, epochs, color_map)
 		mark_epochs(ax62, epochs, color_map)
-		# if "dimensionality_profile" in results.keys():
-		# 	mark_epochs(ax63, epochs, color_map)
 
 	if display:
 		pl.show(False)
@@ -3071,7 +3099,7 @@ def plot_synaptic_currents(I_ex, I_in, time_axis):
 	ax.plot(time_axis, np.mean(np.abs(I_ex) - np.abs(I_in))*np.ones_like(I_ex), '--', c='gray')
 
 
-def pretty_raster(global_spike_list, analysis_interval, sub_pop_gids=None, n_total_neurons=10):
+def pretty_raster(global_spike_list, analysis_interval, sub_pop_gids=None, n_total_neurons=10, ax=None):
 	"""
 	Simple line raster to plot a subset of the populations (for publication)
 	:return:
@@ -3080,9 +3108,11 @@ def pretty_raster(global_spike_list, analysis_interval, sub_pop_gids=None, n_tot
 	new_ids = np.intersect1d(plot_list.select_ids("cell.mean_rate() > 0"),
 	                         plot_list.select_ids("cell.mean_rate() < 100"))
 
-	fig = pl.figure()
-	# pl.axis('off')
-	ax = fig.add_subplot(111)#, frameon=False)
+	if ax is None:
+		fig = pl.figure()
+		# pl.axis('off')
+		ax = fig.add_subplot(111)#, frameon=False)
+
 	if sub_pop_gids is not None:
 		assert (isinstance(sub_pop_gids, list)), "Provide a list of lists of gids"
 		assert (len(sub_pop_gids) == 2), "Only 2 populations are currently covered"
@@ -3114,9 +3144,10 @@ def pretty_raster(global_spike_list, analysis_interval, sub_pop_gids=None, n_tot
 	ax.set_ylim(-0.5, n_total_neurons - 0.5)
 	ax.set_xlim(0., analysis_interval[1] - analysis_interval[0])
 	ax.grid(False)
+	# ax.draw()
 	# ax.set_xticks([])
 	# ax.set_yticks([])
-	pl.show()
+
 
 
 def plot_input_example(stim_set, input_signal_set, set_name='test', display=True, save=False):

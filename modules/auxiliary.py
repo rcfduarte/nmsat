@@ -147,7 +147,7 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 					net.simulate(decoder_resolution)
 
 				# extract and store activity
-				net.extract_population_activity(t_start=internal_time, t_stop=state_sample_time)
+				net.extract_population_activity(t_start=stimulus_onset + encoder_delay, t_stop=state_sample_time)
 				net.extract_network_activity()
 				enc_layer.extract_encoder_activity(t_start=stimulus_onset + encoder_delay, t_stop=state_sample_time)
 				if not signals.empty(net.merged_populations):
@@ -912,8 +912,8 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 			set_start = start_idx
 			set_end = len(labels) + set_start
 			start_idx += len(labels)
-			print set_start, set_end
-			print labels
+			#print set_start, set_end
+			#print labels
 
 			if accepted_idx is not None:
 				accepted_ids = []
@@ -990,3 +990,5 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 							np.save(save_paths['activity'] + save_paths['label'] + '_population{0}_state{1}_{2}.npy'.format(
 								n_pop.name,	var, set_name), state_matrix)
 	return results
+
+

@@ -2,7 +2,7 @@
 #$ -cwd
 #$ -j y
 #$ -q {{ queue }}.q
-#$ -pe {{ ppn }}
+#$ -pe mpi {{ ppn }}
 #$ -S /bin/bash
 
 cd $SGE_O_WORKDIR

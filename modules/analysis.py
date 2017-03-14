@@ -632,8 +632,8 @@ def compute_synchrony(spike_list, n_pairs=500, time_bin=1., tau=20., time_resolv
 		results['ccs'] 			= (np.mean(ccs), np.var(ccs))
 
 		if depth >= 3:
-			results['d_vp'] = spike_list.distance_victorpurpura(n_pairs, cost=0.5)
-			results['d_vr'] = np.mean(spike_list.distance_van_rossum(tau=tau))
+			#results['d_vp'] = spike_list.distance_victorpurpura(n_pairs, cost=0.5)
+			#results['d_vr'] = np.mean(spike_list.distance_van_rossum(tau=tau))
 			if has_pyspike:
 				results['ISI_distance'] 		= spk.isi_distance(spike_trains)
 				results['SPIKE_distance'] 		= spk.spike_distance(spike_trains)
@@ -643,8 +643,8 @@ def compute_synchrony(spike_list, n_pairs=500, time_bin=1., tau=20., time_resolv
 		results['ccs'] 			= spike_list.pairwise_cc(n_pairs, time_bin=time_bin)
 
 		if depth >= 3:
-			results['d_vp'] 		= spike_list.distance_victorpurpura(n_pairs, cost=0.5)
-			results['d_vr'] 		= spike_list.distance_van_rossum(tau=tau)
+			#results['d_vp'] 		= spike_list.distance_victorpurpura(n_pairs, cost=0.5)
+			#results['d_vr'] 		= spike_list.distance_van_rossum(tau=tau)
 			if has_pyspike:
 				results['ISI_distance_matrix'] 		= spk.isi_distance_matrix(spike_trains)
 				results['SPIKE_distance_matrix'] 	= spk.spike_distance_matrix(spike_trains)

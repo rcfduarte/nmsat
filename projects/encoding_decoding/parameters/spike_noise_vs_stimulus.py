@@ -12,7 +12,7 @@ spike_noise_vs_stimulus
 """
 
 run = 'local'
-data_label = 'ED_spike_noise_vs_stimulus_test0'
+data_label = 'ED_spikeinput_noise_vs_stimulus'
 
 
 def build_parameters():
@@ -25,8 +25,8 @@ def build_parameters():
 		mem=32000,
 		walltime='01-00:00:00',
 		queue='defqueue',
-		transient_time=1000.,  # ongoing
-		sim_time=1000.)  # evoked
+		transient_time=5000.,  # ongoing
+		sim_time=5000.)  # evoked
 
 	kernel_pars = set_kernel_defaults(run_type=run, data_label=data_label, **system)
 	np.random.seed(kernel_pars['np_seed'])
