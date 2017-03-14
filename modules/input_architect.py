@@ -46,17 +46,16 @@ def pad_array(input_array, add=10):
 	Pads an array with zeros along the time dimension
 
 	:param input_array:
+	:param add:
 	:return:
 	"""
-	size = input_array.size
-	shape = input_array.shape
-	new_shape = (input_array.shape[0], input_array.shape[1]+add)
-	new_size = (new_shape[0])*(new_shape[1])
-	zero_array = np.zeros(new_size).reshape(new_shape)
+	new_shape 	= (input_array.shape[0], input_array.shape[1]+add)
+	new_size 	= (new_shape[0])*(new_shape[1])
+	zero_array 	= np.zeros(new_size).reshape(new_shape)
 	zero_array[:input_array.shape[0], :input_array.shape[1]] = input_array
 	return zero_array
 
-#
+#	TODO is it used or can it go?
 # def load_preset_grammar(pars_filename, grammar_name):
 # 	"""
 # 	Load all the relevant parameters corresponding to preset grammars
@@ -331,6 +330,7 @@ class StochasticGenerator:
 		else:
 			return spikes
 
+	# TODO this can be removed as soon as NEST pull request is accepted
 	def inh_poisson_generator(self, rate, t, t_stop, array=False):
 		"""
 		Returns a SpikeTrain whose spikes are a realization of an inhomogeneous
@@ -902,14 +902,15 @@ class Grammar:
 ########################################################################################################################
 class StimulusSet(object):
 	"""
-	StimulusSet object is a wrapper to hold and manipulate all the data pertaining to the input stimuli, labels,
-	and corresponding time series
+	StimulusSet object is a wrapper to hold and manipulate all the data pertaining to the input stimuli,
+	labels, and corresponding time series.
 	"""
 
 	def __init__(self, initializer=None, unique_set=False):
 		"""
 		Initialize the StimulusSet object
-		:param initializer: stimulus ParameterSet
+		:param initializer: stimulus ParameterSet, dictionary or Grammar object
+		:param unique_set:
 		"""
 		print("\nGenerating StimulusSet: ")
 		self.grammar = None
@@ -927,11 +928,11 @@ class StimulusSet(object):
 		self.test_set_labels = None
 		self.dims = 0
 		self.elements = 0
-		full_parameters = None
 		if unique_set:
 			self.unique_set = None
 			self.unique_set_labels = None
 
+		# initializer is dict
 		if isinstance(initializer, dict) and not isinstance(initializer, parameters.ParameterSet):
 			initializer = parameters.ParameterSet(initializer)
 			full_parameters = parameters.ParameterSet(initializer.copy())
@@ -1047,7 +1048,7 @@ class StimulusSet(object):
 		else:
 			seq = self.full_set_labels
 		self.full_set = self.stimulus_sequence_to_binary(seq)
-		print(("- Creating full stimulus sequence [{0}]".format(str(len(self.full_set_labels)))))
+		print("- Creating full stimulus sequence [{0}]".format(str(len(self.full_set_labels))))
 
 	def create_unique_set(self, n_discard=0):
 		"""
@@ -1072,7 +1073,7 @@ class StimulusSet(object):
 	def divide_set(self, transient_set_length, train_set_length, test_set_length):
 		"""
 		Divide the full dataset into train and test data.
-		Alternatively generate train and test data independently
+		Alternatively generate train and test data independently.
 		:param transient_set_length:
 		:param train_set_length: length of train set
 		:param test_set_length: length of test set
@@ -1111,8 +1112,8 @@ class StimulusSet(object):
 
 		self.train_set = coo_matrix(train_set)
 		self.test_set = coo_matrix(test_set)
-		print(("- Dividing set [train={0} / test={1}]".format(str(len(self.train_set_labels)),
-															   str(len(self.test_set_labels)))))
+		print("- Dividing set [train={0} / test={1}]".format(str(len(self.train_set_labels)),
+															 str(len(self.test_set_labels))))
 
 	def discard_from_set(self, n_discard=0):
 		"""
@@ -1214,9 +1215,11 @@ class InputSignal(object):
 		:param signal: numpy.ndarray or list containing the values on each time step
 		:param dt: time resolution
 		:param onset: global signal onset time [ms]
+		:param inherit_from:
 		:return:
 		"""
-		assert isinstance(signal, list) or isinstance(signal, np.ndarray) or isinstance(signal, signals.AnalogSignalList), \
+		assert isinstance(signal, list) or isinstance(signal, np.ndarray) \
+			   or isinstance(signal, signals.AnalogSignalList), \
 			"Provided signal must be a list or numpy array or AnalogSignalList"
 
 		if isinstance(signal, list):
@@ -1280,7 +1283,7 @@ class InputSignal(object):
 
 	def set_stimulus_amplitudes(self, seq):
 		"""
-		Unfold the amplitude of each stimulus presentation...
+		Unfold the amplitude of each stimulus presentation
 		:param seq: symbolic or binary input stimulus sequence
 		:return: self.amplitudes - single stimulus amplitudes
 		"""
@@ -1316,6 +1319,7 @@ class InputSignal(object):
 		"""
 		Extract the onset and offset times for the stimulus, using the durations and intervals
 		:param seq: binary or symbolic stimulus sequence
+		:param spk_patterns:
 		"""
 		if isinstance(seq, list):
 			if isinstance(seq[0], basestring) or isinstance(seq[0], list):
@@ -1347,7 +1351,7 @@ class InputSignal(object):
 		else:
 			dur = 0
 			i_stim_i = 0
-		#print dur, i_stim_i
+
 		assert (len(dur) == seq.shape[1]), "Provided durations don't match number of elements"
 		assert (len(i_stim_i) == seq.shape[1]), "Provided intervals don't match number of sequence elements"
 
@@ -1361,7 +1365,6 @@ class InputSignal(object):
 			onsets.append(onset)
 			offsets.append(onset + ii)
 			onset += ii + i_stim_i[nn]
-		#print onsets, offsets
 
 		# segregate by input signal...
 		self.durations = [[] for _ in range(self.dimensions)]
@@ -1391,12 +1394,12 @@ class InputSignal(object):
 			for ii2 in list(tmp[tmp.nonzero()]):
 				self.durations[n].append(ii2)
 
-		#print self.onset_times, self.offset_times
 		self.intervals = i_stim_i
 		self.global_stop = max(offsets)
 		self.global_stop += self.dt
 		self.time_data = np.arange(self.global_start, self.global_stop, self.dt)
 
+	# TODO @comment more
 	def apply_input_mask(self):
 		"""
 		Expand the stimulus sequence in time by applying a mask
@@ -1410,10 +1413,7 @@ class InputSignal(object):
 			# for each stimulus presentation, mark the mid-point..
 			onsets = np.array(self.onset_times[nn])
 			offsets = np.array(self.offset_times[nn])
-			# print onsets
-			# print offsets
 			mid_points = ((onsets / self.dt) + (offsets / self.dt)) / 2.
-			# print mid_points.astype(int), (mid_points - (self.global_start / self.dt)).astype(int)
 			signal[nn, (mid_points - (self.global_start / self.dt)).astype(int)] = 1.
 
 		tmp_durations = np.array(list(itertools.chain(*self.durations)))
@@ -1535,11 +1535,12 @@ class InputSignal(object):
 
 		return signal_array
 
+	# TODO @comment does it include both start and stop?
 	def time_slice(self, start, stop):
 		"""
 		Return a new input signal, which is a temporal slice of the original signal
-		:param start:
-		:param stop:
+		:param start: start time of slice
+		:param stop: end of slice
 		:return:
 		"""
 		new_signal = InputSignal()
@@ -1565,7 +1566,7 @@ class InputSignal(object):
 		"""
 		Offset the entire signal (and all its temporal components)
 		Note that this function shifts the current signal, no new signal is generated
-		:param offset:
+		:param offset: value to shift by
 		:return:
 		"""
 		if self.input_signal:
@@ -1580,9 +1581,11 @@ class InputSignal(object):
 			if isinstance(a, list):
 				self.offset_times[idx] = [b+offset for b in a]
 
+	# TODO @comment more
 	def set_signal_online(self, stim_seq):
 		"""
 		Sets amplitudes and times online
+		:param stim_seq: stimulus sequence, can be
 		:return:
 		"""
 		if isinstance(stim_seq, list):
@@ -1594,7 +1597,6 @@ class InputSignal(object):
 		for nn in range(seq.shape[1]):
 			self.set_stimulus_amplitudes(coo_matrix(seq.todense()[:, nn]))
 			self.set_stimulus_times(coo_matrix(seq.todense()[:, nn]))
-			#self.generate_single_step(coo_matrix(seq.todense()[:, nn]))
 			yield self
 
 	def generate_single_step(self, stim_seq):
@@ -1635,8 +1637,8 @@ class InputSignal(object):
 			signal[idx, int(mid_point)] = 1.
 			s = np.zeros_like(signal)
 
-			kern = make_simple_kernel(self.kernel[0], width=dur, height=amp, resolution=self.dt, normalize=False,
-			                          **self.kernel[1])
+			kern = make_simple_kernel(self.kernel[0], width=dur, height=amp, resolution=self.dt,
+									  normalize=False, **self.kernel[1])
 			input_signal = []
 			for k in range(N):
 				s[k, :] = fftconvolve(signal[k, :], kern, mode='same')
@@ -1657,6 +1659,7 @@ class InputSignal(object):
 					input_signal.append(signals.AnalogSignal(s[k, :], self.dt, t_start=on, t_stop=off))
 			return self.compress_signals(input_signal)
 
+	# TODO @comment more
 	def generate_iterative(self, stim_seq):
 		"""
 		work-around for very large input signals
@@ -1675,16 +1678,12 @@ class InputSignal(object):
 		amplitudes = list(np.copy(self.amplitudes))
 		durations = list(np.copy(self.durations))
 		onsets = list(np.copy(self.onset_times))
-		# print onsets
 		offsets = list(np.copy(self.offset_times))
-		# print offsets
 		N = len(amplitudes)
 
 		if signals.empty(onsets):
 			item_index = np.where(offsets)[0][0]
 			onsets[item_index] = [offsets[item_index][0]-durations[item_index][0]]
-		# print onsets
-		# print offsets
 
 		for nn in range(seq.shape[1]):
 			in_vec = seq.todense()[:, nn]
@@ -1702,8 +1701,8 @@ class InputSignal(object):
 			signal[idx, int(mid_point)] = 1.
 			s = np.zeros_like(signal)
 
-			kern = make_simple_kernel(self.kernel[0], width=dur, height=amp, resolution=self.dt, normalize=False,
-			                          **self.kernel[1])
+			kern = make_simple_kernel(self.kernel[0], width=dur, height=amp, resolution=self.dt,
+									  normalize=False, **self.kernel[1])
 			input_signal = []
 			for k in range(N):
 				s[k, :] = fftconvolve(signal[k, :], kern, mode='same')
@@ -1749,6 +1748,11 @@ class InputNoise(StochasticGenerator):
 	"""
 	def __init__(self, initializer, rng=None, seed=None, stop_time=None):
 		"""
+
+		:param initializer:
+		:param rng:
+		:param seed:
+		:param stop_time:
 		"""
 		StochasticGenerator.__init__(self, rng, seed)
 
@@ -1780,6 +1784,7 @@ class InputNoise(StochasticGenerator):
 		self.noise_signal = []
 		self.time_data = np.arange(self.global_start, self.global_stop, self.dt)
 
+	# TODO @comment more
 	def generate(self):
 		"""
 		"""
@@ -1938,6 +1943,11 @@ class InputSignalSet(object):
 			self.unique_stimulation_time = 0
 
 	def generate_full_set(self, stimulus_set):
+		"""
+
+		:param stimulus_set:
+		:return:
+		"""
 		assert(stimulus_set.full_set is not None), "No full set in the provided StimulusSet object, skipping..."
 		self.full_set_signal = InputSignal(self.parameters.signal, self.online)
 		print("- Generating {0}-dimensional input signal [full_set]".format(str(stimulus_set.dims)))
@@ -1970,6 +1980,11 @@ class InputSignalSet(object):
 						                                                              str(self.full_stimulation_time))))
 
 	def generate_transient_set(self, stimulus_set):
+		"""
+
+		:param stimulus_set:
+		:return:
+		"""
 		assert(stimulus_set.transient_set is not None), "No transient set in the provided StimulusSet object, skipping..."
 		self.transient_set_signal = InputSignal(self.parameters.signal, self.online)
 		print(("- Generating {0}-dimensional input signal [transient_set]".format(str(stimulus_set.dims))))
@@ -2004,6 +2019,11 @@ class InputSignalSet(object):
 						                                                         str(self.transient_stimulation_time))))
 
 	def generate_unique_set(self, stimulus_set):
+		"""
+
+		:param stimulus_set:
+		:return:
+		"""
 		assert (stimulus_set.unique_set is not None), "No unique set in the provided StimulusSet object, " \
 		                                              "skipping..."
 		self.unique_set_signal = InputSignal(self.parameters.signal, self.online)
@@ -2042,6 +2062,11 @@ class InputSignalSet(object):
 					                                                                    str(self.unique_stimulation_time))))
 
 	def generate_train_set(self, stimulus_set):
+		"""
+
+		:param stimulus_set:
+		:return:
+		"""
 		assert (stimulus_set.train_set is not None), "No train set in the provided StimulusSet object, " \
 		                                                 "skipping..."
 		self.train_set_signal = InputSignal(self.parameters.signal, self.online)
@@ -2089,10 +2114,15 @@ class InputSignalSet(object):
 					                                                              str(self.train_stimulation_time))))
 
 	def generate_test_set(self, stimulus_set):
+		"""
+
+		:param stimulus_set:
+		:return:
+		"""
 		assert (stimulus_set.test_set is not None), "No test set in the provided StimulusSet object, " \
 		                                             "skipping..."
 		self.test_set_signal = InputSignal(self.parameters.signal, self.online)
-		print(("- Generating {0}-dimensional input signal [test_set]".format(str(stimulus_set.dims))))
+		print("- Generating {0}-dimensional input signal [test_set]".format(str(stimulus_set.dims)))
 		if self.online:
 			print("- InputSignal will be generated online. test_set is now a generator.. (no noise is added...)")
 			# TODO: Noise is not added
@@ -2271,6 +2301,7 @@ class SyntheticTimeSeries(InputSignalSet):
 			transient_array = function(sample_len=int(parameter_set.kernel_pars.transient_t),
 			                                    n_samples=1, amplitudes=amplitudes,
 			                           **self.parameters.signal.function_parameters[n_signal])
+			# FIXME TODO load_signal doesn't return anything... solve this, might be critical?
 			self.transient_set_signal = InputSignal().load_signal(transient_array, dt=self.parameters.resolution,
 			                                                      onset=0.)
 
@@ -2290,7 +2321,8 @@ class SyntheticTimeSeries(InputSignalSet):
 ########################################################################################################################
 class Encoder(net_architect.Population):
 	"""
-	Convert Continuous signal into SpikeList objects, or create a population of spiking neurons...
+	Convert Continuous signal into SpikeList objects, or create a population of spiking neurons
+	from a given parameter set
 	"""
 
 	def __init__(self, par_set):
@@ -2624,7 +2656,6 @@ class EncodingLayer:
 				                 'topology': pars.topology[n],
 				                 'topology_pars': pars.topology_pars[n]}
 				gen = Generator(gen_pars_dict, signal, dims=input_dims)
-				# @barni as it was, gen.name could be a list of strings if input_dims > 1
 				generators.append(gen)
 				generator_labels.append(gen.name)
 				print("- {0} [{1}-{2}]".format(pars.labels[n], str(min(gen.gids)), str(max(gen.gids))))
@@ -2663,9 +2694,9 @@ class EncodingLayer:
 		else:
 			print("No network object provided, cannot connect input to network")
 
-		conn_pars = encoding_pars.connectivity
+		conn_pars 	= encoding_pars.connectivity
 		populations = list(signals.iterate_obj_list(net_obj.population_names))
-		pop_objs = list(signals.iterate_obj_list(net_obj.populations))
+		pop_objs 	= list(signals.iterate_obj_list(net_obj.populations))
 
 		if not signals.empty(net_obj.merged_populations):
 			merg_pop_names = [x.name for x in net_obj.merged_populations]
@@ -2946,225 +2977,227 @@ class EncodingLayer:
 							print("- Connecting {0} to population {1} [{2}]".format(src_name, tget_name, synapse_name))
 		self.signal = None
 
-	def connect_clone(self, encoding_pars, network=None, clone=None):
-		"""
-		Replicate EncodingLayer so that both network and clone network receive the exact same input
-		:param encoding_pars:
-		:param net_obj:
-		:param clone_obj:
-		:return:
-		"""
-		native_population_names = list(signals.iterate_obj_list(network.population_names))
-		native_populations = list(signals.iterate_obj_list(network.populations))
-		target_populations = [n[0] for n in encoding_pars.connectivity.connections if n[0] in native_population_names]
-		target_populations.extend([n+'_clone' for n in target_populations])
+	# TODO is this used or can it go?
+	# def connect_clone(self, encoding_pars, network=None, clone=None):
+	# 	"""
+	# 	Replicate EncodingLayer so that both network and clone network receive the exact same input
+	# 	:param encoding_pars:
+	# 	:param net_obj:
+	# 	:param clone_obj:
+	# 	:return:
+	# 	"""
+	# 	native_population_names = list(signals.iterate_obj_list(network.population_names))
+	# 	native_populations = list(signals.iterate_obj_list(network.populations))
+	# 	target_populations = [n[0] for n in encoding_pars.connectivity.connections if n[0] in native_population_names]
+	# 	target_populations.extend([n+'_clone' for n in target_populations])
+	#
+	# 	if hasattr(encoding_pars, "encoder") and encoding_pars.encoder.N:
+	# 		encoding_pars.encoder.labels.extend(['{0}_parrots'.format(n) for n in
+	# 		                                                    native_population_names if n in target_populations])
+	# 		new_encoders = encoding_pars.encoder.labels
+	# 		encoder_size = encoding_pars.encoder.n_neurons.extend([n.size for idx, n in enumerate(
+	# 				native_populations) if native_population_names[idx] in target_populations])
+	# 		encoder_pars = encoding_pars.encoder.neuron_pars.extend([{'model': 'parrot_neuron'} for n in native_population_names if n in target_populations])
+	# 		enc_models = encoding_pars.encoder.models.extend(['parrots' for _ in range(len(new_encoders))])
+	# 		enc_model_pars = encoding_pars.encoder.model_pars.extend([{} for _ in range(len(new_encoders))])
+	# 		topologies = encoding_pars.encoder.topology.extend([False for _ in range(len(new_encoders))])
+	# 		tp_dicts = encoding_pars.encoder.topology_dict.extend([None for _ in range(len(new_encoders))])
+	# 		rc_spikes = encoding_pars.encoder.record_spikes.extend([False for _ in range(len(new_encoders))])
+	# 		spk_dvc_pars = encoding_pars.encoder.spike_device_pars.extend([None for _ in range(len(new_encoders))])
+	# 		rc_analogs = encoding_pars.encoder.record_analogs.extend([False for _ in range(len(new_encoders))])
+	# 		analog_dev_pars = encoding_pars.encoder.analog_device_pars.extend([None for _ in range(len(new_encoders))])
+	# 	else:
+	# 		new_encoders = ['{0}_parrots'.format(n) for n in native_population_names if n in target_populations]
+	# 		encoder_size = [n.size for n in native_populations]
+	# 		encoder_pars = [{'model': 'parrot_neuron'} for n in native_population_names if n in target_populations]
+	# 		enc_models = ['NEF' for _ in range(len(new_encoders))]
+	# 		enc_model_pars = [{} for _ in range(len(new_encoders))]
+	# 		topologies = [False for _ in range(len(new_encoders))]
+	# 		tp_dicts = [None for _ in range(len(new_encoders))]
+	# 		rc_spikes = [False for _ in range(len(new_encoders))]
+	# 		spk_dvc_pars = [None for _ in range(len(new_encoders))]
+	# 		rc_analogs = [False for _ in range(len(new_encoders))]
+	# 		analog_dev_pars = [None for _ in range(len(new_encoders))]
+	#
+	# 	connections = []
+	# 	connections_clone = []
+	# 	conn_specs = []
+	# 	conn_specs_clone = []
+	# 	syn_names = []
+	# 	syn_names_clone = []
+	# 	syn_specs = []
+	# 	syn_specs_clone = []
+	# 	models = []
+	# 	models_clone = []
+	# 	model_pars = []
+	# 	model_pars_clone = []
+	# 	weights = []
+	# 	weights_clone = []
+	# 	delays = []
+	# 	delays_clone = []
+	# 	pre_w = []
+	# 	pre_w_clone = []
+	# 	for idx, n_connection in enumerate(encoding_pars.connectivity.connections):
+	# 		if n_connection[0] in native_population_names:
+	# 			connections.append(('{0}'.format(str(n_connection[0]+'_parrots')), '{0}'.format(str(n_connection[1]))))
+	# 			#connections_clone.append(('{0}'.format(str(n_connection[0]+'_parrots')), '{0}'.format(str(
+	# 			# n_connection[1]))))
+	# 			conn_specs.append({'rule': 'all_to_all'})
+	# 			syn_names.append('{0}Parrots'.format(str(n_connection[1])))
+	# 			syn_specs.append({})
+	# 			models.append('static_synapse')
+	# 			model_pars.append({})
+	# 			weights.append(1.)
+	# 			delays.append(0.1)
+	# 			pre_w.append(None)
+	#
+	# 			connections.append(('{0}'.format(str(n_connection[0])), '{0}'.format(str(n_connection[0]+'_parrots'))))
+	# 			connections_clone.append(('{0}_clone'.format(str(n_connection[0])), '{0}'.format(str(n_connection[0]+'_parrots'))))
+	# 			conn_specs.append({'rule': 'one_to_one'})
+	# 			conn_specs_clone.append({'rule': 'one_to_one'})
+	# 			syn_names.append(encoding_pars.connectivity.synapse_name[idx])
+	# 			syn_names_clone.append(encoding_pars.connectivity.synapse_name[idx])
+	# 			syn_specs.append(encoding_pars.connectivity.syn_specs[idx])
+	# 			syn_specs_clone.append(encoding_pars.connectivity.syn_specs[idx])
+	# 			models.append(encoding_pars.connectivity.models[idx])
+	# 			models_clone.append(encoding_pars.connectivity.models[idx])
+	# 			model_pars.append(encoding_pars.connectivity.model_pars[idx])
+	# 			model_pars_clone.append(encoding_pars.connectivity.model_pars[idx])
+	# 			weights.append(encoding_pars.connectivity.weight_dist[idx])
+	# 			weights_clone.append(encoding_pars.connectivity.weight_dist[idx])
+	# 			delays.append(encoding_pars.connectivity.delay_dist[idx])
+	# 			delays_clone.append(encoding_pars.connectivity.delay_dist[idx])
+	# 			pre_w.append(encoding_pars.connectivity.preset_W[idx])
+	# 			pre_w_clone.append(encoding_pars.connectivity.preset_W[idx])
+	# 		else:
+	# 			connections.append(n_connection)
+	# 			#connections_clone.append(n_connection)
+	# 			conn_specs.append(encoding_pars.connectivity.conn_specs[idx])
+	# 			syn_names.append(encoding_pars.connectivity.synapse_name[idx])
+	# 			syn_specs.append(encoding_pars.connectivity.syn_specs[idx])
+	# 			models.append(encoding_pars.connectivity.models[idx])
+	# 			model_pars.append(encoding_pars.connectivity.model_pars[idx])
+	# 			weights.append(encoding_pars.connectivity.weight_dist[idx])
+	# 			delays.append(encoding_pars.connectivity.delay_dist[idx])
+	# 			pre_w.append(encoding_pars.connectivity.preset_W[idx])
+	#
+	# 	tp = [False for _ in range(len(connections))] # TODO - adapt for topological connections
+	#
+	# 	extra_encoder = {
+	# 		'N': len(new_encoders),
+	# 		'labels': new_encoders,
+	# 		'models': enc_models,
+	# 		'model_pars': enc_model_pars,
+	# 		'n_neurons': encoder_size,
+	# 		'neuron_pars': encoder_pars,
+	# 		'topology': topologies,
+	# 		'topology_dict': tp_dicts,
+	# 		'record_spikes': rc_spikes,
+	# 		'spike_device_pars': spk_dvc_pars,
+	# 		'record_analogs': rc_analogs,
+	# 		'analog_device_pars': analog_dev_pars
+	# 	}
+	# 	extra_connectivity_native = {
+	# 			'synapse_name': syn_names,
+	# 			'connections': connections,
+	# 			'topology_dependent': tp,
+	# 			'conn_specs': conn_specs,
+	# 			'syn_specs': syn_specs,
+	# 			'models': models,
+	# 			'model_pars': model_pars,
+	# 			'weight_dist': weights,
+	# 			'delay_dist': delays,
+	# 			'preset_W': pre_w}
+	# 	extra_connectivity_clone = {
+	# 			'synapse_name': syn_names_clone,
+	# 			'connections': connections_clone,
+	# 			'topology_dependent': [False for _ in range(len(connections_clone))],
+	# 			'conn_specs': conn_specs_clone,
+	# 			'syn_specs': syn_specs_clone,
+	# 			'models': models_clone,
+	# 			'model_pars': model_pars_clone,
+	# 			'weight_dist': weights_clone,
+	# 			'delay_dist': delays_clone,
+	# 			'preset_W': pre_w_clone}
+	# 	native_encoding_pars = parameters.ParameterSet({'encoder': extra_encoder, 'generator': encoding_pars.generator.as_dict(),
+	# 	                                     'connectivity': extra_connectivity_native})
+	# 	clone_encoding_pars = parameters.ParameterSet({'encoder': extra_encoder, 'generator': encoding_pars.generator.as_dict(),
+	# 	                                     'connectivity': extra_connectivity_clone})
+	# 	self.__init__(native_encoding_pars)
+	# 	self.connect(native_encoding_pars, network)
+	# 	self.connect(clone_encoding_pars, clone)
 
-		if hasattr(encoding_pars, "encoder") and encoding_pars.encoder.N:
-			encoding_pars.encoder.labels.extend(['{0}_parrots'.format(n) for n in
-			                                                    native_population_names if n in target_populations])
-			new_encoders = encoding_pars.encoder.labels
-			encoder_size = encoding_pars.encoder.n_neurons.extend([n.size for idx, n in enumerate(
-					native_populations) if native_population_names[idx] in target_populations])
-			encoder_pars = encoding_pars.encoder.neuron_pars.extend([{'model': 'parrot_neuron'} for n in native_population_names if n in target_populations])
-			enc_models = encoding_pars.encoder.models.extend(['parrots' for _ in range(len(new_encoders))])
-			enc_model_pars = encoding_pars.encoder.model_pars.extend([{} for _ in range(len(new_encoders))])
-			topologies = encoding_pars.encoder.topology.extend([False for _ in range(len(new_encoders))])
-			tp_dicts = encoding_pars.encoder.topology_dict.extend([None for _ in range(len(new_encoders))])
-			rc_spikes = encoding_pars.encoder.record_spikes.extend([False for _ in range(len(new_encoders))])
-			spk_dvc_pars = encoding_pars.encoder.spike_device_pars.extend([None for _ in range(len(new_encoders))])
-			rc_analogs = encoding_pars.encoder.record_analogs.extend([False for _ in range(len(new_encoders))])
-			analog_dev_pars = encoding_pars.encoder.analog_device_pars.extend([None for _ in range(len(new_encoders))])
-		else:
-			new_encoders = ['{0}_parrots'.format(n) for n in native_population_names if n in target_populations]
-			encoder_size = [n.size for n in native_populations]
-			encoder_pars = [{'model': 'parrot_neuron'} for n in native_population_names if n in target_populations]
-			enc_models = ['NEF' for _ in range(len(new_encoders))]
-			enc_model_pars = [{} for _ in range(len(new_encoders))]
-			topologies = [False for _ in range(len(new_encoders))]
-			tp_dicts = [None for _ in range(len(new_encoders))]
-			rc_spikes = [False for _ in range(len(new_encoders))]
-			spk_dvc_pars = [None for _ in range(len(new_encoders))]
-			rc_analogs = [False for _ in range(len(new_encoders))]
-			analog_dev_pars = [None for _ in range(len(new_encoders))]
-
-		connections = []
-		connections_clone = []
-		conn_specs = []
-		conn_specs_clone = []
-		syn_names = []
-		syn_names_clone = []
-		syn_specs = []
-		syn_specs_clone = []
-		models = []
-		models_clone = []
-		model_pars = []
-		model_pars_clone = []
-		weights = []
-		weights_clone = []
-		delays = []
-		delays_clone = []
-		pre_w = []
-		pre_w_clone = []
-		for idx, n_connection in enumerate(encoding_pars.connectivity.connections):
-			if n_connection[0] in native_population_names:
-				connections.append(('{0}'.format(str(n_connection[0]+'_parrots')), '{0}'.format(str(n_connection[1]))))
-				#connections_clone.append(('{0}'.format(str(n_connection[0]+'_parrots')), '{0}'.format(str(
-				# n_connection[1]))))
-				conn_specs.append({'rule': 'all_to_all'})
-				syn_names.append('{0}Parrots'.format(str(n_connection[1])))
-				syn_specs.append({})
-				models.append('static_synapse')
-				model_pars.append({})
-				weights.append(1.)
-				delays.append(0.1)
-				pre_w.append(None)
-
-				connections.append(('{0}'.format(str(n_connection[0])), '{0}'.format(str(n_connection[0]+'_parrots'))))
-				connections_clone.append(('{0}_clone'.format(str(n_connection[0])), '{0}'.format(str(n_connection[0]+'_parrots'))))
-				conn_specs.append({'rule': 'one_to_one'})
-				conn_specs_clone.append({'rule': 'one_to_one'})
-				syn_names.append(encoding_pars.connectivity.synapse_name[idx])
-				syn_names_clone.append(encoding_pars.connectivity.synapse_name[idx])
-				syn_specs.append(encoding_pars.connectivity.syn_specs[idx])
-				syn_specs_clone.append(encoding_pars.connectivity.syn_specs[idx])
-				models.append(encoding_pars.connectivity.models[idx])
-				models_clone.append(encoding_pars.connectivity.models[idx])
-				model_pars.append(encoding_pars.connectivity.model_pars[idx])
-				model_pars_clone.append(encoding_pars.connectivity.model_pars[idx])
-				weights.append(encoding_pars.connectivity.weight_dist[idx])
-				weights_clone.append(encoding_pars.connectivity.weight_dist[idx])
-				delays.append(encoding_pars.connectivity.delay_dist[idx])
-				delays_clone.append(encoding_pars.connectivity.delay_dist[idx])
-				pre_w.append(encoding_pars.connectivity.preset_W[idx])
-				pre_w_clone.append(encoding_pars.connectivity.preset_W[idx])
-			else:
-				connections.append(n_connection)
-				#connections_clone.append(n_connection)
-				conn_specs.append(encoding_pars.connectivity.conn_specs[idx])
-				syn_names.append(encoding_pars.connectivity.synapse_name[idx])
-				syn_specs.append(encoding_pars.connectivity.syn_specs[idx])
-				models.append(encoding_pars.connectivity.models[idx])
-				model_pars.append(encoding_pars.connectivity.model_pars[idx])
-				weights.append(encoding_pars.connectivity.weight_dist[idx])
-				delays.append(encoding_pars.connectivity.delay_dist[idx])
-				pre_w.append(encoding_pars.connectivity.preset_W[idx])
-
-		tp = [False for _ in range(len(connections))] # TODO - adapt for topological connections
-
-		extra_encoder = {
-			'N': len(new_encoders),
-			'labels': new_encoders,
-			'models': enc_models,
-			'model_pars': enc_model_pars,
-			'n_neurons': encoder_size,
-			'neuron_pars': encoder_pars,
-			'topology': topologies,
-			'topology_dict': tp_dicts,
-			'record_spikes': rc_spikes,
-			'spike_device_pars': spk_dvc_pars,
-			'record_analogs': rc_analogs,
-			'analog_device_pars': analog_dev_pars
-		}
-		extra_connectivity_native = {
-				'synapse_name': syn_names,
-				'connections': connections,
-				'topology_dependent': tp,
-				'conn_specs': conn_specs,
-				'syn_specs': syn_specs,
-				'models': models,
-				'model_pars': model_pars,
-				'weight_dist': weights,
-				'delay_dist': delays,
-				'preset_W': pre_w}
-		extra_connectivity_clone = {
-				'synapse_name': syn_names_clone,
-				'connections': connections_clone,
-				'topology_dependent': [False for _ in range(len(connections_clone))],
-				'conn_specs': conn_specs_clone,
-				'syn_specs': syn_specs_clone,
-				'models': models_clone,
-				'model_pars': model_pars_clone,
-				'weight_dist': weights_clone,
-				'delay_dist': delays_clone,
-				'preset_W': pre_w_clone}
-		native_encoding_pars = parameters.ParameterSet({'encoder': extra_encoder, 'generator': encoding_pars.generator.as_dict(),
-		                                     'connectivity': extra_connectivity_native})
-		clone_encoding_pars = parameters.ParameterSet({'encoder': extra_encoder, 'generator': encoding_pars.generator.as_dict(),
-		                                     'connectivity': extra_connectivity_clone})
-		self.__init__(native_encoding_pars)
-		self.connect(native_encoding_pars, network)
-		self.connect(clone_encoding_pars, clone)
-
-	def replicate_connections(self, net, clone, progress=True):
-		"""
-		Replicate the connectivity from the encoding layer to the clone network
-		:param clone:
-		:return:
-		"""
-		start = time.time()
-		target_population_names = clone.population_names
-		target_population_gids = [n.gids for n in clone.populations]
-		source_population_names = [n.split('_')[0] for n in target_population_names]
-		source_population_gids = [net.populations[net.population_names.index(n)].gids for n in source_population_names]
-		# target_synapse_name = synapse_name[:synapse_name.find('copy') - 1]
-		device_models = ['spike_detector', 'multimeter'] # 'spike_generator',
-		for idx, n_pop in enumerate(source_population_gids):
-			print("\n Replicating Encoding Layer connections to {0}".format(clone.population_names[idx]))
-			conns = nest.GetConnections(target=n_pop)
-			iterate_steps = 100
-			its = np.arange(0, len(conns) + 1, iterate_steps).astype(int)
-			if len(its) > 1:
-				for nnn, it in enumerate(its):
-					if nnn < len(its) - 1:
-						con = conns[it:its[nnn + 1]]
-						st = nest.GetStatus(con)
-						#print [nest.GetStatus([x['source']])[0]['model'] for x in st]
-						source_gids = [x['source'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in
-						               device_models]
-						# print source_gids
-						target_gids = [target_population_gids[idx][0] for x in st if nest.GetStatus([x['source']])[0][
-							'model'] not in device_models]
-						weights = [x['weight'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
-						delays = [x['delay'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
-						models = [str(x['synapse_model']) for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
-						receptors = [x['receptor'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
-						# print receptors
-						#synapse_model = [x['synapse_model']]
-						syn_dicts = [{'synapsemodel': models[iddx],
-						              'source': source_gids[iddx],
-						              'target': target_gids[iddx],
-						              'weight': weights[iddx],
-						              'delay': delays[iddx],
-						              'receptor_type': receptors[iddx]} for iddx in range(len(target_gids))]
-						nest.DataConnect(syn_dicts)
-					if progress:
-						visualization.progress_bar(float(nnn) / float(len(its)))
-
-				print("\tElapsed time: {0} s".format(str(time.time() - start)))
-			else:
-				st = nest.GetStatus(conns)
-				print([nest.GetStatus([x['source']])[0]['model'] for x in st])
-				source_gids = [x['source'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in
-				               device_models]
-				# print source_gids
-				target_gids = [target_population_gids[idx][0] for x in st if nest.GetStatus([x['source']])[0][
-					'model'] not in device_models]
-				weights = [x['weight'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
-				delays = [x['delay'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
-				models = [str(x['synapse_model']) for x in st if
-				          nest.GetStatus([x['source']])[0]['model'] not in device_models]
-				receptors = [x['receptor'] for x in st if
-				             nest.GetStatus([x['source']])[0]['model'] not in device_models]
-				# print receptors
-				# synapse_model = [x['synapse_model']]
-				syn_dicts = [{'synapsemodel': models[iddx],
-				              'source': source_gids[iddx],
-				              'target': target_gids[iddx],
-				              'weight': weights[iddx],
-				              'delay': delays[iddx],
-				              'receptor_type': receptors[iddx]} for iddx in range(len(target_gids))]
-				nest.DataConnect(syn_dicts)
-				print("\tElapsed time: {0} s".format(str(time.time() - start)))
+	# TODO is this used or can it go?
+	# def replicate_connections(self, net, clone, progress=True):
+	# 	"""
+	# 	Replicate the connectivity from the encoding layer to the clone network
+	# 	:param net:
+	# 	:param clone:
+	# 	:param progress:
+	# 	:return:
+	# 	"""
+	# 	start = time.time()
+	# 	target_population_names = clone.population_names
+	# 	target_population_gids = [n.gids for n in clone.populations]
+	# 	source_population_names = [n.split('_')[0] for n in target_population_names]
+	# 	source_population_gids = [net.populations[net.population_names.index(n)].gids for n in source_population_names]
+	# 	device_models = ['spike_detector', 'multimeter'] # 'spike_generator',
+	#
+	# 	for idx, n_pop in enumerate(source_population_gids):
+	# 		print("\n Replicating Encoding Layer connections to {0}".format(clone.population_names[idx]))
+	# 		conns 			= nest.GetConnections(target=n_pop)
+	# 		iterate_steps 	= 100
+	# 		its 			= np.arange(0, len(conns) + 1, iterate_steps).astype(int)
+	# 		if len(its) > 1:
+	# 			for nnn, it in enumerate(its):
+	# 				if nnn < len(its) - 1:
+	# 					con = conns[it:its[nnn + 1]]
+	# 					st = nest.GetStatus(con)
+	#
+	# 					source_gids = [x['source'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in
+	# 					               device_models]
+	#
+	# 					target_gids = [target_population_gids[idx][0] for x in st
+	# 								   if nest.GetStatus([x['source']])[0]['model'] not in device_models]
+	#
+	# 					weights 	= [x['weight'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
+	# 					delays 		= [x['delay'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
+	# 					models 		= [str(x['synapse_model']) for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
+	# 					receptors 	= [x['receptor'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
+	# 					syn_dicts 	= [{'synapsemodel': models[iddx],
+	# 									 'source': source_gids[iddx],
+	# 									 'target': target_gids[iddx],
+	# 									 'weight': weights[iddx],
+	# 									 'delay': delays[iddx],
+	# 									 'receptor_type': receptors[iddx]} for iddx in range(len(target_gids))]
+	# 					nest.DataConnect(syn_dicts)
+	# 				if progress:
+	# 					visualization.progress_bar(float(nnn) / float(len(its)))
+	#
+	# 			print("\tElapsed time: {0} s".format(str(time.time() - start)))
+	# 		else:
+	# 			st = nest.GetStatus(conns)
+	# 			print([nest.GetStatus([x['source']])[0]['model'] for x in st])
+	#
+	# 			source_gids = [x['source'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in
+	# 			               device_models]
+	# 			target_gids = [target_population_gids[idx][0] for x in st if nest.GetStatus([x['source']])[0][
+	# 				'model'] not in device_models]
+	# 			weights 	= [x['weight'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
+	# 			delays 		= [x['delay'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
+	# 			models 		= [str(x['synapse_model']) for x in st if
+	# 							 nest.GetStatus([x['source']])[0]['model'] not in device_models]
+	# 			receptors = [x['receptor'] for x in st if
+	# 						 nest.GetStatus([x['source']])[0]['model'] not in device_models]
+	#
+	# 			syn_dicts = [{'synapsemodel': models[iddx],
+	# 			              'source': source_gids[iddx],
+	# 			              'target': target_gids[iddx],
+	# 			              'weight': weights[iddx],
+	# 			              'delay': delays[iddx],
+	# 			              'receptor_type': receptors[iddx]} for iddx in range(len(target_gids))]
+	# 			nest.DataConnect(syn_dicts)
+	# 			print("\tElapsed time: {0} s".format(str(time.time() - start)))
 
 	def connect_decoders(self, decoding_pars):
 		"""
@@ -3204,15 +3237,17 @@ class EncodingLayer:
 		else:
 			raise IOError("DecodingLayer requires the specification of state extractors")
 
+	# TODO we can actually remove syn_name entirely, it's not used, right?
 	def extract_synaptic_weights(self, src_gids=None, tget_gids=None, syn_name=None, progress=True):
 		"""
-		Determine the connection weights between src_gids and tget_gids
+		Determine the connection weights between src_gids and tget_gids for synapses syn_name
 		:param src_gids:
 		:param tget_gids:
 		:param syn_name:
 		:param progress:
 		:return:
 		"""
+		# TODO what's the deal here, con[-4:] != 'copy' ? :-)
 		if src_gids is None and tget_gids is None:
 			for con in list(np.unique(self.connection_types)):
 				if con[-4:] != 'copy':
@@ -3234,6 +3269,7 @@ class EncodingLayer:
 		else:
 			print("Provide gids!!")
 
+	# TODO we can actually remove syn_name entirely, it's not used, right?
 	def extract_synaptic_delays(self, src_gids=None, tget_gids=None, syn_name=None, progress=True):
 		"""
 		Determine the synaptic delays between src_gids and tget_gids for synapses syn_name
@@ -3309,9 +3345,14 @@ class EncodingLayer:
 		for n_gen in self.generators:
 			n_gen.update_state(signal)
 
+	# TODO this needs some heavy commenting @comment
 	def extract_connectivity(self, net, sub_set=False, progress=False):
 		"""
-		Extract encoding layer connections
+		Extract encoding layer connections.
+		:param net: Network object
+		:param sub_set:
+		:param progress: display progress bar
+		:return:
 		"""
 		if sub_set:
 			tgets = list(signals.iterate_obj_list([list(signals.iterate_obj_list(n.gids)) for n in
@@ -3319,11 +3360,14 @@ class EncodingLayer:
 			srces = list(itertools.chain(*[n.gids for n in self.generators][0]))[:10]
 			self.extract_synaptic_weights(srces, tgets, syn_name='Gen_Net', progress=progress)
 			self.extract_synaptic_delays(srces, tgets, syn_name='Gen_Net', progress=progress)
+
+		# if there's only one connection type
 		elif len(np.unique(self.connection_types)) == 1:
 			tgets = list(signals.iterate_obj_list([list(signals.iterate_obj_list(n.gids)) for n in net.populations]))
 			srces = list(itertools.chain(*[n.gids for n in self.generators][0]))
 			self.extract_synaptic_weights(srces, tgets, syn_name='Gen_Net', progress=progress)
 			self.extract_synaptic_delays(srces, tgets, syn_name='Gen_Net', progress=progress)
+
 		elif len(self.connections) != len(np.unique(self.connection_types)):
 			for con_idx, n_con in enumerate(self.connections):
 				src_name = n_con[1]
