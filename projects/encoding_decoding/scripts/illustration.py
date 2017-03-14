@@ -25,8 +25,8 @@ online = False
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/dc_stimulus_input.py'
-# params_file = '../parameters/spike_pattern_input.py'
+# params_file = '../parameters/dc_stimulus_input.py'
+params_file = '../parameters/spike_pattern_input.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -165,7 +165,11 @@ epochs, timing = iterate_input_sequence(net, enc_layer, parameter_set, stim_set,
 # t0 = 200.
 # net.extract_population_activity(t_start=t0, t_stop=nest.GetKernelStatus()['time'] - simulation_resolution)
 # net.extract_network_activity()
-# enc_layer.extract_encoder_activity(t_start=t0, t_stop=nest.GetKernelStatus()['time'] - simulation_resolution)
+analysis_interval = [epochs['analysis_start'], nest.GetKernelStatus()['time'] - parameter_set.kernel_pars.resolution]
+enc_layer.extract_encoder_activity(t_start=epochs['analysis_start'], t_stop=nest.GetKernelStatus()['time'] -
+                                                                            parameter_set.kernel_pars.resolution)
+pretty_raster(enc_layer.encoders[0].spiking_activity, analysis_interval, n_total_neurons=100)
+
 # if not empty(net.merged_populations):
 # 	net.merge_population_activity(start=t0, stop=nest.GetKernelStatus()['time'] - simulation_resolution,
 # 	                              save=True)

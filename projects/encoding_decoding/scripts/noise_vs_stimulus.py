@@ -226,9 +226,9 @@ results['transition'] = characterize_population_activity(net, parameter_set, ana
 net.merge_subpopulations([net.populations[0], net.populations[1]], name='EI')
 spk_list, _ = net.merge_population_activity(start=analysis_interval[0], stop=analysis_interval[1])
 gids = [x.gids for x in net.populations]
-ai = ActivityAnimator(net.populations[0].spiking_activity, populations=net, ids=gids, vm_list=[])
-ai.animate_activity(time_interval=50, time_window=50, sim_res=0.1, colors=['b', 'r'], activities=[
-	"raster"], save=True, filename=paths['figures']+paths['label']+'test', display=False)
+ai = ActivityAnimator(spk_list, populations=net, ids=gids, vm_list=[])
+ai.animate_activity(time_interval=50, time_window=50, sim_res=0.25, colors=['b', 'r'], activities=[
+	"raster", "rate"], save=True, filename='test', display=True)
 print ("gonna animate raster plot... @done")
 #######################################################################################
 # Save data

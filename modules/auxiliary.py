@@ -613,8 +613,12 @@ def retrieve_stimulus_timing(input_signal_set, idx, set_size, signal_iterator, t
 	else:
 		local_signal = None
 		simulation_time = state_sample_time
-		stimulus_duration = None
-		stimulus_onset = None
+		if idx == 0:
+			stimulus_duration = None
+			stimulus_onset = 0.1
+		else:
+			stimulus_duration = None
+			stimulus_onset = t_samp[idx-1]
 		if idx < len(t_samp) - 1:
 			if input_signal.intervals[idx]:
 				simulation_time += input_signal.intervals[idx]

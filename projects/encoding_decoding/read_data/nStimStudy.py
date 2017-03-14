@@ -34,6 +34,8 @@ pars.print_stored_keys(results_path)
 # harvest the whole data set - returns a tuple with the data labels and the complete results dictionaries
 # results = pars.harvest(data_path+data_label+'/Results/')
 
+processed_data = []
+
 # harvest specific results (specifying the list of keys necessary to reach the data)
 analysis_1 = {
 	'fig_title': 'Performance',
@@ -51,7 +53,7 @@ analysis_1 = {
 	'plot_colors': [['k', 'g', 'r'], []]}
 
 
-processed_data = harvest_results(pars, analysis_1, results_path, display=True, save=data_path+data_label)
+processed_data.append(harvest_results(pars, analysis_1, results_path, display=True, save=data_path+data_label))
 
 ########################################################################################################################
 analysis_2 = {
@@ -68,7 +70,7 @@ analysis_2 = {
 		 'performance/EI/spikes1/pinv_classifier/raw/MSE',],],
 	'plot_properties': []}
 
-harvest_results(pars, analysis_2, results_path, display=True, save=data_path+data_label)
+processed_data.append(harvest_results(pars, analysis_2, results_path, display=True, save=data_path+data_label))
 
 ########################################################################################################################
 analysis_3 = {
@@ -85,16 +87,22 @@ analysis_3 = {
 		 'performance/EI/spikes1/pinv_classifier/norm_wOut',],],
 	'plot_properties': []}
 
-harvest_results(pars, analysis_3, results_path, display=True, save=data_path+data_label)
+processed_data.append(harvest_results(pars, analysis_3, results_path, display=True, save=data_path+data_label))
 
 ########################################################################################################################
 analysis_4 = {
 	'fig_title': 'Dimensionality',
 	'ax_titles': [r'V_m', r'Spikes'],
-	'labels': [r'Vm', r'spikes'],
-	'variable_names': ['vm', 'spikes'],
-	'key_sets': ['dimensionality/EI/V_m0',
-		 'dimensionality/EI/spikes1'],
+	'labels': [[r'Vm'], [r'spikes']],
+	'variable_names': [['vm'], ['spikes']],
+	'key_sets': [['dimensionality/EI/V_m0'],
+		 ['dimensionality/EI/spikes1']],
 	'plot_properties': []}
 
-harvest_results(pars, analysis_4, results_path, display=True, save=data_path+data_label)
+processed_data.append(harvest_results(pars, analysis_4, results_path, display=True, save=data_path+data_label))
+
+########################################################################################################################
+all_keys = list(itertools.chain(*[n[0].keys() for n in processed_data]))
+all_results = [clean_array(n[0][k]) for n in processed_data for k in n[0].keys()]
+all_figures = [n[1] for n in processed_data]
+all_axes = list(itertools.chain(*[n[2] for n in processed_data]))

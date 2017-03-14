@@ -18,7 +18,7 @@ noise_vs_stimulus
 
 # data parameters
 project = 'encoding_decoding'
-data_type = 'dcinput'
+data_type = 'spikeinput' #'dcinput'
 data_path = '/media/neuro/Data/EncodingDecoding_NEW/noise_vs_stimulus/'
 data_label = 'ED_{0}_noise_vs_stimulus'.format(data_type)
 results_path = data_path + data_label + '/Results/'
@@ -36,9 +36,10 @@ pars = ParameterSpace(pars_file)
 
 
 ########################################################################################################################
-population = 'Global'
-metrics_of_interest = ['mean_rates', 'ffs', 'corrected_rates', 'lvs', 'ISI_distance_matrix', 'SPIKE_distance_matrix',
-                       'SPIKE_sync_matrix', 'ents']
+population = 'E'
+metrics_of_interest = ['mean_rates', 'ffs', 'corrected_rates', 'lvs', 'ents'] #'ISI_distance_matrix',
+                       # 'SPIKE_distance_matrix',
+                       #'SPIKE_sync_matrix', 'ents']
 
 # harvest the noise data
 k = 'ongoing/spiking_activity/{0}'.format(population)
@@ -59,10 +60,10 @@ for idx, key in enumerate(metrics_of_interest):
 	ax = pl.subplot2grid((1, len(metrics_of_interest) * 2), (0, positions[idx] * 2), rowspan=1, colspan=2)
 
 	data = noise[key]
-	ax = plot_distribution(data, pos=-0.2, cmap=cm, positions=positions, ax=ax)
+	ax = plot_distribution(data, pos=-0.2, cmap=cm, positions=positions, idx=idx, ax=ax)
 
 	data = stim[key]
-	ax = plot_distribution(data, pos=0.2, cmap=cm, positions=positions, ax=ax)
+	ax = plot_distribution(data, pos=0.2, cmap=cm, positions=positions, idx=idx, ax=ax)
 
 	ax.set_title(key)
 	ax.set_xticks([-0.2, 0.2])

@@ -12,7 +12,7 @@ spike_noise_vs_stimulus
 """
 
 run = 'local'
-data_label = 'ED_spikeinput_noise_vs_stimulus'
+data_label = 'ED_spikeinput_noise_vs_stimulus_example'
 
 
 def build_parameters():

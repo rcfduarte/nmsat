@@ -1750,6 +1750,8 @@ def evaluate_encoding(enc_layer, parameter_set, analysis_interval, input_signal,
 				inp_readout_pars = prs.copy_dict(parameter_set.decoding_pars.readout[0],
 			                                 {'label': 'InputNeurons',
 			                                  'algorithm': parameter_set.decoding_pars.readout[0]['algorithm'][0]})
+
+
 			inp_readout = Readout(prs.ParameterSet(inp_readout_pars))
 			analysis_signal = input_signal.time_slice(analysis_interval[0], analysis_interval[1])
 			inp_readout.train(inp_responses, analysis_signal.as_array())

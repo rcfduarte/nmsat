@@ -1187,3 +1187,13 @@ class ParameterSpace:
 					result[index] = operation(d[field])
 		return result
 
+
+def clean_array(x):
+	"""
+	Remove None entries from an array and replace with np.nan
+	:return:
+	"""
+	for idx, val in np.ndenumerate(x):
+		if val is None:
+			x[idx] = np.nan
+	return x
