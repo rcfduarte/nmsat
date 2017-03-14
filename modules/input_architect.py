@@ -2797,6 +2797,7 @@ class EncodingLayer:
 						               nest.GetStatus([x['target']])[0]['model'] not in device_models]
 						target_gids = [x['target'] for x in st if
 						               nest.GetStatus([x['target']])[0]['model'] not in device_models]
+						# TODO some values here are not used... is this on purpose?
 						weights = [x['weight'] for x in st if nest.GetStatus([x['target']])[0]['model'] not in device_models]
 						delays = [x['delay'] for x in st if nest.GetStatus([x['target']])[0]['model'] not in device_models]
 						models = [x['synapse_model'] for x in st if
@@ -2977,155 +2978,154 @@ class EncodingLayer:
 							print("- Connecting {0} to population {1} [{2}]".format(src_name, tget_name, synapse_name))
 		self.signal = None
 
-	# TODO is this used or can it go?
-	# def connect_clone(self, encoding_pars, network=None, clone=None):
-	# 	"""
-	# 	Replicate EncodingLayer so that both network and clone network receive the exact same input
-	# 	:param encoding_pars:
-	# 	:param net_obj:
-	# 	:param clone_obj:
-	# 	:return:
-	# 	"""
-	# 	native_population_names = list(signals.iterate_obj_list(network.population_names))
-	# 	native_populations = list(signals.iterate_obj_list(network.populations))
-	# 	target_populations = [n[0] for n in encoding_pars.connectivity.connections if n[0] in native_population_names]
-	# 	target_populations.extend([n+'_clone' for n in target_populations])
-	#
-	# 	if hasattr(encoding_pars, "encoder") and encoding_pars.encoder.N:
-	# 		encoding_pars.encoder.labels.extend(['{0}_parrots'.format(n) for n in
-	# 		                                                    native_population_names if n in target_populations])
-	# 		new_encoders = encoding_pars.encoder.labels
-	# 		encoder_size = encoding_pars.encoder.n_neurons.extend([n.size for idx, n in enumerate(
-	# 				native_populations) if native_population_names[idx] in target_populations])
-	# 		encoder_pars = encoding_pars.encoder.neuron_pars.extend([{'model': 'parrot_neuron'} for n in native_population_names if n in target_populations])
-	# 		enc_models = encoding_pars.encoder.models.extend(['parrots' for _ in range(len(new_encoders))])
-	# 		enc_model_pars = encoding_pars.encoder.model_pars.extend([{} for _ in range(len(new_encoders))])
-	# 		topologies = encoding_pars.encoder.topology.extend([False for _ in range(len(new_encoders))])
-	# 		tp_dicts = encoding_pars.encoder.topology_dict.extend([None for _ in range(len(new_encoders))])
-	# 		rc_spikes = encoding_pars.encoder.record_spikes.extend([False for _ in range(len(new_encoders))])
-	# 		spk_dvc_pars = encoding_pars.encoder.spike_device_pars.extend([None for _ in range(len(new_encoders))])
-	# 		rc_analogs = encoding_pars.encoder.record_analogs.extend([False for _ in range(len(new_encoders))])
-	# 		analog_dev_pars = encoding_pars.encoder.analog_device_pars.extend([None for _ in range(len(new_encoders))])
-	# 	else:
-	# 		new_encoders = ['{0}_parrots'.format(n) for n in native_population_names if n in target_populations]
-	# 		encoder_size = [n.size for n in native_populations]
-	# 		encoder_pars = [{'model': 'parrot_neuron'} for n in native_population_names if n in target_populations]
-	# 		enc_models = ['NEF' for _ in range(len(new_encoders))]
-	# 		enc_model_pars = [{} for _ in range(len(new_encoders))]
-	# 		topologies = [False for _ in range(len(new_encoders))]
-	# 		tp_dicts = [None for _ in range(len(new_encoders))]
-	# 		rc_spikes = [False for _ in range(len(new_encoders))]
-	# 		spk_dvc_pars = [None for _ in range(len(new_encoders))]
-	# 		rc_analogs = [False for _ in range(len(new_encoders))]
-	# 		analog_dev_pars = [None for _ in range(len(new_encoders))]
-	#
-	# 	connections = []
-	# 	connections_clone = []
-	# 	conn_specs = []
-	# 	conn_specs_clone = []
-	# 	syn_names = []
-	# 	syn_names_clone = []
-	# 	syn_specs = []
-	# 	syn_specs_clone = []
-	# 	models = []
-	# 	models_clone = []
-	# 	model_pars = []
-	# 	model_pars_clone = []
-	# 	weights = []
-	# 	weights_clone = []
-	# 	delays = []
-	# 	delays_clone = []
-	# 	pre_w = []
-	# 	pre_w_clone = []
-	# 	for idx, n_connection in enumerate(encoding_pars.connectivity.connections):
-	# 		if n_connection[0] in native_population_names:
-	# 			connections.append(('{0}'.format(str(n_connection[0]+'_parrots')), '{0}'.format(str(n_connection[1]))))
-	# 			#connections_clone.append(('{0}'.format(str(n_connection[0]+'_parrots')), '{0}'.format(str(
-	# 			# n_connection[1]))))
-	# 			conn_specs.append({'rule': 'all_to_all'})
-	# 			syn_names.append('{0}Parrots'.format(str(n_connection[1])))
-	# 			syn_specs.append({})
-	# 			models.append('static_synapse')
-	# 			model_pars.append({})
-	# 			weights.append(1.)
-	# 			delays.append(0.1)
-	# 			pre_w.append(None)
-	#
-	# 			connections.append(('{0}'.format(str(n_connection[0])), '{0}'.format(str(n_connection[0]+'_parrots'))))
-	# 			connections_clone.append(('{0}_clone'.format(str(n_connection[0])), '{0}'.format(str(n_connection[0]+'_parrots'))))
-	# 			conn_specs.append({'rule': 'one_to_one'})
-	# 			conn_specs_clone.append({'rule': 'one_to_one'})
-	# 			syn_names.append(encoding_pars.connectivity.synapse_name[idx])
-	# 			syn_names_clone.append(encoding_pars.connectivity.synapse_name[idx])
-	# 			syn_specs.append(encoding_pars.connectivity.syn_specs[idx])
-	# 			syn_specs_clone.append(encoding_pars.connectivity.syn_specs[idx])
-	# 			models.append(encoding_pars.connectivity.models[idx])
-	# 			models_clone.append(encoding_pars.connectivity.models[idx])
-	# 			model_pars.append(encoding_pars.connectivity.model_pars[idx])
-	# 			model_pars_clone.append(encoding_pars.connectivity.model_pars[idx])
-	# 			weights.append(encoding_pars.connectivity.weight_dist[idx])
-	# 			weights_clone.append(encoding_pars.connectivity.weight_dist[idx])
-	# 			delays.append(encoding_pars.connectivity.delay_dist[idx])
-	# 			delays_clone.append(encoding_pars.connectivity.delay_dist[idx])
-	# 			pre_w.append(encoding_pars.connectivity.preset_W[idx])
-	# 			pre_w_clone.append(encoding_pars.connectivity.preset_W[idx])
-	# 		else:
-	# 			connections.append(n_connection)
-	# 			#connections_clone.append(n_connection)
-	# 			conn_specs.append(encoding_pars.connectivity.conn_specs[idx])
-	# 			syn_names.append(encoding_pars.connectivity.synapse_name[idx])
-	# 			syn_specs.append(encoding_pars.connectivity.syn_specs[idx])
-	# 			models.append(encoding_pars.connectivity.models[idx])
-	# 			model_pars.append(encoding_pars.connectivity.model_pars[idx])
-	# 			weights.append(encoding_pars.connectivity.weight_dist[idx])
-	# 			delays.append(encoding_pars.connectivity.delay_dist[idx])
-	# 			pre_w.append(encoding_pars.connectivity.preset_W[idx])
-	#
-	# 	tp = [False for _ in range(len(connections))] # TODO - adapt for topological connections
-	#
-	# 	extra_encoder = {
-	# 		'N': len(new_encoders),
-	# 		'labels': new_encoders,
-	# 		'models': enc_models,
-	# 		'model_pars': enc_model_pars,
-	# 		'n_neurons': encoder_size,
-	# 		'neuron_pars': encoder_pars,
-	# 		'topology': topologies,
-	# 		'topology_dict': tp_dicts,
-	# 		'record_spikes': rc_spikes,
-	# 		'spike_device_pars': spk_dvc_pars,
-	# 		'record_analogs': rc_analogs,
-	# 		'analog_device_pars': analog_dev_pars
-	# 	}
-	# 	extra_connectivity_native = {
-	# 			'synapse_name': syn_names,
-	# 			'connections': connections,
-	# 			'topology_dependent': tp,
-	# 			'conn_specs': conn_specs,
-	# 			'syn_specs': syn_specs,
-	# 			'models': models,
-	# 			'model_pars': model_pars,
-	# 			'weight_dist': weights,
-	# 			'delay_dist': delays,
-	# 			'preset_W': pre_w}
-	# 	extra_connectivity_clone = {
-	# 			'synapse_name': syn_names_clone,
-	# 			'connections': connections_clone,
-	# 			'topology_dependent': [False for _ in range(len(connections_clone))],
-	# 			'conn_specs': conn_specs_clone,
-	# 			'syn_specs': syn_specs_clone,
-	# 			'models': models_clone,
-	# 			'model_pars': model_pars_clone,
-	# 			'weight_dist': weights_clone,
-	# 			'delay_dist': delays_clone,
-	# 			'preset_W': pre_w_clone}
-	# 	native_encoding_pars = parameters.ParameterSet({'encoder': extra_encoder, 'generator': encoding_pars.generator.as_dict(),
-	# 	                                     'connectivity': extra_connectivity_native})
-	# 	clone_encoding_pars = parameters.ParameterSet({'encoder': extra_encoder, 'generator': encoding_pars.generator.as_dict(),
-	# 	                                     'connectivity': extra_connectivity_clone})
-	# 	self.__init__(native_encoding_pars)
-	# 	self.connect(native_encoding_pars, network)
-	# 	self.connect(clone_encoding_pars, clone)
+	def connect_clone(self, encoding_pars, network=None, clone=None):
+		"""
+		Replicate EncodingLayer so that both network and clone network receive the exact same input
+		:param encoding_pars:
+		:param network:
+		:param clone:
+		:return:
+		"""
+		native_population_names = list(signals.iterate_obj_list(network.population_names))
+		native_populations = list(signals.iterate_obj_list(network.populations))
+		target_populations = [n[0] for n in encoding_pars.connectivity.connections if n[0] in native_population_names]
+		target_populations.extend([n+'_clone' for n in target_populations])
+
+		if hasattr(encoding_pars, "encoder") and encoding_pars.encoder.N:
+			encoding_pars.encoder.labels.extend(['{0}_parrots'.format(n) for n in
+			                                                    native_population_names if n in target_populations])
+			new_encoders = encoding_pars.encoder.labels
+			encoder_size = encoding_pars.encoder.n_neurons.extend([n.size for idx, n in enumerate(
+					native_populations) if native_population_names[idx] in target_populations])
+			encoder_pars = encoding_pars.encoder.neuron_pars.extend([{'model': 'parrot_neuron'} for n in native_population_names if n in target_populations])
+			enc_models = encoding_pars.encoder.models.extend(['parrots' for _ in range(len(new_encoders))])
+			enc_model_pars = encoding_pars.encoder.model_pars.extend([{} for _ in range(len(new_encoders))])
+			topologies = encoding_pars.encoder.topology.extend([False for _ in range(len(new_encoders))])
+			tp_dicts = encoding_pars.encoder.topology_dict.extend([None for _ in range(len(new_encoders))])
+			rc_spikes = encoding_pars.encoder.record_spikes.extend([False for _ in range(len(new_encoders))])
+			spk_dvc_pars = encoding_pars.encoder.spike_device_pars.extend([None for _ in range(len(new_encoders))])
+			rc_analogs = encoding_pars.encoder.record_analogs.extend([False for _ in range(len(new_encoders))])
+			analog_dev_pars = encoding_pars.encoder.analog_device_pars.extend([None for _ in range(len(new_encoders))])
+		else:
+			new_encoders = ['{0}_parrots'.format(n) for n in native_population_names if n in target_populations]
+			encoder_size = [n.size for n in native_populations]
+			encoder_pars = [{'model': 'parrot_neuron'} for n in native_population_names if n in target_populations]
+			enc_models = ['NEF' for _ in range(len(new_encoders))]
+			enc_model_pars = [{} for _ in range(len(new_encoders))]
+			topologies = [False for _ in range(len(new_encoders))]
+			tp_dicts = [None for _ in range(len(new_encoders))]
+			rc_spikes = [False for _ in range(len(new_encoders))]
+			spk_dvc_pars = [None for _ in range(len(new_encoders))]
+			rc_analogs = [False for _ in range(len(new_encoders))]
+			analog_dev_pars = [None for _ in range(len(new_encoders))]
+
+		connections = []
+		connections_clone = []
+		conn_specs = []
+		conn_specs_clone = []
+		syn_names = []
+		syn_names_clone = []
+		syn_specs = []
+		syn_specs_clone = []
+		models = []
+		models_clone = []
+		model_pars = []
+		model_pars_clone = []
+		weights = []
+		weights_clone = []
+		delays = []
+		delays_clone = []
+		pre_w = []
+		pre_w_clone = []
+		for idx, n_connection in enumerate(encoding_pars.connectivity.connections):
+			if n_connection[0] in native_population_names:
+				connections.append(('{0}'.format(str(n_connection[0]+'_parrots')), '{0}'.format(str(n_connection[1]))))
+				#connections_clone.append(('{0}'.format(str(n_connection[0]+'_parrots')), '{0}'.format(str(
+				# n_connection[1]))))
+				conn_specs.append({'rule': 'all_to_all'})
+				syn_names.append('{0}Parrots'.format(str(n_connection[1])))
+				syn_specs.append({})
+				models.append('static_synapse')
+				model_pars.append({})
+				weights.append(1.)
+				delays.append(0.1)
+				pre_w.append(None)
+
+				connections.append(('{0}'.format(str(n_connection[0])), '{0}'.format(str(n_connection[0]+'_parrots'))))
+				connections_clone.append(('{0}_clone'.format(str(n_connection[0])), '{0}'.format(str(n_connection[0]+'_parrots'))))
+				conn_specs.append({'rule': 'one_to_one'})
+				conn_specs_clone.append({'rule': 'one_to_one'})
+				syn_names.append(encoding_pars.connectivity.synapse_name[idx])
+				syn_names_clone.append(encoding_pars.connectivity.synapse_name[idx])
+				syn_specs.append(encoding_pars.connectivity.syn_specs[idx])
+				syn_specs_clone.append(encoding_pars.connectivity.syn_specs[idx])
+				models.append(encoding_pars.connectivity.models[idx])
+				models_clone.append(encoding_pars.connectivity.models[idx])
+				model_pars.append(encoding_pars.connectivity.model_pars[idx])
+				model_pars_clone.append(encoding_pars.connectivity.model_pars[idx])
+				weights.append(encoding_pars.connectivity.weight_dist[idx])
+				weights_clone.append(encoding_pars.connectivity.weight_dist[idx])
+				delays.append(encoding_pars.connectivity.delay_dist[idx])
+				delays_clone.append(encoding_pars.connectivity.delay_dist[idx])
+				pre_w.append(encoding_pars.connectivity.preset_W[idx])
+				pre_w_clone.append(encoding_pars.connectivity.preset_W[idx])
+			else:
+				connections.append(n_connection)
+				#connections_clone.append(n_connection)
+				conn_specs.append(encoding_pars.connectivity.conn_specs[idx])
+				syn_names.append(encoding_pars.connectivity.synapse_name[idx])
+				syn_specs.append(encoding_pars.connectivity.syn_specs[idx])
+				models.append(encoding_pars.connectivity.models[idx])
+				model_pars.append(encoding_pars.connectivity.model_pars[idx])
+				weights.append(encoding_pars.connectivity.weight_dist[idx])
+				delays.append(encoding_pars.connectivity.delay_dist[idx])
+				pre_w.append(encoding_pars.connectivity.preset_W[idx])
+
+		tp = [False for _ in range(len(connections))] # TODO - adapt for topological connections
+
+		extra_encoder = {
+			'N': len(new_encoders),
+			'labels': new_encoders,
+			'models': enc_models,
+			'model_pars': enc_model_pars,
+			'n_neurons': encoder_size,
+			'neuron_pars': encoder_pars,
+			'topology': topologies,
+			'topology_dict': tp_dicts,
+			'record_spikes': rc_spikes,
+			'spike_device_pars': spk_dvc_pars,
+			'record_analogs': rc_analogs,
+			'analog_device_pars': analog_dev_pars
+		}
+		extra_connectivity_native = {
+				'synapse_name': syn_names,
+				'connections': connections,
+				'topology_dependent': tp,
+				'conn_specs': conn_specs,
+				'syn_specs': syn_specs,
+				'models': models,
+				'model_pars': model_pars,
+				'weight_dist': weights,
+				'delay_dist': delays,
+				'preset_W': pre_w}
+		extra_connectivity_clone = {
+				'synapse_name': syn_names_clone,
+				'connections': connections_clone,
+				'topology_dependent': [False for _ in range(len(connections_clone))],
+				'conn_specs': conn_specs_clone,
+				'syn_specs': syn_specs_clone,
+				'models': models_clone,
+				'model_pars': model_pars_clone,
+				'weight_dist': weights_clone,
+				'delay_dist': delays_clone,
+				'preset_W': pre_w_clone}
+		native_encoding_pars = parameters.ParameterSet({'encoder': extra_encoder, 'generator': encoding_pars.generator.as_dict(),
+		                                     'connectivity': extra_connectivity_native})
+		clone_encoding_pars = parameters.ParameterSet({'encoder': extra_encoder, 'generator': encoding_pars.generator.as_dict(),
+		                                     'connectivity': extra_connectivity_clone})
+		self.__init__(native_encoding_pars)
+		self.connect(native_encoding_pars, network)
+		self.connect(clone_encoding_pars, clone)
 
 	# TODO is this used or can it go?
 	# def replicate_connections(self, net, clone, progress=True):

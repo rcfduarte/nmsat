@@ -9,7 +9,6 @@ Network                   - Network class is one of the central classes, contain
 Functions
 -------------
 verify_pars_consistency   - verify if all the relevant lists in a parameter set have the same dimensionality
-randomize_initial_var     - randomize the initial value of a specified variable
 iterate_obj_list          - build an iterator to go through the elements of a list or nested list
 extract_weights_matrix    - extract synaptic weights matrix
 """
@@ -34,37 +33,14 @@ def verify_pars_consistency(pars_set, not_allowed_keys, n=0):
 	:param pars_set: parameter dictionary (or set) to verify
 	:param not_allowed_keys: keys to remove from the dictionary (shouldn't have the same dimensions)
 	:param n: target dimensionality
-	:return: Bool - is consistent or not
+	:return:
+	:raises ValueError is dimensionality is not consistent
 	"""
 	clean_dict = {k: v for k, v in pars_set.iteritems() if k not in not_allowed_keys}
-	# for k, v in clean_dict.items():
-	# 	print k, len(v)
-	# TODO: error handling (exception should inform which parameter is of incorrect length)
-	return np.mean([len(v) for v in clean_dict.itervalues()]) == n
-
-
-def randomize_initial_var(var_name, obj_id, randomization_function, **function_parameters):
-	"""
-	Randomize the initial value of a specified variable, according to the criteria provided in the dictionary
-	:param var_name: name of the variable to randomize
-	:param randomization_dict:
-	:return:
-	"""
-	# assert var_name in nest.GetStatus(obj_id), "Variable name not in object properties"
-	# nest.SetStatus(obj_id, {var_name: randomization_function(**function_parameters)})
-	# randomization_function = v[0]
-	# function_parameters = v[1]
-	try:
-		nest.SetStatus(obj_id, var_name, randomization_function(size=len(obj_id), **function_parameters))
-	except:
-		for n_neuron in obj_id:
-			success = False
-			while not success:
-				try:
-					nest.SetStatus([n_neuron], var_name, randomization_function(size=1, **function_parameters))
-					success = True
-				except:
-					pass
+	# return np.mean([len(v) for v in clean_dict.itervalues()]) == n
+	for k, v in clean_dict.iteritems():
+		if len(v) != n:
+			raise ValueError("Dimensionality of parameters ({0}) is inconsistent!".format(str(k)))
 
 
 def extract_weights_matrix(src_gids, tgets_gids, progress=True):
@@ -72,6 +48,7 @@ def extract_weights_matrix(src_gids, tgets_gids, progress=True):
 	Extract the synaptic weights matrix referring to connections from src_gids to tgets_gids
 	:param src_gids: list or tuple of gids of source neurons
 	:param tgets_gids: list or tuple of gids of target neurons
+	:param progress: display progress bar
 	:return: len(tgets_gids) x len(src_gids) weight matrix
 	"""
 	if progress:
@@ -103,6 +80,7 @@ def extract_delays_matrix(src_gids, tgets_gids, progress=True):
 	Extract the synaptic weights matrix referring to connections from src_gids to tgets_gids
 	:param src_gids: list or tuple of gids of source neurons
  	:param tgets_gids: list or tuple of gids of target neurons
+ 	:param progress: display progress bar
  	:return: len(tgets_gids) x len(src_gids) weight matrix
  	"""
 	if progress:
@@ -119,7 +97,7 @@ def extract_delays_matrix(src_gids, tgets_gids, progress=True):
 			con = a[it:its[nnn + 1]]
 			st = nest.GetStatus(con, keys='delay')
 			for idx, n in enumerate(con):
-				d[n[1] - min(tgets_gids), n[0] - min(src_gids)] += st[idx]
+				d[n[1] - min(tgets_gids), n[0] - min(src_gids)] = st[idx]
 		if progress:
 			visualization.progress_bar(float(nnn+1) / float(len(its)))
 	t_stop = time.time()
@@ -183,7 +161,7 @@ class Population(object):
 		 low=-70., high=-55.)
 		"""
 		assert var_name in nest.GetStatus(self.gids)[0].keys(), "Variable name not in object properties"
-		print(("\n- Randomizing {0} state in Population {1}".format(str(var_name), str(self.name))))
+		print("\n- Randomizing {0} state in Population {1}".format(str(var_name), str(self.name)))
 		try:
 			nest.SetStatus(self.gids, var_name, randomization_function(size=len(self.gids), **function_parameters))
 		except:
@@ -253,10 +231,13 @@ class Population(object):
 
 	def activity_set(self, initializer, t_start=None, t_stop=None):
 		"""
-		Extract recorded activity from attached devices, convert it to SpikeList or AnalogList objects and store
-		them appropriately
+		Extract recorded activity from attached devices, convert it to SpikeList or AnalogList
+		objects and store them appropriately
 		:param initializer: can be a string, or list of strings containing the relevant filenames where the
 		raw data was recorded or be a gID for the recording device, if the data is still in memory
+		:param t_start:
+		:param t_stop:
+		:return:
 		"""
 		# TODO: save option!
 		# if object is a string, it must be a file name; if it is a list of strings, it must be a list of filenames
@@ -293,7 +274,7 @@ class Population(object):
 				status = nest.GetStatus([initializer])[0]['events']
 			else:
 				status = nest.GetStatus(initializer)[0]['events']
-			if len(status) == 2: # TODO can we optimize this iteration over spikes?
+			if len(status) == 2:
 				spk_times = status['times']
 				neuron_ids = status['senders']
 				tmp = [(neuron_ids[n], spk_times[n]) for n in range(len(spk_times))]
@@ -334,8 +315,8 @@ class Population(object):
 		"""
 		if isinstance(decoding_pars, dict):
 			decoding_pars = parameters.ParameterSet(decoding_pars)
-		assert isinstance(decoding_pars, parameters.ParameterSet), "must be initialized with ParameterSet or " \
-		                                              "dictionary"
+		assert isinstance(decoding_pars, parameters.ParameterSet), \
+			"must be initialized with ParameterSet or dictionary"
 
 		self.decoding_layer = analysis.DecodingLayer(decoding_pars, self)
 
@@ -421,7 +402,6 @@ class Network(object):
 					nest.SetDefaults(net_pars_set.pop_names[n], parameters.extract_nestvalid_dict(neuron_dict,
 					                                                                    param_type='neuron'))
 
-					# QUESTION can this do 3D topology? I don't really see how...
 					if net_pars_set.topology[n]:
 						tp_dict = pop_dict['topology_dict']
 						tp_dict.update({'elements': net_pars_set.pop_names[n]})
@@ -436,14 +416,13 @@ class Network(object):
 						# set up population objects
 						pop_dict.update({'gids': gids, 'is_subpop': False})
 						populations[n] = Population(parameters.ParameterSet(pop_dict))
-					print(("- Population {0!s}, with ids [{1!s}-{2!s}]".format(net_pars_set.pop_names[n],
-																						 min(gids), max(gids))))
+					print("- Population {0!s}, with ids [{1!s}-{2!s}]".format(net_pars_set.pop_names[n],
+																			  min(gids), max(gids)))
 
 			return populations
 
-		assert verify_pars_consistency(net_pars_set, ['_url', 'label', 'n_populations', 'parameters', 'names',
-		                                              'analog_device_pars', 'description'], net_pars_set.n_populations), \
-			"Dimensionality of population parameters is inconsistent!"
+		verify_pars_consistency(net_pars_set, ['_url', 'label', 'n_populations', 'parameters', 'names',
+											   'analog_device_pars', 'description'], net_pars_set.n_populations)
 
 		self.populations = create_populations(net_pars_set)
 		self.n_populations = net_pars_set.n_populations
@@ -883,17 +862,21 @@ class Network(object):
 
 	def copy(self):
 		"""
-		Returns a copy of the entire network object... Doesn't create new nest objects...
+		Returns a copy of the entire network object. Doesn't create new NEST objects.
 		:return:
 		"""
 		return copy.deepcopy(self)
 
+	# TODO @comment more, maybe 1 example why this would be needed? also, what stays the same?
 	def clone(self, original_parameter_set, devices=True, decoders=True):
 		"""
 		Creates a new network object
+		:param original_parameter_set:
+		:param devices:
+		:param decoders:
 		:return:
 		"""
-		parameters = copy.deepcopy(original_parameter_set)
+		param_set = copy.deepcopy(original_parameter_set)
 
 		def create_clone(net):
 			"""
@@ -912,9 +895,9 @@ class Network(object):
 			                   'local_id', 'model', 'parent']
 			for idx_pop, pop_obj in enumerate(list(signals.iterate_obj_list(net.populations))):
 				# get generic neuron_pars (update individually later):
-				neuron = parameters.extract_nestvalid_dict(nest.GetStatus([pop_obj.gids[0]])[0], param_type='neuron')
+				neuron = param_set.extract_nestvalid_dict(nest.GetStatus([pop_obj.gids[0]])[0], param_type='neuron')
 				d_tmp = {k: v for k, v in neuron.items() if k not in status_elements}
-				neuron_pars[idx_pop] = parameters.copy_dict(d_tmp, {'model': nest.GetStatus([pop_obj.gids[0]])[0][
+				neuron_pars[idx_pop] = param_set.copy_dict(d_tmp, {'model': nest.GetStatus([pop_obj.gids[0]])[0][
 					'model']})
 				if isinstance(pop_obj.topology, dict):
 					topology[idx_pop] = True
@@ -924,12 +907,12 @@ class Network(object):
 					topology_dict[idx_pop] = pop_obj.topology
 				pop_names[idx_pop] = net.population_names[idx_pop] + '_clone'
 				if net.record_spikes[idx_pop]:
-					spike_device_pars[idx_pop] = parameters.copy_dict(net.spike_device_pars[idx_pop],
+					spike_device_pars[idx_pop] = param_set.copy_dict(net.spike_device_pars[idx_pop],
 						{'label': net.spike_device_pars[idx_pop]['label']+'_clone'})
 				else:
 					spike_device_pars[idx_pop] = None
 				if net.record_analogs[idx_pop]:
-					analog_dev_pars[idx_pop] = parameters.copy_dict(net.analog_device_pars[idx_pop],
+					analog_dev_pars[idx_pop] = param_set.copy_dict(net.analog_device_pars[idx_pop],
 						{'label': net.analog_device_pars[idx_pop]['label']+'_clone'})
 				else:
 					analog_dev_pars[idx_pop] = None
@@ -944,7 +927,7 @@ class Network(object):
 			                      'spike_device_pars': spike_device_pars,
 			                      'record_analogs': net.record_analogs,
 			                      'analog_device_pars': analog_dev_pars}
-			clone_net = Network(parameters.ParameterSet(network_parameters, label='clone'))
+			clone_net = Network(param_set.ParameterSet(network_parameters, label='clone'))
 			#clone_net.connect_devices()
 
 			for pop_idx, pop_obj in enumerate(clone_net.populations):
@@ -1039,7 +1022,7 @@ class Network(object):
 		if devices:
 			clone_network.connect_devices()
 		if decoders:
-			connect_decoders(clone_network, parameters)
+			connect_decoders(clone_network, param_set)
 
 		return clone_network
 
