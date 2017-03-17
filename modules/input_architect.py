@@ -2190,18 +2190,14 @@ class InputSignalSet(object):
 
 		for att in attrs:
 			if hasattr(self, att + '_set') and getattr(self, att + '_set') is not None:
-				set = getattr(self, att + '_set')
-				set.time_offset(offset_time)
+				set_ = getattr(self, att + '_set')
+				set_.time_offset(offset_time)
 
 	def save(self, path):
 		"""
 		Save InputSignalSet object
 		:param path: [str] primary folder to store data to
 		"""
-		# try:
-		# 	with open(path + 'InputSignals.pkl', 'w') as fp:
-		# 		pickle.dump(self, fp, -1)
-		# except SystemError("cPickle failed to save file"):
 		if not self.online:
 			if self.transient_set is not None:
 				np.save(path+'_TransientInputSignal.npy', self.transient_set.as_array())
