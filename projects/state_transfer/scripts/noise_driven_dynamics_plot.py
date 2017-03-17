@@ -22,7 +22,7 @@ debug 	= False
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/one_pool_noisedriven.py'
+params_file = '../parameters/two_pool_noisedriven_base.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -96,8 +96,13 @@ net.extract_population_activity()
 net.extract_network_activity()
 net.flush_records()
 
-sp = SpikePlots(net.populations[0].spiking_activity.id_slice(list(net.populations[0].gids[:1000])))
 nu_x = parameter_set.analysis_pars.nu_x
 gamma = parameter_set.analysis_pars.gamma
-sp.dot_display(save="{0}/raster_nu_x={1}_gamma={2}.pdf".format(paths['figures'] + paths['label'],nu_x, gamma),
+
+sp = SpikePlots(net.populations[0].spiking_activity.id_slice(list(net.populations[0].gids[:500])), start=1000., stop=2000.)
+sp.dot_display(save="{0}/raster_nu_x={1}_gamma={2}_p1.pdf".format(paths['figures'], nu_x, gamma),
+			   with_rate=True)
+
+sp = SpikePlots(net.populations[1].spiking_activity.id_slice(list(net.populations[1].gids[:500])), start=1000., stop=2000.)
+sp.dot_display(save="{0}/raster_nu_x={1}_gamma={2}_p2.pdf".format(paths['figures'], nu_x, gamma),
 			   with_rate=True)

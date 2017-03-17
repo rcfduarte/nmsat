@@ -69,7 +69,7 @@ def build_parameters(nu_x, gamma):
 
 	net_pars['record_analogs'] = [True, False]
 	multimeter = rec_device_defaults(device_type='multimeter')
-	multimeter.update({'record_from': ['V_m',], 'record_n': 1})
+	multimeter.update({'record_from': ['V_m',], 'record_n': 1}) # > 1 compiles statistics, 1 only plots
 	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': ''}), {}]
 
 	# ##################################################################################################################

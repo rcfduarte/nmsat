@@ -2,14 +2,15 @@ __author__ = 'duarte'
 from modules.parameters import ParameterSet, ParameterSpace, extract_nestvalid_dict
 from modules.input_architect import EncodingLayer
 from modules.net_architect import Network
-from modules.io import set_storage_locations, Standardh5File
+from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list
-from modules.visualization import set_global_rcParams
+from modules.visualization import set_global_rcParams, SpikePlots
 from modules.analysis import characterize_population_activity
 import cPickle as pickle
 import numpy as np
 import nest
 import lib.h5py_wrapper as h5w
+import pprint
 
 
 # ######################################################################################################################
@@ -23,7 +24,7 @@ debug 	= False
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/one_pool_noisedriven.py'
+params_file = '../parameters/one_pool_noisedriven_h5py.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -111,7 +112,22 @@ results.update(characterize_population_activity(net, parameter_set, analysis_int
 # ######################################################################################################################
 # Save data
 # ======================================================================================================================
+pp = pprint.PrettyPrinter(indent=2)
+pp.pprint(results)
+
+def rec_dict(d):
+	if isinstance(d, dict):
+		for k, v in d.iteritems():
+			if isinstance(v, dict):
+				rec_dict(v)
+			else:
+				print "key: {0}, val: {1}".format(k, str(type(v)))
+	else:
+		print "no dict val: {0}".format(str(type(d)))
+rec_dict(results)
+
 if save:
-	with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
-		pickle.dump(results, f)
+	# with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
+		# pickle.dump(results, f)
+	h5w.save(paths['results'] + 'Results_' + parameter_set.label, results)
 	parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
