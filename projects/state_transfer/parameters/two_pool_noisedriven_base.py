@@ -42,7 +42,7 @@ def build_parameters():
 	# ##################################################################################################################
 	# Neuron, Synapse and Network Parameters
 	# ##################################################################################################################
-	N 		= 10000
+	N 		= 1000
 	nE 		= 0.8 * N
 	delay 	= 1.5
 	epsilon = 0.1
@@ -86,10 +86,13 @@ def build_parameters():
 	neuron_pars, net_pars, connection_pars = set_network_defaults(default_set=2, neuron_set=2, N=N,
 																  **recurrent_synapses)
 
-	net_pars['record_analogs'] = [True, False, False, False]
+	net_pars['record_analogs'] = [True, True, True, True]
 	multimeter = rec_device_defaults(device_type='multimeter')
-	multimeter.update({'record_from': ['V_m'], 'record_n': 1})
-	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': ''}), {}, {}, {}]
+	multimeter.update({'record_from': ['V_m'], 'record_n': 3})
+	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': 'E1_analog'}),
+	                                  copy_dict(multimeter, {'label': 'I1_analog'}),
+	                                  copy_dict(multimeter, {'label': 'E2_analog'}),
+	                                  copy_dict(multimeter, {'label': 'I2_analog'})]
 
 	# ##################################################################################################################
 	# Encoding Parameters
@@ -109,7 +112,7 @@ def build_parameters():
 			'syn_specs': {},
 			'models': 'static_synapse',
 			'model_pars': {},
-			'weight_dist': wE,
+			'weight_dist': wE*10,
 			'delay_dist': delay})
 	add_background_noise(encoding_pars, background_noise)
 

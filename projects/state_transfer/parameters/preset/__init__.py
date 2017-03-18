@@ -144,8 +144,9 @@ def set_neuron_defaults(default_set=1):
 			}
 		}
 	elif default_set == 2:
-		print("\nLoading Default Neuron Set 2 (two pools, E1, I1, E2, I2 neurons) - amat2_psc_exp, fixed voltage " \
-		      "threshold, fixed absolute refractory time, Fast, exponential synapses, homogeneous parameters")
+		print "\nLoading Default Neuron Set 2 (two pools, E1, I1, E2, I2 neurons) - iaf_cond_exp, fixed voltage " \
+		      "threshold, fixed absolute refractory time, Fast, exponential synapses (AMPA, GABAa), " \
+		      "homogeneous parameters"
 
 		neuron_pars = {
 			'description': {

@@ -17,9 +17,9 @@ project = 'state_transfer'
 data_type = 'SpikeNoise'  # 'SpikeNoise'
 trial = 0
 population_of_interest = 'Global'  # results are provided for only one population (choose Global to get the totals)
-data_path = "/home/zajzon/code/nst/network_simulation_testbed/data/ST_onepool/"
+data_path = "/home/barni/code/fzj/nst/data/ST_twopool/"
 # data_path = "/home/zajzon/code/nst/network_simulation_testbed/data/state_transfer/"
-data_label = 'ST_onepool_noisedriven_fine'
+data_label = 'ST_twopool_noisedriven_metrics_oneanalog'
 
 # set defaults and paths
 set_project_paths(project)
@@ -34,22 +34,22 @@ results = pars.harvest(data_path+data_label+'/Results/')
 
 # initialize data arrays
 results_arrays = {'activity': {'mean_rates': np.zeros_like(results[0]), 'ffs': np.zeros_like(results[0])},
-               'regularity': {'cvs': np.zeros_like(results[0]), 'lvs': np.zeros_like(results[0]),
-                        'lvRs': np.zeros_like(results[0]), 'iR': np.zeros_like(results[0]),
-                        'cvs_log': np.zeros_like(results[0]), 'ents': np.zeros_like(results[0]),
-                        'isi_5p': np.zeros_like(results[0]), 'ai': np.zeros_like(results[0])},
-               'synchrony': {'ccs': np.zeros_like(results[0]), 'ccs_pearson': np.zeros_like(results[0]),
-                        # 'd_vp': np.zeros_like(results[0]), 'd_vr': np.zeros_like(results[0]),
-                        'ISI_distance': np.zeros_like(results[0]), 'SPIKE_distance': np.zeros_like(results[0]),
-                        'SPIKE_sync_distance': np.zeros_like(results[0])},
-               'analogs': {'EI_CC': np.zeros_like(results[0]), 'mean_V_m': np.zeros_like(results[0]),
-                           'std_V_m': np.zeros_like(results[0]), 'mean_I_ex': np.zeros_like(results[0]),
-                           'std_I_ex': np.zeros_like(results[0]), 'mean_I_in': np.zeros_like(results[0]),
-                           'std_I_in': np.zeros_like(results[0]), 'IE_ratio': np.zeros_like(results[0])}}
-expected_values = {'activity': {'ffs': 1., 'mean_rates': 5.},
-                  'regularity': {'cvs': 1., 'lvs': 1., 'cvs_log': 0.25},
-                  'synchrony': {'ISI_distance': 0.5, 'SPIKE_distance': 0.3, 'SPIKE_sync_distance': 0.25},
-                  'analogs': {'EI_CC': -1., 'IE_ratio': 0.}}
+                  'regularity': {'cvs': np.zeros_like(results[0]), 'lvs': np.zeros_like(results[0]),
+                                 'lvRs': np.zeros_like(results[0]), 'iR': np.zeros_like(results[0]),
+                                 'cvs_log': np.zeros_like(results[0]), 'ents': np.zeros_like(results[0]),
+                                 'isi_5p': np.zeros_like(results[0]), 'ai': np.zeros_like(results[0])},
+                  'synchrony': {'ccs': np.zeros_like(results[0]), 'ccs_pearson': np.zeros_like(results[0]),
+                                # 'd_vp': np.zeros_like(results[0]), 'd_vr': np.zeros_like(results[0]),
+                                'ISI_distance': np.zeros_like(results[0]), 'SPIKE_distance': np.zeros_like(results[0]),
+                                'SPIKE_sync_distance': np.zeros_like(results[0])},
+                  'analogs': {'EI_CC': np.zeros_like(results[0]), 'mean_V_m': np.zeros_like(results[0]),
+                              'std_V_m': np.zeros_like(results[0]), 'mean_I_ex': np.zeros_like(results[0]),
+                              'std_I_ex': np.zeros_like(results[0]), 'mean_I_in': np.zeros_like(results[0]),
+                              'std_I_in': np.zeros_like(results[0]), 'IE_ratio': np.zeros_like(results[0])}}
+expected_values = {'activity':      {'ffs': 1., 'mean_rates': 5.},
+                   'regularity':    {'cvs': 1., 'lvs': 1., 'cvs_log': 0.25},
+                   'synchrony':     {'ISI_distance': 0.5, 'SPIKE_distance': 0.3, 'SPIKE_sync_distance': 0.25},
+                   'analogs':       {'EI_CC': -1., 'IE_ratio': 0.}}
 
 for x_value in pars.parameter_axes['xticks']:
 	for y_value in pars.parameter_axes['yticks']:
@@ -107,7 +107,7 @@ pl_props = copy_dict(pars.parameter_axes, {
                                            'yticks': np.arange(0., len(pars.parameter_axes['xticks']), 2.),
 })
 
-fig1 = pl.figure(1, figsize=(20,12))
+fig1 = pl.figure(1, figsize=(20, 12))
 fig1.suptitle('Regularity metrics')
 ax11 = fig1.add_subplot(241)
 ax12 = fig1.add_subplot(242)
