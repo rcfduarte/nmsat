@@ -657,7 +657,7 @@ def compute_synchrony(spike_list, n_pairs=500, time_bin=1., tau=20., time_resolv
 		print("Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3))))
 	return results
 
-
+# TODO add more comment, what stats exactly are computed?
 def compute_analog_stats(population, parameter_set, variable_names, analysis_interval=None, plot=False):
 	"""
 	Extract, analyse and store analog data
@@ -878,6 +878,7 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 
 	ap = analysis_pars
 	pars_activity = ap.population_activity
+	subpop_names = None
 
 	if isinstance(population_object, net_architect.Population):
 		gids = None
@@ -925,7 +926,7 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 		if plot:
 			results['metadata']['spike_list'] = spike_list
 
-		if color_subpop:
+		if color_subpop and subpop_names:
 			results['metadata'].update({'sub_population_names': subpop_names, 'sub_population_gids': gids,
 									'spike_data_file': ''})
 

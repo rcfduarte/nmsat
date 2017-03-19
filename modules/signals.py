@@ -1709,11 +1709,11 @@ class SpikeList(object):
             >> spk.sort_by('cell.cv_isi()', descending=True)
             >> spk.sort_by('cell.distance_victorpurpura(target, 0.05)')
         """
-		criterias = np.zeros(len(self), float)
-		for count, id in enumerate(self.id_list):
-			cell = self.spiketrains[id]
-			criterias[count] = eval(criteria)
-		result = self.id_list[np.argsort(criterias)]
+		criteria = np.zeros(len(self), float)
+		for count, id_ in enumerate(self.id_list):
+			cell = self.spiketrains[id_]
+			criteria[count] = eval(criteria)
+		result = self.id_list[np.argsort(criteria)]
 		if descending:
 			return result[np.arange(len(result) - 1, -1, -1)]
 		else:
@@ -1722,7 +1722,7 @@ class SpikeList(object):
 	def save(self, full_path_to_file):
 		"""
 		Save the SpikeList object with pickle
-		:param user_file:
+		:param full_path_to_file:
 		:return:
 		"""
 		with open(full_path_to_file, 'w') as fp:

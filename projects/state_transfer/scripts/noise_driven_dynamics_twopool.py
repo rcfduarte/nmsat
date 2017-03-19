@@ -5,25 +5,24 @@ from modules.net_architect import Network
 from modules.io import set_storage_locations, Standardh5File
 from modules.signals import iterate_obj_list
 from modules.visualization import set_global_rcParams
-from modules.analysis import characterize_population_activity
+from modules.analysis import characterize_population_activity, compute_analog_stats
 import cPickle as pickle
 import numpy as np
 import nest
-import lib.h5py_wrapper as h5w
-
+import pprint
 
 # ######################################################################################################################
 # Experiment options
 # ======================================================================================================================
-plot 	= True
-display = True
+plot 	= False
+display = False
 save 	= True
 debug 	= False
 
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/one_pool_noisedriven.py'
+params_file = '../parameters/two_pool_noisedriven_base.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -42,7 +41,6 @@ if plot:
 paths = set_storage_locations(parameter_set, save)
 
 np.random.seed(parameter_set.kernel_pars['np_seed'])
-results = dict()
 
 # ######################################################################################################################
 # Set kernel and simulation parameters
@@ -103,15 +101,34 @@ net.flush_records()
 analysis_interval = [parameter_set.kernel_pars.transient_t,
 	                 parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t]
 
-results.update(characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
+pool1 = net.merge_subpopulations(sub_populations=net.populations[:2], name='P1', merge_activity=True, store=False)
+pool2 = net.merge_subpopulations(sub_populations=net.populations[2:], name='P2', merge_activity=True, store=False)
+
+results_P1 = dict()
+results_P2 = dict()
+results_P1.update(characterize_population_activity(pool1, parameter_set, analysis_interval, epochs=None,
                                                 color_map='coolwarm', plot=plot, display=display,
-                                                save=paths['figures']+paths['label'], color_subpop=True,
+                                                save=paths['figures']+paths['label'], color_subpop=False,
                                                 analysis_pars=parameter_set.analysis_pars))
+results_P2.update(characterize_population_activity(pool2, parameter_set, analysis_interval, epochs=None,
+                                                color_map='coolwarm', plot=plot, display=display,
+                                                save=paths['figures']+paths['label'], color_subpop=False,
+                                                analysis_pars=parameter_set.analysis_pars))
+results_merged = results_P1.copy()
+
+for key in results_merged.keys():
+	results_merged[key].update(**results_P2[key])
+
+# results_merged['analog_activity']['E1'] = compute_analog_stats(pool1, parameter_set, ["V_th"], analysis_interval, plot)
+# results_merged['analog_activity']['E2'] = compute_analog_stats(pool2, parameter_set, ["V_th"], analysis_interval, plot)
+
+pp = pprint.PrettyPrinter(indent=2)
+pp.pprint(results_merged)
 
 # ######################################################################################################################
 # Save data
 # ======================================================================================================================
 if save:
 	with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
-		pickle.dump(results, f)
+		pickle.dump(results_merged, f)
 	parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)

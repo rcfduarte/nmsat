@@ -17,9 +17,9 @@ project = 'state_transfer'
 data_type = 'SpikeNoise'  # 'SpikeNoise'
 trial = 0
 population_of_interest = 'Global'  # results are provided for only one population (choose Global to get the totals)
-data_path = "/home/zajzon/code/nst/network_simulation_testbed/data/state_transfer_cond/"
+data_path = "/home/barni/code/fzj/nst/data/ST_twopool/"
 # data_path = "/home/zajzon/code/nst/network_simulation_testbed/data/state_transfer/"
-data_label = 'state_transfer_onepool_noisedriven_complete_wE=1_coarse'
+data_label = 'ST_twopool_noisedriven_metrics_oneanalog'
 
 # set defaults and paths
 set_project_paths(project)
@@ -34,22 +34,22 @@ results = pars.harvest(data_path+data_label+'/Results/')
 
 # initialize data arrays
 results_arrays = {'activity': {'mean_rates': np.zeros_like(results[0]), 'ffs': np.zeros_like(results[0])},
-               'regularity': {'cvs': np.zeros_like(results[0]), 'lvs': np.zeros_like(results[0]),
-                        'lvRs': np.zeros_like(results[0]), 'iR': np.zeros_like(results[0]),
-                        'cvs_log': np.zeros_like(results[0]), 'ents': np.zeros_like(results[0]),
-                        'isi_5p': np.zeros_like(results[0]), 'ai': np.zeros_like(results[0])},
-               'synchrony': {'ccs': np.zeros_like(results[0]), 'ccs_pearson': np.zeros_like(results[0]),
-                        # 'd_vp': np.zeros_like(results[0]), 'd_vr': np.zeros_like(results[0]),
-                        'ISI_distance': np.zeros_like(results[0]), 'SPIKE_distance': np.zeros_like(results[0]),
-                        'SPIKE_sync_distance': np.zeros_like(results[0])},
-               'analogs': {'EI_CC': np.zeros_like(results[0]), 'mean_V_m': np.zeros_like(results[0]),
-                           'std_V_m': np.zeros_like(results[0]), 'mean_I_ex': np.zeros_like(results[0]),
-                           'std_I_ex': np.zeros_like(results[0]), 'mean_I_in': np.zeros_like(results[0]),
-                           'std_I_in': np.zeros_like(results[0]), 'IE_ratio': np.zeros_like(results[0])}}
-expected_values = {'activity': {'ffs': 1., 'mean_rates': 5.},
-                  'regularity': {'cvs': 1., 'lvs': 1., 'cvs_log': 0.25},
-                  'synchrony': {'ISI_distance': 0.5, 'SPIKE_distance': 0.3, 'SPIKE_sync_distance': 0.25},
-                  'analogs': {'EI_CC': -1., 'IE_ratio': 0.}}
+                  'regularity': {'cvs': np.zeros_like(results[0]), 'lvs': np.zeros_like(results[0]),
+                                 'lvRs': np.zeros_like(results[0]), 'iR': np.zeros_like(results[0]),
+                                 'cvs_log': np.zeros_like(results[0]), 'ents': np.zeros_like(results[0]),
+                                 'isi_5p': np.zeros_like(results[0]), 'ai': np.zeros_like(results[0])},
+                  'synchrony': {'ccs': np.zeros_like(results[0]), 'ccs_pearson': np.zeros_like(results[0]),
+                                # 'd_vp': np.zeros_like(results[0]), 'd_vr': np.zeros_like(results[0]),
+                                'ISI_distance': np.zeros_like(results[0]), 'SPIKE_distance': np.zeros_like(results[0]),
+                                'SPIKE_sync_distance': np.zeros_like(results[0])},
+                  'analogs': {'EI_CC': np.zeros_like(results[0]), 'mean_V_m': np.zeros_like(results[0]),
+                              'std_V_m': np.zeros_like(results[0]), 'mean_I_ex': np.zeros_like(results[0]),
+                              'std_I_ex': np.zeros_like(results[0]), 'mean_I_in': np.zeros_like(results[0]),
+                              'std_I_in': np.zeros_like(results[0]), 'IE_ratio': np.zeros_like(results[0])}}
+expected_values = {'activity':      {'ffs': 1., 'mean_rates': 5.},
+                   'regularity':    {'cvs': 1., 'lvs': 1., 'cvs_log': 0.25},
+                   'synchrony':     {'ISI_distance': 0.5, 'SPIKE_distance': 0.3, 'SPIKE_sync_distance': 0.25},
+                   'analogs':       {'EI_CC': -1., 'IE_ratio': 0.}}
 
 for x_value in pars.parameter_axes['xticks']:
 	for y_value in pars.parameter_axes['yticks']:
@@ -101,13 +101,13 @@ cmap = "coolwarm"
 pl_props = copy_dict(pars.parameter_axes, {
 										   'xlabel': r'$' + pars.parameter_axes['ylabel'] + '$',
                                            'ylabel': r'$' + pars.parameter_axes['xlabel'] + '$',
-                                           'xticklabels': pars.parameter_axes['yticklabels'][::2],
+                                           'xticklabels': pars.parameter_axes['yticklabels'][::4],
                                            'yticklabels': pars.parameter_axes['xticklabels'][::2],
-                                           'xticks': np.arange(0., len(pars.parameter_axes['yticks']), 2.),
+                                           'xticks': np.arange(0., len(pars.parameter_axes['yticks']), 4.),
                                            'yticks': np.arange(0., len(pars.parameter_axes['xticks']), 2.),
 })
 
-fig1 = pl.figure(1)
+fig1 = pl.figure(1, figsize=(20, 12))
 fig1.suptitle('Regularity metrics')
 ax11 = fig1.add_subplot(241)
 ax12 = fig1.add_subplot(242)
@@ -117,7 +117,6 @@ ax15 = fig1.add_subplot(245)
 ax16 = fig1.add_subplot(246)
 ax17 = fig1.add_subplot(247)
 ax18 = fig1.add_subplot(248)
-
 
 image_arrays = [x.astype(float) for x in results_arrays['regularity'].values()]
 boundaries = []
@@ -222,12 +221,12 @@ fig6 = pl.figure()
 fig6.suptitle('AIness')
 ax61 = fig6.add_subplot(111)
 
-pl_props = copy_dict(pars.parameter_axes, {'xlabel': r'$\rho_{\mathrm{u}}$',
-                                           'ylabel': r'$\mathrm{g}$',
-                                           'xticklabels': pars.parameter_axes['yticklabels'][::2],
-                                           'yticklabels': pars.parameter_axes['xticklabels'][::4],
-                                           'xticks': np.arange(0., len(pars.parameter_axes['yticks']), 2.),
-                                           'yticks': np.arange(0., len(pars.parameter_axes['xticks']), 4.),})
+pl_props = copy_dict(pars.parameter_axes, {'xlabel': r'$\mathrm{g}$',
+                                           'ylabel': r'$\rho_{\mathrm{x}}$',
+                                           'xticklabels': pars.parameter_axes['yticklabels'][::4],
+                                           'yticklabels': pars.parameter_axes['xticklabels'][::1],
+                                           'xticks': np.arange(0., len(pars.parameter_axes['yticks']), 4.),
+                                           'yticks': np.arange(0., len(pars.parameter_axes['xticks']), 1.),})
 
 sync_summary = image_arrays[labels.index('synchrony')]
 reg_summary = image_arrays[labels.index('regularity')]
@@ -243,8 +242,8 @@ ai_ness = ((sync_summary + reg_summary) / 2.)
 plot_2d_parscans(image_arrays=[ai_ness.astype(float)], axis=[ax61],
                  fig_handle=fig6, labels=[], cmap=cmap, boundaries=[], **{}) # coolwarm, rainbow
 
-ax61.scatter(np.where(ai_ness == ai_ness.min())[1][0], np.where(ai_ness == ai_ness.min())[0][0], s=20, c='red',
-             marker='o')
+ax61.scatter(np.where(ai_ness == ai_ness.min())[1][0], np.where(ai_ness == ai_ness.min())[0][0],
+			 s=20, c='red', marker='o')
 ax61.set(**pl_props)
 ax61.grid(False)
 pl.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.6)
@@ -264,5 +263,3 @@ ax71.set(**pl_props)
 ax71.grid(False)
 pl.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.6)
 fig7.savefig("all_constraints.pdf")
-
-#pl.show()
