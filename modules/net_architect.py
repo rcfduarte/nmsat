@@ -119,7 +119,7 @@ def extract_delays_matrix(src_gids, tgets_gids, progress=True):
 			con = a[it:its[nnn + 1]]
 			st = nest.GetStatus(con, keys='delay')
 			for idx, n in enumerate(con):
-				d[n[1] - min(tgets_gids), n[0] - min(src_gids)] += st[idx]
+				d[n[1] - min(tgets_gids), n[0] - min(src_gids)] = st[idx]
 		if progress:
 			visualization.progress_bar(float(nnn+1) / float(len(its)))
 	t_stop = time.time()

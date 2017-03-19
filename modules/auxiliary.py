@@ -62,8 +62,14 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 			n_pop.decoding_layer.determine_total_delay()
 			decoder_delays.append(n_pop.decoding_layer.total_delays)
 			decoder_resolutions.append(n_pop.decoding_layer.extractor_resolution)
-	decoder_delay = max(list(itertools.chain(*decoder_delays)))
-	decoder_resolution = min(list(itertools.chain(*decoder_resolutions)))
+	if not signals.empty(decoder_delays):
+		decoder_delay = max(list(itertools.chain(*decoder_delays)))
+	else:
+		decoder_delay = 0.
+	if not signals.empty(decoder_resolutions):
+		decoder_resolution = min(list(itertools.chain(*decoder_resolutions)))
+	else:
+		decoder_resolution = 0.
 	time_correction_factor = encoder_delay + decoder_resolution
 	if decoder_resolution != encoder_delay:
 		print("To avoid errors in the delay compensation, it is advisable to set the output resolution to be the same " \

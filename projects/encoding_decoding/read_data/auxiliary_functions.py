@@ -1,8 +1,13 @@
 __author__ = 'duarte'
 import matplotlib.pyplot as pl
-from modules.visualization import get_cmap, violin_plot, box_plot
+from modules.visualization import get_cmap, violin_plot, box_plot, InputPlots, pretty_raster
+from modules.signals import SpikeList
+from modules.analysis import Readout
+from modules.input_architect import InputSignal
+import modules.parameters as prs
 import numpy as np
 from scipy.stats import sem
+import itertools
 
 
 def harvest_results(pars, analysis_dict, results_path, display=True, save=False):
@@ -18,12 +23,17 @@ def harvest_results(pars, analysis_dict, results_path, display=True, save=False)
 		for idx_k, keys in enumerate(analysis_dict['key_sets'][ax_n]):
 			print "\nHarvesting {0}".format(keys)
 			labels, result = pars.harvest(results_path, key_set=keys)
-
-			ax.plot(pars.parameter_axes['xticks'], np.mean(result.astype(float), 1), '-', c=colors(idx_k),
-			        label=analysis_dict['labels'][ax_n][idx_k])
-			ax.errorbar(pars.parameter_axes['xticks'], np.mean(result.astype(float), 1), marker='o', mfc=colors(idx_k),
-			            mec=colors(idx_k), ms=2, linestyle='none', ecolor=colors(idx_k), yerr=sem(result.astype(
-				float), 1))
+			result = prs.clean_array(result)
+			if len(result.shape) > 1:
+				ax.plot(pars.parameter_axes['xticks'], np.nanmean(result.astype(float), 1), 'o-', c=colors(idx_k),
+				        label=analysis_dict['labels'][ax_n][idx_k])
+				ax.errorbar(pars.parameter_axes['xticks'], np.nanmean(result.astype(float), 1), marker='o', mfc=colors(
+					idx_k),
+				            mec=colors(idx_k), ms=2, linestyle='none', ecolor=colors(idx_k), yerr=sem(result.astype(
+					float), 1))
+			else:
+				ax.plot(pars.parameter_axes['xticks'], result.astype(float), 'o-', c=colors(idx_k),
+				        label=analysis_dict['labels'][ax_n][idx_k])
 			processed.update({keys: result})
 		ax.set_xlabel(r'$' + pars.parameter_axes['xlabel'] + '$')
 		ax.set_xlim([min(pars.parameter_axes['xticks']), max(pars.parameter_axes['xticks'])])
@@ -61,3 +71,71 @@ def plot_multitrial_averages(pars, result, ax, color, label):
 	ax.set_xlim([min(pars.parameter_axes['xticks']), max(pars.parameter_axes['xticks'])])
 	# ax.set_title(ax_title)
 	ax.legend()
+
+
+def reconstruct_spike_pattern(inputs, stim_set, set_name='full', n_steps=None):
+	"""
+	Assemble a sequence of spike templates (mostly for debugging)
+	:return:
+	"""
+	spk_patterns = inputs.spike_patterns
+	set_sequence = getattr(stim_set, "{0}_set".format(set_name))
+	set_seq = np.array(np.argmax(set_sequence.todense(), 0))
+
+	if n_steps is not None:
+		set_seq = set_seq[0][-n_steps:]
+	else:
+		set_seq = set_seq[0]
+
+	onsets = np.arange(0., len(set_seq)*200., 200.)
+	all_times = []
+	all_ids = []
+
+	for idx, t in zip(set_seq, onsets):
+		all_times.append(list(spk_patterns[idx].raw_data()[:, 0] + t))
+		all_ids.append(list(spk_patterns[idx].raw_data()[:, 1]))
+	all_times = list(itertools.chain(*all_times))
+	all_ids = list(itertools.chain(*all_ids))
+
+	tmp = [(all_ids[n], all_times[n]) for n in range(len(all_times))]
+	spiking_activity = SpikeList(tmp, np.unique(all_ids).tolist())
+
+	return spiking_activity
+
+
+def evaluate_encoding(spike_list, input_sequence, input_signal, parameter_set):
+	"""
+
+	:param spike_list:
+	:param input_sequence:
+	:param input_stimulus:
+	:param parameter_set:
+	:return:
+	"""
+	n_input_neurons = 8000
+	analysis_interval = np.round([spike_list.t_start, spike_list.t_stop])
+	inp_responses = spike_list.filter_spiketrains(dt=0.1, tau=20., start=analysis_interval[0],
+	                                              stop=analysis_interval[1], N=n_input_neurons)
+	inp_readout_pars = prs.copy_dict(parameter_set.decoding_pars.readout[0],
+	                                 {'label': 'InputNeurons',
+	                                  'algorithm': 'pinv'})
+
+	inp_readout = Readout(prs.ParameterSet(inp_readout_pars))
+	analysis_signal = input_signal.time_slice(3000., 4000.)#analysis_interval[0], analysis_interval[1])
+	inp_readout.train(inp_responses, analysis_signal.as_array())
+	inp_readout.test(inp_responses)
+	perf = inp_readout.measure_performance(analysis_signal.as_array())
+
+	input_out = InputSignal()
+	input_out.load_signal(inp_readout.output.T, dt=input_signal.dt)
+	figure2 = pl.figure()
+	figure2.suptitle(r'MAE = {0}'.format(str(perf['raw']['MAE'])))
+	ax21 = figure2.add_subplot(211)
+	ax22 = figure2.add_subplot(212, sharex=ax21)
+	InputPlots(input_obj=analysis_signal).plot_input_signal(ax22, save=False, display=False)
+	ax22.set_color_cycle(None)
+	InputPlots(input_obj=input_out).plot_input_signal(ax22, save=False, display=False)
+	ax22.set_ylim([analysis_signal.base - 10., analysis_signal.peak + 10.])
+	# inp_spikes.raster_plot(with_rate=False, ax=ax21, save=False, display=False)
+
+	pretty_raster(spike_list, analysis_interval, n_total_neurons=100)

@@ -236,7 +236,7 @@ def build_parameters(lexicon_size, T):
 						# 3: save only summary of data, use all available measures
 						# 4: save all data, use all available measures
 
-		'store_activity': 10,  		# [int] - store all population activity in the last n steps of the test
+		'store_activity': 5,  		# [int] - store all population activity in the last n steps of the test
 									# phase; if set True the entire test phase will be stored;
 
 		'population_activity': {

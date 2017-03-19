@@ -146,7 +146,8 @@ net.connect_populations(parameter_set.connection_pars)
 # ======================================================================================================================
 net.connect_devices()
 # set_decoder_times(enc_layer, parameter_set) # iff using the fast sampling method!
-net.connect_decoders(parameter_set.decoding_pars)
+if hasattr(parameter_set, "decoding_pars"):
+	net.connect_decoders(parameter_set.decoding_pars)
 
 # Attach decoders to input encoding populations
 if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input_decoder") and \
@@ -163,16 +164,17 @@ epochs, timing = iterate_input_sequence(net, enc_layer, parameter_set, stim_set,
                        store_activity=parameter_set.analysis_pars.store_activity)
 
 # t0 = 200.
-# net.extract_population_activity(t_start=t0, t_stop=nest.GetKernelStatus()['time'] - simulation_resolution)
-# net.extract_network_activity()
+net.extract_population_activity(t_start=epochs['analysis_start'], t_stop=nest.GetKernelStatus()['time'] - parameter_set.kernel_pars.resolution)
+net.extract_network_activity()
 analysis_interval = [epochs['analysis_start'], nest.GetKernelStatus()['time'] - parameter_set.kernel_pars.resolution]
 enc_layer.extract_encoder_activity(t_start=epochs['analysis_start'], t_stop=nest.GetKernelStatus()['time'] -
                                                                             parameter_set.kernel_pars.resolution)
+
 pretty_raster(enc_layer.encoders[0].spiking_activity, analysis_interval, n_total_neurons=100)
 
-# if not empty(net.merged_populations):
-# 	net.merge_population_activity(start=t0, stop=nest.GetKernelStatus()['time'] - simulation_resolution,
-# 	                              save=True)
+if not empty(net.merged_populations):
+	net.merge_population_activity(start=t0, stop=nest.GetKernelStatus()['time'] - simulation_resolution,
+	                              save=True)
 
 for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
                                                    net.populations]))):  # , enc_layer.encoders]))):
@@ -188,7 +190,7 @@ for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
 			else:
 				n_pop.decoding_layer.sampled_times = n_pop.decoding_layer.sampled_times[
 				                                     -parameter_set.stim_pars.test_set_length:]
-			n_pop.decoding_layer.evaluate_decoding(n_neurons=50, display=display,
+			n_pop.decoding_layer.evaluate_decoding(n_neurons=25, display=display,
 			                                       save=paths['figures'] + paths['label'])
 # ######################################################################################################################
 # Process data
