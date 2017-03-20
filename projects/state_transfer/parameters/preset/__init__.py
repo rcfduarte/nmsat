@@ -821,6 +821,48 @@ def set_decoding_defaults(output_resolution=1., to_memory=True, **decoder_pars):
 	return ParameterSet(decoding_pars)
 
 
+def add_parrots(encoding_pars, n_parrots, decode=True, **extra_pars):
+	"""
+	Attaches a layer of parrot neurons to the encoder (for cases when the generator is a spike-emmitting device)
+	:param encoding_pars: original encoding parameters
+	:param n_parrots: number of parrot neurons to attach (should be the same as the number of unique generators)
+	:param decode: attach decoders and readouts to parrot neurons.. (only spikes can be read!)
+	"""
+	if extra_pars.items():
+		conn_specs = extra_pars['conn_specs']
+		presetW = extra_pars['preset_W']
+	else:
+		conn_specs = {'rule': 'one_to_one'}
+		presetW = None
+	rec_devices = rec_device_defaults()
+	encoding_pars.encoder.N += 1
+	encoding_pars.encoder.labels.extend(['parrots'])
+	encoding_pars.encoder.models.extend(['parrot_neuron'])
+	encoding_pars.encoder.model_pars.extend([None])
+	encoding_pars.encoder.n_neurons.extend([n_parrots])
+	encoding_pars.encoder.neuron_pars.extend([{'model': 'parrot_neuron'}])
+	encoding_pars.encoder.topology.extend([False])
+	encoding_pars.encoder.topology_dict.extend([None])
+	encoding_pars.encoder.record_spikes.extend([True])
+	encoding_pars.encoder.spike_device_pars.extend([copy_dict(rec_devices, {'model': 'spike_detector',
+	                                             'label': 'input_Spikes'})])
+	encoding_pars.encoder.record_analogs.extend([False])
+	encoding_pars.encoder.analog_device_pars.extend([None])
+	syn_name = encoding_pars.connectivity.synapse_name[0]  # all synapses from a device must have the same name!!
+	encoding_pars.connectivity.synapse_name.extend([syn_name])
+	encoding_pars.connectivity.connections.extend([('parrots', encoding_pars.generator.labels[0])])
+	encoding_pars.connectivity.topology_dependent.extend([False])
+	encoding_pars.connectivity.conn_specs.extend([conn_specs])
+	encoding_pars.connectivity.syn_specs.extend([{}])
+	encoding_pars.connectivity.models.extend(['static_synapse'])
+	encoding_pars.connectivity.model_pars.extend([{}])
+	encoding_pars.connectivity.weight_dist.extend([1.])
+	encoding_pars.connectivity.delay_dist.extend([0.1])
+	encoding_pars.connectivity.preset_W.extend([presetW])
+	if decode:
+		encoding_pars.input_decoder = {'encoder_label': 'parrots'}
+
+
 def add_background_noise(encoding_pars, noise_pars):
 	"""
 	Adds a source of Poisson input to the specified populations (by modifying the encoding parameters)
