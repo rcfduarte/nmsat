@@ -3042,7 +3042,7 @@ def plot_averaged_time_resolved(results, spike_list, label='', epochs=None, colo
 	fig6.suptitle('{0} - Activity Analysis'.format(str(label)))
 	ax61 = pl.subplot2grid((25, 1), (0, 0), rowspan=20, colspan=1)
 	ax62 = pl.subplot2grid((25, 1), (20, 0), rowspan=5, colspan=1)
-	pretty_raster(spike_list, analysis_interval=[spike_list.t_start, spike_list.t_stop], n_total_neurons=100, ax=ax61)
+	pretty_raster(spike_list, analysis_interval=[spike_list.t_start, spike_list.t_stop], n_total_neurons=1000, ax=ax61)
 	# plot_raster(spike_list, 1., ax61, sub_set=100, **{'color': 'k', 'alpha': 0.8, 'marker': '|', 'markersize': 2})
 	stats = ['ffs_profile']
 

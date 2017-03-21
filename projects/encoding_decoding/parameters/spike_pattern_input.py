@@ -15,7 +15,7 @@ data_label = 'ED_spikepatterninput_illustration'
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'lexicon_size': [5],
+	'lexicon_size': [10],
 	'T': [10]
 }
 
@@ -83,7 +83,7 @@ def build_parameters(lexicon_size, T):
 		syn_specs=[{}, {}, {}, {}])
 	neuron_pars, net_pars, connection_pars = set_network_defaults(N=N, **recurrent_synapses)
 
-	net_pars['record_spikes'] = [True, True]
+	net_pars['record_spikes'] = [False, False]
 	# net_pars['record_analogs'] = [True, False]
 	# multimeter = rec_device_defaults(device_type='multimeter')
 	# multimeter.update({'record_from': ['V_m', 'g_ex', 'g_in'], 'record_n': 1000})
@@ -192,22 +192,22 @@ def build_parameters(lexicon_size, T):
 	# #################################################################################################################
 	# Decoding / Readout Parameters
 	# ##################################################################################################################
-	out_resolution = 0.1
+	out_resolution = 1.
 	filter_tau = 20.  # time constant of exponential filter (applied to spike trains)
 	state_sampling = None  # 1.(cannot start at 0)
 	readout_labels = ['ridge_classifier', 'pinv_classifier']
 	readout_algorithms = ['ridge', 'pinv']
 
 	decoders = dict(
-		decoded_population=[['E', 'I'], ['E', 'I']],
-		state_variable=['V_m', 'spikes'],
+		decoded_population=['I'],#['E', 'I'], ['E', 'I']],
+		state_variable=['V_m'],#, 'spikes'],
 		filter_time=filter_tau,
 		readouts=readout_labels,
 		readout_algorithms=readout_algorithms,
 		sampling_times=state_sampling,
-		reset_states=[False, False],
-		average_states=[False, False],
-		standardize=[False, False]
+		reset_states=[False],#, False],
+		average_states=[False], #, False],
+		standardize=[False], #, False]
 	)
 
 	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)
@@ -236,7 +236,7 @@ def build_parameters(lexicon_size, T):
 						# 3: save only summary of data, use all available measures
 						# 4: save all data, use all available measures
 
-		'store_activity': False,  		# [int] - store all population activity in the last n steps of the test
+		'store_activity': 5,  		# [int] - store all population activity in the last n steps of the test
 									# phase; if set True the entire test phase will be stored;
 
 		'population_activity': {

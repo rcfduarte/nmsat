@@ -1751,6 +1751,8 @@ def evaluate_encoding(enc_layer, parameter_set, analysis_interval, input_signal,
 				inp_readout_pars = prs.copy_dict(parameter_set.decoding_pars.readout[0],
 			                                 {'label': 'InputNeurons',
 			                                  'algorithm': parameter_set.decoding_pars.readout[0]['algorithm'][0]})
+
+
 			inp_readout = Readout(prs.ParameterSet(inp_readout_pars))
 			analysis_signal = input_signal.time_slice(analysis_interval[0], analysis_interval[1])
 			inp_readout.train(inp_responses, analysis_signal.as_array())
@@ -2100,7 +2102,7 @@ class Readout(object):
 		if display:
 			print(("\nTraining Readout {0} [{1}]".format(str(self.name), str(self.rule))))
 		if self.rule == 'pinv':
-			reg = lm.LinearRegression(fit_intercept=False)
+			reg = lm.LinearRegression(fit_intercept=False, n_jobs=-1)
 			reg.fit(state_train.T, target_train.T)
 			self.weights = reg.coef_#np.dot(np.linalg.pinv(np.transpose(state_train)), np.transpose(target_train))
 			self.fit_obj = reg #[]
@@ -2320,11 +2322,11 @@ class Readout(object):
 			performance['raw']['MSE'] = met.mean_squared_error(target, output)
 			performance['raw']['MAE'] = met.mean_absolute_error(target, output)
 			print("Readout {0} [raw ouput]: \n  - MSE = {1}".format(str(self.name), str(performance['raw']['MSE'])))
-			if is_binary_target and not is_binary_output and len(output.shape) > 1:
-				pb_cc = []
-				for n in range(target.shape[0]):
-					pb_cc.append(mst.pointbiserialr(np.array(target)[n, :], np.array(output)[n, :])[0])
-				performance['raw']['point_bisserial'] = pb_cc
+			# if is_binary_target and not is_binary_output and len(output.shape) > 1:
+			# 	pb_cc = []
+			# 	for n in range(target.shape[0]):
+			# 		pb_cc.append(mst.pointbiserialr(np.array(target)[n, :], np.array(output)[n, :])[0])
+			# 	performance['raw']['point_bisserial'] = pb_cc
 
 			# Max performance measures
 			performance['max']['MSE'] = met.mean_squared_error(binary_target, binary_output)
