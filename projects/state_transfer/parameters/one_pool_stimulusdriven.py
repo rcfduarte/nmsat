@@ -18,7 +18,7 @@ parameter_range = {
 
 
 def build_parameters():
-	gamma = 15.
+	gamma   = 14.
 
 	# ##################################################################################################################
 	# System / Kernel Parameters
@@ -38,6 +38,7 @@ def build_parameters():
 	# Neuron, Synapse and Network Parameters
 	# ##################################################################################################################
 	N = 10000
+	nE = 0.8 * N
 	delay = 1.5
 	epsilon = 0.1
 
@@ -57,7 +58,8 @@ def build_parameters():
 		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon}],
 		syn_specs=[{}, {}, {}, {}]
 	)
-	neuron_pars, net_pars, connection_pars = set_network_defaults(default_set=1, neuron_set=1, N=N, **recurrent_synapses)
+	neuron_pars, net_pars, connection_pars = set_network_defaults(default_set=1, neuron_set=1, N=N,
+	                                                              **recurrent_synapses)
 
 	# ##################################################################################################################
 	# Stimulus Parameters
@@ -77,11 +79,11 @@ def build_parameters():
 		test_set_length		= int(n_trials * 0.2),
 	)
 
-	# ######################################################################################################################
+	# ##################################################################################################################
 	# Input Parameters
-	# ######################################################################################################################
+	# ##################################################################################################################
 	inp_resolution = 0.1
-	inp_amplitude = 1200.
+	inp_amplitude = 6. * nE
 	inp_duration = 200.
 	inter_stim_interval = 0.
 
@@ -109,15 +111,13 @@ def build_parameters():
 	# Encoding Parameters
 	# ##################################################################################################################
 	n_afferents = N  # number of stimulus-specific afferents (if necessary)
-	n_stim = n_stim  # number of different input stimuli
 	encoder_delay = 0.1
-	# w_in = 90.
 	w_in = wE
 
 	# Input connectivity
 	input_synapses = dict(
 		target_population_names=['EI'],
-		conn_specs	= [{'rule': 'fixed_outdegree', 'outdegree': int(N * 0.3)}],
+		conn_specs	= [{'rule': 'pairwise_bernoulli', 'p': epsilon}],
 		syn_specs	= [{}],
 		models		= ['static_synapse'],
 		model_pars	= [{}],
@@ -140,19 +140,19 @@ def build_parameters():
 	out_resolution 		= 0.1
 	filter_tau 			= 20.  # time constant of exponential filter (applied to spike trains)
 	state_sampling 		= None  # 1.(cannot start at 0)
-	readout_labels 		= ['ridge_classifier', 'pinv_classifier']
-	readout_algorithms 	= ['ridge', 'pinv']
+	readout_labels 		= ['ridge_classifier']
+	readout_algorithms 	= ['ridge']
 
 	decoders = dict(
-		decoded_population	= [['E', 'I'], ['E', 'I'], ['E', 'I']],
-		state_variable		= ['spikes', 'V_m', 'spikes'],
+		decoded_population	= [['E', 'I'], ['E', 'I']],
+		state_variable		= ['spikes', 'V_m'],
 		filter_time			= filter_tau,
 		readouts			= readout_labels,
 		readout_algorithms	= readout_algorithms,
 		sampling_times		= state_sampling,
-		reset_states		= [True, False, False],
-		average_states		= [False, False, False],
-		standardize			= [False, False, False]
+		reset_states		= [True, False],
+		average_states		= [False, False],
+		standardize			= [False, False]
 	)
 
 	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)

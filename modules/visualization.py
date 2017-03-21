@@ -1156,6 +1156,8 @@ class SpikePlots(object):
 		if with_rate:
 			global_rate = self.spikelist.firing_rate(dt, average=True)
 			mean_rate 	= self.spikelist.firing_rate(10., average=True)
+			max_rate    = max(global_rate) + 1
+			min_rate    = min(global_rate) + 1
 			if gids_colors is None:
 				time = self.spikelist.time_axis(dt)[:-1]
 				ax2.plot(time, global_rate, **pl_props)
@@ -1169,8 +1171,9 @@ class SpikePlots(object):
 					time = tt.time_axis(dt)[:-1]
 					rate = tt.firing_rate(dt, average=True)
 					ax2.plot(time, rate, color=color, linewidth=1.0, alpha=0.8)
+					max_rate = max(rate) if max(rate) > max_rate else max_rate
 			ax2.plot(self.spikelist.time_axis(10.)[:-1], mean_rate, 'k', linewidth=1.5)
-			ax2.set(ylim=[min(global_rate) - 1, max(global_rate) + 1], xlim=[self.start, self.stop])
+			ax2.set(ylim=[min_rate, max_rate], xlim=[self.start, self.stop])
 		else:
 			ax1.set(**ax_props)
 		if save:

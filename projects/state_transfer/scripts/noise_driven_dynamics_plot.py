@@ -24,7 +24,8 @@ debug 	= False
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/two_pool_noisedriven_base_7x1.py'
+params_file = '../parameters/two_pool_noisedriven_base_8.py'
+#params_file = '../parameters/one_pool_noisedriven.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -46,8 +47,8 @@ np.random.seed(parameter_set.kernel_pars['np_seed'])
 results = dict()
 nu_x    = parameter_set.analysis_pars.nu_x
 gamma   = parameter_set.analysis_pars.gamma
-start_t = 1000.
-stop_t  = 2000.
+start_t = 0.
+stop_t  = 500.
 
 # ######################################################################################################################
 # Set kernel and simulation parameters
@@ -102,11 +103,6 @@ net.extract_population_activity()
 net.extract_network_activity()
 net.flush_records()
 
-# ==============================
-
-# enc_layer.extract_encoder_activity()
-# SpikePlots(enc_layer.encoders[0].spiking_activity).dot_display(with_rate=True, display=False,
-#                                     save="{0}/raster_nu_x={1}_gamma={2}_X.pdf".format(paths['figures'], nu_x, gamma))
 
 SpikePlots(net.populations[0].spiking_activity.id_slice(list(net.populations[0].gids[:1000])), start=start_t,
            stop=stop_t).dot_display(with_rate=True, display=False,

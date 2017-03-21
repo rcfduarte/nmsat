@@ -2361,8 +2361,8 @@ class Generator:
 		else:
 			self.time_data = []
 
-		if dims is not None:  # if dimensions are provided, overrides current value
-			self.input_dimension = dims
+		# if dimensions are provided, overrides current value
+		self.input_dimension = dims if dims is not None else 1
 
 		self.gids 		= []
 		self.layer_gid 	= None
@@ -2496,7 +2496,7 @@ class EncodingLayer:
 		self.encoders = []
 		self.connections = []
 		self.connection_types = []
-		self.connection_weights = {}
+		self.synaptic_weights = {}
 		self.connection_delays = {}
 		self.signal = signal
 
@@ -2845,8 +2845,6 @@ class EncodingLayer:
 							raise TypeError("Delays not provided in correct format")
 						visualization.progress_bar(float(preSyn_matidx)/len(src_gids))
 						conn_dict = conn_pars.conn_specs[idx]
-						#print conn_pars.syn_specs[idx]
-						#print conn_pars.conn_specs[idx]
 						for idxx, tget in enumerate(postSyn_gid):
 							#print idxx
 							if isinstance(delay, dict):
@@ -2854,11 +2852,9 @@ class EncodingLayer:
 							else:
 								d = delay[idxx]
 
-							syn_dict = parameters.copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight': weights[
-								idxx], 'delay': d})
-							#print conn_pars.syn_specs[idx]
-							#print syn_dict
-							#print preSyn_gid, [tget]
+							syn_dict = parameters.copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name,
+							                                                           'weight': weights[idxx],
+							                                                           'delay': d})
 
 							if conn_dict is not None:
 								nest.Connect(preSyn_gid, [tget], conn_spec=conn_dict, syn_spec=syn_dict)
@@ -3250,18 +3246,16 @@ class EncodingLayer:
 					status_dict = nest.GetStatus(nest.GetConnections(synapse_model=con))
 					src_gids = [status_dict[n]['source'] for n in range(len(status_dict))]
 					tget_gids = [status_dict[n]['target'] for n in range(len(status_dict))]
-					#self.connection_weights.append({con: np.array([status_dict[n]['weight'] for n in range(len(
-					#	status_dict))])})
-					self.connection_weights.update({con: net_architect.extract_weights_matrix(list(np.unique(src_gids)),
-																							  list(np.unique(tget_gids)),
-																							  progress=progress)})
+					self.synaptic_weights.update({con: net_architect.extract_weights_matrix(list(np.unique(src_gids)),
+					                                                                        list(np.unique(tget_gids)),
+					                                                                        progress=progress)})
 
 		elif src_gids and tget_gids:
 			if syn_name is None:
 				syn_name = str(nest.GetStatus(nest.GetConnections([src_gids[0]], [tget_gids[0]]))[0]['synapse_model'])
-			self.connection_weights.update({syn_name: net_architect.extract_weights_matrix(list(np.unique(src_gids)),
-																						   list(np.unique(tget_gids)),
-			                                                                               progress=progress)})
+			self.synaptic_weights.update({syn_name: net_architect.extract_weights_matrix(list(np.unique(src_gids)),
+			                                                                             list(np.unique(tget_gids)),
+			                                                                             progress=progress)})
 		else:
 			print("Provide gids!!")
 
@@ -3280,8 +3274,6 @@ class EncodingLayer:
 				status_dict = nest.GetStatus(nest.GetConnections(synapse_model=con))
 				src_gids = [status_dict[n]['source'] for n in range(len(status_dict))]
 				tget_gids = [status_dict[n]['target'] for n in range(len(status_dict))]
-				# self.connection_weights.append({con: np.array([status_dict[n]['delay'] for n in range(len(
-				# 	status_dict))])})
 				self.connection_delays.update({con: net_architect.extract_delays_matrix(list(np.unique(src_gids)),
 																						list(np.unique(tget_gids)),
 																						progress=progress)})

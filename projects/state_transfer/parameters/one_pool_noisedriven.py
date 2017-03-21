@@ -12,7 +12,7 @@ one_pool_noisedriven
 """
 
 run = 'local'
-data_label = 'ST_onepool_noisedriven_paramtable'
+data_label = 'ST_onepool_noisedriven_N20000'
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations
@@ -20,12 +20,15 @@ data_label = 'ST_onepool_noisedriven_paramtable'
 parameter_range = {
 	# 'nu_x': np.arange(2, 14.1, .5),
 	# 'gamma': np.arange(9., 17.1, .5)
-	'nu_x': [6.],
-	'gamma': [15.]
+	#'nu_x': [6.],
+	#'gamma': [15.]
 }
 
 
-def build_parameters(nu_x, gamma):
+def build_parameters():
+	gamma = 14.
+	nu_x = 6.
+
 	# ##################################################################################################################
 	# System / Kernel Parameters
 	# ##################################################################################################################
@@ -48,7 +51,6 @@ def build_parameters(nu_x, gamma):
 	delay = 1.5
 	epsilon = 0.1
 
-	# gamma = 8.
 	wE = 1.
 	wI = -gamma * wE
 
@@ -60,9 +62,9 @@ def build_parameters(nu_x, gamma):
 		weights=[wE, wI, wE, wI],
 		delays=[delay, delay, delay, delay],
 		conn_specs=[{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon}],
+					{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},
+					{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},
+					{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon}],
 		syn_specs=[{}, {}, {}, {}]
 	)
 	neuron_pars, net_pars, connection_pars = set_network_defaults(default_set=1, neuron_set=1, N=N, **recurrent_synapses)
@@ -75,9 +77,7 @@ def build_parameters(nu_x, gamma):
 	# ##################################################################################################################
 	# Encoding Parameters
 	# ##################################################################################################################
-	# nu_x = 20.
 	k_x = epsilon * nE
-	w_in = 1.
 
 	encoding_pars = set_encoding_defaults(default_set=0)
 
@@ -106,10 +106,10 @@ def build_parameters(nu_x, gamma):
 									# phase; if set True the entire test phase will be stored;
 
 		'population_activity': {
-			'time_bin': 	1.,  	# bin width for spike counts, fano factors and correlation coefficients
-			'n_pairs': 		500,  	# number of spike train pairs to consider in correlation coefficient
-			'tau': 			20., 	# time constant of exponential filter (van Rossum distance)
-			'window_len': 	100, 	# length of sliding time window (for time_resolved analysis)
+			'time_bin':		1.,		# bin width for spike counts, fano factors and correlation coefficients
+			'n_pairs':		500,	# number of spike train pairs to consider in correlation coefficient
+			'tau':			20.,	# time constant of exponential filter (van Rossum distance)
+			'window_len':	100,	# length of sliding time window (for time_resolved analysis)
 			'time_resolved': False, # perform time-resolved analysis
 		},
 		'nu_x': nu_x,
@@ -117,14 +117,14 @@ def build_parameters(nu_x, gamma):
 	}
 
 	# report_pars = set_report_defaults(5, run, paths, kernel_pars, neuron_pars, net_pars, connection_pars,
-	# 								  encoding_pars, decoding_pars={})
+	#								  encoding_pars, decoding_pars={})
 	# ##################################################################################################################
 	# RETURN dictionary of Parameters dictionaries
 	# ==================================================================================================================
-	return dict([('kernel_pars', 	 kernel_pars),
-	             ('neuron_pars', 	 neuron_pars),
-	             ('net_pars', 		 net_pars),
-	             ('encoding_pars', 	 encoding_pars),
-	             ('connection_pars', connection_pars),
-				 ('analysis_pars', 	 analysis_pars),])
-				 # ('report_pars', 	 report_pars)])
+	return dict([('kernel_pars',	 kernel_pars),
+				 ('neuron_pars',	 neuron_pars),
+				 ('net_pars',		 net_pars),
+				 ('encoding_pars',	 encoding_pars),
+				 ('connection_pars', connection_pars),
+				 ('analysis_pars',	 analysis_pars),])
+				 # ('report_pars',	 report_pars)])
