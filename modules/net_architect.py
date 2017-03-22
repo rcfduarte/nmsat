@@ -12,17 +12,21 @@ verify_pars_consistency   - verify if all the relevant lists in a parameter set 
 iterate_obj_list          - build an iterator to go through the elements of a list or nested list
 extract_weights_matrix    - extract synaptic weights matrix
 """
-import sys
-import visualization
-import parameters
-import analysis
-import signals
-import io
+# other imports
 import itertools
 import time
 import copy
 import numpy as np
 from scipy.sparse import lil_matrix
+
+# NMT imports
+import visualization
+import parameters
+import analysis
+import signals
+import io
+
+# nest
 import nest
 from nest import topology as tp
 
@@ -123,7 +127,6 @@ class Population(object):
 	"""
 
 	def __init__(self, pop_set):
-
 		self.name = pop_set.pop_names
 		self.size = pop_set.n_neurons
 		if pop_set.topology:
@@ -138,14 +141,6 @@ class Population(object):
 		self.attached_device_names = []
 		self.analog_activity_names = []
 		self.decoding_layer = None
-
-		#self.decoding_pars = []
-		#self.state_extractors = []
-		#self.readouts = []
-		#self.state_matrix = []
-		#self.state_sample_times = []
-		#self.response_matrix = []
-		#self.state_variables = []
 
 	def randomize_initial_states(self, var_name, randomization_function, **function_parameters):
 		"""

@@ -18,25 +18,26 @@ shotnoise_fromspikes- yields shot noise for Poisson-like spike trains
 stimulus_sequence_to_binary
 merge_signals       - sums 2 AnalogSignals
 """
-import parameters
-import signals
-import io
-import net_architect
-from modules import check_dependency
-import visualization
-import os
+# other imports
 import cPickle as pickle
-import gzip
 import numpy as np
 import bisect
 import itertools
 import time
 import collections
-from decimal import Decimal
 from scipy.sparse import coo_matrix, lil_matrix
 from scipy.signal import fftconvolve
 import copy
 import decimal
+
+# NMT
+import parameters
+import signals
+import io
+import net_architect
+import visualization
+
+# nest
 import nest
 import nest.topology as tp
 
@@ -2027,7 +2028,7 @@ class InputSignalSet(object):
 		assert (stimulus_set.unique_set is not None), "No unique set in the provided StimulusSet object, " \
 		                                              "skipping..."
 		self.unique_set_signal = InputSignal(self.parameters.signal, self.online)
-		print(("- Generating {0}-dimensional input signal [unique_set]".format(str(stimulus_set.dims))))
+		print("- Generating {0}-dimensional input signal [unique_set]".format(str(stimulus_set.dims)))
 		if self.online:
 			print("- InputSignal will be generated online. unique_set is now a generator.. (no noise is added...)")
 			# TODO: Noise is not added
@@ -2058,8 +2059,8 @@ class InputSignalSet(object):
 					self.unique_set = InputSignal()
 					self.unique_set.load_signal(merged_signal, onset=self.parameters.noise.start_time,
 					                          inherit_from=self.unique_set_signal)
-					print(("- Generating and adding {0}-dimensional input noise (t={1})".format(str(stimulus_set.dims),
-					                                                                    str(self.unique_stimulation_time))))
+					print("- Generating and adding {0}-dimensional input noise (t={1})".format(str(stimulus_set.dims),
+					                                                                    str(self.unique_stimulation_time)))
 
 	def generate_train_set(self, stimulus_set):
 		"""
@@ -2070,7 +2071,7 @@ class InputSignalSet(object):
 		assert (stimulus_set.train_set is not None), "No train set in the provided StimulusSet object, " \
 		                                                 "skipping..."
 		self.train_set_signal = InputSignal(self.parameters.signal, self.online)
-		print(("- Generating {0}-dimensional input signal [train_set]".format(str(stimulus_set.dims))))
+		print("- Generating {0}-dimensional input signal [train_set]".format(str(stimulus_set.dims)))
 		if self.online:
 			print("- InputSignal will be generated online. train_set is now a generator.. (no noise is added...)")
 			# TODO: Noise is not added
@@ -2110,8 +2111,8 @@ class InputSignalSet(object):
 					self.train_set = InputSignal()
 					self.train_set.load_signal(merged_signal, onset=self.parameters.noise.start_time,
 					                           inherit_from=self.train_set_signal)
-					print(("- Generating and adding {0}-dimensional input noise (t={1})".format(str(stimulus_set.dims),
-					                                                              str(self.train_stimulation_time))))
+					print("- Generating and adding {0}-dimensional input noise (t={1})".format(str(stimulus_set.dims),
+					                                                              str(self.train_stimulation_time)))
 
 	def generate_test_set(self, stimulus_set):
 		"""
