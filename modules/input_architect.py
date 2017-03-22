@@ -1866,18 +1866,22 @@ class InputSignalSet(object):
 		self.online = online
 		self.parameters = parameter_set.input_pars
 		self.transient_set_signal = None
+		self.transient_set_signal_iterator = None
 		self.transient_set_noise = None
 		self.transient_set = None
 		self.transient_stimulation_time = 0
 		self.full_set_signal = None
+		self.full_set_signal_iterator = None
 		self.full_set_noise = None
 		self.full_set = None
 		self.full_stimulation_time = 0
 		self.train_set_signal = None
+		self.train_set_signal_iterator = None
 		self.train_set_noise = None
 		self.train_set = None
 		self.train_stimulation_time = 0
 		self.test_set_signal = None
+		self.test_set_signal_iterator = None
 		self.test_set_noise = None
 		self.test_set = None
 		self.test_stimulation_time = 0
@@ -1940,8 +1944,83 @@ class InputSignalSet(object):
 		if stim_obj is not None and hasattr(stim_obj, "unique_set"):
 			self.unique_set = None
 			self.unique_set_signal = None
+			self.unique_set_signal_iterator = None
 			self.unique_set_noise = None
 			self.unique_stimulation_time = 0
+
+	def generate_generic_set(self, stimulus_set, stimulus_subset, set_label, timestamp_correction=None):
+		"""
+		Generic function used by several functions (generate_full_set, generate_train_set, etc.) to generate
+		or initialize input signals corresponding to the stimulus set being generated
+		(full, transient, unique, train and test). Signal for stimulus sets can be generated either online
+		(via generator objects) or offline.
+
+		:param stimulus_set: StimulusSet object
+		:param stimulus_subset: particular type of set, e.g., stimulus_set.full_set
+		:param set_label: label for set, e.g., full_set or train_set
+		:param timestamp_correction: apply time correction for signal (offset value)
+		:return: tuple with 5 elements, which then update the corresponding class member objects,
+				 in the calling function
+
+				 -> self_set, self_set_signal, self_set_signal_iterator, self_set_noise, set_stimulation_time
+		"""
+		self_set = None                     # self.full_set
+		self_set_signal = None              # .full_set_signal
+		self_set_signal_iterator = None     # .full_set_signal_iterator
+		self_set_noise = None               # .full_set_noise
+		set_stimulation_time = 0.
+
+		assert (stimulus_subset is not None), "No {0} in the provided StimulusSet object, skipping...".format(set_label)
+		self_set_signal = InputSignal(self.parameters.signal, self.online)
+		print("- Generating {0}-dimensional input signal [{1}]".format(str(stimulus_set.dims), set_label))
+		# stimulus is generated online
+		if self.online:
+			print("- InputSignal will be generated online. {0} is now a generator.. (no noise is added...)".format(
+				set_label))
+			# TODO: Noise is not added
+			self_set_signal_iterator = self_set_signal.set_signal_online(stimulus_subset)
+			self_set = self_set_signal.generate_iterative(stimulus_subset)
+		# stimulus is generated offline
+		else:
+			self_set_signal.set_stimulus_amplitudes(stimulus_subset)
+			if not signals.empty(self.spike_patterns):
+				self_set_signal.set_stimulus_times(stimulus_subset, spk_patterns=True)
+			else:
+				self_set_signal.set_stimulus_times(stimulus_subset)
+
+			self_set_signal.generate()
+
+			if timestamp_correction:  # correct time stamp
+				self_set_signal.time_offset(timestamp_correction)
+
+			set_stimulation_time = len(self_set_signal.time_data) * self_set_signal.dt
+
+			if hasattr(self.parameters, "noise") and self.parameters.noise.N:
+				# for full set we're not updating, otherwise it's circular update
+				if set_label != "full_set":
+					self.parameters.noise.start_time = self.parameters.noise.stop_time
+					self.parameters.noise.stop_time += set_stimulation_time
+
+				# this is only required for the full_set generation, otherwise times are deduced from noise
+				stop_time = set_stimulation_time if set_label == "full_set" else None
+
+				self_set_noise = InputNoise(self.parameters.noise, stop_time=stop_time)
+				self_set_noise.generate()
+				if not isinstance(self_set_noise.noise_signal, signals.AnalogSignalList):
+					self_set_noise = None
+					self_set = self_set_signal
+				else:
+					merged_signal = merge_signal_lists(self_set_signal.input_signal,
+					                                   self_set_noise.noise_signal,
+					                                   operation=np.add)
+					self_set = InputSignal()
+					# for full set it's still okay, because start_time at that point is still 0.
+					self_set.load_signal(merged_signal.as_array(), onset=self.parameters.noise.start_time,
+					                     inherit_from=self_set_signal)
+					print("- Generating and adding {0}-dimensional input noise (t={1})".format(
+						str(stimulus_set.dims), str(set_stimulation_time)))
+
+		return self_set, self_set_signal, self_set_signal_iterator, self_set_noise, set_stimulation_time
 
 	def generate_full_set(self, stimulus_set):
 		"""
@@ -1949,36 +2028,44 @@ class InputSignalSet(object):
 		:param stimulus_set:
 		:return:
 		"""
-		assert(stimulus_set.full_set is not None), "No full set in the provided StimulusSet object, skipping..."
-		self.full_set_signal = InputSignal(self.parameters.signal, self.online)
-		print("- Generating {0}-dimensional input signal [full_set]".format(str(stimulus_set.dims)))
-		if self.online:
-			print("- InputSignal will be generated online. full_set is now a generator.. (no noise is added...)")
-			# TODO: Noise is not added
-			self.full_set_signal_iterator = self.full_set_signal.set_signal_online(stimulus_set.full_set)
-			self.full_set = self.full_set_signal.generate_iterative(stimulus_set.full_set)
-		else:
-			self.full_set_signal.set_stimulus_amplitudes(stimulus_set.full_set)
-			if not signals.empty(self.spike_patterns):
-				self.full_set_signal.set_stimulus_times(stimulus_set.full_set, spk_patterns=True)
-			else:
-				self.full_set_signal.set_stimulus_times(stimulus_set.full_set)
-			self.full_set_signal.generate()
-			self.full_stimulation_time = len(self.full_set_signal.time_data) * self.full_set_signal.dt
-			if hasattr(self.parameters, "noise") and self.parameters.noise.N:
-				self.full_set_noise = InputNoise(self.parameters.noise, stop_time=self.full_stimulation_time)
-				self.full_set_noise.generate()
-				if not isinstance(self.full_set_noise.noise_signal, signals.AnalogSignalList):
-					self.full_set_noise = None
-					self.full_set = self.full_set_signal
-				else:
-					merged_signal = merge_signal_lists(self.full_set_signal.input_signal,
-					                                   self.full_set_noise.noise_signal,
-					                              operation=np.add)
-					self.full_set = InputSignal()
-					self.full_set.load_signal(merged_signal.as_array(), inherit_from=self.full_set_signal)
-					print(("- Generating and adding {0}-dimensional input noise (t={1})".format(str(stimulus_set.dims),
-						                                                              str(self.full_stimulation_time))))
+
+		result = self.generate_generic_set(stimulus_set, stimulus_set.full_set, "full_set") 
+		self.full_set                  = result[0]
+		self.full_set_signal           = result[1]
+		self.full_set_signal_iterator  = result[2]
+		self.full_set_noise            = result[3]
+		self.full_stimulation_time     = result[4]
+
+		# assert(stimulus_set.full_set is not None), "No full set in the provided StimulusSet object, skipping..."
+		# self.full_set_signal = InputSignal(self.parameters.signal, self.online)
+		# print("- Generating {0}-dimensional input signal [full_set]".format(str(stimulus_set.dims)))
+		# if self.online:
+		# 	print("- InputSignal will be generated online. full_set is now a generator.. (no noise is added...)")
+		# 	# TODO: Noise is not added
+		# 	self.full_set_signal_iterator = self.full_set_signal.set_signal_online(stimulus_set.full_set)
+		# 	self.full_set = self.full_set_signal.generate_iterative(stimulus_set.full_set)
+		# else:
+		# 	self.full_set_signal.set_stimulus_amplitudes(stimulus_set.full_set)
+		# 	if not signals.empty(self.spike_patterns):
+		# 		self.full_set_signal.set_stimulus_times(stimulus_set.full_set, spk_patterns=True)
+		# 	else:
+		# 		self.full_set_signal.set_stimulus_times(stimulus_set.full_set)
+		# 	self.full_set_signal.generate()
+		# 	self.full_stimulation_time = len(self.full_set_signal.time_data) * self.full_set_signal.dt
+		# 	if hasattr(self.parameters, "noise") and self.parameters.noise.N:
+		# 		self.full_set_noise = InputNoise(self.parameters.noise, stop_time=self.full_stimulation_time)
+		# 		self.full_set_noise.generate()
+		# 		if not isinstance(self.full_set_noise.noise_signal, signals.AnalogSignalList):
+		# 			self.full_set_noise = None
+		# 			self.full_set = self.full_set_signal
+		# 		else:
+		# 			merged_signal = merge_signal_lists(self.full_set_signal.input_signal,
+		# 			                                   self.full_set_noise.noise_signal,
+		# 			                                   operation=np.add)
+		# 			self.full_set = InputSignal()
+		# 			self.full_set.load_signal(merged_signal.as_array(), inherit_from=self.full_set_signal)
+		# 			print("- Generating and adding {0}-dimensional input noise (t={1})".format(str(stimulus_set.dims),
+		# 				                                                              str(self.full_stimulation_time)))
 
 	def generate_transient_set(self, stimulus_set):
 		"""
@@ -1986,38 +2073,46 @@ class InputSignalSet(object):
 		:param stimulus_set:
 		:return:
 		"""
-		assert(stimulus_set.transient_set is not None), "No transient set in the provided StimulusSet object, skipping..."
-		self.transient_set_signal = InputSignal(self.parameters.signal, self.online)
-		print(("- Generating {0}-dimensional input signal [transient_set]".format(str(stimulus_set.dims))))
-
-		if self.online:
-			print("- InputSignal will be generated online. transient_set is now a generator.. (no noise is added...)")
-			# TODO: Noise is not added
-			self.transient_set_signal_iterator = self.transient_set_signal.set_signal_online(stimulus_set.transient_set)
-			self.transient_set = self.transient_set_signal.generate_iterative(stimulus_set.transient_set)
-		else:
-			self.transient_set_signal.set_stimulus_amplitudes(stimulus_set.transient_set)
-			if not signals.empty(self.spike_patterns):
-				self.transient_set_signal.set_stimulus_times(stimulus_set.transient_set, True)
-			else:
-				self.transient_set_signal.set_stimulus_times(stimulus_set.transient_set)
-			self.transient_set_signal.generate()
-			self.transient_stimulation_time = len(self.transient_set_signal.time_data) * self.transient_set_signal.dt
-			if hasattr(self.parameters, "noise") and self.parameters.noise.N:
-				self.parameters.noise.stop_time = self.transient_stimulation_time
-				self.transient_set_noise = InputNoise(self.parameters.noise)
-				self.transient_set_noise.generate()
-				if not isinstance(self.transient_set_noise.noise_signal, signals.AnalogSignalList):
-					self.transient_set_noise = None
-					self.transient_set = self.transient_set_signal
-				else:
-					merged_signal = merge_signal_lists(self.transient_set_signal.input_signal,
-					                                   self.transient_set_noise.noise_signal,
-					                              operation=np.add)
-					self.transient_set = InputSignal()
-					self.transient_set.load_signal(merged_signal.as_array(), onset=0., inherit_from=self.transient_set_signal)
-					print(("- Generating and adding {0}-dimensional input noise (t={1})".format(str(stimulus_set.dims),
-						                                                         str(self.transient_stimulation_time))))
+		result = self.generate_generic_set(stimulus_set, stimulus_set.transient_set, "transient_set") 
+		self.transient_set                  = result[0]
+		self.transient_set_signal           = result[1]
+		self.transient_set_signal_iterator  = result[2]
+		self.transient_set_noise            = result[3]
+		self.transient_stimulation_time     = result[4]
+			
+		#
+		# assert(stimulus_set.transient_set is not None), "No transient set in the provided StimulusSet object, skipping..."
+		# self.transient_set_signal = InputSignal(self.parameters.signal, self.online)
+		# print("- Generating {0}-dimensional input signal [transient_set]".format(str(stimulus_set.dims)))
+		#
+		# if self.online:
+		# 	print("- InputSignal will be generated online. transient_set is now a generator.. (no noise is added...)")
+		# 	# TODO: Noise is not added
+		# 	self.transient_set_signal_iterator = self.transient_set_signal.set_signal_online(stimulus_set.transient_set)
+		# 	self.transient_set = self.transient_set_signal.generate_iterative(stimulus_set.transient_set)
+		# else:
+		# 	self.transient_set_signal.set_stimulus_amplitudes(stimulus_set.transient_set)
+		# 	if not signals.empty(self.spike_patterns):
+		# 		self.transient_set_signal.set_stimulus_times(stimulus_set.transient_set, True)
+		# 	else:
+		# 		self.transient_set_signal.set_stimulus_times(stimulus_set.transient_set)
+		# 	self.transient_set_signal.generate()
+		# 	self.transient_stimulation_time = len(self.transient_set_signal.time_data) * self.transient_set_signal.dt
+		# 	if hasattr(self.parameters, "noise") and self.parameters.noise.N:
+		# 		self.parameters.noise.stop_time = self.transient_stimulation_time
+		# 		self.transient_set_noise = InputNoise(self.parameters.noise)
+		# 		self.transient_set_noise.generate()
+		# 		if not isinstance(self.transient_set_noise.noise_signal, signals.AnalogSignalList):
+		# 			self.transient_set_noise = None
+		# 			self.transient_set = self.transient_set_signal
+		# 		else:
+		# 			merged_signal = merge_signal_lists(self.transient_set_signal.input_signal,
+		# 			                                   self.transient_set_noise.noise_signal,
+		# 			                                   operation=np.add)
+		# 			self.transient_set = InputSignal()
+		# 			self.transient_set.load_signal(merged_signal.as_array(), onset=0., inherit_from=self.transient_set_signal)
+		# 			print("- Generating and adding {0}-dimensional input noise (t={1})".format(str(stimulus_set.dims),
+		# 				                                                         str(self.transient_stimulation_time)))
 
 	def generate_unique_set(self, stimulus_set):
 		"""
@@ -2025,42 +2120,51 @@ class InputSignalSet(object):
 		:param stimulus_set:
 		:return:
 		"""
-		assert (stimulus_set.unique_set is not None), "No unique set in the provided StimulusSet object, " \
-		                                              "skipping..."
-		self.unique_set_signal = InputSignal(self.parameters.signal, self.online)
-		print("- Generating {0}-dimensional input signal [unique_set]".format(str(stimulus_set.dims)))
-		if self.online:
-			print("- InputSignal will be generated online. unique_set is now a generator.. (no noise is added...)")
-			# TODO: Noise is not added
-			self.unique_set_signal_iterator = self.unique_set_signal.set_signal_online(stimulus_set.unique_set)
-			self.unique_set = self.unique_set_signal.generate_iterative(stimulus_set.unique_set)
-		else:
-			self.unique_set_signal.set_stimulus_amplitudes(stimulus_set.unique_set)
-			if not signals.empty(self.spike_patterns):
-				self.unique_set_signal.set_stimulus_times(stimulus_set.unique_set, True)
-			else:
-				self.unique_set_signal.set_stimulus_times(stimulus_set.unique_set)
-			self.unique_set_signal.generate()
-			# correct time stamp:
-			self.unique_set_signal.time_offset(self.transient_stimulation_time)
-			self.unique_stimulation_time = len(self.unique_set_signal.time_data) * self.unique_set_signal.dt
-			if hasattr(self.parameters, "noise") and self.parameters.noise.N:
-				self.parameters.noise.start_time += self.unique_stimulation_time
-				self.parameters.noise.stop_time += self.unique_stimulation_time
-				self.unique_set_noise = InputNoise(self.parameters.noise)
-				self.unique_set_noise.generate()
-				if not isinstance(self.unique_set_noise.noise_signal, signals.AnalogSignalList):
-					self.unique_set_noise = None
-					self.unique_set = self.unique_set_signal
-				else:
-					merged_signal = merge_signal_lists(self.unique_set_signal.input_signal,
-					                                   self.unique_set_noise.noise_signal,
-					                                   operation=np.add)
-					self.unique_set = InputSignal()
-					self.unique_set.load_signal(merged_signal, onset=self.parameters.noise.start_time,
-					                          inherit_from=self.unique_set_signal)
-					print("- Generating and adding {0}-dimensional input noise (t={1})".format(str(stimulus_set.dims),
-					                                                                    str(self.unique_stimulation_time)))
+		timestep_correction = self.transient_stimulation_time
+
+		result = self.generate_generic_set(stimulus_set, stimulus_set.unique_set, "unique_set", timestep_correction)
+		self.unique_set                  = result[0]
+		self.unique_set_signal           = result[1]
+		self.unique_set_signal_iterator  = result[2]
+		self.unique_set_noise            = result[3]
+		self.unique_stimulation_time     = result[4]
+
+		# assert (stimulus_set.unique_set is not None), "No unique set in the provided StimulusSet object, " \
+		#                                               "skipping..."
+		# self.unique_set_signal = InputSignal(self.parameters.signal, self.online)
+		# print("- Generating {0}-dimensional input signal [unique_set]".format(str(stimulus_set.dims)))
+		# if self.online:
+		# 	print("- InputSignal will be generated online. unique_set is now a generator.. (no noise is added...)")
+		# 	# TODO: Noise is not added
+		# 	self.unique_set_signal_iterator = self.unique_set_signal.set_signal_online(stimulus_set.unique_set)
+		# 	self.unique_set = self.unique_set_signal.generate_iterative(stimulus_set.unique_set)
+		# else:
+		# 	self.unique_set_signal.set_stimulus_amplitudes(stimulus_set.unique_set)
+		# 	if not signals.empty(self.spike_patterns):
+		# 		self.unique_set_signal.set_stimulus_times(stimulus_set.unique_set, True)
+		# 	else:
+		# 		self.unique_set_signal.set_stimulus_times(stimulus_set.unique_set)
+		# 	self.unique_set_signal.generate()
+		# 	# correct time stamp:
+		# 	self.unique_set_signal.time_offset(self.transient_stimulation_time)
+		# 	self.unique_stimulation_time = len(self.unique_set_signal.time_data) * self.unique_set_signal.dt
+		# 	if hasattr(self.parameters, "noise") and self.parameters.noise.N:
+		# 		self.parameters.noise.start_time += self.unique_stimulation_time
+		# 		self.parameters.noise.stop_time += self.unique_stimulation_time
+		# 		self.unique_set_noise = InputNoise(self.parameters.noise)
+		# 		self.unique_set_noise.generate()
+		# 		if not isinstance(self.unique_set_noise.noise_signal, signals.AnalogSignalList):
+		# 			self.unique_set_noise = None
+		# 			self.unique_set = self.unique_set_signal
+		# 		else:
+		# 			merged_signal = merge_signal_lists(self.unique_set_signal.input_signal,
+		# 			                                   self.unique_set_noise.noise_signal,
+		# 			                                   operation=np.add)
+		# 			self.unique_set = InputSignal()
+		# 			self.unique_set.load_signal(merged_signal, onset=self.parameters.noise.start_time,
+		# 			                          inherit_from=self.unique_set_signal)
+		# 			print("- Generating and adding {0}-dimensional input noise (t={1})".format(str(stimulus_set.dims),
+		# 			                                                                    str(self.unique_stimulation_time)))
 
 	def generate_train_set(self, stimulus_set):
 		"""
@@ -2068,51 +2172,63 @@ class InputSignalSet(object):
 		:param stimulus_set:
 		:return:
 		"""
-		assert (stimulus_set.train_set is not None), "No train set in the provided StimulusSet object, " \
-		                                                 "skipping..."
-		self.train_set_signal = InputSignal(self.parameters.signal, self.online)
-		print("- Generating {0}-dimensional input signal [train_set]".format(str(stimulus_set.dims)))
-		if self.online:
-			print("- InputSignal will be generated online. train_set is now a generator.. (no noise is added...)")
-			# TODO: Noise is not added
-			self.train_set_signal_iterator = self.train_set_signal.set_signal_online(stimulus_set.train_set)
-			self.train_set = self.train_set_signal.generate_iterative(stimulus_set.train_set)
-		else:
-			self.train_set_signal.set_stimulus_amplitudes(stimulus_set.train_set)
-			if not signals.empty(self.spike_patterns):
-				self.train_set_signal.set_stimulus_times(stimulus_set.train_set, True)
-			else:
-				self.train_set_signal.set_stimulus_times(stimulus_set.train_set)
-			self.train_set_signal.generate()
+		timestep_correction = self.transient_stimulation_time
+		if hasattr(self, "unique_set"):
+			timestep_correction += self.unique_stimulation_time
 
-			# correct time stamp:
-			if hasattr(self, "unique_set"):
-				self.train_set_signal.time_offset(self.transient_stimulation_time + self.unique_stimulation_time)
-				if hasattr(self.parameters, "noise") and self.parameters.noise.N:
-					self.parameters.noise.start_time += self.transient_stimulation_time + self.unique_stimulation_time
-			else:
-				self.train_set_signal.time_offset(self.transient_stimulation_time)
-				if hasattr(self.parameters, "noise") and self.parameters.noise.N:
-					self.parameters.noise.start_time += self.transient_stimulation_time
+		result = self.generate_generic_set(stimulus_set, stimulus_set.train_set, "train_set", timestep_correction)
+		self.train_set                  = result[0]
+		self.train_set_signal           = result[1]
+		self.train_set_signal_iterator  = result[2]
+		self.train_set_noise            = result[3]
+		self.train_stimulation_time     = result[4]
 
-			self.train_stimulation_time = len(self.train_set_signal.time_data) * self.train_set_signal.dt
-
-			if hasattr(self.parameters, "noise") and self.parameters.noise.N:
-				self.parameters.noise.stop_time += self.train_stimulation_time
-				self.train_set_noise = InputNoise(self.parameters.noise)
-				self.train_set_noise.generate()
-				if not isinstance(self.train_set_noise.noise_signal, signals.AnalogSignalList):
-					self.train_set_noise = None
-					self.train_set = self.train_set_signal
-				else:
-					merged_signal = merge_signal_lists(self.train_set_signal.input_signal,
-					                                   self.train_set_noise.noise_signal,
-					                              operation=np.add)
-					self.train_set = InputSignal()
-					self.train_set.load_signal(merged_signal, onset=self.parameters.noise.start_time,
-					                           inherit_from=self.train_set_signal)
-					print("- Generating and adding {0}-dimensional input noise (t={1})".format(str(stimulus_set.dims),
-					                                                              str(self.train_stimulation_time)))
+		# assert (stimulus_set.train_set is not None), "No train set in the provided StimulusSet object, " \
+		#                                                  "skipping..."
+		# self.train_set_signal = InputSignal(self.parameters.signal, self.online)
+		# print("- Generating {0}-dimensional input signal [train_set]".format(str(stimulus_set.dims)))
+		# if self.online:
+		# 	print("- InputSignal will be generated online. train_set is now a generator.. (no noise is added...)")
+		# 	# TODO: Noise is not added
+		# 	self.train_set_signal_iterator = self.train_set_signal.set_signal_online(stimulus_set.train_set)
+		# 	self.train_set = self.train_set_signal.generate_iterative(stimulus_set.train_set)
+		# else:
+		# 	self.train_set_signal.set_stimulus_amplitudes(stimulus_set.train_set)
+		# 	if not signals.empty(self.spike_patterns):
+		# 		self.train_set_signal.set_stimulus_times(stimulus_set.train_set, True)
+		# 	else:
+		# 		self.train_set_signal.set_stimulus_times(stimulus_set.train_set)
+		# 	self.train_set_signal.generate()
+		#
+		# 	# correct time stamp:
+		# 	if hasattr(self, "unique_set"):
+		# 		self.train_set_signal.time_offset(self.transient_stimulation_time + self.unique_stimulation_time)
+		# 		if hasattr(self.parameters, "noise") and self.parameters.noise.N:
+		# 			# FIXME @bug unique stimulation time has already been added
+		# 			self.parameters.noise.start_time += self.transient_stimulation_time + self.unique_stimulation_time
+		# 	else:
+		# 		self.train_set_signal.time_offset(self.transient_stimulation_time)
+		# 		if hasattr(self.parameters, "noise") and self.parameters.noise.N:
+		# 			self.parameters.noise.start_time += self.transient_stimulation_time
+		#
+		# 	self.train_stimulation_time = len(self.train_set_signal.time_data) * self.train_set_signal.dt
+		#
+		# 	if hasattr(self.parameters, "noise") and self.parameters.noise.N:
+		# 		self.parameters.noise.stop_time += self.train_stimulation_time
+		# 		self.train_set_noise = InputNoise(self.parameters.noise)
+		# 		self.train_set_noise.generate()
+		# 		if not isinstance(self.train_set_noise.noise_signal, signals.AnalogSignalList):
+		# 			self.train_set_noise = None
+		# 			self.train_set = self.train_set_signal
+		# 		else:
+		# 			merged_signal = merge_signal_lists(self.train_set_signal.input_signal,
+		# 			                                   self.train_set_noise.noise_signal,
+		# 			                                   operation=np.add)
+		# 			self.train_set = InputSignal()
+		# 			self.train_set.load_signal(merged_signal, onset=self.parameters.noise.start_time,
+		# 			                           inherit_from=self.train_set_signal)
+		# 			print("- Generating and adding {0}-dimensional input noise (t={1})".format(
+		# 				str(stimulus_set.dims), str(self.train_stimulation_time)))
 
 	def generate_test_set(self, stimulus_set):
 		"""
@@ -2120,52 +2236,65 @@ class InputSignalSet(object):
 		:param stimulus_set:
 		:return:
 		"""
-		assert (stimulus_set.test_set is not None), "No test set in the provided StimulusSet object, " \
-		                                             "skipping..."
-		self.test_set_signal = InputSignal(self.parameters.signal, self.online)
-		print("- Generating {0}-dimensional input signal [test_set]".format(str(stimulus_set.dims)))
-		if self.online:
-			print("- InputSignal will be generated online. test_set is now a generator.. (no noise is added...)")
-			# TODO: Noise is not added
-			self.test_set_signal_iterator = self.test_set_signal.set_signal_online(stimulus_set.test_set)
-			self.test_set = self.train_set_signal.generate_iterative(stimulus_set.test_set)
-		else:
-			self.test_set_signal.set_stimulus_amplitudes(stimulus_set.test_set)
-			if not signals.empty(self.spike_patterns):
-				self.test_set_signal.set_stimulus_times(stimulus_set.test_set, True)
-			else:
-				self.test_set_signal.set_stimulus_times(stimulus_set.test_set)
-			self.test_set_signal.generate()
+		timestep_correction = self.transient_stimulation_time + self.train_stimulation_time
+		if hasattr(self, "unique_set"):
+			timestep_correction += self.unique_stimulation_time
 
-			# correct time stamp:
-			if hasattr(self, "unique_set"):
-				self.test_set_signal.time_offset(self.transient_stimulation_time + self.unique_stimulation_time +
-				                                 self.train_stimulation_time)
-				if hasattr(self.parameters, "noise") and self.parameters.noise.N:
-					self.parameters.noise.start_time += self.transient_stimulation_time + \
-					                                    self.unique_stimulation_time + self.train_stimulation_time
-			else:
-				self.test_set_signal.time_offset(self.transient_stimulation_time + self.train_stimulation_time)
-				if hasattr(self.parameters, "noise") and self.parameters.noise.N:
-					self.parameters.noise.start_time += self.transient_stimulation_time + self.train_stimulation_time
-			self.test_stimulation_time = len(self.test_set_signal.time_data) * self.test_set_signal.dt
-			if hasattr(self.parameters, "noise") and self.parameters.noise.N:
-				self.parameters.noise.start_time += self.train_stimulation_time
-				self.parameters.noise.stop_time += self.test_stimulation_time
-				self.test_set_noise = InputNoise(self.parameters.noise)
-				self.test_set_noise.generate()
-				if not isinstance(self.test_set_noise.noise_signal, signals.AnalogSignalList):
-					self.test_set_noise = None
-					self.test_set = self.test_set_signal
-				else:
-					merged_signal = merge_signal_lists(self.test_set_signal.input_signal,
-					                                   self.test_set_noise.noise_signal,
-					                              operation=np.add)
-					self.test_set = InputSignal()
-					self.test_set.load_signal(merged_signal, onset=self.parameters.noise.start_time,
-				                          inherit_from=self.test_set_signal)
-					print(("- Generating and adding {0}-dimensional input noise (t={1})".format(str(stimulus_set.dims),
-							                                                        str(self.test_stimulation_time))))
+		result = self.generate_generic_set(stimulus_set, stimulus_set.test_set, "test_set", timestep_correction)
+		self.test_set                  = result[0]
+		self.test_set_signal           = result[1]
+		self.test_set_signal_iterator  = result[2]
+		self.test_set_noise            = result[3]
+		self.test_stimulation_time     = result[4]
+
+		# assert (stimulus_set.test_set is not None), "No test set in the provided StimulusSet object, " \
+		#                                              "skipping..."
+		# self.test_set_signal = InputSignal(self.parameters.signal, self.online)
+		# print("- Generating {0}-dimensional input signal [test_set]".format(str(stimulus_set.dims)))
+		# if self.online:
+		# 	print("- InputSignal will be generated online. test_set is now a generator.. (no noise is added...)")
+		# 	# TODO: Noise is not added
+		# 	self.test_set_signal_iterator = self.test_set_signal.set_signal_online(stimulus_set.test_set)
+		# 	self.test_set = self.train_set_signal.generate_iterative(stimulus_set.test_set)
+		# else:
+		# 	self.test_set_signal.set_stimulus_amplitudes(stimulus_set.test_set)
+		# 	if not signals.empty(self.spike_patterns):
+		# 		self.test_set_signal.set_stimulus_times(stimulus_set.test_set, True)
+		# 	else:
+		# 		self.test_set_signal.set_stimulus_times(stimulus_set.test_set)
+		# 	self.test_set_signal.generate()
+		#
+		# 	# correct time stamp:
+		# 	if hasattr(self, "unique_set"):
+		# 		self.test_set_signal.time_offset(self.transient_stimulation_time + self.unique_stimulation_time +
+		# 		                                 self.train_stimulation_time)
+		# 		if hasattr(self.parameters, "noise") and self.parameters.noise.N:
+		# 			self.parameters.noise.start_time += self.transient_stimulation_time + \
+		# 			                                    self.unique_stimulation_time + self.train_stimulation_time
+		# 	else:
+		# 		self.test_set_signal.time_offset(self.transient_stimulation_time + self.train_stimulation_time)
+		# 		if hasattr(self.parameters, "noise") and self.parameters.noise.N:
+		# 			self.parameters.noise.start_time += self.transient_stimulation_time + self.train_stimulation_time
+		#
+		# 	self.test_stimulation_time = len(self.test_set_signal.time_data) * self.test_set_signal.dt
+		#
+		# 	if hasattr(self.parameters, "noise") and self.parameters.noise.N:
+		# 		self.parameters.noise.start_time += self.train_stimulation_time
+		# 		self.parameters.noise.stop_time += self.test_stimulation_time
+		# 		self.test_set_noise = InputNoise(self.parameters.noise)
+		# 		self.test_set_noise.generate()
+		# 		if not isinstance(self.test_set_noise.noise_signal, signals.AnalogSignalList):
+		# 			self.test_set_noise = None
+		# 			self.test_set = self.test_set_signal
+		# 		else:
+		# 			merged_signal = merge_signal_lists(self.test_set_signal.input_signal,
+		# 			                                   self.test_set_noise.noise_signal,
+		# 			                                   operation=np.add)
+		# 			self.test_set = InputSignal()
+		# 			self.test_set.load_signal(merged_signal, onset=self.parameters.noise.start_time,
+		# 		                          inherit_from=self.test_set_signal)
+		# 			print("- Generating and adding {0}-dimensional input noise (t={1})".format(
+		# 				str(stimulus_set.dims), str(self.test_stimulation_time)))
 
 	def generate_datasets(self, stim):
 		"""

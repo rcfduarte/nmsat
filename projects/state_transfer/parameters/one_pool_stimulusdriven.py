@@ -1,6 +1,5 @@
 __author__ = 'duarte'
 from preset import *
-from defaults.paths import paths
 
 """
 stimulus_driven parameter file
@@ -127,7 +126,6 @@ def build_parameters():
 		gen_to_enc_W= None,
 		jitter		= None) # jitter=None or jitter=(value[float], correct_borders[bool])
 
-	# TODO - use default_set 3 - inh_poisson
 	encoding_pars = set_encoding_defaults(default_set=3, input_dimensions=n_stim,
 	                                      n_encoding_neurons=n_afferents, **input_synapses)
 	encoding_pars['encoder']['n_neurons'] = [n_afferents]
