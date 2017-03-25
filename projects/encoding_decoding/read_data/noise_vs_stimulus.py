@@ -1,5 +1,5 @@
 from modules.parameters import ParameterSpace, copy_dict
-from modules.signals import empty
+from modules.signals import empty, smooth
 from modules.visualization import set_global_rcParams, get_cmap, violin_plot, box_plot, plot_2d_parscans
 from modules.io import set_project_paths
 from defaults.paths import paths
@@ -122,11 +122,12 @@ poisson_expectations = {
 	'synchrony': {
 		'ISI_distance': 0.5,
 		'SPIKE_distance': 0.3,
-		'SPIKE_sync': 0.25},
+		#'SPIKE_sync': 0.25
+	},
 	'regularity': {
 		'lvs': 1.
 	}}
-k = ['ISI_distance_matrix', 'SPIKE_distance_matrix', 'SPIKE_sync_matrix']
+k = ['ISI_distance_matrix', 'SPIKE_distance_matrix']#, 'SPIKE_sync_matrix']
 
 labels = [r'$\mathrm{I^{sync}}$', r'$\mathrm{I^{reg}}$']
 result = {}
@@ -176,9 +177,64 @@ for idx, metric_set in enumerate(poisson_expectations.keys()):
 
 	ax = plot_distribution(result[metric_set]['noise'], pos=-0.2, cmap=cm, positions=positions, idx=idx, ax=ax)
 	ax = plot_distribution(result[metric_set]['stim'], pos=0.2, cmap=cm, positions=positions, idx=idx, ax=ax)
+	ax.set_title(key)
+	ax.set_xticks([-0.2, 0.2])
+	ax.set_xticklabels(['Noise', 'Stimulus'])
+	ax.set_xlim([-0.5, 0.5])
+	ax.grid()
 
 
 ########################################################################################################################
 # harvest transition data
 k = 'transition/spiking_activity/{0}'.format(population)
-stim = pars.harvest(results_path, key_set=k)[1]
+transition = pars.harvest(results_path, key_set=k)[1]
+
+
+color_map = 'coolwarm'
+label = data_type
+analysis_interval = [pars[0].kernel_pars.transient_t - 2000., pars[0].kernel_pars.transient_t + 2000.,]
+
+fig5 = pl.figure()
+fig5.suptitle('{0} - Time-resolved regularity'.format(str(label)))
+stats = ['isi_5p_profile', 'cvs_profile', 'cvs_log_profile', 'lvs_profile', 'iR_profile', 'ents_profile']
+cm = get_cmap(len(stats), color_map)
+
+for idx, n in enumerate(stats):
+	ax = fig5.add_subplot(len(stats), 1, idx + 1)
+	data_mean = np.array([transition[n][i][0] for i in range(len(transition[n]))])
+	data_std = np.array([transition[n][i][1] for i in range(len(transition[n]))])
+	t_axis = np.linspace(analysis_interval[0], analysis_interval[1], len(data_mean))
+
+	ax.plot(t_axis, data_mean, c=cm(idx), lw=2.5)
+	ax.fill_between(t_axis, data_mean - data_std, data_mean + data_std, facecolor=cm(idx), alpha=0.2)
+	ax.set_ylabel(n)
+	ax.set_xlabel('Time [ms]')
+	ax.set_xlim(analysis_interval)
+
+fig4 = pl.figure()
+fig4.suptitle('{0} - Time-resolved synchrony'.format(str(label)))
+ax1 = fig4.add_subplot(311)
+ax2 = fig4.add_subplot(312, sharex=ax1)
+ax3 = fig4.add_subplot(313, sharex=ax1)
+# if epochs is not None:
+# 	mark_epochs(ax1, epochs, color_map)
+
+x, y = transition['SPIKE_sync_profile'].get_plottable_data()
+ax1.plot(x, y, '-g', alpha=0.4)
+ax1.set_ylabel(r'$S_{\mathrm{SPIKE_{s}}}(t)$')
+ax1.plot(x, smooth(y, window_len=100, window='hamming'), '-g', lw=2.5)
+ax1.set_xlim([min(x) + 500., max(x) - 500.])
+
+x3, y3 = transition['ISI_profile'].get_plottable_data()
+ax2.plot(x3, y3, '-b', alpha=0.4)
+ax2.plot(x3, smooth(y3, window_len=100, window='hamming'), '-b', lw=2.5)
+ax2.set_ylabel(r'$d_{\mathrm{ISI}}(t)$')
+ax2.set_xlim([min(x3) + 500., max(x3) - 500.])
+
+x5, y5 = transition['SPIKE_profile'].get_plottable_data()
+ax3.plot(x5, y5, '-k', alpha=0.4)
+ax3.plot(x5, smooth(y5, window_len=100, window='hamming'), '-k', lw=2.5)
+ax3.set_ylabel(r'$d_{\mathrm{SPIKE}}(t)$')
+ax3.set_xlim([min(x5) + 500., max(x5) - 500.])
+
+pl.show()
