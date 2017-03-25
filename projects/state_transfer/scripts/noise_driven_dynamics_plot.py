@@ -3,12 +3,14 @@ from modules.parameters import ParameterSet, ParameterSpace, extract_nestvalid_d
 from modules.input_architect import EncodingLayer
 from modules.net_architect import Network
 from modules.io import set_storage_locations
-from modules.signals import iterate_obj_list
+from modules.signals import iterate_obj_list, SpikeList
 from modules.visualization import set_global_rcParams, SpikePlots
 from modules.analysis import characterize_population_activity
 import cPickle as pickle
 import numpy as np
 import nest
+import matplotlib.pyplot as pl
+import pprint
 
 
 # ######################################################################################################################
@@ -22,7 +24,8 @@ debug 	= False
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/two_pool_noisedriven_base.py'
+params_file = '../parameters/two_pool_noisedriven_base_8.py'
+#params_file = '../parameters/one_pool_noisedriven.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -42,6 +45,10 @@ paths = set_storage_locations(parameter_set, save)
 
 np.random.seed(parameter_set.kernel_pars['np_seed'])
 results = dict()
+nu_x    = parameter_set.analysis_pars.nu_x
+gamma   = parameter_set.analysis_pars.gamma
+start_t = 0.
+stop_t  = 500.
 
 # ######################################################################################################################
 # Set kernel and simulation parameters
@@ -96,13 +103,61 @@ net.extract_population_activity()
 net.extract_network_activity()
 net.flush_records()
 
-nu_x = parameter_set.analysis_pars.nu_x
-gamma = parameter_set.analysis_pars.gamma
 
-sp = SpikePlots(net.populations[0].spiking_activity.id_slice(list(net.populations[0].gids[:500])), start=1000., stop=2000.)
-sp.dot_display(save="{0}/raster_nu_x={1}_gamma={2}_p1.pdf".format(paths['figures'], nu_x, gamma),
-			   with_rate=True)
+SpikePlots(net.populations[0].spiking_activity.id_slice(list(net.populations[0].gids[:1000])), start=start_t,
+           stop=stop_t).dot_display(with_rate=True, display=False,
+                                    save="{0}/raster_nu_x={1}_gamma={2}_E1.pdf".format(paths['figures'], nu_x, gamma))
 
-sp = SpikePlots(net.populations[1].spiking_activity.id_slice(list(net.populations[1].gids[:500])), start=1000., stop=2000.)
-sp.dot_display(save="{0}/raster_nu_x={1}_gamma={2}_p2.pdf".format(paths['figures'], nu_x, gamma),
-			   with_rate=True)
+SpikePlots(net.populations[2].spiking_activity.id_slice(list(net.populations[2].gids[:1000])), start=start_t,
+           stop=stop_t).dot_display( with_rate=True, display=False,
+                                     save="{0}/raster_nu_x={1}_gamma={2}_E2.pdf".format(paths['figures'], nu_x, gamma))
+# ==============================
+
+sl_1 = net.populations[0].spiking_activity.id_slice(list(net.populations[0].gids[:500]))
+sl_i1 = net.populations[1].spiking_activity.id_slice(list(net.populations[1].gids[:200]))
+sl_2 = net.populations[2].spiking_activity.id_slice(list(net.populations[2].gids[:500]))
+sl_i2 = net.populations[3].spiking_activity.id_slice(list(net.populations[3].gids[:200]))
+
+spikelist = []
+id_list = []
+missing = []
+offset = 7500
+def merge_spikes(pop, offs):
+	for id_ in  pop.id_list:
+		if len(pop.spiketrains[id_]) > 0:
+			id_list.append(offs + id_)
+			for spike in pop.spiketrains[id_].spike_times:
+				spikelist.append((offs + id_, spike))
+		else:
+			missing.append(offs + id_)
+
+merge_spikes(sl_1, 0)
+merge_spikes(sl_i1, -offset)
+merge_spikes(sl_2, 0)
+merge_spikes(sl_i2, -offset)
+
+merged_spikelist = SpikeList(spikelist, id_list)
+merged_spikelist.complete(missing)
+
+sp = SpikePlots(merged_spikelist, start=start_t, stop=stop_t)
+
+fig = pl.figure(figsize=(40, 15))
+fig.suptitle("Spiking activity for two reservoirs")
+ax1 = pl.subplot2grid((80, 1), (10, 0), rowspan=25, colspan=1)
+ax0 = pl.subplot2grid((80, 1), (0, 0), rowspan=6, colspan=1, sharex=ax1)
+ax2 = pl.subplot2grid((80, 1), (40, 0), rowspan=25, colspan=1)
+ax3 = pl.subplot2grid((80, 1), (68, 0), rowspan=6, colspan=1, sharex=ax1)
+
+ax3.set(xlabel='Time [ms]', ylabel='Rate')
+ax1.set(ylabel='P1 Neurons')
+ax2.set(ylabel='P2 Neurons')
+
+sp.dot_display(gids_colors=[(sl_1.id_list, 'b'), (np.array([x - offset for x in sl_i1.id_list]), 'r')], ax=[ax1, ax0],
+			   with_rate=True, display=False)
+
+sp.dot_display(gids_colors=[(sl_2.id_list, 'b'), (np.array([x - offset for x in sl_i2.id_list]), 'r')], ax=[ax2, ax3],
+			   with_rate=True, display=False)
+
+fig.savefig("{0}/raster_nu_x={1}_gamma={2}_P1_P2.pdf".format(paths['figures'], nu_x, gamma))
+
+parameter_set.save(paths['parameters'] + "/Parameters_plot.txt")

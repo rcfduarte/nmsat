@@ -25,13 +25,17 @@ extract_data_fromfile     - extract raw_data from a text file (typically written
 is_not_empty_file         - simple function to verify if the file is empty (sub-optimal)
 
 """
+# other imports
 import os
 import numpy as np
-import parameters
-import cPickle as pickle
-from modules import check_dependency
 from collections import MutableMapping
 import sys
+import cPickle as pickle
+
+# NMT imports
+import parameters
+from modules import check_dependency
+
 
 has_h5 = check_dependency('h5py')
 if has_h5:
@@ -73,7 +77,6 @@ def extract_data_fromfile(fname):
 			with open(fname, 'w') as fp:
 				fp.writelines(info)
 
-		# data = np.loadtxt(fname)
 		data = get_data(fname)
 	return data
 
@@ -467,7 +470,9 @@ class Standardh5File(object):
 
 ########################################################################################################################
 class NestedDict(MutableMapping):
+	"""
 
+	"""
 	def __init__(self, initial_value=None, root=True):
 		super(self.__class__, self).__init__()
 		self._val = {}
@@ -621,6 +626,14 @@ class NestedDict(MutableMapping):
 
 
 def asciify(d, is_root=True, al=list, lvl=0):
+	"""
+
+	:param d:
+	:param is_root:
+	:param al:
+	:param lvl:
+	:return:
+	"""
 	if is_root:
 		al = []
 		lvl = 0

@@ -12,17 +12,21 @@ verify_pars_consistency   - verify if all the relevant lists in a parameter set 
 iterate_obj_list          - build an iterator to go through the elements of a list or nested list
 extract_weights_matrix    - extract synaptic weights matrix
 """
-import sys
-import visualization
-import parameters
-import analysis
-import signals
-import io
+# other imports
 import itertools
 import time
 import copy
 import numpy as np
 from scipy.sparse import lil_matrix
+
+# NMT imports
+import visualization
+import parameters
+import analysis
+import signals
+import io
+
+# nest
 import nest
 from nest import topology as tp
 
@@ -123,7 +127,6 @@ class Population(object):
 	"""
 
 	def __init__(self, pop_set):
-
 		self.name = pop_set.pop_names
 		self.size = pop_set.n_neurons
 		if pop_set.topology:
@@ -138,14 +141,6 @@ class Population(object):
 		self.attached_device_names = []
 		self.analog_activity_names = []
 		self.decoding_layer = None
-
-		#self.decoding_pars = []
-		#self.state_extractors = []
-		#self.readouts = []
-		#self.state_matrix = []
-		#self.state_sample_times = []
-		#self.response_matrix = []
-		#self.state_variables = []
 
 	def randomize_initial_states(self, var_name, randomization_function, **function_parameters):
 		"""
@@ -556,8 +551,8 @@ class Network(object):
 								ids.append(self.populations[n][nn].gids[i])
 						else:
 							ids = None
-						dev_gid = self.populations[n][nn].record_analog(parameters.extract_nestvalid_dict(dev_dict,
-																							   param_type='device'), ids=ids, record=dev_dict['record_from'])
+						dev_gid = self.populations[n][nn].record_analog(parameters.extract_nestvalid_dict(
+							dev_dict, param_type='device'), ids=ids, record=dev_dict['record_from'])
 						self.device_gids[n].append(dev_gid)
 						self.n_devices[n] += 1
 						print("- Connecting %s to %s %s, with label %s and id %s" % (
@@ -691,7 +686,7 @@ class Network(object):
 		"""
 		print ("\nConnecting populations: ")
 		for n in range(connect_pars_set.n_synapse_types):
-			print(("    - %s [%s]" % (connect_pars_set.synapse_types[n], connect_pars_set.models[n])))
+			print("    - %s [%s]" % (connect_pars_set.synapse_types[n], connect_pars_set.models[n]))
 
 			# index of source and target populations in the population lists
 			if connect_pars_set.synapse_types[n][1] in self.population_names:
@@ -1214,8 +1209,8 @@ class Network(object):
 	def extract_synaptic_weights(self, src_gids=None, tget_gids=None):
 		"""
 		Read and store the weights for all the connected populations, or just for
-		the provided sources and tragets
-		:param src_gid: list of gids of source neurons
+		the provided sources and targets
+		:param src_gids: list of gids of source neurons
 		:param tget_gids: list of gids of target neurons
 		"""
 
@@ -1223,7 +1218,6 @@ class Network(object):
 			syn_name = str(nest.GetStatus(nest.GetConnections([src_gids[0]], [tget_gids[0]]))[0]['synapse_model'])
 			self.synaptic_weights.update({syn_name: extract_weights_matrix(src_gids, tget_gids)})
 		else:
-			#if np.unique(self.connection_types)
 			for nn in self.connection_types:
 				src_idx = self.population_names.index(nn[1])
 				tget_idx = self.population_names.index(nn[0])
@@ -1257,8 +1251,7 @@ class Network(object):
 		if isinstance(decoding_pars, dict):
 			decoding_pars = parameters.ParameterSet(decoding_pars)
 		assert isinstance(decoding_pars, parameters.ParameterSet), "DecodingLayer must be initialized with " \
-		                                                           "ParameterSet or " \
-		                                                "dictionary"
+		                                                           "ParameterSet or dictionary"
 
 		population_names = list(signals.iterate_obj_list(self.population_names))
 		population_objs = list(signals.iterate_obj_list(self.populations))
@@ -1302,7 +1295,7 @@ class Network(object):
 				decoder_params.update({k: {}})
 				for k1 in keys:
 					decoder_params[k].update({k1: [pars_st[k1][x] for x in v]})
-			# print decoder_params
+
 			if hasattr(decoding_pars, "readout"):
 				pars_rd = decoding_pars.readout
 				for k, v in extractor_indices.items():
@@ -1313,4 +1306,3 @@ class Network(object):
 		pops = [source_populations[sources.index(x)] for x in unique_sources]
 		for (population_name, population) in zip(unique_sources, pops):
 			population.connect_decoders(parameters.ParameterSet(decoder_params[population_name]))
-			# print decoder_params[population_name]

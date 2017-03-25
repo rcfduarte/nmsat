@@ -12,7 +12,7 @@ two_pool_noisedriven
 """
 
 run = 'local'
-data_label = 'ST_twopool_noisedriven_plot_8'
+data_label = 'ST_twopool_noisedriven_plot_7x11'
 
 
 # ######################################################################################################################
@@ -35,7 +35,7 @@ def build_parameters():
 		walltime='00-12:00:00',
 		queue='defqueue',
 		transient_time=1000.,
-		sim_time=1000.)
+		sim_time=2000.)
 
 	kernel_pars = set_kernel_defaults(run_type=run, data_label=data_label, **system)
 
@@ -53,37 +53,36 @@ def build_parameters():
 	recurrent_synapses = dict(
 		connected_populations=[('E1', 'E1'), ('E2', 'E1'), ('I1', 'E1'), ('I2', 'E1'),
 							   ('I1', 'I1'), ('E1', 'I1'),
-							   ('E2', 'E2'), ('E1', 'E2'), ('I2', 'E2'), ('I1', 'E2'),
+							   ('E2', 'E2'), ('I2', 'E2'),
 							   ('I2', 'I2'), ('E2', 'I2')],
 		synapse_models=['static_synapse', 'static_synapse', 'static_synapse', 'static_synapse',
 						'static_synapse', 'static_synapse',
-						'static_synapse', 'static_synapse', 'static_synapse', 'static_synapse',
+						'static_synapse', 'static_synapse', 
 		                'static_synapse', 'static_synapse'],
-		synapse_model_parameters=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}],
-		pre_computedW=[None, None, None, None, None, None, None, None, None, None, None, None],
+		synapse_model_parameters=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {},],
+		pre_computedW=[None, None, None, None, None, None, None, None, None, None],
 		weights=[wE, wE, wE, wE,
 				 wI, wI,
-				 wE, wE, wE, wE,
+				 wE, wE, 
 				 wI, wI],
-		delays=[delay, delay, delay, delay, delay, delay, delay, delay, delay, delay, delay, delay],
-		conn_specs=[{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},	# E1<-E1
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},	# E2<-E1
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},	# I1<-E1
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},	# I2<-E1
+		delays=[delay, delay, delay, delay, delay, delay, delay, delay, delay, delay],
+		conn_specs=[{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},	# E1<-E1
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': 0.},	# E2<-E1
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},	# I1<-E1
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': 0.},	# I2<-E1
 
 		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},	# I1<-I1
 		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},	# E1<-I1
-
-					{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.}, # E2<-E2
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.}, # E1<-E2
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.}, # I2<-E2
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.}, # I1<-E2
+		
+					{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon}, # E2<-E2
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon}, # I2<-E2
 
 		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},	# I2<-I2
 		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon}],	# E2<-I2
 
-		syn_specs=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]
+		syn_specs=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {}]
 	)
+
 	neuron_pars, net_pars, connection_pars = set_network_defaults(default_set=2, neuron_set=2, N=N,
 																  **recurrent_synapses)
 
@@ -116,6 +115,8 @@ def build_parameters():
 			'weight_dist': wE,
 			'delay_dist': delay})
 	add_background_noise(encoding_pars, background_noise)
+	add_parrots(encoding_pars, nE, **{'conn_specs': 'all_to_all', 'preset_W': None})
+
 
 	analysis_pars = {
 		# analysis depth

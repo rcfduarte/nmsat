@@ -238,7 +238,7 @@ def set_neuron_defaults(default_set=1):
 	return neuron_pars
 
 
-def set_network_defaults(default_set=1, neuron_set=0, N=1250, **synapse_pars):
+def set_network_defaults(default_set=1, neuron_set=0, conn_set=1, N=1250, **synapse_pars):
 	"""
 	Network default parameters
 	:param default_set:
@@ -302,6 +302,10 @@ def set_network_defaults(default_set=1, neuron_set=0, N=1250, **synapse_pars):
 			'pop_names': ['E1', 'I1', 'E2', 'I2'],
 			'n_neurons': [int(nE), int(nI), int(nE), int(nI)],
 			'neuron_pars': [neuron_pars['E1'], neuron_pars['I1'], neuron_pars['E2'], neuron_pars['I2']],
+			'randomize_neuron_pars': [{'V_m': (np.random.uniform, {'low': -70., 'high': -50.})},
+			                          {'V_m': (np.random.uniform, {'low': -70., 'high': -50.})},
+			                          {'V_m': (np.random.uniform, {'low': -70., 'high': -50.})},
+			                          {'V_m': (np.random.uniform, {'low': -70., 'high': -50.})}],
 			'topology': [False, False, False, False],
 			'topology_dict': [None, None, None, None],
 			'record_spikes': [True, True, True, True],
@@ -332,7 +336,7 @@ def set_network_defaults(default_set=1, neuron_set=0, N=1250, **synapse_pars):
 		#############################################################################################################
 		# SYNAPSE Parameters
 		# ============================================================================================================
-		connection_pars = set_connection_defaults(syn_pars=syn_pars)
+		connection_pars = set_connection_defaults(default_set=conn_set, syn_pars=syn_pars)
 
 	elif default_set == 3:
 		print "\nLoading Default Network Set 3 - Single Neuron synaptic input"
@@ -391,24 +395,71 @@ def set_network_defaults(default_set=1, neuron_set=0, N=1250, **synapse_pars):
 	return ParameterSet(neuron_pars), ParameterSet(net_pars), ParameterSet(connection_pars)
 
 
-def set_connection_defaults(syn_pars=None):
+def set_connection_defaults(default_set=1, syn_pars=None):
 	"""
 	Connection parameter defaults
 	:param default_set:
 	:return:
 	"""
-	print("\nLoading Default Connection Set - E/I populations, no topology, fast synapses")
-
 	#############################################################################################################
 	# SYNAPSE Parameters
 	# ============================================================================================================
+	if default_set == 1:
+		print("\nLoading Default Connection Set - E/I populations, no topology, fast synapses")
+	elif default_set == 2:
+		print("\nLoading Default Connection Set 2 - (two pool, E1/I1, E2/I2 populations) no topology, fast synapses")
+		wE = 1.
+		wI = -14. * wE
+		delay = 1.5
+		epsilon = 0.1
+		syn_pars_dict = dict(
+			connected_populations = [('E1', 'E1'), ('E2', 'E1'), ('I1', 'E1'), ('I2', 'E1'),
+			                         ('E1', 'I1'), ('E2', 'I1'), ('I1', 'I1'), ('I2', 'I1'),
+			                         ('E1', 'E2'), ('E2', 'E2'), ('I1', 'E2'), ('I2', 'E2'),
+			                         ('E1', 'I2'), ('E2', 'I2'), ('I1', 'I2'), ('I2', 'I2')],
+			synapse_models = ['static_synapse', 'static_synapse', 'static_synapse', 'static_synapse',
+			                  'static_synapse', 'static_synapse', 'static_synapse', 'static_synapse',
+			                  'static_synapse', 'static_synapse', 'static_synapse', 'static_synapse',
+			                  'static_synapse', 'static_synapse', 'static_synapse', 'static_synapse',],
+			synapse_model_parameters = [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}],
+			pre_computedW = [None, None, None, None,
+			                 None, None, None, None, None, None, None, None, None, None, None, None],
+			weights = [wE, wE, wE, wE,
+			           wI, wI, wI, wI,
+			           wE, wE, wE, wE,
+			           wI, wI, wI, wI],
+			delays = [delay, delay, delay, delay,
+			          delay, delay, delay, delay,
+			          delay, delay, delay, delay,
+			          delay, delay, delay, delay],
+			conn_specs = [{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},  # E1<-E1
+			              {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},  # E2<-E1
+			              {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},  # I1<-E1
+			              {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},  # I2<-E1
+
+			              {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},  # E1<-I1
+			              {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},  # E2<-I1
+			              {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},  # I1<-I1
+			              {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},  # I2<-I1
+
+			              {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},  # E1<-E2
+			              {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},  # E2<-E2
+			              {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},  # I1<-E2
+			              {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},  # I2<-E2
+
+			              {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},  # E1<-I2
+			              {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},  # E2<-I2
+			              {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},  # I1<-I2
+			              {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},], # I2<-I2
+			syn_specs = [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}])
+		syn_pars = ParameterSet(syn_pars_dict)
+	else:
+		raise ValueError("Wrong default set!")
 	synapses = syn_pars.connected_populations
-	synapse_names = [n[1]+n[0] for n in synapses]
+	synapse_names = [n[1] + n[0] for n in synapses]
 	synapse_models = syn_pars.synapse_models
 	model_pars = syn_pars.synapse_model_parameters
-
-	assert (
-	np.mean([n in synapses for n in syn_pars.connected_populations]).astype(bool)), "Inconsistent Parameters"
+	assert (np.mean([n in synapses for n in syn_pars.connected_populations]).astype(bool)), "Inconsistent Parameters"
 	connection_pars = {
 		'n_synapse_types': len(synapses),
 		'synapse_types': synapses,
@@ -425,7 +476,6 @@ def set_connection_defaults(syn_pars=None):
 			'connectivity': 'Sparse, Random with density 0.1 (all connections)',
 			'plasticity': 'None'}
 	}
-
 	return connection_pars
 
 
@@ -815,6 +865,48 @@ def set_decoding_defaults(output_resolution=1., to_memory=True, **decoder_pars):
 		'output_resolution': output_resolution
 	}
 	return ParameterSet(decoding_pars)
+
+
+def add_parrots(encoding_pars, n_parrots, decode=True, **extra_pars):
+	"""
+	Attaches a layer of parrot neurons to the encoder (for cases when the generator is a spike-emmitting device)
+	:param encoding_pars: original encoding parameters
+	:param n_parrots: number of parrot neurons to attach (should be the same as the number of unique generators)
+	:param decode: attach decoders and readouts to parrot neurons.. (only spikes can be read!)
+	"""
+	if extra_pars.items():
+		conn_specs = extra_pars['conn_specs']
+		presetW = extra_pars['preset_W']
+	else:
+		conn_specs = {'rule': 'one_to_one'}
+		presetW = None
+	rec_devices = rec_device_defaults()
+	encoding_pars.encoder.N += 1
+	encoding_pars.encoder.labels.extend(['parrots'])
+	encoding_pars.encoder.models.extend(['parrot_neuron'])
+	encoding_pars.encoder.model_pars.extend([None])
+	encoding_pars.encoder.n_neurons.extend([n_parrots])
+	encoding_pars.encoder.neuron_pars.extend([{'model': 'parrot_neuron'}])
+	encoding_pars.encoder.topology.extend([False])
+	encoding_pars.encoder.topology_dict.extend([None])
+	encoding_pars.encoder.record_spikes.extend([True])
+	encoding_pars.encoder.spike_device_pars.extend([copy_dict(rec_devices, {'model': 'spike_detector',
+	                                             'label': 'input_Spikes'})])
+	encoding_pars.encoder.record_analogs.extend([False])
+	encoding_pars.encoder.analog_device_pars.extend([None])
+	syn_name = encoding_pars.connectivity.synapse_name[0]  # all synapses from a device must have the same name!!
+	encoding_pars.connectivity.synapse_name.extend([syn_name])
+	encoding_pars.connectivity.connections.extend([('parrots', encoding_pars.generator.labels[0])])
+	encoding_pars.connectivity.topology_dependent.extend([False])
+	encoding_pars.connectivity.conn_specs.extend([conn_specs])
+	encoding_pars.connectivity.syn_specs.extend([{}])
+	encoding_pars.connectivity.models.extend(['static_synapse'])
+	encoding_pars.connectivity.model_pars.extend([{}])
+	encoding_pars.connectivity.weight_dist.extend([1.])
+	encoding_pars.connectivity.delay_dist.extend([0.1])
+	encoding_pars.connectivity.preset_W.extend([presetW])
+	if decode:
+		encoding_pars.input_decoder = {'encoder_label': 'parrots'}
 
 
 def add_background_noise(encoding_pars, noise_pars):

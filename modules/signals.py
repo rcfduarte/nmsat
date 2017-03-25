@@ -49,7 +49,7 @@ if has_pyspike:
 	import pyspike as spk
 import nest
 
-
+# TODO this should go into auxiliary, too generic..
 def empty(seq):
 	if isinstance(seq, np.ndarray):
 		return not bool(seq.size) #seq.any() # seq.data
@@ -1543,11 +1543,11 @@ class SpikeList(object):
         """
 		new_SpkList = SpikeList([], [], self.t_start, self.t_stop, self.dimensions)
 		id_list = self.__sub_id_list(id_list)
-		for id in id_list:
+		for id_ in id_list:
 			try:
-				new_SpkList.append(id, self.spiketrains[id])
+				new_SpkList.append(id_, self.spiketrains[id_])
 			except Exception:
-				print(("id %d is not in the source SpikeList or already in the new one" % id))
+				print("id %d is not in the source SpikeList or already in the new one" % id_)
 		return new_SpkList
 
 	def time_slice(self, t_start, t_stop):

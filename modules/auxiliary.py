@@ -72,8 +72,9 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 		decoder_resolution = 0.
 	time_correction_factor = encoder_delay + decoder_resolution
 	if decoder_resolution != encoder_delay:
-		print("To avoid errors in the delay compensation, it is advisable to set the output resolution to be the same " \
-		      "as the encoder delays") # because the state resolution won't be enough to capture the time compensation..
+		# because the state resolution won't be enough to capture the time compensation..
+		print("To avoid errors in the delay compensation, it is advisable to set the output resolution "
+		      "to be the same as the encoder delays")
 
 	# extract important parameters:
 	sampling_times = parameter_set.decoding_pars.sampling_times
@@ -114,7 +115,7 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 	timing = dict(step_time=[], total_time=[])
 	####################################################################################################################
 	if sampling_times is None:  # one sample for each stimulus (acquired at the last time point of each stimulus)
-		print(("\n\nSimulating {0} steps".format(str(set_size))))
+		print("\n\nSimulating {0} steps".format(str(set_size)))
 
 		# ################################ Main Loop ###################################
 		for idx, state_sample_time in enumerate(t_samp):
@@ -155,7 +156,6 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 				# extract and store activity
 				net.extract_population_activity()#t_start=stimulus_onset + encoder_delay, t_stop=state_sample_time)
 				net.extract_network_activity()
-				# print net.analog_activity[0][0].t_start, net.analog_activity[0][0].t_stop
 				enc_layer.extract_encoder_activity(t_start=stimulus_onset + encoder_delay, t_stop=state_sample_time)
 				if not signals.empty(net.merged_populations):
 					net.merge_population_activity(start=stimulus_onset + encoder_delay, stop=state_sample_time,
@@ -584,10 +584,16 @@ def set_decoder_times(enc_layer, parameter_set):
 				extractor_pars.update({'origin': 0.0, 'interval': duration})
 			else:
 				extractor_pars.update({'origin': 0.1, 'interval': duration})
-	# print parameter_set.decoding_pars
 
 
 def retrieve_data_set(set_name, stimulus_set, input_signal_set):
+	"""
+
+	:param set_name:
+	:param stimulus_set:
+	:param input_signal_set:
+	:return:
+	"""
 	if set_name is None:
 		set_name = "full"
 	all_labels = getattr(stimulus_set, "{0}_set_labels".format(set_name))
@@ -608,6 +614,17 @@ def retrieve_data_set(set_name, stimulus_set, input_signal_set):
 
 
 def retrieve_stimulus_timing(input_signal_set, idx, set_size, signal_iterator, t_samp, state_sample_time, input_signal):
+	"""
+
+	:param input_signal_set:
+	:param idx:
+	:param set_size:
+	:param signal_iterator:
+	:param t_samp:
+	:param state_sample_time:
+	:param input_signal:
+	:return:
+	"""
 	if input_signal_set.online and idx < set_size:
 		local_signal = signal_iterator.next()
 		stimulus_duration = list(itertools.chain(*local_signal.durations))[0]
@@ -637,6 +654,19 @@ def retrieve_stimulus_timing(input_signal_set, idx, set_size, signal_iterator, t
 
 def update_spike_template(enc_layer, idx, input_signal_set, stimulus_set, local_signal, t_samp, input_signal, jitter,
                           stimulus_onset):
+	"""
+
+	:param enc_layer:
+	:param idx:
+	:param input_signal_set:
+	:param stimulus_set:
+	:param local_signal:
+	:param t_samp:
+	:param input_signal:
+	:param jitter:
+	:param stimulus_onset:
+	:return:
+	"""
 	assert (len(input_signal_set.spike_patterns) == stimulus_set.dims), "Incorrect number of spike " \
 	                                                                    "patterns"
 	if input_signal_set.online and local_signal is not None:
@@ -664,6 +694,15 @@ def update_spike_template(enc_layer, idx, input_signal_set, stimulus_set, local_
 
 
 def update_input_signals(enc_layer, idx, stimulus_seq, local_signal, dt):
+	"""
+
+	:param enc_layer:
+	:param idx:
+	:param stimulus_seq:
+	:param local_signal:
+	:param dt:
+	:return:
+	"""
 	stim_input = coo_matrix(stimulus_seq.todense()[:, idx])
 	local_signal.input_signal = local_signal.generate_single_step(stim_input)
 	local_signal.time_offset(dt)
@@ -671,6 +710,14 @@ def update_input_signals(enc_layer, idx, stimulus_seq, local_signal, dt):
 
 
 def extract_state_vectors(net, enc_layer, sample_time, store_activity):
+	"""
+
+	:param net:
+	:param enc_layer:
+	:param sample_time:
+	:param store_activity:
+	:return:
+	"""
 	# Extract and store state vectors
 	for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
 	                                                   net.populations, enc_layer.encoders]))):
@@ -680,12 +727,29 @@ def extract_state_vectors(net, enc_layer, sample_time, store_activity):
 
 
 def flush(net, enc_layer, decoders=True):
+	"""
+
+	:param net:
+	:param enc_layer:
+	:param decoders:
+	:return:
+	"""
 	# clear devices
 	net.flush_records(decoders=decoders)
 	enc_layer.flush_records(decoders=decoders)
 
 
 def compile_results(net, enc_layer, t0, time_correction_factor, record, store_activity, store_decoders=False):
+	"""
+
+	:param net:
+	:param enc_layer:
+	:param t0:
+	:param time_correction_factor:
+	:param record:
+	:param store_activity:
+	:return:
+	"""
 	if record:
 		# compile state matrices:
 		for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
@@ -910,7 +974,20 @@ def gather_states(net, enc_layer, t0, set_labels, flush_devices=True):
 
 def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, accepted_idx=None, plot=False,
                    display=True, save=False, save_paths=None):
+	"""
 
+	:param net:
+	:param enc_layer:
+	:param target_matrix:
+	:param stim_set:
+	:param data_sets:
+	:param accepted_idx:
+	:param plot:
+	:param display:
+	:param save:
+	:param save_paths:
+	:return:
+	"""
 	results = dict(rank={}, performance={}, dimensionality={})
 
 	if data_sets is None:
@@ -925,8 +1002,6 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 			set_start = start_idx
 			set_end = len(labels) + set_start
 			start_idx += len(labels)
-			#print set_start, set_end
-			#print labels
 
 			if accepted_idx is not None:
 				accepted_ids = []
@@ -965,6 +1040,7 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 							for readout in readouts:
 								readout.train(state_matrix, np.array(target), index=None, accepted=accepted_ids,
 								              display=display)
+
 								readout.measure_stability(display=display)
 								if plot and save:
 									readout.plot_weights(display=display, save=save_paths['figures'] + save_paths[
@@ -976,12 +1052,13 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 							for readout in readouts:
 								output, target = readout.test(state_matrix, np.array(target), index=None,
 									                            accepted=accepted_ids, display=display)
+
 								results['performance'][n_pop.name][var + str(idx_var)].update(
 									{readout.name: readout.measure_performance(target, output, display=display)})
 								results['performance'][n_pop.name][var + str(idx_var)].update(
 									{readout.name: readout.measure_performance(target, display=display)})
-								results['performance'][n_pop.name][var + str(idx_var)][readout.name].update({'norm_wOut':
-								                                                                             readout.norm_wout})
+								results['performance'][n_pop.name][var + str(idx_var)][readout.name].update(
+									{'norm_wOut': readout.norm_wout})
 								results['dimensionality'][n_pop.name].update(
 									{var + str(idx_var): analysis.compute_dimensionality(state_matrix)})
 						if plot and set_name != 'transient':
@@ -993,8 +1070,8 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 								analysis.analyse_state_matrix(state_matrix, labels, label=n_pop.name + var + set_name,
 								                              plot=plot, display=display, save=False)
 						if save and set_name != 'transient':
-							np.save(save_paths['activity'] + save_paths['label'] + '_population{0}_state{1}_{2}.npy'.format(
-								n_pop.name,	var, set_name), state_matrix)
+							np.save(save_paths['activity'] + save_paths['label'] +
+							        '_population{0}_state{1}_{2}.npy'.format(n_pop.name, var, set_name), state_matrix)
 	return results
 
 
