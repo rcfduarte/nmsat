@@ -12,7 +12,7 @@ two_pool_noisedriven
 """
 
 run = 'local'
-data_label = 'ST_twopool_noisedriven'
+data_label = 'ST_twopool_noisedriven_plot'
 
 
 # ######################################################################################################################
@@ -35,7 +35,7 @@ def build_parameters():
 		walltime='00-20:00:00',
 		queue='defqueue',
 		transient_time=1000.,
-		sim_time=1000.)
+		sim_time=0.)
 
 	kernel_pars = set_kernel_defaults(run_type=run, data_label=data_label, **system)
 
@@ -95,8 +95,9 @@ def build_parameters():
 
 	net_pars['record_analogs'] = [True, False, False, False]
 	multimeter = rec_device_defaults(device_type='multimeter')
-	multimeter.update({'record_from': ['V_m'], 'record_n': 1})
-	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': ''}), {}, {}, {}]
+	multimeter.update({'record_from': ['V_m'], 'record_n': 100})
+	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': 'E1_mm'}), {},
+	                                  copy_dict(multimeter, {'label': 'E2_mm'}), {}]
 
 	# ##################################################################################################################
 	# Encoding Parameters
