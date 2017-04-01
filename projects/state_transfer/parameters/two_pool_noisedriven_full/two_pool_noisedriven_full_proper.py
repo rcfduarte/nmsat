@@ -1,6 +1,6 @@
 __author__ = 'duarte'
 import sys
-from preset import *
+from projects.state_transfer.parameters.preset import *
 import numpy as np
 
 """
@@ -12,7 +12,7 @@ two_pool_noisedriven
 """
 
 run = 'local'
-data_label = 'ST_twopool_noisedriven_plot_7x11'
+data_label = 'ST_twopool_noisedriven_plot'
 
 
 # ######################################################################################################################
@@ -30,74 +30,77 @@ def build_parameters():
 	# ##################################################################################################################
 	system = dict(
 		nodes=1,
-		ppn=16,
-		mem=32000,
-		walltime='00-12:00:00',
+		ppn=24,
+		mem=64000,
+		walltime='00-20:00:00',
 		queue='defqueue',
 		transient_time=1000.,
-		sim_time=2000.)
+		sim_time=0.)
 
 	kernel_pars = set_kernel_defaults(run_type=run, data_label=data_label, **system)
 
 	# ##################################################################################################################
 	# Neuron, Synapse and Network Parameters
 	# ##################################################################################################################
-	N 		= 10000
-	nE 		= 0.8 * N
-	delay 	= 1.5
+	N = 10000
+	nE = 0.8 * N
+	delay = 1.5
 	epsilon = 0.1
 
 	wE = 1.
 	wI = -gamma * wE
 
-	recurrent_synapses = dict(
+	syn_pars_dict = dict(
 		connected_populations=[('E1', 'E1'), ('E2', 'E1'), ('I1', 'E1'), ('I2', 'E1'),
-							   ('I1', 'I1'), ('E1', 'I1'),
-							   ('E2', 'E2'), ('I2', 'E2'),
-							   ('I2', 'I2'), ('E2', 'I2')],
+		                       ('E1', 'I1'), ('E2', 'I1'), ('I1', 'I1'), ('I2', 'I1'),
+		                       ('E1', 'E2'), ('E2', 'E2'), ('I1', 'E2'), ('I2', 'E2'),
+		                       ('E1', 'I2'), ('E2', 'I2'), ('I1', 'I2'), ('I2', 'I2')],
 		synapse_models=['static_synapse', 'static_synapse', 'static_synapse', 'static_synapse',
-						'static_synapse', 'static_synapse',
-						'static_synapse', 'static_synapse', 
-		                'static_synapse', 'static_synapse'],
-		synapse_model_parameters=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {},],
-		pre_computedW=[None, None, None, None, None, None, None, None, None, None],
+		                'static_synapse', 'static_synapse', 'static_synapse', 'static_synapse',
+		                'static_synapse', 'static_synapse', 'static_synapse', 'static_synapse',
+		                'static_synapse', 'static_synapse', 'static_synapse', 'static_synapse', ],
+		synapse_model_parameters=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}],
+		pre_computedW=[None, None, None, None,
+		               None, None, None, None, None, None, None, None, None, None, None, None],
 		weights=[wE, wE, wE, wE,
-				 wI, wI,
-				 wE, wE, 
-				 wI, wI],
-		delays=[delay, delay, delay, delay, delay, delay, delay, delay, delay, delay],
-		conn_specs=[{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},	# E1<-E1
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': 0.},	# E2<-E1
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},	# I1<-E1
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': 0.},	# I2<-E1
+		         wI, wI, wI, wI,
+		         wE, wE, wE, wE,
+		         wI, wI, wI, wI],
+		delays=[delay, delay, delay, delay,
+		        delay, delay, delay, delay,
+		        delay, delay, delay, delay,
+		        delay, delay, delay, delay],
+		conn_specs=[{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon / 2.},  # E1<-E1
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},  # E2<-E1
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon / 2.},  # I1<-E1
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},  # I2<-E1
 
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},	# I1<-I1
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},	# E1<-I1
-		
-					{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon}, # E2<-E2
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon}, # I2<-E2
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon / 2.},  # E1<-I1
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon / 2.},  # E2<-I1
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon / 2.},  # I1<-I1
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon / 2.},  # I2<-I1
 
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},	# I2<-I2
-		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon}],	# E2<-I2
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon / 2.},  # E1<-E2
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},  # E2<-E2
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon / 2.},  # I1<-E2
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},  # I2<-E2
 
-		syn_specs=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {}]
-	)
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon / 2.},  # E1<-I2
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon / 2.},  # E2<-I2
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon / 2.},  # I1<-I2
+		            {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon / 2.}, ],# I2<-I2
+		syn_specs=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}])
 
-	neuron_pars, net_pars, connection_pars = set_network_defaults(default_set=2, neuron_set=2, N=N,
-																  **recurrent_synapses)
+	neuron_pars, net_pars, connection_pars = set_network_defaults(default_set=2, neuron_set=2, N=N, **syn_pars_dict)
 
-	net_pars['record_analogs'] = [True, True, True, True]
+	net_pars['record_analogs'] = [True, False, False, False]
 	multimeter = rec_device_defaults(device_type='multimeter')
 	multimeter.update({'record_from': ['V_m'], 'record_n': 1})
-	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': 'E1_analog'}),
-	                                  copy_dict(multimeter, {'label': 'I1_analog'}),
-	                                  copy_dict(multimeter, {'label': 'E2_analog'}),
-	                                  copy_dict(multimeter, {'label': 'I2_analog'})]
+	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': ''}), {}, {}, {}]
 
 	# ##################################################################################################################
 	# Encoding Parameters
 	# ##################################################################################################################
-	# nu_x = 20.
 	k_x = epsilon * nE
 
 	encoding_pars = set_encoding_defaults(default_set=0)
@@ -115,8 +118,6 @@ def build_parameters():
 			'weight_dist': wE,
 			'delay_dist': delay})
 	add_background_noise(encoding_pars, background_noise)
-	add_parrots(encoding_pars, nE, **{'conn_specs': 'all_to_all', 'preset_W': None})
-
 
 	analysis_pars = {
 		# analysis depth
