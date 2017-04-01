@@ -3063,7 +3063,6 @@ def pretty_raster(global_spike_list, analysis_interval, sub_pop_gids=None, n_tot
 	# ax.set_yticks([])
 
 
-
 def plot_input_example(stim_set, input_signal_set, set_name='test', display=True, save=False):
 	"""
 
@@ -3080,3 +3079,28 @@ def plot_input_example(stim_set, input_signal_set, set_name='test', display=True
 	inp_plot.plot_input_signal(ax=ax2, save=save, display=display)
 	inp_plot.plot_input_signal(save=save, display=display)
 	inp_plot.plot_signal_and_noise(save=save, display=display)
+
+
+def scatter_projections(state, label_sequence, cmap, ax=None):
+	"""
+	Scatter plot 3D projections from a high-dimensional state matrix
+	:param state: 
+	:param label_sequence: 
+	:param cmap: 
+	:param ax: 
+	:return: 
+	"""
+	if ax is None:
+		fig = pl.figure()
+		ax = fig.add_subplot(111, projection='3d')
+	unique_labels = np.unique(label_sequence)
+	ccs = [cmap(i) for i in range(len(unique_labels))]
+
+	for color, index, lab in zip(ccs, unique_labels, unique_labels):
+		locals()['sc_{0}'.format(str(index))] = ax.scatter(state[np.where(np.array(list(itertools.chain(
+			label_sequence))) == index)[0], 0], state[np.where(
+			np.array(list(itertools.chain(label_sequence))) == index)[0], 1], state[np.where(
+			np.array(list(itertools.chain(label_sequence))) == index)[0], 2], s=20, c=color, alpha=0.8, label=lab)
+	scatters = [locals()['sc_{0}'.format(str(ind))] for ind in unique_labels]
+	pl.legend(loc=0, handles=scatters)
+	# pl.show(False)

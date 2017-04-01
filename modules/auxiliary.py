@@ -103,7 +103,7 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 	if not record:
 		print("\n!!! No population activity will be stored !!!")
 	if store_activity:
-		if isinstance(store_activity, int):
+		if isinstance(store_activity, int) and not isinstance(store_activity, bool):
 			store = False
 		else:
 			store = True
@@ -161,7 +161,8 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 					net.merge_population_activity(start=stimulus_onset + encoder_delay, stop=state_sample_time,
 					                              save=True)
 				# sample population activity
-				if isinstance(store_activity, int) and set_size-(idx+1) == store_activity:
+				if isinstance(store_activity, int) and not isinstance(store_activity, bool) and set_size-(idx+1) == \
+						store_activity:
 					store = True
 					t0 = nest.GetKernelStatus()['time']
 					epochs.update({'analysis_start': t0})

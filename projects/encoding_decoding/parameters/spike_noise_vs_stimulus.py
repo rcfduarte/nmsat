@@ -12,7 +12,7 @@ spike_noise_vs_stimulus
 """
 
 run = 'local'
-data_label = 'ED_spikeinput_noise_vs_stimulus_example'
+data_label = 'ED_spikeinput_noise_vs_stimulus'
 
 
 def build_parameters():
@@ -189,7 +189,7 @@ def build_parameters():
 	# #################################################################################################################
 	# Decoding / Readout Parameters
 	# ##################################################################################################################
-	out_resolution = 1.
+	out_resolution = 0.1
 	filter_tau = 20.  # time constant of exponential filter (applied to spike trains)
 	state_sampling = None  # 1.(cannot start at 0)
 	readout_labels = ['ridge_classifier', 'pinv_classifier']
@@ -233,7 +233,7 @@ def build_parameters():
 						# 3: save only summary of data, use all available measures
 						# 4: save all data, use all available measures
 
-		'store_activity': False,  	# [int] - store all population activity in the last n steps of the test
+		'store_activity': True,  	# [int] - store all population activity in the last n steps of the test
 									# phase; if set True the entire test phase will be stored;
 
 		'population_activity': {
