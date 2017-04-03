@@ -139,3 +139,29 @@ def evaluate_encoding(spike_list, input_sequence, input_signal, parameter_set):
 	# inp_spikes.raster_plot(with_rate=False, ax=ax21, save=False, display=False)
 
 	pretty_raster(spike_list, analysis_interval, n_total_neurons=100)
+
+
+def rebuild_stimulus_sequence(epochs, onset_times=None):
+	"""
+	Rebuild the original stimulus sequence from the marked epochs
+	:param epochs: 
+	:return: 
+	"""
+	stim = epochs.keys()
+
+	all_onsets = {}
+	for k, v in epochs.items():
+		onsets = []
+		for interval in v:
+			onsets.append(interval[0])
+		all_onsets.update({k: onsets})
+
+	onset_times = np.arange(0., 10010 * 200., 200.)
+
+	stim_seq = []
+	for t in onset_times:
+		for k, v in all_onsets.items():
+			if t in v:
+				stim_seq.append(k)
+
+	return stim_seq

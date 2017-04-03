@@ -103,7 +103,7 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 	if not record:
 		print("\n!!! No population activity will be stored !!!")
 	if store_activity:
-		if isinstance(store_activity, int):
+		if isinstance(store_activity, int) and not isinstance(store_activity, bool):
 			store = False
 		else:
 			store = True
@@ -154,20 +154,23 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 					net.simulate(decoder_resolution)
 
 				# extract and store activity
-				net.extract_population_activity(t_start=stimulus_onset + encoder_delay, t_stop=state_sample_time)
+				net.extract_population_activity()#t_start=stimulus_onset + encoder_delay, t_stop=state_sample_time)
 				net.extract_network_activity()
 				enc_layer.extract_encoder_activity(t_start=stimulus_onset + encoder_delay, t_stop=state_sample_time)
 				if not signals.empty(net.merged_populations):
 					net.merge_population_activity(start=stimulus_onset + encoder_delay, stop=state_sample_time,
 					                              save=True)
 				# sample population activity
-				if isinstance(store_activity, int) and set_size-idx == store_activity:
+				if isinstance(store_activity, int) and not isinstance(store_activity, bool) and set_size-(idx+1) == \
+						store_activity:
 					store = True
 					t0 = nest.GetKernelStatus()['time']
 					epochs.update({'analysis_start': t0})
+
+					print "\n\n\n ANALYSIS START TIME: {0}".format(t0)
 				if record:
 					extract_state_vectors(net, enc_layer, state_sample_time, store)
-				if not store_activity:
+				if not store:
 					flush(net, enc_layer)
 
 				timing['step_time'].append(time_keep(start_time, idx, set_size, stim_start))
@@ -737,7 +740,7 @@ def flush(net, enc_layer, decoders=True):
 	enc_layer.flush_records(decoders=decoders)
 
 
-def compile_results(net, enc_layer, t0, time_correction_factor, record, store_activity):
+def compile_results(net, enc_layer, t0, time_correction_factor, record, store_activity, store_decoders=False):
 	"""
 
 	:param net:
@@ -764,12 +767,13 @@ def compile_results(net, enc_layer, t0, time_correction_factor, record, store_ac
 			net.merge_population_activity(start=t0,
 			                              stop=nest.GetKernelStatus()['time'] - time_correction_factor,
 			                              save=True)
-		for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
-		                                                   net.populations]))): #, enc_layer.encoders]))):
-			if n_pop.decoding_layer is not None:
-				n_pop.decoding_layer.extract_activity(start=t0,
-				                                      stop=nest.GetKernelStatus()['time'] - time_correction_factor,
-				                                      save=True)
+		if store_decoders:
+			for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
+			                                                   net.populations]))): #, enc_layer.encoders]))):
+				if n_pop.decoding_layer is not None:
+					n_pop.decoding_layer.extract_activity(start=t0,
+					                                      stop=nest.GetKernelStatus()['time'] - time_correction_factor,
+					                                      save=True)
 
 
 def time_keep(start_time, idx, set_size, t1):
@@ -1040,8 +1044,8 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 
 								readout.measure_stability(display=display)
 								if plot and save:
-									readout.plot_weights(display=display,
-									                     save=save_paths['figures'] + save_paths['label'])
+									readout.plot_weights(display=display, save=save_paths['figures'] + save_paths[
+										'label'])
 								elif plot:
 									readout.plot_weights(display=display, save=False)
 
@@ -1061,8 +1065,8 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 						if plot and set_name != 'transient':
 							if save:
 								analysis.analyse_state_matrix(state_matrix, labels, label=n_pop.name + var + set_name,
-								                              plot=plot, display=display,
-								                              save=save_paths['figures']+save_paths['label'])
+								                              plot=plot, display=display, save=save_paths[
+									                          'figures']+save_paths['label'])
 							else:
 								analysis.analyse_state_matrix(state_matrix, labels, label=n_pop.name + var + set_name,
 								                              plot=plot, display=display, save=False)

@@ -814,13 +814,12 @@ def compute_timescale(activity_matrix, time_axis, max_lag=1000, method=0):
 	return final_acc, mean_fit, acc_function, time_scales
 
 
-def manifold_learning(activity_matrix, n_neighbors, standardize=True, plot=True, display=True, save=False):
+def dimensionality_reduction(state_matrix, data_label='', labels=None, metric=None, standardize=True, plot=True,
+                             colormap='jet', display=True, save=False):
 	"""
-	Fit and test various manifold learning algorithms, to extract a reasonable 3D projection of the data for
-	visualization
-
+	Fit and test various algorithms, to extract a reasonable 3D projection of the data for visualization
 	:param activity_matrix: matrix to analyze (NxT)
-	:param n_neighbors:
+	:param metric: [str] metric to use (if None all will be tested)
 	:param standardize:
 	:param plot:
 	:param display:
@@ -828,28 +827,159 @@ def manifold_learning(activity_matrix, n_neighbors, standardize=True, plot=True,
 	:return:
 	"""
 	# TODO extend and test - and include in the analyse_activity_dynamics function
-	if display:
-		print("Testing manifold learning algorithms")
-	if plot:
-		fig1 = pl.figure()
+	metrics = ['PCA', 'FA', 'LLE', 'IsoMap', 'Spectral', 'MDS', 't-SNE']
+	if metric is not None:
+		assert(metric in metrics), "Incorrect metric"
+		metrics = [metric]
+	if labels is None:
+		raise TypeError("Please provide stimulus labels")
+	else:
+		n_elements = np.unique(labels)
+	colors_map = vz.get_cmap(N=len(n_elements), cmap=colormap)
 
-	methods = ['standard', 'ltsa', 'hessian', 'modified']
-	labels = ['LLE', 'LTSA', 'Hessian LLE', 'Modified LLE']
-
-	# LLE (with the different methods available)
-	for i, method in enumerate(methods):
-		if display:
-			print("- Locally Linear Embedding: ")
+	for met in metrics:
+		if met == 'PCA':
+			print("\nPrincipal Component Analysis")
 			t_start = time.time()
-		fit_obj = man.LocallyLinearEmbedding(n_neighbors=n_neighbors, n_components=3, eigen_solver='auto',
-								   method=method)
-		Y = fit_obj.fit_transform(activity_matrix.T)
-		if display:
-			print("\t{0} - {1} s / Reconstruction error = {2}".format(method, str(time.time()-t_start), str(
-				fit_obj.reconstruction_error_)))
-		if plot:
-			locals()['ax1_{0}'.format(i)] = fig1.add_subplot(2, 4, 1, projection='3d')
-			locals()['ax1_{0}'.format(i)].plot(Y[:, 0], Y[:, 1], Y[:, 2])
+			pca_obj = sk.PCA(n_components=3)
+			X_r = pca_obj.fit(state_matrix.T).transform(state_matrix.T)
+			if display:
+				print("Elapsed time: {0} s".format(str(time.time() - t_start)))
+				print("Explained Variance (first 3 components): %s" % str(pca_obj.explained_variance_ratio_))
+			exp_var = [round(n, 2) for n in pca_obj.explained_variance_ratio_]
+
+			if plot:
+				fig1 = pl.figure()
+				ax11 = fig1.add_subplot(111, projection='3d')
+				ax11.set_xlabel(r'$PC_{1}$')
+				ax11.set_ylabel(r'$PC_{2}$')
+				ax11.set_zlabel(r'$PC_{3}$')
+				fig1.suptitle(r'${0} - PCA (var = {1})$'.format(str(data_label), str(exp_var)), fontsize=20)
+				vz.scatter_projections(X_r, labels, colors_map, ax=ax11)
+				if save:
+					fig1.savefig(save + data_label + '_PCA.pdf')
+				if display:
+					pl.show(False)
+		elif met == 'FA':
+			print("\nFactor Analysis")
+			t_start = time.time()
+			fa2 = sk.FactorAnalysis(n_components=len(n_elements))
+			state_fa = fa2.fit_transform(state_matrix.T)
+			score = fa2.score(state_matrix.T)
+			if display:
+				print("Elapsed time: {0} s / Score (NLL): {1}".format(str(time.time() - t_start), str(score)))
+			if plot:
+				fig2 = pl.figure()
+				fig2.suptitle(r'Factor Analysis')
+				ax21 = fig2.add_subplot(111, projection='3d')
+				vz.scatter_projections(state_fa, labels, colors_map, ax=ax21)
+				if save:
+					fig2.savefig(save + data_label + '_FA.pdf')
+				if display:
+					pl.show(False)
+		elif met == 'LLE':
+			print("\nLocally Linear Embedding")
+			if plot:
+				fig3 = pl.figure()
+				fig3.suptitle(r'Locally Linear Embedding')
+
+			methods = ['standard']#, 'ltsa', 'hessian', 'modified']
+			labels = ['LLE']#, 'LTSA', 'Hessian LLE', 'Modified LLE']
+
+			for i, method in enumerate(methods):
+				t_start = time.time()
+				fit_obj = man.LocallyLinearEmbedding(n_neighbors=199, n_components=3, eigen_solver='auto',
+				                                 method=method, n_jobs=-1)
+				Y = fit_obj.fit_transform(state_matrix.T)
+				if display:
+					print("\t{0} - {1} s / Reconstruction error = {2}".format(method, str(time.time() - t_start), str(
+					fit_obj.reconstruction_error_)))
+				if plot:
+					ax = fig3.add_subplot(2, 2, i + 1, projection='3d')
+					ax.set_title(method)
+					vz.scatter_projections(Y, labels, colors_map, ax=ax)
+			if plot and save:
+				fig3.savefig(save + data_label + '_LLE.pdf')
+			if plot and display:
+				pl.show(False)
+		elif met == 'IsoMap':
+			print("\nIsoMap Embedding")
+			t_start = time.time()
+			iso_fit = man.Isomap(n_neighbors=199, n_components=3, eigen_solver='auto', path_method='auto',
+			                 neighbors_algorithm='auto', n_jobs=-1)
+			iso = iso_fit.fit_transform(state_matrix.T)
+			if display:
+				# print("Elapsed time: {0} s / Reconstruction error = {1}".format(str(time.time() - t_start), str(
+				# 		iso_fit.reconstruction_error_)))
+				print("Elapsed time: {0} s / Reconstruction error = ".format(str(time.time() - t_start)))
+			if plot:
+				fig4 = pl.figure()
+				fig4.suptitle(r'IsoMap Embedding')
+				ax41 = fig4.add_subplot(111, projection='3d')
+				vz.scatter_projections(iso, labels, colors_map, ax=ax41)
+				if save:
+					fig4.savefig(save + data_label + '_IsoMap.pdf')
+				if display:
+					pl.show(False)
+		elif met == 'Spectral':
+			print("\nSpectral Embedding")
+			fig5 = pl.figure()
+			fig5.suptitle(r'Spectral Embedding')
+
+			affinities = ['nearest_neighbors', 'rbf']
+			for i, n in enumerate(affinities):
+				t_start = time.time()
+				spec_fit = man.SpectralEmbedding(n_components=3, affinity=n, n_jobs=-1)
+				spec = spec_fit.fit_transform(state_matrix.T)
+				if display:
+					# print("\t{0} - {1} s / Reconstruction error = {2}".format(n, str(time.time() - t_start), str(
+					# 	spec_fit.reconstruction_error_)))
+					print("Elapsed time: {0} s / Reconstruction error = ".format(str(time.time() - t_start)))
+				if plot:
+					ax = fig5.add_subplot(1, 2, i + 1, projection='3d')
+					# ax.set_title(n)
+					vz.scatter_projections(spec, labels, colors_map, ax=ax)
+					# pl.imshow(spec_fit.affinity_matrix_)
+				if plot and save:
+					fig5.savefig(save + data_label + '_SE.pdf')
+				if plot and display:
+					pl.show(False)
+		elif met == 'MDS':
+			print("\nMultiDimensional Scaling")
+			t_start = time.time()
+			mds = man.MDS(n_components=3, n_jobs=-1)
+			mds_fit = mds.fit_transform(state_matrix.T)
+			if display:
+				# print("Elapsed time: {0} s / Reconstruction error = {1}".format(str(time.time() - t_start), str(
+				# 		mds.reconstruction_error_)))
+				print("Elapsed time: {0} s / Reconstruction error = ".format(str(time.time() - t_start)))
+			if plot:
+				fig6 = pl.figure()
+				fig6.suptitle(r'MultiDimensional Scaling')
+				ax61 = fig6.add_subplot(111, projection='3d')
+				vz.scatter_projections(mds_fit, labels, colors_map, ax=ax61)
+				if save:
+					fig6.savefig(save + data_label + '_MDS.pdf')
+		elif met == 't-SNE':
+			print("\nt-SNE")
+			t_start = time.time()
+			tsne = man.TSNE(n_components=3, init='pca')
+			tsne_emb = tsne.fit_transform(state_matrix.T)
+			if display:
+				# print("Elapsed time: {0} s / Reconstruction error = {1}".format(str(time.time() - t_start), str(
+				# 		tsne.reconstruction_error_)))
+				print("Elapsed time: {0} s / Reconstruction error = ".format(str(time.time() - t_start)))
+			if plot:
+				fig7 = pl.figure()
+				fig7.suptitle(r't-SNE')
+				ax71 = fig7.add_subplot(111, projection='3d')
+				vz.scatter_projections(tsne_emb, labels, colors_map, ax=ax71)
+				if save:
+					fig7.savefig(save + data_label + '_t_SNE.pdf')
+				if display:
+					pl.show(False)
+		else:
+			raise NotImplementedError("Metric {0} is not currently implemented".format(met))
 
 
 # TODO when classes are finished, integrate this function and update arguments
@@ -1704,7 +1834,7 @@ def analyse_state_matrix(state, stim_labels, label='', plot=True, display=True, 
 				fig1.savefig(save + 'pca_representation_{0}.pdf'.format(label))
 
 
-def advanced_state_analysis(state, stim_labels, label='', plot=True, display=True, save=False):
+def advanced_state_analysis(state, stim_labels=None, label='', plot=True, display=True, save=False):
 	"""
 	"""
 	pass

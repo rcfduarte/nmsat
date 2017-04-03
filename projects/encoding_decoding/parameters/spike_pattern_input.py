@@ -9,18 +9,18 @@ spike_pattern_input
 """
 
 run = 'local'
-data_label = 'ED_spikepatterninput_illustration'
+data_label = 'ED_spikepatterninput_jitter'
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'lexicon_size': [10],
-	'T': [10]
+	'jitter': np.round(np.linspace(0.1, 100., 100), 1),
+	'trial': [0]
 }
 
 
-def build_parameters(lexicon_size, T):
+def build_parameters(jitter, trial):
 	# ######################################################################################################################
 	# System / Kernel Parameters
 	# ######################################################################################################################
@@ -35,11 +35,11 @@ def build_parameters(lexicon_size, T):
 
 	kernel_pars = set_kernel_defaults(run_type=run, data_label=data_label, **system)
 	# override seeds (replication tests)
-	kernel_pars['grng_seed'] = 22118373677
-	kernel_pars['rng_seeds'] = [22118373678, 22118373679, 22118373680, 22118373681, 22118373682, 22118373683,
-	                            22118373684, 22118373685, 22118373686, 22118373687, 22118373688, 22118373689,
-	                            22118373690, 22118373691, 22118373692, 22118373693]
-	kernel_pars['np_seed'] = 235329953
+	# kernel_pars['grng_seed'] = 22118373677
+	# kernel_pars['rng_seeds'] = [22118373678, 22118373679, 22118373680, 22118373681, 22118373682, 22118373683,
+	#                             22118373684, 22118373685, 22118373686, 22118373687, 22118373688, 22118373689,
+	#                             22118373690, 22118373691, 22118373692, 22118373693]
+	# kernel_pars['np_seed'] = 235329953
 
 	np.random.seed(kernel_pars['np_seed'])
 
@@ -101,9 +101,9 @@ def build_parameters(lexicon_size, T):
 	# - pattern mapping with cross dependencies (6);
 	# - hierarchical dependencies (7);
 
-	# lexicon_size = 4
+	lexicon_size = 100
 	n_distractors = 0  # (if applicable)
-	# T = 10
+	T = 10000
 	T_discard = 10  # number of elements to discard (>=1, for some weird reasons..)
 
 	random_dt = False  # if True, dt becomes maximum distance (?)
@@ -169,6 +169,7 @@ def build_parameters(lexicon_size, T):
 	w_in = 1.
 	sig_w = 0.5 * w_in
 
+	jt = (jitter, True)
 	# Input connectivity
 	input_synapses = dict(
 		target_population_names=['E', 'I'],
@@ -183,12 +184,12 @@ def build_parameters(lexicon_size, T):
 		delay_dist=[0.1, 0.1],
 		preset_W=[None, None],
 		gen_to_enc_W=None,
-		jitter=None)
+		jitter=jt)
 
 	encoding_pars = set_encoding_defaults(default_set=4, input_dimensions=n_stim, n_encoding_neurons=n_afferents,
 	                                      **input_synapses)
 	encoding_pars['encoder']['n_neurons'] = [n_afferents]
-	add_parrots(encoding_pars, n_afferents, decode=True, **{}) # encoder parrots are necessary
+	add_parrots(encoding_pars, n_afferents, decode=False, **{}) # encoder parrots are necessary
 	# #################################################################################################################
 	# Decoding / Readout Parameters
 	# ##################################################################################################################
@@ -199,33 +200,33 @@ def build_parameters(lexicon_size, T):
 	readout_algorithms = ['ridge', 'pinv']
 
 	decoders = dict(
-		decoded_population=['I'],#['E', 'I'], ['E', 'I']],
-		state_variable=['V_m'],#, 'spikes'],
+		decoded_population=[['E', 'I'], ['E', 'I']],
+		state_variable=['V_m', 'spikes'],
 		filter_time=filter_tau,
 		readouts=readout_labels,
 		readout_algorithms=readout_algorithms,
 		sampling_times=state_sampling,
-		reset_states=[False],#, False],
-		average_states=[False], #, False],
-		standardize=[False], #, False]
+		reset_states=[False, False],
+		average_states=[False, False],
+		standardize=[False, False]
 	)
 
 	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)
 
 	## Set decoders for input population (if applicable)
-	input_decoder = dict(
-		state_variable=['spikes'],
-		filter_time=filter_tau,
-		readouts=readout_labels,
-		readout_algorithms=readout_algorithms,
-		output_resolution=out_resolution,
-		sampling_times=state_sampling,
-		reset_states=[True],
-		average_states=[False],
-		standardize=[False]
-	)
-
-	encoding_pars = add_input_decoders(encoding_pars, input_decoder, kernel_pars)
+	# input_decoder = dict(
+	# 	state_variable=['spikes'],
+	# 	filter_time=filter_tau,
+	# 	readouts=readout_labels,
+	# 	readout_algorithms=readout_algorithms,
+	# 	output_resolution=out_resolution,
+	# 	sampling_times=state_sampling,
+	# 	reset_states=[True],
+	# 	average_states=[False],
+	# 	standardize=[False]
+	# )
+	#
+	# encoding_pars = add_input_decoders(encoding_pars, input_decoder, kernel_pars)
 	# ##################################################################################################################
 	# Extra analysis parameters (specific for this experiment)
 	# ==================================================================================================================
@@ -236,7 +237,7 @@ def build_parameters(lexicon_size, T):
 						# 3: save only summary of data, use all available measures
 						# 4: save all data, use all available measures
 
-		'store_activity': 5,  		# [int] - store all population activity in the last n steps of the test
+		'store_activity': False,  		# [int] - store all population activity in the last n steps of the test
 									# phase; if set True the entire test phase will be stored;
 
 		'population_activity': {
