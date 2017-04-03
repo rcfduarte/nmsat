@@ -12,19 +12,22 @@ two_pool_noisedriven
 """
 
 run = 'local'
-data_label = 'ST_twopool_noisedriven_ud'
+data_label = 'ST_twopool_noisedriven_ud_metrics_75_155'
 
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
+	# 'nu_x': np.arange(2, 12.1, .5),
+	# 'gamma': np.arange(9, 17.1, .5)
 }
 
 
+# def build_parameters(nu_x, gamma):
 def build_parameters():
-	gamma 	= 14.
-	nu_x 	= 6.
+	gamma 	= 15.5
+	nu_x 	= 7.5
 	# ##################################################################################################################
 	# System / Kernel Parameters
 	# ##################################################################################################################
@@ -35,7 +38,7 @@ def build_parameters():
 		walltime='00-20:00:00',
 		queue='defqueue',
 		transient_time=1000.,
-		sim_time=0.)
+		sim_time=1500.)
 
 	kernel_pars = set_kernel_defaults(run_type=run, data_label=data_label, **system)
 
@@ -93,10 +96,13 @@ def build_parameters():
 
 	neuron_pars, net_pars, connection_pars = set_network_defaults(default_set=2, neuron_set=2, N=N, **syn_pars_dict)
 
-	net_pars['record_analogs'] = [True, False, False, False]
+	net_pars['record_analogs'] = [True, True, True, True]
 	multimeter = rec_device_defaults(device_type='multimeter')
-	multimeter.update({'record_from': ['V_m'], 'record_n': 1})
-	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': ''}), {}, {}, {}]
+	multimeter.update({'record_from': ['V_m'], 'record_n': 100})
+	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': 'mmE1'}),
+	                                  copy_dict(multimeter, {'label': 'mmI1'}),
+	                                  copy_dict(multimeter, {'label': 'mmE2'}),
+	                                  copy_dict(multimeter, {'label': 'mmI2'})]
 
 	# ##################################################################################################################
 	# Encoding Parameters

@@ -4,7 +4,7 @@ from modules.input_architect import EncodingLayer
 from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, SpikeList
-from modules.visualization import set_global_rcParams, SpikePlots
+from modules.visualization import set_global_rcParams, SpikePlots, AnalogSignalPlots
 from modules.analysis import characterize_population_activity
 import cPickle as pickle
 import numpy as np
@@ -13,6 +13,8 @@ import matplotlib.pyplot as pl
 import pprint
 
 
+start_t = 0.
+stop_t  = 1000.
 # ######################################################################################################################
 # Experiment options
 # ======================================================================================================================
@@ -24,8 +26,7 @@ debug 	= False
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/two_pool_noisedriven_base_8.py'
-#params_file = '../parameters/one_pool_noisedriven.py'
+params_file = '../parameters/two_pool_noisedriven_ud.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -47,8 +48,6 @@ np.random.seed(parameter_set.kernel_pars['np_seed'])
 results = dict()
 nu_x    = parameter_set.analysis_pars.nu_x
 gamma   = parameter_set.analysis_pars.gamma
-start_t = 0.
-stop_t  = 500.
 
 # ######################################################################################################################
 # Set kernel and simulation parameters
@@ -103,25 +102,38 @@ net.extract_population_activity()
 net.extract_network_activity()
 net.flush_records()
 
+parameter_set.save(paths['parameters'] + "/Parameters_plot.txt")
 
-SpikePlots(net.populations[0].spiking_activity.id_slice(list(net.populations[0].gids[:1000])), start=start_t,
-           stop=stop_t).dot_display(with_rate=True, display=False,
-                                    save="{0}/raster_nu_x={1}_gamma={2}_E1.pdf".format(paths['figures'], nu_x, gamma))
 
-SpikePlots(net.populations[2].spiking_activity.id_slice(list(net.populations[2].gids[:1000])), start=start_t,
-           stop=stop_t).dot_display( with_rate=True, display=False,
-                                     save="{0}/raster_nu_x={1}_gamma={2}_E2.pdf".format(paths['figures'], nu_x, gamma))
+# #########################################
+# # print neurons not receiving any X input
+# Xnoise_gid = enc_layer.generators[0].gids[0][0]
+# conns = nest.GetConnections(source=[Xnoise_gid])
+# x_targets = [c[1] for c in conns]
+# x_non_targets = [id_ for id_ in range(1, 20001) if id_ not in x_targets]
+# merged_spiking_activity, merged_analog_activity = net.merge_population_activity(start=start_t, stop=stop_t)
+#
+# SpikePlots(merged_spiking_activity.id_slice(x_non_targets), start=start_t, stop=stop_t).dot_display(with_rate=True, display=False,
+#                                      save="{0}/raster_nu_x={1}_gamma={2}_X_non_targets.pdf".format(paths['figures'], nu_x, gamma))
+#
+# SpikePlots(merged_spiking_activity.id_slice(x_targets), start=start_t, stop=stop_t).dot_display(with_rate=True, display=False,
+#                                      save="{0}/raster_nu_x={1}_gamma={2}_X_targets.pdf".format(paths['figures'], nu_x, gamma))
+
 # ==============================
 
-sl_1 = net.populations[0].spiking_activity.id_slice(list(net.populations[0].gids[:500]))
-sl_i1 = net.populations[1].spiking_activity.id_slice(list(net.populations[1].gids[:200]))
-sl_2 = net.populations[2].spiking_activity.id_slice(list(net.populations[2].gids[:500]))
-sl_i2 = net.populations[3].spiking_activity.id_slice(list(net.populations[3].gids[:200]))
+#sl_1 = net.populations[0].spiking_activity.id_slice(list(net.populations[0].gids[:8000]))
+#sl_i1 = net.populations[1].spiking_activity.id_slice(list(net.populations[1].gids[:2000]))
+#sl_2 = net.populations[2].spiking_activity.id_slice(list(net.populations[2].gids[:8000]))
+#sl_i2 = net.populations[3].spiking_activity.id_slice(list(net.populations[3].gids[:2000]))
+sl_1 = net.populations[0].spiking_activity.id_slice(list(net.populations[0].gids[:1000]))
+sl_i1 = net.populations[1].spiking_activity.id_slice(list(net.populations[1].gids[:250]))
+sl_2 = net.populations[2].spiking_activity.id_slice(list(net.populations[2].gids[:1000]))
+sl_i2 = net.populations[3].spiking_activity.id_slice(list(net.populations[3].gids[:250]))
 
 spikelist = []
 id_list = []
 missing = []
-offset = 7500
+offset = 7000
 def merge_spikes(pop, offs):
 	for id_ in  pop.id_list:
 		if len(pop.spiketrains[id_]) > 0:
@@ -141,8 +153,8 @@ merged_spikelist.complete(missing)
 
 sp = SpikePlots(merged_spikelist, start=start_t, stop=stop_t)
 
-fig = pl.figure(figsize=(40, 15))
-fig.suptitle("Spiking activity for two reservoirs")
+fig = pl.figure(figsize=(20, 20))
+#fig.suptitle("Spiking activity for two reservoirs")
 ax1 = pl.subplot2grid((80, 1), (10, 0), rowspan=25, colspan=1)
 ax0 = pl.subplot2grid((80, 1), (0, 0), rowspan=6, colspan=1, sharex=ax1)
 ax2 = pl.subplot2grid((80, 1), (40, 0), rowspan=25, colspan=1)
@@ -160,4 +172,3 @@ sp.dot_display(gids_colors=[(sl_2.id_list, 'b'), (np.array([x - offset for x in 
 
 fig.savefig("{0}/raster_nu_x={1}_gamma={2}_P1_P2.pdf".format(paths['figures'], nu_x, gamma))
 
-parameter_set.save(paths['parameters'] + "/Parameters_plot.txt")

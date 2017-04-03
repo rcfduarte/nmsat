@@ -1,24 +1,23 @@
 __author__ = 'duarte'
-from modules.parameters import ParameterSet, extract_nestvalid_dict
+import matplotlib
+matplotlib.use('Agg')
+
+from modules.parameters import ParameterSet, ParameterSpace, extract_nestvalid_dict
 from modules.input_architect import EncodingLayer
 from modules.net_architect import Network
 from modules.io import set_storage_locations
-from modules.signals import iterate_obj_list
+from modules.signals import iterate_obj_list, SpikeList
 from modules.visualization import set_global_rcParams, SpikePlots
 from modules.analysis import characterize_population_activity
 import cPickle as pickle
 import numpy as np
 import nest
+import matplotlib.pyplot as pl
+import pprint
 
 
 def run(parameter_set, plot=False, display=False, save=True):
 	"""
-	Analyse network dynamics when driven by Poisson input
-	:param parameter_set: must be consistent with the computation, i.e. input must be poisson...
-	:param plot: plot results - either show them or save to file
-	:param display: show figures/reports
-	:param save: save results
-	:return results_dictionary:
 	"""
 	if not isinstance(parameter_set, ParameterSet):
 		if isinstance(parameter_set, basestring) or isinstance(parameter_set, dict):
@@ -80,7 +79,6 @@ def run(parameter_set, plot=False, display=False, save=True):
 	# ======================================================================================================================
 	if parameter_set.kernel_pars.transient_t:
 		net.simulate(parameter_set.kernel_pars.transient_t)
-		net.flush_records()
 
 	net.simulate(parameter_set.kernel_pars.sim_time + 1.)
 	# ######################################################################################################################
@@ -89,8 +87,59 @@ def run(parameter_set, plot=False, display=False, save=True):
 	net.extract_population_activity()
 	net.extract_network_activity()
 
-	sp = SpikePlots(net.populations[0].spiking_activity.id_slice(list(net.populations[0].gids[:1000])))
+	# ######################################################################################################################
+	# Let the plotting begin
+	# ======================================================================================================================
 	nu_x = parameter_set.analysis_pars.nu_x
 	gamma = parameter_set.analysis_pars.gamma
-	sp.dot_display(save="{0}/raster_nu_x={1}_gamma={2}.pdf".format(paths['figures'], nu_x, gamma),
-				   with_rate=True)
+	start_t = 0.
+	stop_t  = 1000.
+
+	sl_1 = net.populations[0].spiking_activity.id_slice(list(net.populations[0].gids[:1000]))
+	sl_i1 = net.populations[1].spiking_activity.id_slice(list(net.populations[1].gids[:250]))
+	sl_2 = net.populations[2].spiking_activity.id_slice(list(net.populations[2].gids[:1000]))
+	sl_i2 = net.populations[3].spiking_activity.id_slice(list(net.populations[3].gids[:250]))
+
+	spikelist = []
+	id_list = []
+	missing = []
+	offset = 7000
+	def merge_spikes(pop, offs):
+		for id_ in  pop.id_list:
+			if len(pop.spiketrains[id_]) > 0:
+				id_list.append(offs + id_)
+				for spike in pop.spiketrains[id_].spike_times:
+					spikelist.append((offs + id_, spike))
+			else:
+				missing.append(offs + id_)
+
+	merge_spikes(sl_1, 0)
+	merge_spikes(sl_i1, -offset)
+	merge_spikes(sl_2, 0)
+	merge_spikes(sl_i2, -offset)
+
+	merged_spikelist = SpikeList(spikelist, id_list)
+	merged_spikelist.complete(missing)
+
+	sp = SpikePlots(merged_spikelist, start=start_t, stop=stop_t)
+
+	fig = pl.figure(figsize=(30, 20))
+	#fig.suptitle("Spiking activity for two reservoirs")
+	ax1 = pl.subplot2grid((80, 1), (10, 0), rowspan=25, colspan=1)
+	ax0 = pl.subplot2grid((80, 1), (0, 0), rowspan=6, colspan=1, sharex=ax1)
+	ax2 = pl.subplot2grid((80, 1), (40, 0), rowspan=25, colspan=1)
+	ax3 = pl.subplot2grid((80, 1), (68, 0), rowspan=6, colspan=1, sharex=ax1)
+
+	ax3.set(xlabel='Time [ms]', ylabel='Rate')
+	ax1.set(ylabel='P1 Neurons')
+	ax2.set(ylabel='P2 Neurons')
+
+	sp.dot_display(gids_colors=[(sl_1.id_list, 'b'), (np.array([x - offset for x in sl_i1.id_list]), 'r')], ax=[ax1, ax0],
+				   with_rate=True, display=False)
+
+	sp.dot_display(gids_colors=[(sl_2.id_list, 'b'), (np.array([x - offset for x in sl_i2.id_list]), 'r')], ax=[ax2, ax3],
+				   with_rate=True, display=False)
+
+	fig.savefig("{0}/raster_nu_x={1}_gamma={2}_P1_P2.pdf".format(paths['figures'], nu_x, gamma))
+	with open("{0}/analog_nu_x={1}_gamma={2}_P1_P2.pkl".format(paths['results'], nu_x, gamma), 'w') as f:
+		pickle.dump(net.analog_activity, f)
