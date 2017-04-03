@@ -19,7 +19,7 @@ stimulus_processing
 
 # data parameters
 project = 'encoding_decoding'
-data_type = 'dcinput' # 'spikepatterninput' #
+data_type = 'spikepatterninput' # 'dcinput' #s
 data_path = '/media/neuro/Data/EncodingDecoding_NEW/training_parameters/'
 data_label = 'ED_{0}_training_parameters'.format(data_type)
 results_path = data_path + data_label + '/Results/'

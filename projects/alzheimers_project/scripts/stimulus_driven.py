@@ -5,12 +5,14 @@ from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
 from modules.visualization import set_global_rcParams, plot_input_example
-from modules.auxiliary import process_input_sequence, process_states, set_decoder_times, iterate_input_sequence
+from modules.auxiliary import process_states, set_decoder_times
 import cPickle as pickle
 import numpy as np
 import itertools
 import time
 import sys
+sys.path.append('../')
+from read_data.auxiliary_functions import process_input_sequence
 import nest
 
 # ######################################################################################################################

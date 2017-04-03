@@ -48,6 +48,7 @@ import inspect
 import nest
 import errno
 import imp
+import signals as sg
 
 from defaults.paths import paths
 
@@ -1195,5 +1196,7 @@ def clean_array(x):
 	"""
 	for idx, val in np.ndenumerate(x):
 		if val is None:
+			x[idx] = np.nan
+		elif sg.empty(val):
 			x[idx] = np.nan
 	return x

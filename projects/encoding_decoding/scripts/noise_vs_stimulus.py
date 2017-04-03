@@ -20,17 +20,17 @@ import nest
 # ######################################################################################################################
 # Experiment options
 # ======================================================================================================================
-online = False # strictly False!
-plot = True
-display = False
+online = True # strictly False!
+plot = False
+display = True
 save = True
-debug = True
+debug = False
 
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-# params_file = '../parameters/dcinput_noise_vs_stimulus.py'
-params_file = '../parameters/spike_noise_vs_stimulus.py'
+params_file = '../parameters/dcinput_noise_vs_stimulus.py'
+# params_file = '../parameters/spike_noise_vs_stimulus.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -176,10 +176,10 @@ net.connect_populations(parameter_set.connection_pars)
 # Simulate (Ongoing+evoked Epoch)
 # ====================================================================================
 # if DC simulate all else simulate transient and then process_sequence
-net.simulate(parameter_set.kernel_pars.transient_t) # + parameter_set.kernel_pars.sim_time + nest.GetKernelStatus()[
-# 'min_delay'])
-epochs, timing = iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name='full', record=True,
-                       store_activity=True)
+# net.simulate(parameter_set.kernel_pars.transient_t)
+net.simulate(parameter_set.kernel_pars.transient_t + parameter_set.kernel_pars.sim_time + nest.GetKernelStatus()['min_delay'])
+# epochs, timing = iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name='full', record=False,
+#                        store_activity=True)
 net.extract_population_activity()
 net.extract_network_activity()
 
@@ -194,15 +194,15 @@ if not np.mean(activity) > 0:
 # Analyse / plot data
 # ======================================================================================================================
 # analysis_interval = [100, parameter_set.kernel_pars.transient_t] # discard the first 100 ms
-
+#
 # results['ongoing'] = characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
 #                                                 color_map='Accent', plot=plot, color_subpop=True,
 #                                                 display=display, save=paths['figures']+paths['label']+'Ongoing',
 #                                                 analysis_pars=parameter_set.analysis_pars)
-
+#
 # analysis_interval = [parameter_set.kernel_pars.transient_t, parameter_set.kernel_pars.transient_t +
 #                      parameter_set.kernel_pars.sim_time]
-
+#
 # results['evoked'] = characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
 #                                                 color_map='Accent', plot=plot, color_subpop=True,
 #                                                 display=display, save=paths['figures']+paths['label']+'Evoked',
@@ -210,14 +210,12 @@ if not np.mean(activity) > 0:
 
 analysis_interval = [parameter_set.kernel_pars.transient_t - 2000., parameter_set.kernel_pars.transient_t + 2000.]
 
-parameter_set.analysis_pars.population_activity.update({
-	'time_bin': 1.,
-	'time_resolved': True,
-	'window_len': 50})
-
-
-epochs = {'ongoing': (analysis_interval[0], parameter_set.kernel_pars.transient_t),
-          'evoked': (parameter_set.kernel_pars.transient_t, analysis_interval[1])}
+# parameter_set.analysis_pars.population_activity.update({
+# 	'time_bin': 1.,
+# 	'time_resolved': True,
+# 	'window_len': 50})
+# epochs = {'ongoing': (analysis_interval[0], parameter_set.kernel_pars.transient_t),
+#           'evoked': (parameter_set.kernel_pars.transient_t, analysis_interval[1])}
 # results['transition'] = characterize_population_activity(net, parameter_set, analysis_interval, epochs=epochs,
 #                                                 color_map='Accent', plot=plot,
 #                                                 display=display, save=paths['figures']+paths['label']+'Evoked',
@@ -229,12 +227,15 @@ epochs = {'ongoing': (analysis_interval[0], parameter_set.kernel_pars.transient_
 # animate raster
 net.merge_subpopulations([net.populations[0], net.populations[1]], name='EI')
 spk_list, _ = net.merge_population_activity(start=analysis_interval[0], stop=analysis_interval[1])
+#
 
-pretty_raster(spk_list, analysis_interval, n_total_neurons=100)
-pl.show()
+# spk_list.raster_plot(with_rate=True, **{'c': 'k', 'ms': 1.})
+#
+# pretty_raster(spk_list, analysis_interval, n_total_neurons=1000)
+# pl.show(block=False)
 gids = [x.gids for x in net.populations]
 ai = ActivityAnimator(spk_list, populations=net, ids=gids, vm_list=[])
-ai.animate_activity(time_interval=100, time_window=100, sim_res=1., colors=['b', 'r'], activities=[
+ai.animate_activity(time_interval=500, time_window=500, sim_res=1., colors=['b', 'r'], activities=[
 	"raster", "rate"], save=True, filename='test', display=True)
 print ("gonna animate raster plot... @done")
 #######################################################################################
