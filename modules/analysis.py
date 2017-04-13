@@ -529,6 +529,8 @@ def compute_spike_stats(spike_list, time_bin=1., summary_only=False, display=Fal
 	:param display: bool - display progress / time
 	:return: dictionary with all the relevant data
 	"""
+	# TODO computing FANO FACTOR with a bin width of 1. doesn't make sense, no?
+	time_bin = 50.
 	if display:
 		print("\nAnalysing spiking activity...")
 		t_start = time.time()
