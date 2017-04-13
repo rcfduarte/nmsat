@@ -116,7 +116,7 @@ def set_neuron_defaults(default_set=1):
 				'tau_minus_triplet': 200.,
 				'E_ex': 0.,
 				'tau_syn_ex': 5.,
-				'E_in': -70.,
+				'E_in': -80.,
 				'tau_syn_in': 10.
 			},
 			'I': {
@@ -133,7 +133,7 @@ def set_neuron_defaults(default_set=1):
 				'tau_minus_triplet': 200.,
 				'E_ex': 0.,
 				'tau_syn_ex': 5.,
-				'E_in': -70.,
+				'E_in': -80.,
 				'tau_syn_in': 10.
 			}
 		}
@@ -160,7 +160,7 @@ def set_neuron_defaults(default_set=1):
 				'tau_minus_triplet': 200.,
 				'E_ex': 0.,
 				'tau_syn_ex': 5.,
-				'E_in': -70.,
+				'E_in': -80.,
 				'tau_syn_in': 10.
 			},
 			'E2': {
@@ -177,7 +177,7 @@ def set_neuron_defaults(default_set=1):
 				'tau_minus_triplet': 200.,
 				'E_ex': 0.,
 				'tau_syn_ex': 5.,
-				'E_in': -70.,
+				'E_in': -80.,
 				'tau_syn_in': 10.
 			},
 			'I1': {
@@ -194,7 +194,7 @@ def set_neuron_defaults(default_set=1):
 				'tau_minus_triplet': 200.,
 				'E_ex': 0.,
 				'tau_syn_ex': 5.,
-				'E_in': -70.,
+				'E_in': -0.,
 				'tau_syn_in': 10.
 			},
 			'I2': {
@@ -211,7 +211,7 @@ def set_neuron_defaults(default_set=1):
 				'tau_minus_triplet': 200.,
 				'E_ex': 0.,
 				'tau_syn_ex': 5.,
-				'E_in': -70.,
+				'E_in': -80.,
 				'tau_syn_in': 10.
 			},
 		}
