@@ -12,7 +12,7 @@ two_pool_noisedriven
 """
 
 run = 'local'
-data_label = 'ST_twopool_noisedriven_ud_bgnoise_025'
+data_label = 'ST_twopool_stimulusdriven_ud_bgnoise_025'
 
 
 # ######################################################################################################################
@@ -26,8 +26,8 @@ parameter_range = {
 
 # def build_parameters(nu_x, gamma):
 def build_parameters():
-	gamma 	= 15.5
-	nu_x 	= 7.5
+	gamma 	= 16.
+	nu_x 	= 5.
 	noise_ratio = 0.25
 	# ##################################################################################################################
 	# System / Kernel Parameters
@@ -104,27 +104,60 @@ def build_parameters():
 	                                  copy_dict(multimeter, {'label': 'mmI1'}),
 	                                  copy_dict(multimeter, {'label': 'mmE2'}),
 	                                  copy_dict(multimeter, {'label': 'mmI2'})]
+	# ##################################################################################################################
+	# Stimulus Parameters
+	# ##################################################################################################################
+	n_trials = 100
+	n_discard = 10
+
+	n_stim = 5
+
+	stim_pars = dict(
+		n_stim	= n_stim,
+		elements	= np.arange(0, n_stim, 1).astype(int),
+		grammar		= None,
+		full_set_length		= int(n_trials + n_discard),
+		transient_set_length= int(n_discard),
+		train_set_length	= int(n_trials * 0.8),
+		test_set_length		= int(n_trials * 0.2),
+	)
+
+	# ##################################################################################################################
+	# Input Parameters
+	# ##################################################################################################################
+	inp_resolution = 0.1
+	inp_amplitude = nu_x * nE
+	inp_duration = 200.
+	inter_stim_interval = 0.
+
+	input_pars = {'signal': {
+		'N': n_stim,
+		'durations': [inp_duration],
+		'i_stim_i': [inter_stim_interval],
+		'kernel': ('box', {}),
+		'start_time': 0.,
+		'stop_time': sys.float_info.max,
+		'max_amplitude': [inp_amplitude],
+		'min_amplitude': 0.,
+		'resolution': inp_resolution},
+		# 'noise': {
+		# 	'N': 0,
+		# 	'noise_source': ['GWN'],
+		# 	'noise_pars': {'amplitude': 5., 'mean': 1., 'std': 0.25},
+		# 	'rectify': True,
+		# 	'start_time': 0.,
+		# 	'stop_time': sys.float_info.max,
+		# 	'resolution': inp_resolution, }
+	}
 
 	# ##################################################################################################################
 	# Encoding Parameters
 	# ##################################################################################################################
+	# Noise
+	# ##################################################################################################################
 	k_x = epsilon * nE
 
 	encoding_pars = set_encoding_defaults(default_set=0)
-
-	background_noise = dict(
-		start=0.,
-		stop=sys.float_info.max,
-		origin=0.,
-		rate=nu_x * k_x * (1 - noise_ratio),
-		target_population_names=['E1', 'I1'],
-		additional_parameters={
-			'syn_specs': {},
-			'models': 'static_synapse',
-			'model_pars': {},
-			'weight_dist': wE,
-			'delay_dist': delay})
-	add_background_noise(encoding_pars, background_noise)
 
 	background_noise = dict(
 		generator_label="BgNoise1",
@@ -156,6 +189,59 @@ def build_parameters():
 			'delay_dist': delay})
 	add_background_noise(encoding_pars, background_noise)
 
+	# ##################################################################################################################
+	# Stimulus
+	# ##################################################################################################################
+	n_afferents = N  # number of stimulus-specific afferents (if necessary)
+	encoder_delay = 0.1
+	w_in = wE
+
+	# Input connectivity
+	input_synapses = dict(
+		target_population_names=['E1I1'],
+		conn_specs	= [{'rule': 'pairwise_bernoulli', 'p': epsilon * (1 - noise_ratio)}],
+		syn_specs	= [{}],
+		models		= ['static_synapse'],
+		model_pars	= [{}],
+		weight_dist	= [w_in],
+		delay_dist	= [encoder_delay],
+		preset_W	= [None],
+		gen_to_enc_W= None,
+		jitter		= None) # jitter=None or jitter=(value[float], correct_borders[bool])
+
+	encoding_pars = set_encoding_defaults(default_set=3, input_dimensions=n_stim,
+	                                      n_encoding_neurons=n_afferents, **input_synapses)
+	encoding_pars['encoder']['n_neurons'] = [n_afferents]
+
+	# add_parrots(encoding_pars, n_afferents, decode=True, **{})
+
+	# ##################################################################################################################
+	# Decoding / Readout Parameters
+	# ##################################################################################################################
+	out_resolution 		= 0.1
+	filter_tau 			= 20.  # time constant of exponential filter (applied to spike trains)
+	state_sampling 		= None  # 1.(cannot start at 0)
+	readout_labels 		= ['ridge_classifierP1', 'ridge_classifierP2']
+	readout_algorithms 	= ['ridge', 'ridge']
+
+	decoders = dict(
+		decoded_population	= [['E1', 'I1'], ['E1', 'I1'], ['E2', 'I2'], ['E2', 'I2']],
+		state_variable		= ['spikes', 'V_m', 'spikes', 'V_m'],
+		filter_time			= filter_tau,
+		readouts			= readout_labels,
+		readout_algorithms	= readout_algorithms,
+		sampling_times		= state_sampling,
+		reset_states		= [True, False, True, False],
+		average_states		= [False, False, False, False],
+		standardize			= [False, False, False, False]
+	)
+
+	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)
+
+	# ##################################################################################################################
+	# Decoding / Readout Parameters
+	# ##################################################################################################################
+
 	analysis_pars = {
 		# analysis depth
 		'depth': 3,	# 1: save only summary of data, use only fastest measures
@@ -181,8 +267,11 @@ def build_parameters():
 	# RETURN dictionary of Parameters dictionaries
 	# ==================================================================================================================
 	return dict([('kernel_pars', kernel_pars),
+	             ('input_pars', input_pars),
 	             ('neuron_pars', neuron_pars),
 	             ('net_pars', net_pars),
 	             ('encoding_pars', encoding_pars),
+	             ('decoding_pars', decoding_pars),
+	             ('stim_pars', stim_pars),
 	             ('connection_pars', connection_pars),
 				 ('analysis_pars', analysis_pars)])
