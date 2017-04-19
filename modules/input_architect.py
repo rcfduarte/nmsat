@@ -2036,37 +2036,6 @@ class InputSignalSet(object):
 		self.full_set_noise            = result[3]
 		self.full_stimulation_time     = result[4]
 
-		# assert(stimulus_set.full_set is not None), "No full set in the provided StimulusSet object, skipping..."
-		# self.full_set_signal = InputSignal(self.parameters.signal, self.online)
-		# print("- Generating {0}-dimensional input signal [full_set]".format(str(stimulus_set.dims)))
-		# if self.online:
-		# 	print("- InputSignal will be generated online. full_set is now a generator.. (no noise is added...)")
-		# 	# TODO: Noise is not added
-		# 	self.full_set_signal_iterator = self.full_set_signal.set_signal_online(stimulus_set.full_set)
-		# 	self.full_set = self.full_set_signal.generate_iterative(stimulus_set.full_set)
-		# else:
-		# 	self.full_set_signal.set_stimulus_amplitudes(stimulus_set.full_set)
-		# 	if not signals.empty(self.spike_patterns):
-		# 		self.full_set_signal.set_stimulus_times(stimulus_set.full_set, spk_patterns=True)
-		# 	else:
-		# 		self.full_set_signal.set_stimulus_times(stimulus_set.full_set)
-		# 	self.full_set_signal.generate()
-		# 	self.full_stimulation_time = len(self.full_set_signal.time_data) * self.full_set_signal.dt
-		# 	if hasattr(self.parameters, "noise") and self.parameters.noise.N:
-		# 		self.full_set_noise = InputNoise(self.parameters.noise, stop_time=self.full_stimulation_time)
-		# 		self.full_set_noise.generate()
-		# 		if not isinstance(self.full_set_noise.noise_signal, signals.AnalogSignalList):
-		# 			self.full_set_noise = None
-		# 			self.full_set = self.full_set_signal
-		# 		else:
-		# 			merged_signal = merge_signal_lists(self.full_set_signal.input_signal,
-		# 			                                   self.full_set_noise.noise_signal,
-		# 			                                   operation=np.add)
-		# 			self.full_set = InputSignal()
-		# 			self.full_set.load_signal(merged_signal.as_array(), inherit_from=self.full_set_signal)
-		# 			print("- Generating and adding {0}-dimensional input noise (t={1})".format(str(stimulus_set.dims),
-		# 				                                                              str(self.full_stimulation_time)))
-
 	def generate_transient_set(self, stimulus_set):
 		"""
 
@@ -2080,40 +2049,6 @@ class InputSignalSet(object):
 		self.transient_set_noise            = result[3]
 		self.transient_stimulation_time     = result[4]
 			
-		#
-		# assert(stimulus_set.transient_set is not None), "No transient set in the provided StimulusSet object, skipping..."
-		# self.transient_set_signal = InputSignal(self.parameters.signal, self.online)
-		# print("- Generating {0}-dimensional input signal [transient_set]".format(str(stimulus_set.dims)))
-		#
-		# if self.online:
-		# 	print("- InputSignal will be generated online. transient_set is now a generator.. (no noise is added...)")
-		# 	# TODO: Noise is not added
-		# 	self.transient_set_signal_iterator = self.transient_set_signal.set_signal_online(stimulus_set.transient_set)
-		# 	self.transient_set = self.transient_set_signal.generate_iterative(stimulus_set.transient_set)
-		# else:
-		# 	self.transient_set_signal.set_stimulus_amplitudes(stimulus_set.transient_set)
-		# 	if not signals.empty(self.spike_patterns):
-		# 		self.transient_set_signal.set_stimulus_times(stimulus_set.transient_set, True)
-		# 	else:
-		# 		self.transient_set_signal.set_stimulus_times(stimulus_set.transient_set)
-		# 	self.transient_set_signal.generate()
-		# 	self.transient_stimulation_time = len(self.transient_set_signal.time_data) * self.transient_set_signal.dt
-		# 	if hasattr(self.parameters, "noise") and self.parameters.noise.N:
-		# 		self.parameters.noise.stop_time = self.transient_stimulation_time
-		# 		self.transient_set_noise = InputNoise(self.parameters.noise)
-		# 		self.transient_set_noise.generate()
-		# 		if not isinstance(self.transient_set_noise.noise_signal, signals.AnalogSignalList):
-		# 			self.transient_set_noise = None
-		# 			self.transient_set = self.transient_set_signal
-		# 		else:
-		# 			merged_signal = merge_signal_lists(self.transient_set_signal.input_signal,
-		# 			                                   self.transient_set_noise.noise_signal,
-		# 			                                   operation=np.add)
-		# 			self.transient_set = InputSignal()
-		# 			self.transient_set.load_signal(merged_signal.as_array(), onset=0., inherit_from=self.transient_set_signal)
-		# 			print("- Generating and adding {0}-dimensional input noise (t={1})".format(str(stimulus_set.dims),
-		# 				                                                         str(self.transient_stimulation_time)))
-
 	def generate_unique_set(self, stimulus_set):
 		"""
 
@@ -2128,43 +2063,6 @@ class InputSignalSet(object):
 		self.unique_set_signal_iterator  = result[2]
 		self.unique_set_noise            = result[3]
 		self.unique_stimulation_time     = result[4]
-
-		# assert (stimulus_set.unique_set is not None), "No unique set in the provided StimulusSet object, " \
-		#                                               "skipping..."
-		# self.unique_set_signal = InputSignal(self.parameters.signal, self.online)
-		# print("- Generating {0}-dimensional input signal [unique_set]".format(str(stimulus_set.dims)))
-		# if self.online:
-		# 	print("- InputSignal will be generated online. unique_set is now a generator.. (no noise is added...)")
-		# 	# TODO: Noise is not added
-		# 	self.unique_set_signal_iterator = self.unique_set_signal.set_signal_online(stimulus_set.unique_set)
-		# 	self.unique_set = self.unique_set_signal.generate_iterative(stimulus_set.unique_set)
-		# else:
-		# 	self.unique_set_signal.set_stimulus_amplitudes(stimulus_set.unique_set)
-		# 	if not signals.empty(self.spike_patterns):
-		# 		self.unique_set_signal.set_stimulus_times(stimulus_set.unique_set, True)
-		# 	else:
-		# 		self.unique_set_signal.set_stimulus_times(stimulus_set.unique_set)
-		# 	self.unique_set_signal.generate()
-		# 	# correct time stamp:
-		# 	self.unique_set_signal.time_offset(self.transient_stimulation_time)
-		# 	self.unique_stimulation_time = len(self.unique_set_signal.time_data) * self.unique_set_signal.dt
-		# 	if hasattr(self.parameters, "noise") and self.parameters.noise.N:
-		# 		self.parameters.noise.start_time += self.unique_stimulation_time
-		# 		self.parameters.noise.stop_time += self.unique_stimulation_time
-		# 		self.unique_set_noise = InputNoise(self.parameters.noise)
-		# 		self.unique_set_noise.generate()
-		# 		if not isinstance(self.unique_set_noise.noise_signal, signals.AnalogSignalList):
-		# 			self.unique_set_noise = None
-		# 			self.unique_set = self.unique_set_signal
-		# 		else:
-		# 			merged_signal = merge_signal_lists(self.unique_set_signal.input_signal,
-		# 			                                   self.unique_set_noise.noise_signal,
-		# 			                                   operation=np.add)
-		# 			self.unique_set = InputSignal()
-		# 			self.unique_set.load_signal(merged_signal, onset=self.parameters.noise.start_time,
-		# 			                          inherit_from=self.unique_set_signal)
-		# 			print("- Generating and adding {0}-dimensional input noise (t={1})".format(str(stimulus_set.dims),
-		# 			                                                                    str(self.unique_stimulation_time)))
 
 	def generate_train_set(self, stimulus_set):
 		"""
@@ -2183,53 +2081,6 @@ class InputSignalSet(object):
 		self.train_set_noise            = result[3]
 		self.train_stimulation_time     = result[4]
 
-		# assert (stimulus_set.train_set is not None), "No train set in the provided StimulusSet object, " \
-		#                                                  "skipping..."
-		# self.train_set_signal = InputSignal(self.parameters.signal, self.online)
-		# print("- Generating {0}-dimensional input signal [train_set]".format(str(stimulus_set.dims)))
-		# if self.online:
-		# 	print("- InputSignal will be generated online. train_set is now a generator.. (no noise is added...)")
-		# 	# TODO: Noise is not added
-		# 	self.train_set_signal_iterator = self.train_set_signal.set_signal_online(stimulus_set.train_set)
-		# 	self.train_set = self.train_set_signal.generate_iterative(stimulus_set.train_set)
-		# else:
-		# 	self.train_set_signal.set_stimulus_amplitudes(stimulus_set.train_set)
-		# 	if not signals.empty(self.spike_patterns):
-		# 		self.train_set_signal.set_stimulus_times(stimulus_set.train_set, True)
-		# 	else:
-		# 		self.train_set_signal.set_stimulus_times(stimulus_set.train_set)
-		# 	self.train_set_signal.generate()
-		#
-		# 	# correct time stamp:
-		# 	if hasattr(self, "unique_set"):
-		# 		self.train_set_signal.time_offset(self.transient_stimulation_time + self.unique_stimulation_time)
-		# 		if hasattr(self.parameters, "noise") and self.parameters.noise.N:
-		# 			# FIXME @bug unique stimulation time has already been added
-		# 			self.parameters.noise.start_time += self.transient_stimulation_time + self.unique_stimulation_time
-		# 	else:
-		# 		self.train_set_signal.time_offset(self.transient_stimulation_time)
-		# 		if hasattr(self.parameters, "noise") and self.parameters.noise.N:
-		# 			self.parameters.noise.start_time += self.transient_stimulation_time
-		#
-		# 	self.train_stimulation_time = len(self.train_set_signal.time_data) * self.train_set_signal.dt
-		#
-		# 	if hasattr(self.parameters, "noise") and self.parameters.noise.N:
-		# 		self.parameters.noise.stop_time += self.train_stimulation_time
-		# 		self.train_set_noise = InputNoise(self.parameters.noise)
-		# 		self.train_set_noise.generate()
-		# 		if not isinstance(self.train_set_noise.noise_signal, signals.AnalogSignalList):
-		# 			self.train_set_noise = None
-		# 			self.train_set = self.train_set_signal
-		# 		else:
-		# 			merged_signal = merge_signal_lists(self.train_set_signal.input_signal,
-		# 			                                   self.train_set_noise.noise_signal,
-		# 			                                   operation=np.add)
-		# 			self.train_set = InputSignal()
-		# 			self.train_set.load_signal(merged_signal, onset=self.parameters.noise.start_time,
-		# 			                           inherit_from=self.train_set_signal)
-		# 			print("- Generating and adding {0}-dimensional input noise (t={1})".format(
-		# 				str(stimulus_set.dims), str(self.train_stimulation_time)))
-
 	def generate_test_set(self, stimulus_set):
 		"""
 
@@ -2246,55 +2097,6 @@ class InputSignalSet(object):
 		self.test_set_signal_iterator  = result[2]
 		self.test_set_noise            = result[3]
 		self.test_stimulation_time     = result[4]
-
-		# assert (stimulus_set.test_set is not None), "No test set in the provided StimulusSet object, " \
-		#                                              "skipping..."
-		# self.test_set_signal = InputSignal(self.parameters.signal, self.online)
-		# print("- Generating {0}-dimensional input signal [test_set]".format(str(stimulus_set.dims)))
-		# if self.online:
-		# 	print("- InputSignal will be generated online. test_set is now a generator.. (no noise is added...)")
-		# 	# TODO: Noise is not added
-		# 	self.test_set_signal_iterator = self.test_set_signal.set_signal_online(stimulus_set.test_set)
-		# 	self.test_set = self.train_set_signal.generate_iterative(stimulus_set.test_set)
-		# else:
-		# 	self.test_set_signal.set_stimulus_amplitudes(stimulus_set.test_set)
-		# 	if not signals.empty(self.spike_patterns):
-		# 		self.test_set_signal.set_stimulus_times(stimulus_set.test_set, True)
-		# 	else:
-		# 		self.test_set_signal.set_stimulus_times(stimulus_set.test_set)
-		# 	self.test_set_signal.generate()
-		#
-		# 	# correct time stamp:
-		# 	if hasattr(self, "unique_set"):
-		# 		self.test_set_signal.time_offset(self.transient_stimulation_time + self.unique_stimulation_time +
-		# 		                                 self.train_stimulation_time)
-		# 		if hasattr(self.parameters, "noise") and self.parameters.noise.N:
-		# 			self.parameters.noise.start_time += self.transient_stimulation_time + \
-		# 			                                    self.unique_stimulation_time + self.train_stimulation_time
-		# 	else:
-		# 		self.test_set_signal.time_offset(self.transient_stimulation_time + self.train_stimulation_time)
-		# 		if hasattr(self.parameters, "noise") and self.parameters.noise.N:
-		# 			self.parameters.noise.start_time += self.transient_stimulation_time + self.train_stimulation_time
-		#
-		# 	self.test_stimulation_time = len(self.test_set_signal.time_data) * self.test_set_signal.dt
-		#
-		# 	if hasattr(self.parameters, "noise") and self.parameters.noise.N:
-		# 		self.parameters.noise.start_time += self.train_stimulation_time
-		# 		self.parameters.noise.stop_time += self.test_stimulation_time
-		# 		self.test_set_noise = InputNoise(self.parameters.noise)
-		# 		self.test_set_noise.generate()
-		# 		if not isinstance(self.test_set_noise.noise_signal, signals.AnalogSignalList):
-		# 			self.test_set_noise = None
-		# 			self.test_set = self.test_set_signal
-		# 		else:
-		# 			merged_signal = merge_signal_lists(self.test_set_signal.input_signal,
-		# 			                                   self.test_set_noise.noise_signal,
-		# 			                                   operation=np.add)
-		# 			self.test_set = InputSignal()
-		# 			self.test_set.load_signal(merged_signal, onset=self.parameters.noise.start_time,
-		# 		                          inherit_from=self.test_set_signal)
-		# 			print("- Generating and adding {0}-dimensional input noise (t={1})".format(
-		# 				str(stimulus_set.dims), str(self.test_stimulation_time)))
 
 	def generate_datasets(self, stim):
 		"""
@@ -2575,7 +2377,7 @@ class EncodingLayer:
 	"""
 	Wrapper for all the encoders and generators involved in the input conversion process
 	"""
-	# TODO create all instances using a prng
+	# TODO create all instances using a prng; this means prng can't remain None... throw an error here?
 	def __init__(self, initializer=None, signal=None, stim_seq=None, online=False, prng=None):
 		"""
 
@@ -2804,6 +2606,75 @@ class EncodingLayer:
 			if hasattr(initializer, 'generator'):
 				self.generators, self.generator_names = create_generators(initializer, signal)
 
+	def _get_connection_type_and_parameters(self, encoding_pars, conn_pars, idx,
+	                                         populations, pop_objs):
+		"""
+		Determine the type of the connecting populations and their parameters
+		:param encoding_pars:
+		:param conn_pars:
+		:param idx:
+		:param populations:
+		:param pop_objs:
+		:return:
+		"""
+		src_name = conn_pars.connections[idx][1]
+		tget_name = conn_pars.connections[idx][0]
+
+		if hasattr(encoding_pars, 'encoder'):
+			if (src_name in encoding_pars.encoder.labels) or (tget_name in encoding_pars.encoder.labels) and \
+					not encoding_pars.encoder.N:
+				raise NameError("")  # to continue here
+		if hasattr(encoding_pars, 'encoder') and (src_name in encoding_pars.encoder.labels):
+			src_id = encoding_pars.encoder.labels.index(src_name)
+			src_dims = self.encoders[src_id].size
+			if conn_pars.topology_dependent[idx]:
+				src_gids = self.encoders[src_id].layer_gid
+			else:
+				src_gids = self.encoders[src_id].gids
+			src_tp = self.encoders[src_id].topology
+		elif hasattr(encoding_pars, 'generator') and (src_name in encoding_pars.generator.labels):
+			src_id = encoding_pars.generator.labels.index(src_name)
+			src_dims = self.generators[src_id].input_dimension
+			if conn_pars.topology_dependent[idx]:
+				src_gids = self.generators[src_id].layer_gid
+			else:
+				src_gids = self.generators[src_id].gids
+			src_tp = self.generators[src_id].topology
+		else:
+			raise TypeError("Source Population Label is not specified")
+
+		if hasattr(encoding_pars, 'encoder') and (tget_name in encoding_pars.encoder.labels):
+			tget_type = 'encoder'
+			tget_id = encoding_pars.encoder.labels.index(tget_name)
+			tget_dims = self.encoders[tget_id].size
+			if conn_pars.topology_dependent[idx]:
+				tget_gids = self.encoders[tget_id].layer_gid
+			else:
+				tget_gids = self.encoders[tget_id].gids
+			tget_tp = self.encoders[tget_id].topology
+		elif hasattr(encoding_pars, 'generator') and (tget_name in encoding_pars.generator.labels):
+			tget_type = 'generator'
+			tget_id = encoding_pars.generator.labels.index(tget_name)
+			tget_dims = self.generators[tget_id].input_dimension
+			if conn_pars.topology_dependent[idx]:
+				tget_gids = self.generators[tget_id].layer_gid
+			else:
+				tget_gids = self.generators[tget_id].gids
+			tget_tp = self.generators[tget_id].topology
+		elif tget_name in populations:
+			tget_type = 'population'
+			tget_id = populations.index(tget_name)
+			tget_dims = pop_objs[tget_id].size
+			if conn_pars.topology_dependent[idx]:
+				tget_gids = pop_objs[tget_id].layer_gid
+			else:
+				tget_gids = pop_objs[tget_id].gids
+			tget_tp = pop_objs[tget_id].topology
+		else:
+			raise TypeError("Target Population Label is not specified")
+
+		return src_gids, src_id, src_dims, src_tp, tget_gids, tget_id, tget_dims, tget_tp
+
 	def connect(self, encoding_pars, net_obj=None, progress=True):
 		"""
 		Connect the generators to their target populations according to specifications
@@ -2837,66 +2708,17 @@ class EncodingLayer:
 			print "    - %s [%s]" % (nn, conn_pars.models[idx])
 
 			# determine the type of the connecting populations and their parameters
-			if hasattr(encoding_pars, 'encoder'):
-				if (src_name in encoding_pars.encoder.labels) or (tget_name in
-				                                                            encoding_pars.encoder.labels) and \
-					not encoding_pars.encoder.N:
-					continue
-			if hasattr(encoding_pars, 'encoder') and (src_name in encoding_pars.encoder.labels):
-				src_id = encoding_pars.encoder.labels.index(src_name)
-				src_dims = self.encoders[src_id].size
-				if conn_pars.topology_dependent[idx]:
-					src_gids = self.encoders[src_id].layer_gid
-				else:
-					src_gids = self.encoders[src_id].gids
-				src_tp = self.encoders[src_id].topology
-			elif hasattr(encoding_pars, 'generator') and (src_name in encoding_pars.generator.labels):
-				src_id = encoding_pars.generator.labels.index(src_name)
-				src_dims = self.generators[src_id].input_dimension
-				if conn_pars.topology_dependent[idx]:
-					src_gids = self.generators[src_id].layer_gid
-				else:
-					src_gids = self.generators[src_id].gids
-				src_tp = self.generators[src_id].topology
-			else:
-				raise TypeError("Source Population Label is not specified")
-
-			if hasattr(encoding_pars, 'encoder') and (tget_name in encoding_pars.encoder.labels):
-				tget_type = 'encoder'
-				tget_id = encoding_pars.encoder.labels.index(tget_name)
-				tget_dims = self.encoders[tget_id].size
-				if conn_pars.topology_dependent[idx]:
-					tget_gids = self.encoders[tget_id].layer_gid
-				else:
-					tget_gids = self.encoders[tget_id].gids
-				tget_tp = self.encoders[tget_id].topology
-			elif hasattr(encoding_pars, 'generator') and (tget_name in encoding_pars.generator.labels):
-				tget_type = 'generator'
-				tget_id = encoding_pars.generator.labels.index(tget_name)
-				tget_dims = self.generators[tget_id].input_dimension
-				if conn_pars.topology_dependent[idx]:
-					tget_gids = self.generators[tget_id].layer_gid
-				else:
-					tget_gids = self.generators[tget_id].gids
-				tget_tp = self.generators[tget_id].topology
-			elif tget_name in populations:
-				tget_type = 'population'
-				tget_id = populations.index(tget_name)
-				tget_dims = pop_objs[tget_id].size
-				if conn_pars.topology_dependent[idx]:
-					tget_gids = pop_objs[tget_id].layer_gid
-				else:
-					tget_gids = pop_objs[tget_id].gids
-				tget_tp = pop_objs[tget_id].topology
-			else:
-				raise TypeError("Target Population Label is not specified")
+			try:
+				src_gids, src_id, src_dims, src_tp, tget_gids, tget_id, tget_dims, tget_tp = \
+					self._get_connection_type_and_parameters(encoding_pars, conn_pars, idx, populations, pop_objs)
+			except NameError:  # we just continue, nothing special or wrong here
+				continue
 
 			if "synapse_name" in conn_pars and conn_pars.synapse_name[idx] is not None:
 				synapse_name = conn_pars.synapse_name[idx]
 			else:
 				synapse_name = src_name + '_' + tget_name
 
-			#print src_name, tget_name
 			self.connection_types.append(synapse_name)
 			self.connections.append((tget_name, src_name))
 
@@ -2976,7 +2798,6 @@ class EncodingLayer:
 						visualization.progress_bar(float(preSyn_matidx)/len(src_gids))
 						conn_dict = conn_pars.conn_specs[idx]
 						for idxx, tget in enumerate(postSyn_gid):
-							#print idxx
 							if isinstance(delay, dict):
 								d = delay
 							else:
@@ -3004,7 +2825,12 @@ class EncodingLayer:
 
 				else:
 					# add extra numerical index to the src_name
-					if (src_name + '0' in nest.Models()) and (tget_name in nest.Models()):
+					# @barni, added all the ifs covering same code here
+					if ((src_name + '0' in nest.Models()) and (tget_name in nest.Models())) \
+							or ((src_name in nest.Models()) and (tget_name in nest.Models())) \
+							or ((src_name + '0' in nest.Models()) and (nest.GetStatus([tget_gids[0]])[0]['element_type'] == 'neuron')) \
+							or ((src_name in nest.Models()) and (nest.GetStatus([tget_gids[0]])[0]['element_type'] == 'neuron')):
+
 						# need to use synapse with the same model for all connections from a device
 						if "synapse_name" in conn_pars and conn_pars.synapse_name[idx] is not None:
 							synapse_name = conn_pars.synapse_name[idx]
@@ -3019,56 +2845,57 @@ class EncodingLayer:
 						nest.Connect(src_gids, tget_gids, conn_spec=conn_dict, syn_spec=syn_dict)
 						print("- Connecting {0} to population {1} [{2}]".format(src_name, tget_name, synapse_name))
 
-					elif (src_name in nest.Models()) and (tget_name in nest.Models()):
-						# need to use synapse with the same model for all connections from a device
-						if "synapse_name" in conn_pars and conn_pars.synapse_name[idx] is not None:
-							synapse_name = conn_pars.synapse_name[idx]
-						else:
-							synapse_name = src_name + '_' + tget_name
-						nest.SetDefaults(conn_pars.models[idx], conn_pars.model_pars[idx])
-						syn_dict = parameters.copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
-							conn_pars.weight_dist[idx], 'delay': conn_pars.delay_dist[idx]})
-						conn_dict = conn_pars.conn_specs[idx]
-						if isinstance(src_gids, list):
-							src_gids = tuple(x[0] for x in src_gids)
-						nest.Connect(src_gids, tget_gids, conn_spec=conn_dict, syn_spec=syn_dict)
-						print("- Connecting {0} to population {1} [{2}]".format(src_name, tget_name, synapse_name))
-
-					elif (src_name + '0' in nest.Models()) and (nest.GetStatus([tget_gids[0]])[0]['element_type'] ==
-						                                      'neuron'):
-						# Specific case when target population is merged populations..
-						# need to use synapse with the same model for all connections from a device
-						if "synapse_name" in conn_pars and conn_pars.synapse_name[idx] is not None:
-							synapse_name = conn_pars.synapse_name[idx]
-						else:
-							synapse_name = src_name + '_' + tget_name
-						nest.SetDefaults(conn_pars.models[idx], conn_pars.model_pars[idx])
-						syn_dict = parameters.copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
-							conn_pars.weight_dist[idx], 'delay': conn_pars.delay_dist[idx]})
-						conn_dict = conn_pars.conn_specs[idx]
-						if isinstance(src_gids, list):
-							src_gids = tuple(x[0] for x in src_gids)
-						nest.Connect(src_gids, tget_gids, conn_spec=conn_dict, syn_spec=syn_dict)
-						print("- Connecting {0} to population {1} [{2}]".format(src_name, tget_name, synapse_name))
-					elif (src_name in nest.Models()) and (nest.GetStatus([tget_gids[0]])[0]['element_type'] ==
-						                                      'neuron'):
-						# Specific case when target population is merged populations..
-						# need to use synapse with the same model for all connections from a device
-						if "synapse_name" in conn_pars and conn_pars.synapse_name[idx] is not None:
-							synapse_name = conn_pars.synapse_name[idx]
-						else:
-							synapse_name = src_name + '_' + tget_name
-						nest.SetDefaults(conn_pars.models[idx], conn_pars.model_pars[idx])
-						syn_dict = parameters.copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
-							conn_pars.weight_dist[idx], 'delay': conn_pars.delay_dist[idx]})
-						conn_dict = conn_pars.conn_specs[idx]
-						if isinstance(src_gids, list):
-							src_gids = tuple(x[0] for x in src_gids)
-						nest.Connect(src_gids, tget_gids, conn_spec=conn_dict, syn_spec=syn_dict)
-						print("- Connecting {0} to population {1} [{2}]".format(src_name, tget_name, synapse_name))
+					# TODO I moved all the ifs above, because the code they covered is redundant...
+					# TODO @Renato was this just not finished yet or can the outcommented code below be removed
+					# elif (src_name in nest.Models()) and (tget_name in nest.Models()):
+					# 	# need to use synapse with the same model for all connections from a device
+					# 	if "synapse_name" in conn_pars and conn_pars.synapse_name[idx] is not None:
+					# 		synapse_name = conn_pars.synapse_name[idx]
+					# 	else:
+					# 		synapse_name = src_name + '_' + tget_name
+					# 	nest.SetDefaults(conn_pars.models[idx], conn_pars.model_pars[idx])
+					# 	syn_dict = parameters.copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
+					# 		conn_pars.weight_dist[idx], 'delay': conn_pars.delay_dist[idx]})
+					# 	conn_dict = conn_pars.conn_specs[idx]
+					# 	if isinstance(src_gids, list):
+					# 		src_gids = tuple(x[0] for x in src_gids)
+					# 	nest.Connect(src_gids, tget_gids, conn_spec=conn_dict, syn_spec=syn_dict)
+					# 	print("- Connecting {0} to population {1} [{2}]".format(src_name, tget_name, synapse_name))
+					#3
+					# elif (src_name + '0' in nest.Models()) and (nest.GetStatus([tget_gids[0]])[0]['element_type'] ==
+					# 	                                      'neuron'):
+					# 	# Specific case when target population is merged populations..
+					# 	# need to use synapse with the same model for all connections from a device
+					# 	if "synapse_name" in conn_pars and conn_pars.synapse_name[idx] is not None:
+					# 		synapse_name = conn_pars.synapse_name[idx]
+					# 	else:
+					# 		synapse_name = src_name + '_' + tget_name
+					# 	nest.SetDefaults(conn_pars.models[idx], conn_pars.model_pars[idx])
+					# 	syn_dict = parameters.copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
+					# 		conn_pars.weight_dist[idx], 'delay': conn_pars.delay_dist[idx]})
+					# 	conn_dict = conn_pars.conn_specs[idx]
+					# 	if isinstance(src_gids, list):
+					# 		src_gids = tuple(x[0] for x in src_gids)
+					# 	nest.Connect(src_gids, tget_gids, conn_spec=conn_dict, syn_spec=syn_dict)
+					# 	print("- Connecting {0} to population {1} [{2}]".format(src_name, tget_name, synapse_name))
+					# elif (src_name in nest.Models()) and (nest.GetStatus([tget_gids[0]])[0]['element_type'] ==
+					# 	                                      'neuron'):
+					# 	# Specific case when target population is merged populations..
+					# 	# need to use synapse with the same model for all connections from a device
+					# 	if "synapse_name" in conn_pars and conn_pars.synapse_name[idx] is not None:
+					# 		synapse_name = conn_pars.synapse_name[idx]
+					# 	else:
+					# 		synapse_name = src_name + '_' + tget_name
+					# 	nest.SetDefaults(conn_pars.models[idx], conn_pars.model_pars[idx])
+					# 	syn_dict = parameters.copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
+					# 		conn_pars.weight_dist[idx], 'delay': conn_pars.delay_dist[idx]})
+					# 	conn_dict = conn_pars.conn_specs[idx]
+					# 	if isinstance(src_gids, list):
+					# 		src_gids = tuple(x[0] for x in src_gids)
+					# 	nest.Connect(src_gids, tget_gids, conn_spec=conn_dict, syn_spec=syn_dict)
+					# 	print("- Connecting {0} to population {1} [{2}]".format(src_name, tget_name, synapse_name))
 					else:
-						# TODO: make more robust
-						x = StochasticGenerator()
+						x = StochasticGenerator(self.prng)
 						if hasattr(x, encoding_pars.encoder.models[src_id]):
 							# src is a stochastic encoder... set spike times for spike generator
 							act_list = self.encoders[src_id].spiking_activity

@@ -26,7 +26,7 @@ online = True
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
 
-params_file = '../parameters/one_pool_stimulusdriven.py'
+params_file = '../parameters/two_pool_stimulusdriven_ud_bgnoise.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')

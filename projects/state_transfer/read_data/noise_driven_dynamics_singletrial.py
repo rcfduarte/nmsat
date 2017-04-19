@@ -16,10 +16,10 @@ noise_driven_dynamics_singletrial
 project = 'state_transfer'
 data_type = 'SpikeNoise'  # 'SpikeNoise'
 trial = 0
-population_of_interest = 'Global'  # results are provided for only one population (choose Global to get the totals)
-data_path = "/home/barni/code/fzj/nst/data/ST_twopool/"
+population_of_interest = 'P2'  # results are provided for only one population (choose Global to get the totals)
+data_path = "/home/barni/code/fzj/nst/data/"
 # data_path = "/home/zajzon/code/nst/network_simulation_testbed/data/state_transfer/"
-data_label = 'ST_twopool_noisedriven_metrics_oneanalog'
+data_label = 'ST_twopool_noisedriven_ud_bgnoise_025'
 
 # set defaults and paths
 set_project_paths(project)
@@ -127,11 +127,12 @@ for x in results_arrays['regularity'].keys():
 		boundaries.append([None])
 labels = [x for x in results_arrays['regularity'].keys()]
 plot_2d_parscans(image_arrays=image_arrays, axis=[ax11, ax12, ax13, ax14, ax15, ax16, ax17, ax18],
-                 fig_handle=fig1, labels=labels, cmap='rainbow', boundaries=boundaries, **pl_props)
+                 fig_handle=fig1, labels=labels, cmap=cmap, boundaries=boundaries, **pl_props)
 fig1.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.6)
-fig1.savefig("regularity.pdf", format='pdf')
+fig1.savefig("regularity_{0}.pdf".format(population_of_interest), format='pdf')
 
-fig2 = pl.figure()
+########################################################################################################################
+fig2 = pl.figure(figsize=(20, 12))
 fig2.suptitle('Synchrony metrics')
 ax21 = fig2.add_subplot(241)
 ax22 = fig2.add_subplot(242)
@@ -150,9 +151,10 @@ labels = [r'$'+x+'$' for x in results_arrays['synchrony'].keys()]
 plot_2d_parscans(image_arrays=image_arrays, axis=[ax21, ax22, ax23, ax24, ax25],
                  fig_handle=fig2, labels=labels, cmap=cmap, boundaries=boundaries, **pl_props)
 fig2.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.6)
-fig2.savefig("synchrony.pdf")
+fig2.savefig("synchrony_{0}.pdf".format(population_of_interest))
 
-fig3 = pl.figure()
+########################################################################################################################
+fig3 = pl.figure(figsize=(20, 12))
 fig3.suptitle('Activity metrics')
 ax31 = fig3.add_subplot(121)
 ax32 = fig3.add_subplot(122)
@@ -167,7 +169,7 @@ labels = [r'$'+x+'$' for x in results_arrays['activity'].keys()]
 plot_2d_parscans(image_arrays=image_arrays, axis=[ax31, ax32],
                  fig_handle=fig3, labels=labels, cmap=cmap, boundaries=boundaries, **pl_props)
 pl.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.6)
-fig3.savefig("activity_metrics.pdf")
+fig3.savefig("activity_metrics_{0}.pdf".format(population_of_interest))
 
 
 # fig4 = pl.figure()
@@ -212,9 +214,9 @@ for k, v in expected_values.items():
 
 plot_2d_parscans(image_arrays=image_arrays, axis=[ax51, ax52, ax53, ax54],
                  fig_handle=fig5, labels=labels, cmap=cmap, boundaries=[], **pl_props)
-pl.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.6)
-fig5.savefig("summary.pdf")
-
+pl.tight_layout()
+fig5.savefig("summary_{0}.pdf".format(population_of_interest))
+exit(0)
 #########################################
 # main figure ###
 fig6 = pl.figure()
@@ -246,7 +248,7 @@ ax61.scatter(np.where(ai_ness == ai_ness.min())[1][0], np.where(ai_ness == ai_ne
 			 s=20, c='red', marker='o')
 ax61.set(**pl_props)
 ax61.grid(False)
-pl.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.6)
+pl.tight_layout()
 fig6.savefig("AIness.pdf")
 
 
