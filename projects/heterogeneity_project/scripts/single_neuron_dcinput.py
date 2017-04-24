@@ -1,33 +1,27 @@
 __author__ = 'duarte'
-import sys
-sys.path.insert(0, "../")
 from modules.parameters import ParameterSet, ParameterSpace, extract_nestvalid_dict
-from modules.input_architect import EncodingLayer, StimulusSet, InputSignalSet, InputNoise
-from modules.net_architect import Network
 from modules.io import set_storage_locations
-from modules.signals import iterate_obj_list, empty, gather_analog_activity
-from modules.visualization import set_global_rcParams, InputPlots, ActivityAnimator, plot_input_example
-from modules.analysis import characterize_population_activity
-import cPickle as pickle
+from modules.signals import iterate_obj_list
+from modules.analysis import single_neuron_dcresponse
+from modules.visualization import set_global_rcParams
+from modules.net_architect import Network
+from modules.input_architect import EncodingLayer
 import numpy as np
-import matplotlib.pyplot as pl
-import time
-from auxiliary_fcns import plot_single_neuron_response, spike_triggered_synaptic_responses, PSP_kinetics, PSC_kinetics
+from scipy import stats
 import nest
-
+import cPickle as pickle
 
 # ######################################################################################################################
 # Experiment options
 # ======================================================================================================================
 plot = True
 display = True
-save = False
+save = True
 
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-# params_file = '../parameters/synaptic_response_receptors.py'
-params_file = '../parameters/synaptic_response_rest.py'
+params_file = '../parameters/single_neuron_fI.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -88,80 +82,46 @@ if parameter_set.kernel_pars.transient_t:
 	net.simulate(parameter_set.kernel_pars.transient_t)
 	net.flush_records()
 
-net.simulate(parameter_set.kernel_pars.sim_time + 1.0) #parameter_set.kernel_pars.resolution)
+net.simulate(parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.resolution)
 
 # ######################################################################################################################
 # Extract and store data
 # ======================================================================================================================
 net.extract_population_activity()
 net.extract_network_activity()
-# net.flush_records()
+net.flush_records()
 
 # ######################################################################################################################
 # Analyse / plot data
 # ======================================================================================================================
-time_window = parameter_set.kernel_pars.window
-analysis_interval = [parameter_set.kernel_pars.transient_t,
-                     parameter_set.kernel_pars.transient_t + parameter_set.kernel_pars.sim_time]
-t_axis = np.arange(analysis_interval[0], analysis_interval[1], parameter_set.net_pars.analog_device_pars[0]['interval'])
+analysis_interval = [parameter_set.kernel_pars.transient_t + nest.GetKernelStatus()['resolution'],
+	                     parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t]
 
-E_input_times = np.array(parameter_set.encoding_pars.generator.model_pars[
-	                          parameter_set.encoding_pars.generator.labels.index('E_input')]['spike_times'])
-if not empty(E_input_times):
-	E_input_times = np.intersect1d(E_input_times[E_input_times > analysis_interval[0]], E_input_times[E_input_times
-	                                <= analysis_interval[1] - time_window[1]])
+for idd, nam in enumerate(net.population_names):
+	results.update({nam: {}})
+	results[nam] = single_neuron_dcresponse(net.populations[idd],
+	                                        parameter_set, start=analysis_interval[0],
+	                                        stop=analysis_interval[1], plot=plot,
+	                                        display=display, save=paths['figures']+paths['label'])
+	idx = np.min(np.where(results[nam]['output_rate']))
 
-I_input_times = np.array(parameter_set.encoding_pars.generator.model_pars[
-	parameter_set.encoding_pars.generator.labels.index('I_input')]['spike_times'])
-if not empty(I_input_times):
-	I_input_times = np.intersect1d(I_input_times[I_input_times > analysis_interval[0]], I_input_times[I_input_times
-	                                <= analysis_interval[1] - time_window[1]])
+	print "Rate range for neuron {0} = [{1}, {2}] Hz".format(str(nam), str(np.min(results[nam]['output_rate'][
+		                                                     results[nam]['output_rate']>0.])),
+	                                                         str(np.max(results[nam]['output_rate'][
+		                                                     results[nam]['output_rate']>0.])))
+	results[nam].update({'min_rate': np.min(results[nam]['output_rate'][results[nam]['output_rate']>0.]),
+	                     'max_rate': np.max(results[nam]['output_rate'][results[nam]['output_rate']>0.])})
+	print "Rheobase Current for neuron {0} in [{1}, {2}]".format(str(nam), str(results[nam]['input_amplitudes'][
+	                                                    idx - 1]), str(results[nam]['input_amplitudes'][idx]))
 
-# Look at a single neuron
-all_activity = gather_analog_activity(parameter_set, net, t_start=analysis_interval[0], t_stop=analysis_interval[1])
+	x = np.array(results[nam]['input_amplitudes'])
+	y = np.array(results[nam]['output_rate'])
+	iddxs = np.where(y)
+	slope, intercept, r_value, p_value, std_err = stats.linregress(x[iddxs], y[iddxs])
+	print "fI Slope for neuron {0} = {1} Hz/nA [linreg method]".format(nam, str(slope * 1000.))
 
-if plot:
-	plot_single_neuron_response(parameter_set, all_activity, E_input_times, t_axis, analysis_interval, response_type='E')
-	plot_single_neuron_response(parameter_set, all_activity, I_input_times, t_axis, analysis_interval, response_type='I')
-
-final_results = {x: {} for x in all_activity.keys()}
-results1 = ['q_ratio', 'psc_ratio']
-results2 = ['mean_fit_rise', 'mean_fit_decay', 'mean_amplitude']
-if not empty(E_input_times):
-	results = spike_triggered_synaptic_responses(parameter_set, all_activity, time_window, E_input_times, t_axis,
-	                                             response_type='E', plot=plot, display=display,
-	                                             save=paths['figures']+paths['label'])
-	for pop in all_activity.keys():
-		for k in results1:
-			final_results[pop].update({k: results[pop][k]})
-	results.update(PSC_kinetics(all_activity, time_window, E_input_times, t_axis, response_type='E', plot=plot,
-	                     display=display, save=paths['figures']+paths['label']))
-	for pop in all_activity.keys():
-		for k in results2:
-			final_results[pop].update({'PSC_'+k: results[pop][k]})
-	results.update(PSP_kinetics(all_activity, time_window, E_input_times, t_axis, response_type='E', plot=plot,
-	                            display=display, save=paths['figures']+paths['label']))
-	for pop in all_activity.keys():
-		for k in results2:
-			final_results[pop].update({'PSP_'+k: results[pop][k]})
-
-if not empty(I_input_times):
-	results = spike_triggered_synaptic_responses(parameter_set, all_activity, time_window, I_input_times, t_axis,
-	                                              response_type='I', plot=plot, display=display,
-	                                             save=paths['figures']+paths['label'])
-	for pop in all_activity.keys():
-		for k in results1:
-			final_results[pop].update({k: results[pop][k]})
-	results.update(PSC_kinetics(all_activity, time_window, I_input_times, t_axis, response_type='I', plot=plot,
-                            display=display, save=paths['figures']+paths['label']))
-	for pop in all_activity.keys():
-		for k in results2:
-			final_results[pop].update({'PSC_'+k: results[pop][k]})
-	results.update(PSP_kinetics(all_activity, time_window, I_input_times, t_axis, response_type='I', plot=plot,
-                            display=display, save=paths['figures']+paths['label']))
-	for pop in all_activity.keys():
-		for k in results2:
-			final_results[pop].update({'PSP_'+k: results[pop][k]})
+	results[nam].update({'fI_slope': slope * 1000., 'I_rh': [results[nam]['input_amplitudes'][idx - 1],
+	                                                           results[nam]['input_amplitudes'][idx]]})
 
 # ######################################################################################################################
 # Save data
@@ -170,17 +130,3 @@ if save:
 	with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
 		pickle.dump(results, f)
 	parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
-
-
-
-
-
-
-
-
-
-
-
-
-
-

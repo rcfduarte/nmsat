@@ -5,14 +5,14 @@ from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
 from modules.visualization import set_global_rcParams, plot_input_example
-from modules.auxiliary import process_states, set_decoder_times
+from modules.auxiliary import set_decoder_times
 import cPickle as pickle
 import numpy as np
 import itertools
 import time
 import sys
 sys.path.append('../')
-from read_data.auxiliary_functions import process_input_sequence
+from read_data.auxiliary_functions import process_input_sequence, process_states
 import nest
 
 # ######################################################################################################################
@@ -157,7 +157,13 @@ if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input
 # ######################################################################################################################
 # Run Simulation (full sequence)
 # ======================================================================================================================
-epochs, timing = process_input_sequence(parameter_set, net, enc_layer, stim_set, inputs, set_name='full', record=True)
+epochs, timing = process_input_sequence(parameter_set, net, enc_layer, stim_set, inputs, set_name='full',
+                                        record=True, save_data=False, storage_paths=paths)
+
+dl = net.merged_populations[0].decoding_layer
+samples = {'sampled_times': dl.sampled_times}
+with open(paths['other']+paths['label']+'_StateSampleTimes.pkl', 'w') as fp:
+	pickle.dump(samples, fp)
 
 # ######################################################################################################################
 # Process data

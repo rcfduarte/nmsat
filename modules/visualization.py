@@ -263,7 +263,7 @@ def box_plot(ax, data, pos):
 	:param pos: list of x positions
 	:return:
 	"""
-	ax.boxplot(data, notch=1, positions=pos, vert=1, sym='k+')
+	ax.boxplot(data, notch=1, positions=pos, vert=1, sym='')
 
 
 def summary_statistics(data_list, labels, loc=0, fig=None, cmap='jet'):
