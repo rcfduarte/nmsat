@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import sys
 import copy
+import os
 
 cmdl_parse = copy.copy(sys.argv)
 
@@ -23,7 +24,7 @@ def run_experiment(params_file_full_path, computation_function="noise_driven_dyn
 	:return:
 	"""
 	try:
-		# determine the project folder and add it to sys.path..
+		# determine the project folder and add it to sys.path
 		project_dir, _ = path.split(path.split(params_file_full_path)[0])
 		sys.path.append(project_dir)
 		experiment = importlib.import_module("computations." + computation_function)

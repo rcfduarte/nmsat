@@ -6,6 +6,7 @@ from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
 from modules.visualization import set_global_rcParams, plot_input_example
 from modules.auxiliary import process_input_sequence, process_states, set_decoder_times
+from . import  plot_twopool_activity
 import cPickle as pickle
 import numpy as np
 import itertools
@@ -46,7 +47,7 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 	nest.ResetKernel()
 	nest.set_verbosity('M_WARNING')
 	nest.SetKernelStatus(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(), param_type='kernel'))
-
+	parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
 	# ######################################################################################################################
 	# Build network
 	# ======================================================================================================================
@@ -125,7 +126,7 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 	# ######################################################################################################################
 	# Encode Input
 	# ======================================================================================================================
-	enc_layer = EncodingLayer(parameter_set.encoding_pars, signal=inputs.full_set_signal, online=online)
+	enc_layer = EncodingLayer(parameter_set.encoding_pars, signal=inputs.full_set_signal, online=online, prng=np.random)
 	enc_layer.connect(parameter_set.encoding_pars, net)
 	enc_layer.extract_connectivity(net, sub_set=True, progress=False)
 
@@ -174,6 +175,7 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 	# Save data
 	# ======================================================================================================================
 	if save:
+		plot_twopool_activity(net, parameter_set.label, 1000., 2500.)
 		with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
 			pickle.dump(results, f)
 		parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)

@@ -860,7 +860,7 @@ class ParameterSpace:
 			param_axes	= {}
 			label 		= param_set.kernel_pars["data_prefix"]
 			dim			= 1
-			return param_set, param_axes, label, dim
+			return [param_set], param_axes, label, dim
 
 		if initializer.endswith(".py"):
 			self.parameter_sets, self.parameter_axes, self.label, self.dimensions = parse_parameters_file(initializer)
