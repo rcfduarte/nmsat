@@ -1013,7 +1013,7 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 				accepted_ids = None
 
 			for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
-		                                                   net.populations, enc_layer.encoders]))):
+															   net.populations, enc_layer.encoders]))):
 				if n_pop.decoding_layer is not None:
 					dec_layer = n_pop.decoding_layer
 
@@ -1034,7 +1034,7 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 						results['dimensionality'][n_pop.name].update({var + str(idx_var): {}})
 
 						print "\nPopulation {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
-						                                                          str(state_matrix.shape))
+																					str(state_matrix.shape))
 						if set_name == 'unique':
 							results['rank'][n_pop.name].update({var + str(idx_var): analysis.get_state_rank(state_matrix)})
 						elif set_name == 'train':
@@ -1044,15 +1044,15 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 
 								readout.measure_stability(display=display)
 								if plot and save:
-									readout.plot_weights(display=display, save=save_paths['figures'] + save_paths[
-										'label'])
+									readout.plot_weights(display=display, save=save_paths['figures'] +
+																			   save_paths['label'])
 								elif plot:
 									readout.plot_weights(display=display, save=False)
 
 						elif set_name == 'test':
 							for readout in readouts:
 								output, target = readout.test(state_matrix, np.array(target), index=None,
-									                            accepted=accepted_ids, display=display)
+															  accepted=accepted_ids, display=display)
 
 								results['performance'][n_pop.name][var + str(idx_var)].update(
 									{readout.name: readout.measure_performance(target, output, display=display)})
@@ -1065,8 +1065,8 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 						if plot and set_name != 'transient':
 							if save:
 								analysis.analyse_state_matrix(state_matrix, labels, label=n_pop.name + var + set_name,
-								                              plot=plot, display=display, save=save_paths[
-									                          'figures']+save_paths['label'])
+								                              plot=plot, display=display,
+															  save=save_paths['figures']+save_paths['label'])
 							else:
 								analysis.analyse_state_matrix(state_matrix, labels, label=n_pop.name + var + set_name,
 								                              plot=plot, display=display, save=False)

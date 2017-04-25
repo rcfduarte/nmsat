@@ -1,4 +1,7 @@
 __author__ = 'duarte'
+import matplotlib
+matplotlib.use('Agg')
+
 import sys
 from preset import *
 import numpy as np
@@ -12,29 +15,28 @@ two_pool_noisedriven
 """
 
 run = 'local'
-data_label = 'ST_twopool_noisedriven_ud_metrics_75_155'
-
+data_label = 'ST_twopool_noisedriven_ud'
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	# 'nu_x': np.arange(2, 12.1, .5),
-	# 'gamma': np.arange(9, 17.1, .5)
+	# 'nu_x': np.arange(5, 11.1, .5),
+	# 'gamma': np.arange(9, 21.1, .5)
 }
 
 
 # def build_parameters(nu_x, gamma):
 def build_parameters():
-	gamma 	= 15.5
-	nu_x 	= 7.5
+	gamma 	= 9.
+	nu_x 	= 6.
 	# ##################################################################################################################
 	# System / Kernel Parameters
 	# ##################################################################################################################
 	system = dict(
 		nodes=1,
 		ppn=24,
-		mem=64000,
+		mem=16000,
 		walltime='00-20:00:00',
 		queue='defqueue',
 		transient_time=1000.,
@@ -98,7 +100,7 @@ def build_parameters():
 
 	net_pars['record_analogs'] = [True, True, True, True]
 	multimeter = rec_device_defaults(device_type='multimeter')
-	multimeter.update({'record_from': ['V_m'], 'record_n': 100})
+	multimeter.update({'record_from': ['V_m', 'g_in', 'g_ex'], 'record_n': 100})
 	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': 'mmE1'}),
 	                                  copy_dict(multimeter, {'label': 'mmI1'}),
 	                                  copy_dict(multimeter, {'label': 'mmE2'}),

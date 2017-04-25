@@ -125,7 +125,6 @@ class Population(object):
 	Input:
 		- pop_set -> ParameterSet for this population
 	"""
-
 	def __init__(self, pop_set):
 		self.name = pop_set.pop_names
 		self.size = pop_set.n_neurons
@@ -1253,11 +1252,11 @@ class Network(object):
 		assert isinstance(decoding_pars, parameters.ParameterSet), "DecodingLayer must be initialized with " \
 		                                                           "ParameterSet or dictionary"
 
-		population_names = list(signals.iterate_obj_list(self.population_names))
-		population_objs = list(signals.iterate_obj_list(self.populations))
+		population_names 		= list(signals.iterate_obj_list(self.population_names))
+		population_objs 		= list(signals.iterate_obj_list(self.populations))
 		merged_population_names = [x.name for x in self.merged_populations]
-		merged_population_objs = [x for x in self.merged_populations]
-		decoder_params = {}
+		merged_population_objs 	= [x for x in self.merged_populations]
+		decoder_params 			= {}
 
 		# initialize state extractors:
 		if hasattr(decoding_pars, "state_extractor"):
@@ -1268,13 +1267,19 @@ class Network(object):
 			sources = []
 			source_populations = []
 			for ext_idx, n_src in enumerate(pars_st.source_population):
+				# TODO FIXME @Renato @barni if I first merge E1, I1 to P1 manually and later use P1,
+				# TODO then the following code causes an error because it automatically tries to merge
+				# TODO E1 and I1 to E1I1 (sometimes before), and then tries again, but it will fail in the
+				# TODO merge_subpopulations() function because we call it with activity=True <<--- why assume we always and
+				# TODO want to merge them? also, is the assertion that the simulation has been running (in merge subpop())
+				# TODO really necessary?
 				if isinstance(n_src, list):
 					pop_label = ''.join(n_src)
 					if pop_label not in merged_population_names:
 						sub_population_idx = [population_names.index(x) for x in n_src]
 						sub_populations = [population_objs[x] for x in sub_population_idx]
 						source_population = self.merge_subpopulations(sub_populations=sub_populations, name=pop_label,
-						                            merge_activity=True)
+																	  merge_activity=True)
 					else:
 						source_population = merged_population_objs[merged_population_names.index(pop_label)]
 				else:

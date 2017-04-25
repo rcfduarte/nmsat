@@ -21,11 +21,12 @@ data_label = 'ST_twopool_stimulusdriven_ud_bgnoise_025'
 parameter_range = {
 	# 'nu_x': np.arange(2, 12.1, .5),
 	# 'gamma': np.arange(9, 17.1, .5)
+	'n_stim': np.array([5, 20, 50, 100, 500, 1000, 3000, 5000])
 }
 
 
 # def build_parameters(nu_x, gamma):
-def build_parameters():
+def build_parameters(n_stim):
 	gamma 	= 16.
 	nu_x 	= 5.
 	noise_ratio = 0.25
@@ -38,8 +39,8 @@ def build_parameters():
 		mem=64000,
 		walltime='00-20:00:00',
 		queue='defqueue',
-		transient_time=100.,
-		sim_time=200.)
+		transient_time=1000.,
+		sim_time=2000.)
 
 	kernel_pars = set_kernel_defaults(run_type=run, data_label=data_label, **system)
 
@@ -107,15 +108,24 @@ def build_parameters():
 	# ##################################################################################################################
 	# Stimulus Parameters
 	# ##################################################################################################################
-	n_trials = 100
+	trials_dict = {5: 100,
+				   20: 400,
+				   50: 1000,
+				   100: 2000,
+				   500: 5000,
+				   1000: 10000,
+				   3000: 15000,
+				   5000: 20000}
+	n_trials = trials_dict[n_stim]  # 100
+
 	n_discard = 10
 
-	n_stim = 5
+	# n_stim = 5
 
 	stim_pars = dict(
-		n_stim	= n_stim,
-		elements	= np.arange(0, n_stim, 1).astype(int),
-		grammar		= None,
+		n_stim				= n_stim,
+		elements			= np.arange(0, n_stim, 1).astype(int),
+		grammar				= None,
 		full_set_length		= int(n_trials + n_discard),
 		transient_set_length= int(n_discard),
 		train_set_length	= int(n_trials * 0.8),
@@ -192,7 +202,7 @@ def build_parameters():
 	# ##################################################################################################################
 	# Stimulus
 	# ##################################################################################################################
-	n_afferents = N  # number of stimulus-specific afferents (if necessary)
+	# n_afferents = N  # number of stimulus-specific afferents (if necessary)
 	encoder_delay = 0.1
 	w_in = wE
 
@@ -209,9 +219,8 @@ def build_parameters():
 		gen_to_enc_W= None,
 		jitter		= None) # jitter=None or jitter=(value[float], correct_borders[bool])
 
-	encoding_pars = set_encoding_defaults(default_set=3, input_dimensions=n_stim,
-	                                      n_encoding_neurons=n_afferents, **input_synapses)
-	encoding_pars['encoder']['n_neurons'] = [n_afferents]
+	encoding_pars = set_encoding_defaults(default_set=3, input_dimensions=n_stim, **input_synapses)
+	# encoding_pars['encoder']['n_neurons'] = [n_afferents]
 
 	# add_parrots(encoding_pars, n_afferents, decode=True, **{})
 
@@ -221,11 +230,11 @@ def build_parameters():
 	out_resolution 		= 0.1
 	filter_tau 			= 20.  # time constant of exponential filter (applied to spike trains)
 	state_sampling 		= None  # 1.(cannot start at 0)
-	readout_labels 		= ['ridge_classifierP1', 'ridge_classifierP2']
-	readout_algorithms 	= ['ridge', 'ridge']
+	readout_labels 		= ['ridge_classifier']
+	readout_algorithms 	= ['ridge']
 
 	decoders = dict(
-		decoded_population	= [['E1', 'I1'], ['E1', 'I1'], ['E2', 'I2'], ['E2', 'I2']],
+		decoded_population	= [['E1I1'], ['E1I1'], ['E2I2'], ['E2I2']],
 		state_variable		= ['spikes', 'V_m', 'spikes', 'V_m'],
 		filter_time			= filter_tau,
 		readouts			= readout_labels,
@@ -233,8 +242,7 @@ def build_parameters():
 		sampling_times		= state_sampling,
 		reset_states		= [True, False, True, False],
 		average_states		= [False, False, False, False],
-		standardize			= [False, False, False, False]
-	)
+		standardize			= [False, False, False, False])
 
 	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)
 

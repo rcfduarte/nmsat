@@ -45,7 +45,6 @@ if plot:
 paths = set_storage_locations(parameter_set, save)
 
 np.random.seed(parameter_set.kernel_pars['np_seed'])
-# results = dict(performance={}, dimensionality={})
 
 # ######################################################################################################################
 # Set kernel and simulation parameters
@@ -59,7 +58,8 @@ nest.SetKernelStatus(extract_nestvalid_dict(parameter_set.kernel_pars.as_dict(),
 # Build network
 # ======================================================================================================================
 net = Network(parameter_set.net_pars)
-net.merge_subpopulations([net.populations[0], net.populations[1]], name='EI')  # merge for EI case
+net.merge_subpopulations([net.populations[0], net.populations[1]], name='E1I1')  # merge for EI case
+net.merge_subpopulations([net.populations[2], net.populations[3]], name='E2I2')  # merge for EI case
 
 # ######################################################################################################################
 # Randomize initial variable values

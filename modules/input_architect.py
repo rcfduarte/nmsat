@@ -2342,7 +2342,7 @@ class Generator:
 				nest.SetStatus(self.gids[nn], {'spike_times': spk_times})
 				# TODO check this, seems a bit off...
 				check_timing.append(all(spk_times == np.round(nest.GetStatus(self.gids[nn], 'spike_times')[0],
-				                                rounding_precision)))
+															  rounding_precision)))
 
 			print(all(check_timing)) #debug
 
@@ -2365,11 +2365,9 @@ class Generator:
 				# print min(t_axis), max(t_axis)
 
 				if self.model == 'step_current_generator':
-					nest.SetStatus(self.gids[nn], {'amplitude_times': t_axis,
-					                               'amplitude_values': s_data})
+					nest.SetStatus(self.gids[nn], {'amplitude_times': t_axis, 'amplitude_values': s_data})
 				elif self.model == 'inh_poisson_generator' and 'inh_poisson_generator' in nest.Models():
-					nest.SetStatus(self.gids[nn], {'rate_times': t_axis,
-					                               'rate_values': s_data})
+					nest.SetStatus(self.gids[nn], {'rate_times': t_axis, 'rate_values': s_data})
 
 
 ########################################################################################################################
@@ -2465,7 +2463,8 @@ class EncodingLayer:
 				elif encoder_pars.models[nn] == 'NEF':
 					neuron_dict = encoder_pars.neuron_pars[nn]
 					nest.CopyModel(neuron_dict['model'], encoder_pars.labels[nn])
-					nest.SetDefaults(encoder_pars.labels[nn], parameters.extract_nestvalid_dict(neuron_dict, param_type='neuron'))
+					nest.SetDefaults(encoder_pars.labels[nn], parameters.extract_nestvalid_dict(neuron_dict,
+																								param_type='neuron'))
 
 					if encoder_pars.topology[nn]:
 						tp_dict = encoder_pars.topology_dict[nn]
@@ -2487,8 +2486,8 @@ class EncodingLayer:
 							label = encoder_pars.spike_device_pars[nn]['label']
 						else:
 							label = 'encoder_spikes'
-						dev_gid = encoders[-1].record_spikes(parameters.extract_nestvalid_dict(encoder_pars.spike_device_pars[nn],
-																					param_type='device'), label=label)
+						dev_gid = encoders[-1].record_spikes(parameters.extract_nestvalid_dict(
+							encoder_pars.spike_device_pars[nn], param_type='device'), label=label)
 						print("- Connecting %s to %s, with label %s and id %s" % (
 							encoder_pars.spike_device_pars[nn]['model'], 
 							encoders[-1].name, label, str(dev_gid)))
@@ -2498,8 +2497,8 @@ class EncodingLayer:
 							label = encoder_pars.analogue_device_pars[nn]['label']
 						else:
 							label = 'encoder_analogs'
-						dev_gid = encoders[-1].record_analog(parameters.extract_nestvalid_dict(encoder_pars.analogue_device_pars[nn],
-																					param_type='device'), label=label)
+						dev_gid = encoders[-1].record_analog(parameters.extract_nestvalid_dict(
+							encoder_pars.analogue_device_pars[nn], param_type='device'), label=label)
 						print("- Connecting %s to %s, with label %s and id %s" % (
 							encoder_pars.analogue_device_pars[nn]['model'],
 							encoders[-1].name, label, str(dev_gid)))
@@ -2507,7 +2506,8 @@ class EncodingLayer:
 				elif encoder_pars.models[nn] == 'parrot_neuron':
 					neuron_dict = encoder_pars.neuron_pars[nn]
 					nest.CopyModel(neuron_dict['model'], encoder_pars.labels[nn])
-					nest.SetDefaults(encoder_pars.labels[nn], parameters.extract_nestvalid_dict(neuron_dict, param_type='neuron'))
+					nest.SetDefaults(encoder_pars.labels[nn], parameters.extract_nestvalid_dict(neuron_dict,
+																								param_type='neuron'))
 					if encoder_pars.topology[nn]:
 						tp_dict = encoder_pars.topology_dict[nn]
 						tp_dict.update({'elements': encoder_pars.labels[nn]})
@@ -2529,8 +2529,8 @@ class EncodingLayer:
 							label = encoder_pars.spike_device_pars[nn]['label']
 						else:
 							label = 'encoder_spikes'
-						dev_gid = encoders[-1].record_spikes(parameters.extract_nestvalid_dict(encoder_pars.spike_device_pars[nn],
-																					param_type='device'), label=label)
+						dev_gid = encoders[-1].record_spikes(parameters.extract_nestvalid_dict(
+							encoder_pars.spike_device_pars[nn], param_type='device'), label=label)
 						print("- Connecting %s to %s, with label %s and id %s" % (
 							encoder_pars.spike_device_pars[nn]['model'],
 							encoders[-1].name, label, str(dev_gid)))
@@ -2671,7 +2671,8 @@ class EncodingLayer:
 				tget_gids = pop_objs[tget_id].gids
 			tget_tp = pop_objs[tget_id].topology
 		else:
-			raise TypeError("Target Population Label is not specified")
+			raise TypeError("Target Population Label is not specified or is not among the "
+							"populations: {0}".format(tget_name))
 
 		return src_gids, src_id, src_dims, src_tp, tget_gids, tget_id, tget_dims, tget_tp
 
@@ -2746,8 +2747,10 @@ class EncodingLayer:
 						target_gids = [x['target'] for x in st if
 						               nest.GetStatus([x['target']])[0]['model'] not in device_models]
 						# TODO some values here are not used... is this on purpose?
-						weights = [x['weight'] for x in st if nest.GetStatus([x['target']])[0]['model'] not in device_models]
-						delays = [x['delay'] for x in st if nest.GetStatus([x['target']])[0]['model'] not in device_models]
+						weights = [x['weight'] for x in st
+								   if nest.GetStatus([x['target']])[0]['model'] not in device_models]
+						delays = [x['delay'] for x in st
+								  if nest.GetStatus([x['target']])[0]['model'] not in device_models]
 						models = [x['synapse_model'] for x in st if
 						          nest.GetStatus([x['target']])[0]['model'] not in device_models]
 						receptors = [x['receptor'] for x in st if
@@ -2828,8 +2831,10 @@ class EncodingLayer:
 					# @barni, added all the ifs covering same code here
 					if ((src_name + '0' in nest.Models()) and (tget_name in nest.Models())) \
 							or ((src_name in nest.Models()) and (tget_name in nest.Models())) \
-							or ((src_name + '0' in nest.Models()) and (nest.GetStatus([tget_gids[0]])[0]['element_type'] == 'neuron')) \
-							or ((src_name in nest.Models()) and (nest.GetStatus([tget_gids[0]])[0]['element_type'] == 'neuron')):
+							or ((src_name + '0' in nest.Models()) and
+									(nest.GetStatus([tget_gids[0]])[0]['element_type'] == 'neuron')) \
+							or ((src_name in nest.Models()) and
+									(nest.GetStatus([tget_gids[0]])[0]['element_type'] == 'neuron')):
 
 						# need to use synapse with the same model for all connections from a device
 						if "synapse_name" in conn_pars and conn_pars.synapse_name[idx] is not None:
@@ -2846,7 +2851,7 @@ class EncodingLayer:
 						print("- Connecting {0} to population {1} [{2}]".format(src_name, tget_name, synapse_name))
 
 					# TODO I moved all the ifs above, because the code they covered is redundant...
-					# TODO @Renato was this just not finished yet or can the outcommented code below be removed
+					# TODO @Renato was this just not finished yet or can the commented code below be removed
 					# elif (src_name in nest.Models()) and (tget_name in nest.Models()):
 					# 	# need to use synapse with the same model for all connections from a device
 					# 	if "synapse_name" in conn_pars and conn_pars.synapse_name[idx] is not None:

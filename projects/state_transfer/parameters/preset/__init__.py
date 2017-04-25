@@ -224,10 +224,13 @@ def set_network_defaults(default_set=1, neuron_set=0, conn_set=1, N=1250, **syna
 	"""
 	Network default parameters
 	:param default_set:
+	:param neuron_set:
+	:param conn_set:
+	:param N:
+	:param synapse_pars:
 	:return:
 	"""
 	#TODO this can be simplified, based on the keys in the neuron dictionary...
-
 	syn_pars = ParameterSet(synapse_pars)
 	nE = 0.8 * N
 	nI = 0.2 * N
@@ -435,6 +438,56 @@ def set_connection_defaults(default_set=1, syn_pars=None):
 			              {'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon/2.},], # I2<-I2
 			syn_specs = [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}])
 		syn_pars = ParameterSet(syn_pars_dict)
+	elif default_set == 3.1:
+		print("\nLoading Default Connection Set 3 - (two pool, E1/I1, E2/I2 populations) no topology, fast synapses,"
+			  "feedforward excitatory connections from E1 to E2, I2 (no inhibitory)")
+		wE 		= syn_pars.wE
+		wI 		= -wE * syn_pars.gamma
+		delay 	= syn_pars.delay
+		epsilon = syn_pars.epsilon
+
+		syn_pars_dict = dict(
+			connected_populations=[('E1', 'E1'), ('E2', 'E1'), ('I1', 'E1'), ('I2', 'E1'),
+								   ('E1', 'I1'), ('E2', 'I1'), ('I1', 'I1'), ('I2', 'I1'),
+								   ('E1', 'E2'), ('E2', 'E2'), ('I1', 'E2'), ('I2', 'E2'),
+								   ('E1', 'I2'), ('E2', 'I2'), ('I1', 'I2'), ('I2', 'I2')],
+			synapse_models=['static_synapse', 'static_synapse', 'static_synapse', 'static_synapse',
+							'static_synapse', 'static_synapse', 'static_synapse', 'static_synapse',
+							'static_synapse', 'static_synapse', 'static_synapse', 'static_synapse',
+							'static_synapse', 'static_synapse', 'static_synapse', 'static_synapse', ],
+			synapse_model_parameters=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}],
+			pre_computedW=[None, None, None, None,
+						   None, None, None, None, None, None, None, None, None, None, None, None],
+			weights=[wE, wE, wE, wE,
+					 wI, wI, wI, wI,
+					 wE, wE, wE, wE,
+					 wI, wI, wI, wI],
+			delays=[delay, delay, delay, delay,
+					delay, delay, delay, delay,
+					delay, delay, delay, delay,
+					delay, delay, delay, delay],
+			conn_specs=[{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},  # E1<-E1
+						{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},  # E2<-E1
+						{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},  # I1<-E1
+						{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},  # I2<-E1
+
+						{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},  # E1<-I1
+						{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': 0.},  # E2<-I1
+						{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},  # I1<-I1
+						{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': 0.},  # I2<-I1
+
+						{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': 0.},  # E1<-E2
+						{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},  # E2<-E2
+						{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': 0.},  # I1<-E2
+						{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},  # I2<-E2
+
+						{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': 0.},  # E1<-I2
+						{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon},  # E2<-I2
+						{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': 0.},  # I1<-I2
+						{'autapses': False, 'multapses': False, 'rule': 'pairwise_bernoulli', 'p': epsilon}, ],
+			# I2<-I2
+			syn_specs=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}])
+		syn_pars = ParameterSet(syn_pars_dict)
 	else:
 		raise ValueError("Wrong default set!")
 	synapses = syn_pars.connected_populations
@@ -442,6 +495,7 @@ def set_connection_defaults(default_set=1, syn_pars=None):
 	synapse_models = syn_pars.synapse_models
 	model_pars = syn_pars.synapse_model_parameters
 	assert (np.mean([n in synapses for n in syn_pars.connected_populations]).astype(bool)), "Inconsistent Parameters"
+
 	connection_pars = {
 		'n_synapse_types': len(synapses),
 		'synapse_types': synapses,
@@ -456,8 +510,8 @@ def set_connection_defaults(default_set=1, syn_pars=None):
 		'syn_specs': syn_pars.syn_specs,
 		'description': {
 			'connectivity': 'Sparse, Random with density 0.1 (all connections)',
-			'plasticity': 'None'}
-	}
+			'plasticity': 'None'}}
+
 	return connection_pars
 
 
@@ -684,7 +738,7 @@ def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=
 		}
 	elif default_set == 4:
 		# ###################################################################
-		# Encoding Type 3 - Precise Spatiotemporal spike encoding (Frozen noise)
+		# Encoding Type 4 - Precise Spatiotemporal spike encoding (Frozen noise)
 		# ###################################################################
 		gen_label = 'spike_pattern'
 		keys = ['target_population_names', 'conn_specs', 'syn_specs', 'models', 'model_pars',
@@ -800,10 +854,11 @@ def set_decoding_defaults(output_resolution=1., to_memory=True, **decoder_pars):
 
 	:return:
 	"""
-	keys = ['decoded_population', 'state_variable', 'filter_time', 'readouts', 'sampling_times', 'reset_states',
-	        'average_states', 'standardize']
-	if not all([n in decoder_pars.keys() for n in keys]) or len(decoder_pars['decoded_population']) != \
-			len(decoder_pars['state_variable']):
+	keys = ['decoded_population', 'state_variable', 'filter_time', 'readouts', 'sampling_times',
+			'reset_states', 'average_states', 'standardize']
+
+	if not all([n in decoder_pars.keys() for n in keys]) or \
+					len(decoder_pars['decoded_population']) != len(decoder_pars['state_variable']):
 		raise TypeError("Incorrect Decoder Parameters")
 
 	dec_pars = ParameterSet(decoder_pars)
@@ -812,6 +867,7 @@ def set_decoding_defaults(output_resolution=1., to_memory=True, **decoder_pars):
 		rec_device = rec_device_defaults(start=0., resolution=output_resolution)
 	else:
 		rec_device = rec_device_defaults(start=0., resolution=output_resolution, record_to='file')
+
 	state_specs = []
 	for state_var in dec_pars.state_variable:
 		if state_var == 'spikes':
@@ -826,11 +882,11 @@ def set_decoding_defaults(output_resolution=1., to_memory=True, **decoder_pars):
 	else:
 		N = len(dec_pars.readouts)
 	if len(dec_pars.readout_algorithms) == N:
-		readouts = [{'N': N, 'labels': dec_pars.readouts, 'algorithm': dec_pars.readout_algorithms} for _ in
-		            range(n_decoders)]
+		readouts = [{'N': N, 'labels': dec_pars.readouts,
+					 'algorithm': dec_pars.readout_algorithms} for _ in range(n_decoders)]
 	else:
-		readouts = [{'N': N, 'labels': dec_pars.readouts, 'algorithm': [
-			dec_pars.readout_algorithms[n]]} for n in range(n_decoders)]
+		readouts = [{'N': N, 'labels': dec_pars.readouts,
+					 'algorithm': [dec_pars.readout_algorithms[n]]} for n in range(n_decoders)]
 
 	decoding_pars = {
 		'state_extractor': {

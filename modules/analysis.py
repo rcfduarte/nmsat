@@ -27,6 +27,7 @@ noise_driven_dynamics
 ...
 
 """
+#TODO remove and replace all locals()...
 # other imports
 import sys
 import numpy as np
@@ -2227,7 +2228,7 @@ class Readout(object):
 			target_train = target_train[:, index:]
 
 		if display:
-			print(("\nTraining Readout {0} [{1}]".format(str(self.name), str(self.rule))))
+			print("\nTraining Readout {0} [{1}]".format(str(self.name), str(self.rule)))
 		if self.rule == 'pinv':
 			reg = lm.LinearRegression(fit_intercept=False, n_jobs=-1)
 			reg.fit(state_train.T, target_train.T)
@@ -2280,7 +2281,7 @@ class Readout(object):
 			grid = GridSearchCV(reg, param_grid=param_grid, cv=cv, n_jobs=-1)
 			# use the test dataset (it's much smaller...)
 			grid.fit(state_test.T, np.argmax(np.array(target_test), 0))
-			print(("The best classifier is: ", grid.best_estimator_))
+			print("The best classifier is: ", grid.best_estimator_)
 
 			# use best parameters:
 			reg = grid.best_estimator_
@@ -2552,11 +2553,11 @@ class DecodingLayer(object):
 			state_specs = initializer.state_specs[state_idx]
 			if state_variable == 'V_m':
 				mm_specs = pa.extract_nestvalid_dict(state_specs, param_type='device')
-				mm = nest.Create('multimeter', 1, mm_specs)
+				mm 		 = nest.Create('multimeter', 1, mm_specs)
 				self.extractors.append(mm)
 				nest.Connect(mm, population.gids)
 				original_neuron_status = nest.GetStatus(population.gids)
-				self.initial_states[state_idx] = np.array([x['V_m'] for x in original_neuron_status])
+				self.initial_states[state_idx] 		 = np.array([x['V_m'] for x in original_neuron_status])
 				self.extractor_resolution[state_idx] = state_specs['interval']
 			elif state_variable == 'spikes':
 				rec_neuron_pars = {'model': 'iaf_psc_delta', 'V_m': 0., 'E_L': 0., 'C_m': 1.,
@@ -2595,8 +2596,8 @@ class DecodingLayer(object):
 				else:
 					raise NotImplementedError("Acquisition from state variable {0} not implemented yet".format(
 						state_variable))
-			print(("- State acquisition from Population {0} [{1}] - id {2}".format(population.name, state_variable,
-			                                                                      self.extractors[-1])))
+			print("- State acquisition from Population {0} [{1}] - id {2}".format(population.name, state_variable,
+			                                                                      self.extractors[-1]))
 			if hasattr(initializer, "readout"):
 				pars_readout = pa.ParameterSet(initializer.readout[state_idx])
 				implemented_algorithms = ['pinv', 'ridge', 'logistic', 'svm-linear', 'svm-rbf', 'perceptron', 'elastic',
@@ -2608,15 +2609,14 @@ class DecodingLayer(object):
 					elif len(pars_readout.algorithm) == 1:
 						alg = pars_readout.algorithm[0]
 					else:
-						raise TypeError("Please provide readout algorithm for each readout or a single string, common to all "
-						                "readouts")
+						raise TypeError("Please provide readout algorithm for each readout or a single string, "
+										"common to all readouts")
 
 					assert (alg in implemented_algorithms), "Algorithm {0} not implemented".format(alg)
 
-					readout_dict = {'label': pars_readout.labels[n_readout],
-					                'algorithm': alg}
+					readout_dict = {'label': pars_readout.labels[n_readout], 'algorithm': alg}
 					self.readouts[state_idx].append(Readout(pa.ParameterSet(readout_dict)))
-		# print self.extractor_resolution
+
 		assert (len(np.unique(np.array(self.extractor_resolution))) == 1), "Output resolution must be common to " \
 		                                                                   "all state extractors"
 

@@ -117,14 +117,14 @@ def run(parameter_set, plot=False, display=False, save=True):
 	for key in results_merged.keys():
 		results_merged[key].update(**results_P2[key])
 
-	results_merged['analog_activity']['E1'] = compute_analog_stats(net.populations[0], parameter_set, ["V_m", "g_in", "g_ex"],
-	                                                               analysis_interval, False)
-	results_merged['analog_activity']['I1'] = compute_analog_stats(net.populations[1], parameter_set, ["V_m", "g_in", "g_ex"],
-	                                                               analysis_interval, False)
-	results_merged['analog_activity']['E2'] = compute_analog_stats(net.populations[2], parameter_set, ["V_m", "g_in", "g_ex"],
-	                                                               analysis_interval, False)
-	results_merged['analog_activity']['I2'] = compute_analog_stats(net.populations[3], parameter_set, ["V_m", "g_in", "g_ex"],
-	                                                               analysis_interval, False)
+	results_merged['analog_activity']['E1'] = compute_analog_stats(net.populations[0], parameter_set,
+																   ["V_m", "g_in", "g_ex"], analysis_interval, False)
+	results_merged['analog_activity']['I1'] = compute_analog_stats(net.populations[1], parameter_set,
+																   ["V_m", "g_in", "g_ex"], analysis_interval, False)
+	results_merged['analog_activity']['E2'] = compute_analog_stats(net.populations[2], parameter_set,
+																   ["V_m", "g_in", "g_ex"], analysis_interval, False)
+	results_merged['analog_activity']['I2'] = compute_analog_stats(net.populations[3], parameter_set,
+																   ["V_m", "g_in", "g_ex"], analysis_interval, False)
 
 	# ######################################################################################################################
 	# Save data
@@ -135,11 +135,12 @@ def run(parameter_set, plot=False, display=False, save=True):
 
 		with open(paths['results'] + 'Results_' + parameter_set.label + '.txt', 'w') as f:
 			pprint.PrettyPrinter(indent=2, stream=f).pprint(results_merged['spiking_activity'])
-		parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
 
 	# ######################################################################################################################
 	# Let the plotting begin
 	# ======================================================================================================================
+	# nu_x = parameter_set.analysis_pars.nu_x
+	# gamma = parameter_set.analysis_pars.gamma
 	start_t = 1000.
 	stop_t  = 2500.
 

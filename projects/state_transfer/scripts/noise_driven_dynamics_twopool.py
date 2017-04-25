@@ -23,7 +23,7 @@ debug 	= False
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/two_pool_noisedriven_ud.py'
+params_file = '../parameters/two_pool_noisedriven_ud_bgnoise.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -33,7 +33,8 @@ if not isinstance(parameter_set, ParameterSet):
 		parameter_set = ParameterSet(parameter_set)
 	else:
 		raise TypeError("parameter_set must be ParameterSet, string with full path to parameter file or dictionary")
-
+nu_x = parameter_set.analysis_pars.nu_x
+gamma = parameter_set.analysis_pars.gamma
 # ######################################################################################################################
 # Setup extra variables and parameters
 # ======================================================================================================================
@@ -106,34 +107,37 @@ analysis_interval = [parameter_set.kernel_pars.transient_t,
 pool1 = net.merge_subpopulations(sub_populations=net.populations[:2], name='P1', merge_activity=True, store=False)
 pool2 = net.merge_subpopulations(sub_populations=net.populations[2:], name='P2', merge_activity=True, store=False)
 
+
 results_P1 = dict()
 results_P2 = dict()
 results_P1.update(characterize_population_activity(pool1, parameter_set, analysis_interval, epochs=None,
-                                                color_map='coolwarm', plot=plot, display=display,
+                                                color_map='coolwarm', plot=False, display=display,
                                                 save=paths['figures']+paths['label'], color_subpop=False,
                                                 analysis_pars=parameter_set.analysis_pars))
 results_P2.update(characterize_population_activity(pool2, parameter_set, analysis_interval, epochs=None,
-                                                color_map='coolwarm', plot=plot, display=display,
+                                                color_map='coolwarm', plot=False, display=display,
                                                 save=paths['figures']+paths['label'], color_subpop=False,
                                                 analysis_pars=parameter_set.analysis_pars))
+
 results_merged = results_P1.copy()
 
 for key in results_merged.keys():
 	results_merged[key].update(**results_P2[key])
 
-results_merged['analog_activity']['E1'] = compute_analog_stats(net.populations[0], parameter_set, ["V_m"], analysis_interval, plot)
-results_merged['analog_activity']['E2'] = compute_analog_stats(net.populations[2], parameter_set, ["V_m"], analysis_interval, plot)
+with open("{0}/metrics_nu_x={1}_gamma={2}_P1_P2.data".format(paths['results'], nu_x, gamma), 'w') as f:
+	pp = pprint.PrettyPrinter(indent=2, stream=f)
+	pp.pprint(results_merged)
 
-pp = pprint.PrettyPrinter(indent=2)
-pp.pprint(results_merged)
 
 # ######################################################################################################################
 # Save data
 # ======================================================================================================================
 if save:
-	with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
+	with open(paths['results'] + 'Results_nu_x={0}_gamma={1}_P1_P2.pkl'.format(nu_x, gamma), 'w') as f:
 		pickle.dump(results_merged, f)
-	parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
+	parameter_set.save(paths['parameters'] + 'Parameters_nu_x={0}_gamma={1}_P1_P2'.format(nu_x, gamma))
+	with open(paths['results'] + 'Pools_nu_x={0}_gamma={1}_P1_P2.pkl'.format(nu_x, gamma), 'w') as f:
+		pickle.dump((pool1, pool2), f)
 
 # ######################################################################################################################
 # Plot
@@ -169,7 +173,7 @@ merged_spikelist.complete(missing)
 
 sp = SpikePlots(merged_spikelist, start=start_t, stop=stop_t)
 
-fig = pl.figure(figsize=(20, 20))
+fig = pl.figure(figsize=(40, 30))
 #fig.suptitle("Spiking activity for two reservoirs")
 ax1 = pl.subplot2grid((80, 1), (10, 0), rowspan=25, colspan=1)
 ax0 = pl.subplot2grid((80, 1), (0, 0), rowspan=6, colspan=1, sharex=ax1)
@@ -186,6 +190,4 @@ sp.dot_display(gids_colors=[(sl_1.id_list, 'b'), (np.array([x - offset for x in 
 sp.dot_display(gids_colors=[(sl_2.id_list, 'b'), (np.array([x - offset for x in sl_i2.id_list]), 'r')], ax=[ax2, ax3],
 			   with_rate=True, display=False)
 
-nu_x    = parameter_set.analysis_pars.nu_x
-gamma   = parameter_set.analysis_pars.gamma
 fig.savefig("{0}/raster_nu_x={1}_gamma={2}_P1_P2.pdf".format(paths['figures'], nu_x, gamma))

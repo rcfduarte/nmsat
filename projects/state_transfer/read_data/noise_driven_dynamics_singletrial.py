@@ -17,8 +17,8 @@ project = 'state_transfer'
 data_type = 'SpikeNoise'  # 'SpikeNoise'
 trial = 0
 population_of_interest = 'P2'  # results are provided for only one population (choose Global to get the totals)
-data_path = "/home/barni/code/fzj/nst/data/"
-# data_path = "/home/zajzon/code/nst/network_simulation_testbed/data/state_transfer/"
+# data_path = "/home/barni/code/fzj/nst/data/"
+data_path = "/home/zajzon/code/nst/network_simulation_testbed/data/"
 data_label = 'ST_twopool_noisedriven_ud_bgnoise_025'
 
 # set defaults and paths
@@ -88,13 +88,33 @@ for x_value in pars.parameter_axes['xticks']:
 						else:
 							results_arrays['synchrony'][x][idx] = d['spiking_activity'][population_of_interest][x]
 
-		if d is not None and bool(d['analog_activity']) and population_of_interest in d['analog_activity'].keys():
-				metrics = d['analog_activity'][population_of_interest].keys()
-				for x in results_arrays['analogs'].keys():
+		if d is not None and bool(d['analog_activity']):# and population_of_interest in d['analog_activity'].keys():
+			# metrics = d['analog_activity'][population_of_interest].keys()
+			# for x in results_arrays['analogs'].keys():
+			# 	if x in metrics:
+			# 		if not empty(d['analog_activity'][population_of_interest][x]):
+			# 			results_arrays['analogs'][x][idx] = np.mean(d['analog_activity'][population_of_interest][x])
+			metrics = d['analog_activity']['E1'].keys()
+			for x in results_arrays['analogs'].keys():
+				val = 0.
+				if population_of_interest == 'P1':
 					if x in metrics:
-						if not empty(d['analog_activity'][population_of_interest][x]):
-							results_arrays['analogs'][x][idx] = np.mean(d['analog_activity'][population_of_interest][x])
+						assert not empty(d['analog_activity']['E1'][x])
+						val = np.mean(d['analog_activity']['E1'][x])
+					if x in metrics:
+						assert not empty(d['analog_activity']['I1'][x])
+						val += np.mean(d['analog_activity']['I1'][x])
 
+				elif population_of_interest == 'P2':
+					if x in metrics:
+						assert not empty(d['analog_activity']['E2'][x])
+						val = np.mean(d['analog_activity']['E2'][x])
+					if x in metrics:
+						assert not empty(d['analog_activity']['I2'][x])
+						val += np.mean(d['analog_activity']['I2'][x])
+
+				results_arrays['analogs'][x][idx] = val / 2.
+					# results_arrays['analogs'][x] = results_arrays['analogs'][x].tolist()
 cmap = "coolwarm"
 ########################################################################################################################
 # Plot
@@ -107,94 +127,96 @@ pl_props = copy_dict(pars.parameter_axes, {
                                            'yticks': np.arange(0., len(pars.parameter_axes['xticks']), 2.),
 })
 
-fig1 = pl.figure(1, figsize=(20, 12))
-fig1.suptitle('Regularity metrics')
-ax11 = fig1.add_subplot(241)
-ax12 = fig1.add_subplot(242)
-ax13 = fig1.add_subplot(243)
-ax14 = fig1.add_subplot(244)
-ax15 = fig1.add_subplot(245)
-ax16 = fig1.add_subplot(246)
-ax17 = fig1.add_subplot(247)
-ax18 = fig1.add_subplot(248)
-
-image_arrays = [x.astype(float) for x in results_arrays['regularity'].values()]
-boundaries = []
-for x in results_arrays['regularity'].keys():
-	if x in expected_values['regularity'].keys():
-		boundaries.append([expected_values['regularity'][x]])
-	else:
-		boundaries.append([None])
-labels = [x for x in results_arrays['regularity'].keys()]
-plot_2d_parscans(image_arrays=image_arrays, axis=[ax11, ax12, ax13, ax14, ax15, ax16, ax17, ax18],
-                 fig_handle=fig1, labels=labels, cmap=cmap, boundaries=boundaries, **pl_props)
-fig1.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.6)
-fig1.savefig("regularity_{0}.pdf".format(population_of_interest), format='pdf')
-
-########################################################################################################################
-fig2 = pl.figure(figsize=(20, 12))
-fig2.suptitle('Synchrony metrics')
-ax21 = fig2.add_subplot(241)
-ax22 = fig2.add_subplot(242)
-ax23 = fig2.add_subplot(243)
-ax24 = fig2.add_subplot(244)
-ax25 = fig2.add_subplot(245)
-
-image_arrays = [x.astype(float) for x in results_arrays['synchrony'].values()]
-boundaries = []
-for x in results_arrays['synchrony'].keys():
-	if x in expected_values['synchrony'].keys():
-		boundaries.append([expected_values['synchrony'][x]])
-	else:
-		boundaries.append([None])
-labels = [r'$'+x+'$' for x in results_arrays['synchrony'].keys()]
-plot_2d_parscans(image_arrays=image_arrays, axis=[ax21, ax22, ax23, ax24, ax25],
-                 fig_handle=fig2, labels=labels, cmap=cmap, boundaries=boundaries, **pl_props)
-fig2.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.6)
-fig2.savefig("synchrony_{0}.pdf".format(population_of_interest))
-
-########################################################################################################################
-fig3 = pl.figure(figsize=(20, 12))
-fig3.suptitle('Activity metrics')
-ax31 = fig3.add_subplot(121)
-ax32 = fig3.add_subplot(122)
-image_arrays = [x.astype(float) for x in results_arrays['activity'].values()]
-boundaries = []
-for x in results_arrays['activity'].keys():
-	if x in expected_values['activity'].keys():
-		boundaries.append([expected_values['activity'][x]])
-	else:
-		boundaries.append([None])
-labels = [r'$'+x+'$' for x in results_arrays['activity'].keys()]
-plot_2d_parscans(image_arrays=image_arrays, axis=[ax31, ax32],
-                 fig_handle=fig3, labels=labels, cmap=cmap, boundaries=boundaries, **pl_props)
-pl.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.6)
-fig3.savefig("activity_metrics_{0}.pdf".format(population_of_interest))
-
-
-# fig4 = pl.figure()
-# fig4.suptitle('Analog signal metrics')
-# ax41 = fig4.add_subplot(231)
-# ax42 = fig4.add_subplot(232)
-# ax43 = fig4.add_subplot(233)
-# ax44 = fig4.add_subplot(234)
-# ax45 = fig4.add_subplot(235)
-# use_keys = ['mean_V_m', 'mean_I_ex', 'mean_I_in', 'IE_ratio', 'EI_CC']
-# labels = ['$\langle V_{m} \rangle$', '$\langle I_{E} \rangle$', '$\langle I_{I} \rangle$',
-#           '$\langle I_{I}-I_{E} \rangle$', '$CC_{EI}$']
-# image_arrays = [x.astype(float) for k, x in results_arrays['analogs'].items() if k in use_keys]
+# fig1 = pl.figure(1, figsize=(20, 12))
+# fig1.suptitle('Regularity metrics')
+# ax11 = fig1.add_subplot(241)
+# ax12 = fig1.add_subplot(242)
+# ax13 = fig1.add_subplot(243)
+# ax14 = fig1.add_subplot(244)
+# ax15 = fig1.add_subplot(245)
+# ax16 = fig1.add_subplot(246)
+# ax17 = fig1.add_subplot(247)
+# ax18 = fig1.add_subplot(248)
+#
+# image_arrays = [x.astype(float) for x in results_arrays['regularity'].values()]
 # boundaries = []
-# for x in results_arrays['analogs'].keys():
-# 	if x in expected_values['analogs'].keys():
-# 		boundaries.append([expected_values['analogs'][x]])
+# for x in results_arrays['regularity'].keys():
+# 	if x in expected_values['regularity'].keys():
+# 		boundaries.append([expected_values['regularity'][x]])
 # 	else:
 # 		boundaries.append([None])
-# plot_2d_parscans(image_arrays=image_arrays, axis=[ax41, ax42, ax43, ax44, ax45],
-#                  fig_handle=fig4, labels=labels, cmap=cmap, boundaries=boundaries, **pl_props)
-# pl.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.6)
-# fig4.savefig("analog_signal.pdf")
+# labels = [x for x in results_arrays['regularity'].keys()]
+# plot_2d_parscans(image_arrays=image_arrays, axis=[ax11, ax12, ax13, ax14, ax15, ax16, ax17, ax18],
+#                  fig_handle=fig1, labels=labels, cmap=cmap, boundaries=boundaries, **pl_props)
+# fig1.tight_layout()
+# fig1.savefig("regularity_{0}.pdf".format(population_of_interest), format='pdf')
+#
+# ########################################################################################################################
+# fig2 = pl.figure(figsize=(20, 12))
+# fig2.suptitle('Synchrony metrics')
+# ax21 = fig2.add_subplot(241)
+# ax22 = fig2.add_subplot(242)
+# ax23 = fig2.add_subplot(243)
+# ax24 = fig2.add_subplot(244)
+# ax25 = fig2.add_subplot(245)
+#
+# image_arrays = [x.astype(float) for x in results_arrays['synchrony'].values()]
+# boundaries = []
+# for x in results_arrays['synchrony'].keys():
+# 	if x in expected_values['synchrony'].keys():
+# 		boundaries.append([expected_values['synchrony'][x]])
+# 	else:
+# 		boundaries.append([None])
+# labels = [r'$'+x+'$' for x in results_arrays['synchrony'].keys()]
+# plot_2d_parscans(image_arrays=image_arrays, axis=[ax21, ax22, ax23, ax24, ax25],
+#                  fig_handle=fig2, labels=labels, cmap=cmap, boundaries=boundaries, **pl_props)
+# fig2.tight_layout()
+# fig2.savefig("synchrony_{0}.pdf".format(population_of_interest))
+#
+# ########################################################################################################################
+# fig3 = pl.figure(figsize=(10, 7))
+# fig3.suptitle('Activity metrics')
+# ax31 = fig3.add_subplot(121)
+# ax32 = fig3.add_subplot(122)
+# image_arrays = [x.astype(float) for x in results_arrays['activity'].values()]
+# boundaries = []
+# for x in results_arrays['activity'].keys():
+# 	if x in expected_values['activity'].keys():
+# 		boundaries.append([expected_values['activity'][x]])
+# 	else:
+# 		boundaries.append([None])
+# labels = [r'$'+x+'$' for x in results_arrays['activity'].keys()]
+# plot_2d_parscans(image_arrays=image_arrays, axis=[ax31, ax32],
+#                  fig_handle=fig3, labels=labels, cmap=cmap, boundaries=boundaries, **pl_props)
+# fig3.tight_layout()
+# fig3.savefig("activity_metrics_{0}.pdf".format(population_of_interest))
 
-fig5 = pl.figure()
+########################################################################################################################
+fig4 = pl.figure(figsize=(20, 12))
+fig4.suptitle('Analog signal metrics')
+ax41 = fig4.add_subplot(231)
+ax42 = fig4.add_subplot(232)
+ax43 = fig4.add_subplot(233)
+ax44 = fig4.add_subplot(234)
+ax45 = fig4.add_subplot(235)
+use_keys = ['mean_V_m', 'mean_I_ex', 'mean_I_in', 'IE_ratio', 'EI_CC']
+labels = [r'$\langle V_{m} \rangle$', r'$\langle I_{E} \rangle$', r'$\langle I_{I} \rangle$',
+          r'$\langle I_{I}-I_{E} \rangle$', r'$CC_{EI}$']
+image_arrays = [x.astype(float) for k, x in results_arrays['analogs'].items() if k in use_keys]
+boundaries = []
+for x in results_arrays['analogs'].keys():
+	if x in expected_values['analogs'].keys():
+		boundaries.append([expected_values['analogs'][x]])
+	else:
+		boundaries.append([None])
+
+plot_2d_parscans(image_arrays=image_arrays, axis=[ax41, ax42, ax43, ax44, ax45],
+                 fig_handle=fig4, labels=labels, cmap=cmap, boundaries=boundaries, **pl_props)
+fig4.tight_layout()
+fig4.savefig("analog_signal_{0}.pdf".format(population_of_interest))
+
+########################################################################################################################
+fig5 = pl.figure(figsize=(20, 12))
 fig5.suptitle('Summary')
 ax51 = fig5.add_subplot(221)
 ax52 = fig5.add_subplot(222)
@@ -214,10 +236,10 @@ for k, v in expected_values.items():
 
 plot_2d_parscans(image_arrays=image_arrays, axis=[ax51, ax52, ax53, ax54],
                  fig_handle=fig5, labels=labels, cmap=cmap, boundaries=[], **pl_props)
-pl.tight_layout()
+fig5.tight_layout()
 fig5.savefig("summary_{0}.pdf".format(population_of_interest))
 exit(0)
-#########################################
+########################################################################################################################
 # main figure ###
 fig6 = pl.figure()
 fig6.suptitle('AIness')
@@ -251,7 +273,7 @@ ax61.grid(False)
 pl.tight_layout()
 fig6.savefig("AIness.pdf")
 
-
+########################################################################################################################
 fig7 = pl.figure()
 fig7.suptitle("All constraints")
 ax71 = fig7.add_subplot(111)
