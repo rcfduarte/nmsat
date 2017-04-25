@@ -2046,10 +2046,10 @@ def analyse_state_divergence(parameter_set, net, clone, plot=True, display=True,
 		results['rate_clone'] = rate_clone
 		results['rate_correlation'] = np.array(r_cor)
 		results['hamming_distance'] = np.array(hamming)
-
-	if not sg.empty(net.populations[pop_idx].response_matrix):
-		responses_native = net.populations[pop_idx].response_matrix
-		responses_clone = clone.populations[pop_idx].response_matrix
+		results['lyapunov_exponent'] = {}
+	if not sg.empty(net.populations[pop_idx].decoding_layer.activity):
+		responses_native = net.populations[pop_idx].decoding_layer.activity
+		responses_clone = clone.populations[pop_idx].decoding_layer.activity
 		response_vars = parameter_set.decoding_pars.state_extractor.state_variable
 		print("\n Computing state divergence: ")
 		labels = []
@@ -2072,11 +2072,12 @@ def analyse_state_divergence(parameter_set, net, clone, plot=True, display=True,
 			final_distance = distan[-1]
 			lyapunov = (np.log(final_distance) / observation_time) - np.log(initial_distance) / observation_time
 			print("Lyapunov Exponent = {0}".format(lyapunov))
+			results['lyapunov_exponent'].update({response_vars[resp_idx]: lyapunov})
 
 	if plot:
 		if not sg.empty(net.populations[pop_idx].spiking_activity.spiketrains):
 			fig = pl.figure()
-			fig.suptitle(r'$LE = {0}$'.format(str(lyapunov)))
+			fig.suptitle(r'$LE = {0}$'.format(str(results['lyapunov_exponent'].items())))
 			ax1a = pl.subplot2grid((12, 1), (0, 0), rowspan=8, colspan=1)
 			ax1b = ax1a.twinx()
 
@@ -2112,12 +2113,12 @@ def analyse_state_divergence(parameter_set, net, clone, plot=True, display=True,
 				assert isinstance(save, str), "Please provide filename"
 				fig.savefig(save + 'LE_analysis.pdf')
 
-		if not sg.empty(net.populations[pop_idx].response_matrix):
+		if not sg.empty(net.populations[pop_idx].decoding_layer.activity):
 			fig2 = pl.figure()
 			ax4 = fig2.add_subplot(211)
 			ax5 = fig2.add_subplot(212, sharex=ax4)
 			for lab in labels:
-				ax4.plot(activity_time_vector, results['state_{0}'.format(lab)], label=lab)
+				ax4.plot(activity_time_vector, results['state_{0}'.format(lab)][:len(activity_time_vector)], label=lab)
 			ax4.set_ylabel(r'$d_{E}$')
 
 			if 'hamming_distance' in results.keys():

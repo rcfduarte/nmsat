@@ -21,11 +21,12 @@ import nest
 # ======================================================================================================================
 plot = True
 display = True
-save = True
+save = False
 
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
+# params_file = '../parameters/synaptic_response_receptors.py'
 params_file = '../parameters/synaptic_response_rest.py'
 
 parameter_set = ParameterSpace(params_file)[0]
@@ -87,7 +88,7 @@ if parameter_set.kernel_pars.transient_t:
 	net.simulate(parameter_set.kernel_pars.transient_t)
 	net.flush_records()
 
-net.simulate(parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.resolution)
+net.simulate(parameter_set.kernel_pars.sim_time + 1.0) #parameter_set.kernel_pars.resolution)
 
 # ######################################################################################################################
 # Extract and store data
@@ -106,13 +107,12 @@ t_axis = np.arange(analysis_interval[0], analysis_interval[1], parameter_set.net
 
 E_input_times = np.array(parameter_set.encoding_pars.generator.model_pars[
 	                          parameter_set.encoding_pars.generator.labels.index('E_input')]['spike_times'])
-
 if not empty(E_input_times):
 	E_input_times = np.intersect1d(E_input_times[E_input_times > analysis_interval[0]], E_input_times[E_input_times
 	                                <= analysis_interval[1] - time_window[1]])
+
 I_input_times = np.array(parameter_set.encoding_pars.generator.model_pars[
-	parameter_set.encoding_pars.generator.labels.index(
-	'I_input')]['spike_times'])
+	parameter_set.encoding_pars.generator.labels.index('I_input')]['spike_times'])
 if not empty(I_input_times):
 	I_input_times = np.intersect1d(I_input_times[I_input_times > analysis_interval[0]], I_input_times[I_input_times
 	                                <= analysis_interval[1] - time_window[1]])
@@ -131,21 +131,16 @@ if not empty(E_input_times):
 	results = spike_triggered_synaptic_responses(parameter_set, all_activity, time_window, E_input_times, t_axis,
 	                                             response_type='E', plot=plot, display=display,
 	                                             save=paths['figures']+paths['label'])
-
 	for pop in all_activity.keys():
 		for k in results1:
 			final_results[pop].update({k: results[pop][k]})
-
 	results.update(PSC_kinetics(all_activity, time_window, E_input_times, t_axis, response_type='E', plot=plot,
 	                     display=display, save=paths['figures']+paths['label']))
-
 	for pop in all_activity.keys():
 		for k in results2:
 			final_results[pop].update({'PSC_'+k: results[pop][k]})
-
 	results.update(PSP_kinetics(all_activity, time_window, E_input_times, t_axis, response_type='E', plot=plot,
 	                            display=display, save=paths['figures']+paths['label']))
-
 	for pop in all_activity.keys():
 		for k in results2:
 			final_results[pop].update({'PSP_'+k: results[pop][k]})
@@ -157,21 +152,16 @@ if not empty(I_input_times):
 	for pop in all_activity.keys():
 		for k in results1:
 			final_results[pop].update({k: results[pop][k]})
-
 	results.update(PSC_kinetics(all_activity, time_window, I_input_times, t_axis, response_type='I', plot=plot,
                             display=display, save=paths['figures']+paths['label']))
-
 	for pop in all_activity.keys():
 		for k in results2:
 			final_results[pop].update({'PSC_'+k: results[pop][k]})
-
 	results.update(PSP_kinetics(all_activity, time_window, I_input_times, t_axis, response_type='I', plot=plot,
                             display=display, save=paths['figures']+paths['label']))
-
 	for pop in all_activity.keys():
 		for k in results2:
 			final_results[pop].update({'PSP_'+k: results[pop][k]})
-
 
 # ######################################################################################################################
 # Save data

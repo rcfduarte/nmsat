@@ -13,8 +13,16 @@ synaptic_responses@rest
 
 run = 'local'
 data_label = 'E_GluRs0'
+
+n_neurons = 10
+window = [-10., 500.]
+w = 1.0
+d = 0.1
 neuron_type = 'E'
 heterogeneous = False
+
+E_spike_times = np.round(np.linspace(500., 5000. - 500., 10), 1)
+I_spike_times = []  # np.arange(analysis_interval[0], analysis_interval[1]-500., 500.)
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations
@@ -26,25 +34,6 @@ parameter_range = {
 
 ########################################################################################################################
 def build_parameters():
-	ampa = 0.9
-	nmda = 0.14
-	gabaa = 0.15
-	gabab = 0.009
-
-	n_neurons = 1
-	window = [-10., 500.]
-	ln_pars = determine_lognormal_parameters(0.45, 4. * 0.45, median=0.45)
-	if heterogeneous:
-		w = {'distribution': 'lognormal_clipped', 'mu': ln_pars[0], 'sigma': ln_pars[1], 'low': 0.0001,
-		     'high': 100.*0.45}
-	else:
-		w = 1.
-	ln_pars = determine_lognormal_parameters(1.8, 2. * 1.8, median=1.8)
-
-	d = 0.1  # {'distribution': 'lognormal_clipped', 'mu': ln_pars[0], 'sigma': ln_pars[1], 'low': 0.1,
-	# 'high': 100.*1.8}
-	# neuron_type = 'E'
-	# heterogeneous = False
 
 	# ######################################################################################################################
 	# System / Kernel Parameters
@@ -56,9 +45,7 @@ def build_parameters():
 		walltime='00:20:00:00',
 		queue='singlenode',
 		transient_time=500.,
-		sim_time=1000.)
-	# kernel_pars = set_kernel_defaults(default_set=1, run_type=run, data_label=data_label, project_label=project_label,
-	#                                   **system)
+		sim_time=5000.)
 	kernel_pars = set_kernel_defaults(run_type=run, data_label=data_label, **system)
 	np.random.seed(kernel_pars['np_seed'])
 	kernel_pars.update({'window': window})
@@ -73,12 +60,17 @@ def build_parameters():
 		neuron_pars = set_neuron_defaults(default_set=1.1)
 		randomized_pars.update({neuron_type: {}})
 
-	# neuron_pars[neuron_type]['E_L'] = -55.
+	# if neuron_type[0] == 'I':
+	# 	neuron_pars[neuron_type]['E_L'] = -55.
+	# else:
+	# 	neuron_pars[neuron_type]['E_L'] = -70.
+	# 	neuron_pars[neuron_type]['V_m'] = -70.
 
-	neuron_pars[neuron_type]['rec_cond'][neuron_pars[neuron_type]['rec_names'].index('AMPA')] = ampa
-	neuron_pars[neuron_type]['rec_cond'][neuron_pars[neuron_type]['rec_names'].index('NMDA')] = nmda
-	neuron_pars[neuron_type]['rec_cond'][neuron_pars[neuron_type]['rec_names'].index('GABA_{A}')] = gabaa
-	neuron_pars[neuron_type]['rec_cond'][neuron_pars[neuron_type]['rec_names'].index('GABA_{B}')] = gabab
+	# all correct parameters are in the presets now
+	# neuron_pars[neuron_type]['rec_cond'][neuron_pars[neuron_type]['rec_names'].index('AMPA')] = ampa
+	# neuron_pars[neuron_type]['rec_cond'][neuron_pars[neuron_type]['rec_names'].index('NMDA')] = nmda
+	# neuron_pars[neuron_type]['rec_cond'][neuron_pars[neuron_type]['rec_names'].index('GABA_{A}')] = gabaa
+	# neuron_pars[neuron_type]['rec_cond'][neuron_pars[neuron_type]['rec_names'].index('GABA_{B}')] = gabab
 
 	multimeter = rec_device_defaults(device_type='multimeter')
 	multimeter.update({'record_from': ['V_m', 'C1', 'C2', 'C3', 'C4', 'I_ex', 'I_in', 'G_syn_tot'], 'record_n': None})
@@ -101,8 +93,6 @@ def build_parameters():
 	# ######################################################################################################################
 	encoding_pars = set_encoding_defaults(default_set=0)
 	analysis_interval = [kernel_pars.transient_t - 100., kernel_pars.transient_t + kernel_pars.sim_time]
-	E_spike_times = [540., 689., 900.] #np.arange(analysis_interval[0], analysis_interval[1]-500., 500.)
-	I_spike_times = [] # [540., 689., 900.]  # np.arange(analysis_interval[0], analysis_interval[1]-500., 500.)
 	encoding_pars.generator.update({
 		'N': 2,
 		'labels': ['E_input', 'I_input'],
