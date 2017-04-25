@@ -156,6 +156,8 @@ def set_network_defaults(N=1250, kernel_pars=None, **synapse_pars):
 		'pop_names': ['E', 'I'],
 		'n_neurons': [int(nE), int(nI)],
 		'neuron_pars': neuron_params,
+		'randomize_neuron_pars': [{'V_m': (np.random.uniform, {'low': 0.0, 'high': 15.})},
+		                          {'V_m': (np.random.uniform, {'low': 0.0, 'high': 15.})}],
 		'topology': [False, False],
 		'topology_dict': [None, None],
 		'record_spikes': [True, True],

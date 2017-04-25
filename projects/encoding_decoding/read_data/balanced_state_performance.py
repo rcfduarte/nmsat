@@ -19,7 +19,7 @@ balanced_state_performance
 
 # data parameters
 project = 'encoding_decoding'
-data_type = 'spikeinput' # 'dcinput'
+data_type = 'spikeinput' # 'dcinput' #
 data_path = '/media/neuro/Data/EncodingDecoding_NEW/activeState/'
 data_label = 'ED_{0}_activeState'.format(data_type)
 results_path = data_path + data_label + '/Results/'
@@ -48,7 +48,7 @@ results = {
 		'SPIKE_distance': [],
 		'SPIKE_sync_distance': []},
 	'analogs': {#'EI_CC': [],
-	            'IE_ratio': []} #_corrected
+	            'IE_ratio_corrected': []} #_corrected
 }
 expected_values = {
 	'regularity': {
@@ -136,5 +136,53 @@ ax2.scatter3D(reg_values, sync_values, error_values)
 ax2.set_xlabel(r'$\mathrm{I^{reg}}$')
 ax2.set_ylabel(r'$\mathrm{I^{sync}}$')
 ax2.set_zlabel("MAE")
+
+pl.show()
+
+# plot in 2D
+fig2 = pl.figure()
+ax21 = fig2.add_subplot(121)
+ax21.scatter(ei_values, error_values, marker='.')
+ax21.set_xlabel("EI ratio")
+ax21.set_ylabel("MAE")
+ax21.set_xlim([min(ei_values[~np.isnan(ei_values)]), max(ei_values[~np.isnan(ei_values)])])
+ax21.set_ylim([min(error_values[~np.isnan(error_values)]), max(error_values[~np.isnan(error_values)])])
+
+ax22 = fig2.add_subplot(122)
+ax22.scatter(ainess_values, error_values, marker='.')
+ax22.set_xlabel("AIness")
+ax22.set_ylabel("MAE")
+ax22.set_xlim([min(ainess_values[~np.isnan(ainess_values)]), max(ainess_values[~np.isnan(ainess_values)])])
+ax22.set_ylim([min(error_values[~np.isnan(error_values)]), max(error_values[~np.isnan(error_values)])])
+
+
+fig3 = pl.figure()
+ax31 = fig3.add_subplot(121)
+ax31.scatter(sync_values, error_values, marker='.')
+ax31.set_xlabel(r'$\mathrm{I^{sync}}$')
+ax31.set_ylabel("MAE")
+ax31.set_xlim([min(sync_values[~np.isnan(sync_values)]), max(sync_values[~np.isnan(sync_values)])])
+ax31.set_ylim([min(error_values[~np.isnan(error_values)]), max(error_values[~np.isnan(error_values)])])
+
+ax32 = fig3.add_subplot(122)
+ax32.scatter(reg_values, error_values, marker='.')
+ax32.set_xlabel(r'$\mathrm{I^{reg}}$')
+ax32.set_ylabel("MAE")
+ax32.set_xlim([min(ainess_values[~np.isnan(ainess_values)]), max(ainess_values[~np.isnan(ainess_values)])])
+ax32.set_ylim([min(error_values[~np.isnan(error_values)]), max(error_values[~np.isnan(error_values)])])
+
+pl.show()
+
+# plot raw synchrony results
+# k = results['synchrony'].keys()
+fig5 = pl.figure()
+ctr = 0
+for k, v in results['synchrony'].items():
+	ctr += 1
+	ax = fig5.add_subplot(1, 3, ctr)
+	values = v.astype(float).flatten()
+	ax.scatter(values, error_values, marker='.')
+	ax.set_xlabel(r'${0}$'.format(k))
+	ax.set_ylabel('MAE')
 
 pl.show()

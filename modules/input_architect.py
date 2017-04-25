@@ -2620,10 +2620,10 @@ class EncodingLayer:
 		src_name = conn_pars.connections[idx][1]
 		tget_name = conn_pars.connections[idx][0]
 
-		if hasattr(encoding_pars, 'encoder'):
-			if (src_name in encoding_pars.encoder.labels) or (tget_name in encoding_pars.encoder.labels) and \
-					not encoding_pars.encoder.N:
-				raise NameError("")  # to continue here
+		# if hasattr(encoding_pars, 'encoder'): TODO this was giving errors and I couldn't understand what it was for..
+		# 	if (src_name in encoding_pars.encoder.labels) or (tget_name in encoding_pars.encoder.labels) and \
+		# 			not encoding_pars.encoder.N:
+		# 		raise NameError("")  # to continue here
 		if hasattr(encoding_pars, 'encoder') and (src_name in encoding_pars.encoder.labels):
 			src_id = encoding_pars.encoder.labels.index(src_name)
 			src_dims = self.encoders[src_id].size
@@ -2706,13 +2706,14 @@ class EncodingLayer:
 		for idx, nn in enumerate(conn_pars.connections):
 			src_name = nn[1]
 			tget_name = nn[0]
-			print "    - %s [%s]" % (nn, conn_pars.models[idx])
+			# print "    - %s [%s]" % (nn, conn_pars.models[idx])
 
 			# determine the type of the connecting populations and their parameters
 			try:
 				src_gids, src_id, src_dims, src_tp, tget_gids, tget_id, tget_dims, tget_tp = \
 					self._get_connection_type_and_parameters(encoding_pars, conn_pars, idx, populations, pop_objs)
 			except NameError:  # we just continue, nothing special or wrong here
+				# print "error"
 				continue
 
 			if "synapse_name" in conn_pars and conn_pars.synapse_name[idx] is not None:
@@ -2747,17 +2748,18 @@ class EncodingLayer:
 						target_gids = [x['target'] for x in st if
 						               nest.GetStatus([x['target']])[0]['model'] not in device_models]
 						# TODO some values here are not used... is this on purpose?
-						weights = [x['weight'] for x in st
-								   if nest.GetStatus([x['target']])[0]['model'] not in device_models]
-						delays = [x['delay'] for x in st
-								  if nest.GetStatus([x['target']])[0]['model'] not in device_models]
-						models = [x['synapse_model'] for x in st if
-						          nest.GetStatus([x['target']])[0]['model'] not in device_models]
-						receptors = [x['receptor'] for x in st if
-						             nest.GetStatus([x['target']])[0]['model'] not in device_models]
+						# weights = [x['weight'] for x in st
+						# 		   if nest.GetStatus([x['target']])[0]['model'] not in device_models]
+						# delays = [x['delay'] for x in st
+						# 		  if nest.GetStatus([x['target']])[0]['model'] not in device_models]
+						# models = [x['synapse_model'] for x in st if
+						#           nest.GetStatus([x['target']])[0]['model'] not in device_models]
+						# receptors = [x['receptor'] for x in st if
+						#              nest.GetStatus([x['target']])[0]['model'] not in device_models]
+
 						syn_dict = parameters.copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
 							conn_pars.weight_dist[idx], 'delay': conn_pars.delay_dist[idx]})
-						conn_dict = conn_pars.conn_specs[idx]
+						# conn_dict = conn_pars.conn_specs[idx]
 
 						syn_dicts = [{'synapsemodel': list(np.repeat(synapse_name, len(source_gids)))[iddx],
 						              'source': source_gids[iddx],
@@ -3081,77 +3083,77 @@ class EncodingLayer:
 		self.connect(native_encoding_pars, network)
 		self.connect(clone_encoding_pars, clone)
 
-	# TODO is this used or can it go?
-	# def replicate_connections(self, net, clone, progress=True):
-	# 	"""
-	# 	Replicate the connectivity from the encoding layer to the clone network
-	# 	:param net:
-	# 	:param clone:
-	# 	:param progress:
-	# 	:return:
-	# 	"""
-	# 	start = time.time()
-	# 	target_population_names = clone.population_names
-	# 	target_population_gids = [n.gids for n in clone.populations]
-	# 	source_population_names = [n.split('_')[0] for n in target_population_names]
-	# 	source_population_gids = [net.populations[net.population_names.index(n)].gids for n in source_population_names]
-	# 	device_models = ['spike_detector', 'multimeter'] # 'spike_generator',
-	#
-	# 	for idx, n_pop in enumerate(source_population_gids):
-	# 		print("\n Replicating Encoding Layer connections to {0}".format(clone.population_names[idx]))
-	# 		conns 			= nest.GetConnections(target=n_pop)
-	# 		iterate_steps 	= 100
-	# 		its 			= np.arange(0, len(conns) + 1, iterate_steps).astype(int)
-	# 		if len(its) > 1:
-	# 			for nnn, it in enumerate(its):
-	# 				if nnn < len(its) - 1:
-	# 					con = conns[it:its[nnn + 1]]
-	# 					st = nest.GetStatus(con)
-	#
-	# 					source_gids = [x['source'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in
-	# 					               device_models]
-	#
-	# 					target_gids = [target_population_gids[idx][0] for x in st
-	# 								   if nest.GetStatus([x['source']])[0]['model'] not in device_models]
-	#
-	# 					weights 	= [x['weight'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
-	# 					delays 		= [x['delay'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
-	# 					models 		= [str(x['synapse_model']) for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
-	# 					receptors 	= [x['receptor'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
-	# 					syn_dicts 	= [{'synapsemodel': models[iddx],
-	# 									 'source': source_gids[iddx],
-	# 									 'target': target_gids[iddx],
-	# 									 'weight': weights[iddx],
-	# 									 'delay': delays[iddx],
-	# 									 'receptor_type': receptors[iddx]} for iddx in range(len(target_gids))]
-	# 					nest.DataConnect(syn_dicts)
-	# 				if progress:
-	# 					visualization.progress_bar(float(nnn) / float(len(its)))
-	#
-	# 			print("\tElapsed time: {0} s".format(str(time.time() - start)))
-	# 		else:
-	# 			st = nest.GetStatus(conns)
-	# 			print([nest.GetStatus([x['source']])[0]['model'] for x in st])
-	#
-	# 			source_gids = [x['source'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in
-	# 			               device_models]
-	# 			target_gids = [target_population_gids[idx][0] for x in st if nest.GetStatus([x['source']])[0][
-	# 				'model'] not in device_models]
-	# 			weights 	= [x['weight'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
-	# 			delays 		= [x['delay'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
-	# 			models 		= [str(x['synapse_model']) for x in st if
-	# 							 nest.GetStatus([x['source']])[0]['model'] not in device_models]
-	# 			receptors = [x['receptor'] for x in st if
-	# 						 nest.GetStatus([x['source']])[0]['model'] not in device_models]
-	#
-	# 			syn_dicts = [{'synapsemodel': models[iddx],
-	# 			              'source': source_gids[iddx],
-	# 			              'target': target_gids[iddx],
-	# 			              'weight': weights[iddx],
-	# 			              'delay': delays[iddx],
-	# 			              'receptor_type': receptors[iddx]} for iddx in range(len(target_gids))]
-	# 			nest.DataConnect(syn_dicts)
-	# 			print("\tElapsed time: {0} s".format(str(time.time() - start)))
+	# TODO is this used or can it go? - it is (see spike_triggered_average in heterogeneity project)
+	def replicate_connections(self, net, clone, progress=True):
+		"""
+		Replicate the connectivity from the encoding layer to the clone network
+		:param net:
+		:param clone:
+		:param progress:
+		:return:
+		"""
+		start = time.time()
+		target_population_names = clone.population_names
+		target_population_gids = [n.gids for n in clone.populations]
+		source_population_names = [n.split('_')[0] for n in target_population_names]
+		source_population_gids = [net.populations[net.population_names.index(n)].gids for n in source_population_names]
+		device_models = ['spike_detector', 'multimeter'] # 'spike_generator',
+
+		for idx, n_pop in enumerate(source_population_gids):
+			print("\n Replicating Encoding Layer connections to {0}".format(clone.population_names[idx]))
+			conns 			= nest.GetConnections(target=n_pop)
+			iterate_steps 	= 100
+			its 			= np.arange(0, len(conns) + 1, iterate_steps).astype(int)
+			if len(its) > 1:
+				for nnn, it in enumerate(its):
+					if nnn < len(its) - 1:
+						con = conns[it:its[nnn + 1]]
+						st = nest.GetStatus(con)
+
+						source_gids = [x['source'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in
+						               device_models]
+
+						target_gids = [target_population_gids[idx][0] for x in st
+									   if nest.GetStatus([x['source']])[0]['model'] not in device_models]
+
+						weights 	= [x['weight'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
+						delays 		= [x['delay'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
+						models 		= [str(x['synapse_model']) for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
+						receptors 	= [x['receptor'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
+						syn_dicts 	= [{'synapsemodel': models[iddx],
+										 'source': source_gids[iddx],
+										 'target': target_gids[iddx],
+										 'weight': weights[iddx],
+										 'delay': delays[iddx],
+										 'receptor_type': receptors[iddx]} for iddx in range(len(target_gids))]
+						nest.DataConnect(syn_dicts)
+					if progress:
+						visualization.progress_bar(float(nnn) / float(len(its)))
+
+				print("\tElapsed time: {0} s".format(str(time.time() - start)))
+			else:
+				st = nest.GetStatus(conns)
+				print([nest.GetStatus([x['source']])[0]['model'] for x in st])
+
+				source_gids = [x['source'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in
+				               device_models]
+				target_gids = [target_population_gids[idx][0] for x in st if nest.GetStatus([x['source']])[0][
+					'model'] not in device_models]
+				weights 	= [x['weight'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
+				delays 		= [x['delay'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in device_models]
+				models 		= [str(x['synapse_model']) for x in st if
+								 nest.GetStatus([x['source']])[0]['model'] not in device_models]
+				receptors = [x['receptor'] for x in st if
+							 nest.GetStatus([x['source']])[0]['model'] not in device_models]
+
+				syn_dicts = [{'synapsemodel': models[iddx],
+				              'source': source_gids[iddx],
+				              'target': target_gids[iddx],
+				              'weight': weights[iddx],
+				              'delay': delays[iddx],
+				              'receptor_type': receptors[iddx]} for iddx in range(len(target_gids))]
+				nest.DataConnect(syn_dicts)
+				print("\tElapsed time: {0} s".format(str(time.time() - start)))
 
 	def connect_decoders(self, decoding_pars):
 		"""

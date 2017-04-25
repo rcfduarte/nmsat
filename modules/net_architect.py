@@ -877,21 +877,21 @@ class Network(object):
 			Create Network object
 			:return:
 			"""
-			neuron_pars = [0 for n in range(len(list(signals.iterate_obj_list(net.populations))))]
-			topology = [0 for n in range(len(list(signals.iterate_obj_list(net.populations))))]
-			topology_dict = [0 for n in range(len(list(signals.iterate_obj_list(net.populations))))]
-			pop_names = [0 for n in range(len(list(signals.iterate_obj_list(net.populations))))]
-			spike_device_pars = [0 for n in range(len(list(signals.iterate_obj_list(net.populations))))]
-			analog_dev_pars = [0 for n in range(len(list(signals.iterate_obj_list(net.populations))))]
+			neuron_pars = [0 for _ in range(len(list(signals.iterate_obj_list(net.populations))))]
+			topology = [0 for _ in range(len(list(signals.iterate_obj_list(net.populations))))]
+			topology_dict = [0 for _ in range(len(list(signals.iterate_obj_list(net.populations))))]
+			pop_names = [0 for _ in range(len(list(signals.iterate_obj_list(net.populations))))]
+			spike_device_pars = [0 for _ in range(len(list(signals.iterate_obj_list(net.populations))))]
+			analog_dev_pars = [0 for _ in range(len(list(signals.iterate_obj_list(net.populations))))]
 			status_elements = ['archiver_length', 'element_type', 'frozen', 'global_id',
 			                   'has_connections', 'local', 'recordables', 't_spike',
 			                   'thread', 'thread_local_id', 'vp', 'n_synapses',
 			                   'local_id', 'model', 'parent']
 			for idx_pop, pop_obj in enumerate(list(signals.iterate_obj_list(net.populations))):
 				# get generic neuron_pars (update individually later):
-				neuron = param_set.extract_nestvalid_dict(nest.GetStatus([pop_obj.gids[0]])[0], param_type='neuron')
+				neuron = parameters.extract_nestvalid_dict(nest.GetStatus([pop_obj.gids[0]])[0], param_type='neuron')
 				d_tmp = {k: v for k, v in neuron.items() if k not in status_elements}
-				neuron_pars[idx_pop] = param_set.copy_dict(d_tmp, {'model': nest.GetStatus([pop_obj.gids[0]])[0][
+				neuron_pars[idx_pop] = parameters.copy_dict(d_tmp, {'model': nest.GetStatus([pop_obj.gids[0]])[0][
 					'model']})
 				if isinstance(pop_obj.topology, dict):
 					topology[idx_pop] = True
@@ -901,12 +901,12 @@ class Network(object):
 					topology_dict[idx_pop] = pop_obj.topology
 				pop_names[idx_pop] = net.population_names[idx_pop] + '_clone'
 				if net.record_spikes[idx_pop]:
-					spike_device_pars[idx_pop] = param_set.copy_dict(net.spike_device_pars[idx_pop],
+					spike_device_pars[idx_pop] = parameters.copy_dict(net.spike_device_pars[idx_pop],
 						{'label': net.spike_device_pars[idx_pop]['label']+'_clone'})
 				else:
 					spike_device_pars[idx_pop] = None
 				if net.record_analogs[idx_pop]:
-					analog_dev_pars[idx_pop] = param_set.copy_dict(net.analog_device_pars[idx_pop],
+					analog_dev_pars[idx_pop] = parameters.copy_dict(net.analog_device_pars[idx_pop],
 						{'label': net.analog_device_pars[idx_pop]['label']+'_clone'})
 				else:
 					analog_dev_pars[idx_pop] = None
@@ -921,7 +921,7 @@ class Network(object):
 			                      'spike_device_pars': spike_device_pars,
 			                      'record_analogs': net.record_analogs,
 			                      'analog_device_pars': analog_dev_pars}
-			clone_net = Network(param_set.ParameterSet(network_parameters, label='clone'))
+			clone_net = Network(parameters.ParameterSet(network_parameters, label='clone'))
 			#clone_net.connect_devices()
 
 			for pop_idx, pop_obj in enumerate(clone_net.populations):

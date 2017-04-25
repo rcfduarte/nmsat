@@ -8,25 +8,23 @@ stimulus_driven parameter file
 """
 
 run = 'local'
-data_label = 'AD_StimulusDriven_kEE_test'
+data_label = 'AD_ReproducibilityTest'
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	# 'kEE': [100],
-	'n_stim': [5],#np.arange(),
-	'trial': [1] #np.arange(10)
+	'kEE': [10, 100],
 }
 
 
-def build_parameters(n_stim, trial):
+def build_parameters(kEE):
 	# ##################################################################################################################
 	# System / Kernel Parameters
 	# ##################################################################################################################
 	system = dict(
 		nodes=1,
-		ppn=64,
+		ppn=16,
 		mem=32,
 		walltime='01-00:00:00',
 		queue='batch',
@@ -49,7 +47,7 @@ def build_parameters(n_stim, trial):
 	wE = 32.29
 	wI = -gamma * wE
 
-	kEE = 100
+	# kEE = 100
 
 	recurrent_synapses = dict(
 		connected_populations=[('E', 'E'), ('E', 'I'), ('I', 'E'), ('I', 'I')],
@@ -69,10 +67,10 @@ def build_parameters(n_stim, trial):
 	# ##################################################################################################################
 	# Stimulus Parameters
 	# ##################################################################################################################
-	n_trials = 10000
+	n_trials = 1000
 	n_discard = 10
 
-	# n_stim = 5
+	n_stim = 50
 
 	stim_pars = dict(
 		n_stim=n_stim,

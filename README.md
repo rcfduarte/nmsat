@@ -1,19 +1,18 @@
-# Neural Microcircuit Testbed 
+# Neural Microcircuit Simulation and Analysis Toolkit (NMSAT) 
 
-NMT is a python package that provides a set of tools to build, simulate and
+NMSAT is a python package that provides a set of tools to build, simulate and
  analyse neuronal microcircuit models with any degree of complexity, as well as to probe the circuits with 
  arbitrarily complex input stimuli / signals and to analyse the relevant functional aspects of single neuron and 
  population dynamics. It provides a high-level wrapper for PyNEST 
  (which is used as the core simulation engine). As such, the complexity of the microcircuits analysed and their 
  building blocks (neuron and synapse models, circuit topology and connectivity, etc), are determined by the models 
- available in NEST. Additionally, the use of NEST allows efficient and highly scalable simulations of very large and 
+ available in NEST. The use of NEST allows efficient and highly scalable simulations of very large and 
  complex circuits, constrained only by the computational resources available.
-The modular design allows the user to specify numerical experiments with varying degrees of complexity depending on concrete research objectives. The generality allows the same types of measurements and complex experiments to be performed on a variety of different circuits, which can be useful for benchmarking purposes.
+The modular design allows the user to specify numerical experiments with varying degrees of complexity depending on concrete research objectives. The generality allows the same types of measurements and complex experiments to be performed on a variety of different circuits, which can be useful for benchmarking and comparison purposes. Additionally, the code was designed to allow an effortless migration across computing systems, i.e. the same simulations can be executed in a local machine, in a computer cluster or a supercomputer, with straightforward resource allocation. 
 
 ### Getting started
 
-The code was developed primarily for personal use, as part of the PhD work thesis and its focus was primarily on research quality, validity and reproducibility, as well as on conducting the main research required. As such, it is 
-imperfect and prone to errors...
+The code was developed primarily for personal use, as part of a PhD thesis due to the need to perform similar experiments on very diverse systems. The goal was to perform numerical experiments, covering a broad range of complexity, in a fully transparent and reproducible manner, while making efficient use of computing resources. The code is imperfect and under active use / development. Despite our best efforts, it is still prone to errors, particularly due to the strict specificities of parameters..
 
 #### Dependencies / Requirements
 
@@ -37,16 +36,24 @@ repository. To configure your system, source the configuration file
 git clone https://github.com/
 ```
 
+#### Setting system defaults
+
+The defaults folder contains the ...
+Modify the defaults to suit your specifications. 
+
 ### Running an experiment
-A numerical simulation/experiment is specified as a global parameter file and a function that reads this file and executes a series of commands, using the framework's modules to build, simulate, analyse and plot. 
+A numerical simulation/experiment is specified as a global parameter file, a complete script parsing the parameters and executing the experiment (primarily usefull for development/debugging) and a similar function that executes the same series of commands but can be executed directly from main as:
 ```
-python main.py -f {parameter_file} -c {computation function} --extra {additional_parameters}
+python main.py -f {parameter_file} -c {function_name} --extra {additional_parameters}
 ```
+All the details and specificities of the experiment are determined in complex parameters files. The main computation function then parses the contents of these files and, following the specifications, assembles and runs the simulation, using the framework's modules to build, simulate, analyse and plot. 
+
+### Storing and harvesting data
+After an experiment is complete, all relevant information is stored in 
 
 #### Examples
-Complete examples
 
-### Harvesting data
+Complete examples can be found in the examples folder. 
 
 
 ### Authors and contributors
