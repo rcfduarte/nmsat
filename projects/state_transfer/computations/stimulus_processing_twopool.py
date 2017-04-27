@@ -95,7 +95,7 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 		target_set.generate_datasets(parameter_set.stim_pars, external_sequence=output_sequence)
 
 	# correct N for small sequences
-	parameter_set.input_pars.signal.N = len(np.unique(stim_set.full_set_labels))
+	# parameter_set.input_pars.signal.N = len(np.unique(stim_set.full_set_labels))
 
 	stim_set_buildtime = time.time() - stim_set_startbuild
 	print "- Elapsed Time: {0}".format(str(stim_set_buildtime))
