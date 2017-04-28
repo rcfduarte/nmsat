@@ -11,10 +11,12 @@ import numpy as np
 import itertools
 import time
 import sys
+sys.path.append('../')
+from read_data.auxiliary_functions import process_input_sequence, process_states
 import nest
 
 
-def run(parameter_set, plot=False, display=False, save=True, debug=False, online=True):
+def run(parameter_set, plot=False, display=False, save=True, debug=False, online=True, save_all=False):
 	"""
 	Simulate stimulus driven network - presenting full sequence and analysing after full simulation is complete
 	:param parameter_set: must be consistent with the computation, i.e. input must be poisson...
@@ -138,7 +140,9 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 	# Set-up Analysis
 	# ======================================================================================================================
 	net.connect_devices()
-	set_decoder_times(enc_layer, parameter_set)  # iff using the fast sampling method!
+	set_decoder_times(enc_layer, parameter_set,
+	                  correct_origin=parameter_set.encoding_pars.add_noise)  # iff using the fast
+	# sampling method!
 	net.connect_decoders(parameter_set.decoding_pars)
 
 	# Attach decoders to input encoding populations
@@ -150,7 +154,14 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 	# Run Simulation (full sequence)
 	# ======================================================================================================================
 	epochs, timing = process_input_sequence(parameter_set, net, enc_layer, stim_set, inputs, set_name='full',
-	                                        record=True)
+	                                        record=True, save_data=save_all, storage_paths=paths,
+	                                        extra_step=parameter_set.encoding_pars.add_noise)
+
+	dl = net.merged_populations[0].decoding_layer
+	if save_all:
+		samples = {'sampled_times': dl.sampled_times}
+		with open(paths['other'] + paths['label'] + '_StateSampleTimes.pkl', 'w') as fp:
+			pickle.dump(samples, fp)
 
 	# ######################################################################################################################
 	# Process data
@@ -173,4 +184,3 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 		with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
 			pickle.dump(results, f)
 		parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
-

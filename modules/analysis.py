@@ -2894,7 +2894,7 @@ class DecodingLayer(object):
 				# delay = np.unique(np.array(delays[delays.nonzero()].todense()))
 				# assert (len(delay) == 1), "Heterogeneous delays in decoding layer are not supported.."
 				self.total_delays[idx] = 0.#0.float(delay)
-		print(("\nTotal delays in Population {0} DecodingLayer {1}: {2} ms".format(str(self.source_population.name),
+		print(("\n- total delays in Population {0} DecodingLayer {1}: {2} ms".format(str(self.source_population.name),
 		                                                                          str(self.state_variables),
 		                                                                          str(self.total_delays))))
 

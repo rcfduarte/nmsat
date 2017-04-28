@@ -3363,4 +3363,4 @@ class EncodingLayer:
 			assert (len(delay) == 1), "Heterogeneous delays in encoding layer are not supported.."
 
 		self.total_delay = float(delay)
-		print("\nTotal delays in EncodingLayer: {0} ms".format(str(self.total_delay)))
+		print("\n- total delays in EncodingLayer: {0} ms".format(str(self.total_delay)))

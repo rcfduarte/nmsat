@@ -21,6 +21,7 @@ import nest
 plot = True
 display = True
 save = True
+save_all = False
 debug = False
 online = True
 
@@ -146,7 +147,8 @@ net.connect_populations(parameter_set.connection_pars)
 # Set-up Analysis
 # ======================================================================================================================
 net.connect_devices()
-set_decoder_times(enc_layer, parameter_set) # iff using the fast sampling method!
+set_decoder_times(enc_layer, parameter_set, correct_origin=parameter_set.encoding_pars.add_noise) # iff using the fast
+# sampling method!
 net.connect_decoders(parameter_set.decoding_pars)
 
 # Attach decoders to input encoding populations
@@ -158,12 +160,14 @@ if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input
 # Run Simulation (full sequence)
 # ======================================================================================================================
 epochs, timing = process_input_sequence(parameter_set, net, enc_layer, stim_set, inputs, set_name='full',
-                                        record=True, save_data=False, storage_paths=paths)
+                                        record=True, save_data=save_all, storage_paths=paths,
+                                        extra_step=parameter_set.encoding_pars.add_noise)
 
 dl = net.merged_populations[0].decoding_layer
-samples = {'sampled_times': dl.sampled_times}
-with open(paths['other']+paths['label']+'_StateSampleTimes.pkl', 'w') as fp:
-	pickle.dump(samples, fp)
+if save_all:
+	samples = {'sampled_times': dl.sampled_times}
+	with open(paths['other']+paths['label']+'_StateSampleTimes.pkl', 'w') as fp:
+		pickle.dump(samples, fp)
 
 # ######################################################################################################################
 # Process data
