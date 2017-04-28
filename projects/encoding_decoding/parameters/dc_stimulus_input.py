@@ -9,7 +9,7 @@ dc_input
 """
 
 run = 'local'
-data_label = 'ED_dcinput_StateMatrix'
+data_label = 'ED_dcinput_SamplingTest0'
 
 
 # ######################################################################################################################
@@ -17,7 +17,7 @@ data_label = 'ED_dcinput_StateMatrix'
 # ======================================================================================================================
 parameter_range = {
 	'lexicon_size': [10],
-	'T': [10000] #np.arange(100, 1100, 100)
+	'T': [100] #np.arange(100, 1100, 100)
 }
 
 
@@ -94,7 +94,7 @@ def build_parameters(lexicon_size, T):
 	# ######################################################################################################################
 	# Task and Stimulus Parameters
 	# ######################################################################################################################
-	task = 1  # Accepted tasks:
+	task = 2  # Accepted tasks:
 	# - identity mapping (1);
 	# - delayed identity mapping (2);
 	# - delayed identity mapping with distractors (3);
