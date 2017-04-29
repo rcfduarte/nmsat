@@ -17,7 +17,7 @@ stimulus_processing
 # data parameters
 project = 'alzheimers_project'
 data_path = '/media/neuro/Data/AD_Project/NEW/'
-data_label = 'AD_nStim_kEE'
+data_label = 'AD_IntervalLagStudy' #'AD_nStim_kEE'
 results_path = data_path + data_label + '/Results/'
 
 # set defaults and paths

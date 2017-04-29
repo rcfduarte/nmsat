@@ -282,15 +282,24 @@ def convert_array(array, id_list, dt=None, start=None, stop=None):
 	:return:
 	"""
 	assert(isinstance(array, np.ndarray)), "Provide a numpy array as input"
-	new_AnalogSignalList = AnalogSignalList([], [], dt=dt, t_start=start, t_stop=stop,
+
+	if start is not None and stop is not None and dt is not None:
+		# time_axis = np.arange(start, stop, dt)
+		tmp = []
+		for idd in range(array.shape[1]):
+			for m_id, n_id in enumerate(id_list):
+				tmp.append((n_id, array[m_id, idd]))
+		new_AnalogSignalList = AnalogSignalList(tmp, id_list, dt=dt, t_start=start, t_stop=stop)
+	else:
+		new_AnalogSignalList = AnalogSignalList([], [], dt=dt, t_start=start, t_stop=stop,
 	                                        dims=len(id_list))
 
-	for n, id in enumerate(np.sort(id_list)):
-		try:
-			id_signal = AnalogSignal(array[n, :], dt)
-			new_AnalogSignalList.append(id, id_signal)
-		except Exception:
-			print("id %d is not in the source AnalogSignalList" % id)
+		for n, id in enumerate(np.sort(id_list)):
+			try:
+				id_signal = AnalogSignal(array[n, :], dt)
+				new_AnalogSignalList.append(id, id_signal)
+			except Exception:
+				print("id %d is not in the source AnalogSignalList" % id)
 	return new_AnalogSignalList
 
 

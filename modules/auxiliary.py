@@ -724,7 +724,7 @@ def update_spike_template(enc_layer, idx, input_signal_set, stimulus_set, local_
 	enc_layer.update_state(spks)
 
 
-def update_input_signals(enc_layer, idx, stimulus_seq, local_signal, dt):
+def update_input_signals(enc_layer, idx, stimulus_seq, local_signal, dt, noise=False, noise_parameters=None):
 	"""
 
 	:param enc_layer:
@@ -737,7 +737,31 @@ def update_input_signals(enc_layer, idx, stimulus_seq, local_signal, dt):
 	stim_input = coo_matrix(stimulus_seq.todense()[:, idx])
 	local_signal.input_signal = local_signal.generate_single_step(stim_input)
 	local_signal.time_offset(dt)
+	if noise:
+		assert(noise_parameters is not None), "Noise parameters must be provided!"
+		local_signal.input_signal = add_noise(local_signal, noise_parameters)
+
+	local_signal.input_signal.plot_random()
+
 	enc_layer.update_state(local_signal.input_signal)
+
+
+def add_noise(local_signal, noise_parameters):
+	"""
+	Add a new noise realization to each step
+	:param local_signal: 
+	:param noise_parameters: 
+	:return: 
+	"""
+	# print local_signal.global_start, local_signal.global_stop
+	local_noise = input_architect.InputNoise(noise_parameters, start_time=local_signal.input_signal.t_start,
+	                                         stop_time=local_signal.input_signal.t_stop+10)
+	local_noise.generate()
+	signal_array = local_signal.input_signal.as_array()
+	noise_array = local_noise.noise_signal.as_array()[:, :signal_array.shape[1]]
+	new_signal_array = signal_array + noise_array
+	return signals.convert_array(new_signal_array, id_list=local_signal.input_signal.id_list(),
+	                             dt=local_signal.dt, start=local_signal.input_signal.t_start, stop=local_signal.input_signal.t_stop)
 
 
 def extract_state_vectors(net, enc_layer, sample_time, store_activity):
@@ -852,6 +876,12 @@ def process_input_sequence(parameter_set, net, enc_layer, stimulus_set, input_si
 		jitter = parameter_set.encoding_pars.generator.jitter
 	else:
 		jitter = None
+	if hasattr(parameter_set.input_pars, "noise") and parameter_set.input_pars.noise.N:
+		signal_noise = True
+		signal_noise_parameters = parameter_set.input_pars.noise
+	else:
+		signal_noise = False
+		signal_noise_parameters = None
 
 	# determine set to use and its properties
 	labels, set_labels, set_size, input_signal, stimulus_seq, signal_iterator = retrieve_data_set(set_name,
@@ -894,7 +924,8 @@ def process_input_sequence(parameter_set, net, enc_layer, stimulus_set, input_si
 					update_spike_template(enc_layer, stim_idx, input_signal_set, stimulus_set, local_signal, t_samp,
 					                      input_signal, jitter, stimulus_onset)
 				elif input_signal_set is not None and local_signal is not None and input_signal_set.online:
-					update_input_signals(enc_layer, stim_idx, stimulus_seq, local_signal, simulation_resolution)
+					update_input_signals(enc_layer, stim_idx, stimulus_seq, local_signal, simulation_resolution,
+					                     signal_noise, signal_noise_parameters)
 
 				# simulate main step:
 				net.simulate(simulation_time)
@@ -910,7 +941,8 @@ def process_input_sequence(parameter_set, net, enc_layer, stimulus_set, input_si
 					update_spike_template(enc_layer, stim_idx, input_signal_set, stimulus_set, local_signal, t_samp,
 					                      input_signal, jitter, stimulus_onset)
 				elif input_signal_set is not None and local_signal is not None and input_signal_set.online:
-					update_input_signals(enc_layer, stim_idx, stimulus_seq, local_signal, simulation_resolution)
+					update_input_signals(enc_layer, stim_idx, stimulus_seq, local_signal, simulation_resolution,
+					                     signal_noise, signal_noise_parameters)
 
 				# simulate delays
 				net.simulate(encoder_delay + decoder_delay)
@@ -956,7 +988,8 @@ def process_input_sequence(parameter_set, net, enc_layer, stimulus_set, input_si
 						update_spike_template(enc_layer, stim_idx, input_signal_set, stimulus_set, local_signal, t_samp,
 						                      input_signal, jitter, stimulus_onset)
 					elif input_signal_set is not None and local_signal is not None and input_signal_set.online:
-						update_input_signals(enc_layer, stim_idx, stimulus_seq, local_signal, simulation_resolution)
+						update_input_signals(enc_layer, stim_idx, stimulus_seq, local_signal, simulation_resolution,
+						                     signal_noise, signal_noise_parameters)
 
 				# simulate delays
 				net.simulate(encoder_delay + decoder_delay)
@@ -1085,8 +1118,12 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 							results['rank'][n_pop.name].update({var + str(idx_var): analysis.get_state_rank(state_matrix)})
 						elif set_name == 'train':
 							for readout in readouts:
-								readout.train(state_matrix, np.array(target), index=None, accepted=accepted_ids,
-								              display=display)
+								if readout.name[-1].isdigit(): # memory
+									readout.set_index()
+									print readout.name, readout.index
+
+								readout.train(state_matrix, np.array(target), index=readout.index,
+								              accepted=accepted_ids, display=display)
 
 								readout.measure_stability(display=display)
 								if plot and save:
@@ -1097,17 +1134,18 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 
 						elif set_name == 'test':
 							for readout in readouts:
-								output, target = readout.test(state_matrix, np.array(target), index=None,
+								print readout.name, readout.index
+								output, tgt = readout.test(state_matrix, np.array(target), index=readout.index,
 															  accepted=accepted_ids, display=display)
 
 								results['performance'][n_pop.name][var + str(idx_var)].update(
-									{readout.name: readout.measure_performance(target, output, display=display)})
-								results['performance'][n_pop.name][var + str(idx_var)].update(
-									{readout.name: readout.measure_performance(target, display=display)})
+									{readout.name: readout.measure_performance(tgt, output, display=display)})
+								# results['performance'][n_pop.name][var + str(idx_var)].update(
+								# 	{readout.name: readout.measure_performance(tgt, display=display)})
 								results['performance'][n_pop.name][var + str(idx_var)][readout.name].update(
 									{'norm_wOut': readout.norm_wout})
-								results['dimensionality'][n_pop.name].update(
-									{var + str(idx_var): analysis.compute_dimensionality(state_matrix)})
+							results['dimensionality'][n_pop.name].update(
+								{var + str(idx_var): analysis.compute_dimensionality(state_matrix)})
 						if plot and set_name != 'transient':
 							if save:
 								analysis.analyse_state_matrix(state_matrix, labels, label=n_pop.name + var + set_name,

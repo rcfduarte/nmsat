@@ -6,6 +6,7 @@ from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
 from modules.visualization import set_global_rcParams, plot_input_example
 from modules.auxiliary import process_input_sequence, process_states, set_decoder_times, iterate_input_sequence
+from modules.analysis import compile_performance_results
 import cPickle as pickle
 import numpy as np
 import itertools
@@ -25,9 +26,10 @@ online = True
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/dc_stimulus_input.py'
+params_file = '../parameters/dcinput_memory.py'
 # params_file = '../../encoding_decoding/parameters/dcinput_activestate.py'
 # params_file = '../parameters/spike_pattern_input.py'
+
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -167,15 +169,18 @@ epochs, timing = process_input_sequence(parameter_set, net, enc_layer, stim_set,
 # ######################################################################################################################
 # Process data
 # ======================================================================================================================
-if hasattr(parameter_set, "task_pars"):
-	accept_idx = np.where(np.array(stim_pattern.Output['Accepted']) == 'A')[0]
-else:
-	accept_idx = None
-
 target_matrix = np.array(target_set.full_set.todense())
-results = process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, accepted_idx=accept_idx, plot=plot,
+results = process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, accepted_idx=None, plot=plot,
                    display=display, save=save, save_paths=paths)
 results.update({'timing_info': timing, 'epochs': epochs})
+
+processed_results = dict()
+for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders]))):
+	if n_pop.decoding_layer is not None:
+		processed_results.update({n_pop.name: {}})
+		dec_layer = n_pop.decoding_layer
+		for idx_var, var in enumerate(dec_layer.state_variables):
+			processed_results[n_pop.name].update({var: compile_performance_results(dec_layer.readouts[idx_var], var)})
 
 # ######################################################################################################################
 # Save data
@@ -183,5 +188,7 @@ results.update({'timing_info': timing, 'epochs': epochs})
 if save:
 	with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
 		pickle.dump(results, f)
+	with open(paths['results'] + 'ProcessedResults_' + parameter_set.label, 'w') as f:
+		pickle.dump(processed_results, f)
 	parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
 

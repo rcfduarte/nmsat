@@ -1971,29 +1971,26 @@ def evaluate_encoding(enc_layer, parameter_set, analysis_interval, input_signal,
 # 	return results
 
 
-# def compile_performance_results(readout_set, state_variable=''):
-# 	"""
-# 	"""
-# 	# TODO - deprecated
-# 	results = {
-# 		'accuracy': np.array([n.performance['label']['performance'] for n in readout_set]),
-# 		'performance': np.array([n.performance['max']['performance'] for n in readout_set if not sg.empty(
-# 			n.performance['max'])]),
-# 		'hamming_loss': np.array([n.performance['label']['hamm_loss'] for n in readout_set]),
-# 		'MSE': np.array([n.performance['max']['MSE'] for n in readout_set if not sg.empty(n.performance['max'])]),
-# 		'pb_cc': [n.performance['raw']['point_bisserial'] for n in readout_set if not sg.empty(n.performance['raw'])],
-# 		'raw_MAE': np.array([n.performance['raw']['MAE'] for n in readout_set if not sg.empty(n.performance['raw'])]),
-# 		'precision': np.array([n.performance['label']['precision'] for n in readout_set]),
-# 		'f1_score': np.array([n.performance['label']['f1_score'] for n in readout_set]),
-# 		'recall': np.array([n.performance['label']['recall'] for n in readout_set]),
-# 		'confusion_matrices': [n.performance['label']['confusion'] for n in readout_set],
-# 		'jaccard': np.array([n.performance['label']['jaccard'] for n in readout_set]),
-# 		'class_support': [n.performance['label']['class_support'] for n in readout_set],
-# 		'norm_wout': np.array([n.measure_stability() for n in readout_set]),
-# 		'labels': [n.name for n in readout_set],
-# 		'indices': [n.index for n in readout_set],
-# 		'state_variable': state_variable}
-# 	return results
+def compile_performance_results(readout_set, state_variable=''):
+	"""
+	"""
+	# TODO - deprecated
+	results = {
+		'accuracy': np.array([n.performance['label']['performance'] for n in readout_set]),
+		'hamming_loss': np.array([n.performance['label']['hamm_loss'] for n in readout_set]),
+		'MSE': np.array([n.performance['max']['MSE'] for n in readout_set if not sg.empty(n.performance['max'])]),
+		'raw_MAE': np.array([n.performance['raw']['MAE'] for n in readout_set if not sg.empty(n.performance['raw'])]),
+		'precision': np.array([n.performance['label']['precision'] for n in readout_set]),
+		'f1_score': np.array([n.performance['label']['f1_score'] for n in readout_set]),
+		'recall': np.array([n.performance['label']['recall'] for n in readout_set]),
+		'confusion_matrices': [n.performance['label']['confusion'] for n in readout_set],
+		'jaccard': np.array([n.performance['label']['jaccard'] for n in readout_set]),
+		'class_support': [n.performance['label']['class_support'] for n in readout_set],
+		'norm_wout': np.array([n.measure_stability() for n in readout_set]),
+		'labels': [n.name for n in readout_set],
+		'indices': [n.index for n in readout_set],
+		'state_variable': state_variable}
+	return results
 
 
 def analyse_state_divergence(parameter_set, net, clone, plot=True, display=True, save=False):

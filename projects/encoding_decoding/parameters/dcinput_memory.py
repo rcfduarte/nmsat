@@ -16,12 +16,12 @@ data_label = 'ED_dcinput_SamplingTest0'
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'lexicon_size': [2],
-	'T': [10] #np.arange(100, 1100, 100)
+	'nSteps': [10],
+	# 'T': [100] #np.arange(100, 1100, 100)
 }
 
 
-def build_parameters(lexicon_size, T):
+def build_parameters(nSteps):
 	# ######################################################################################################################
 	# System / Kernel Parameters
 	# ######################################################################################################################
@@ -103,9 +103,9 @@ def build_parameters(lexicon_size, T):
 	# - pattern mapping with cross dependencies (6);
 	# - hierarchical dependencies (7);
 
-	# lexicon_size = 4
+	lexicon_size = 5
 	n_distractors = 0  # (if applicable)
-	# T = 10
+	T = 100
 	T_discard = 10  # number of elements to discard (>=1, for some weird reason..)
 
 	random_dt = False  # if True, dt becomes maximum distance (?)
@@ -149,14 +149,14 @@ def build_parameters(lexicon_size, T):
 		'max_amplitude': [inp_amplitude],
 		'min_amplitude': 0.,
 		'resolution': inp_resolution},
-		'noise': {
-			'N': 0, #lexicon_size,
-			'noise_source': ['GWN'],
-			'noise_pars': {'amplitude': 5., 'mean': 1., 'std': 0.25},
-			'rectify': False,
-			'start_time': 0.,
-			'stop_time': sys.float_info.max,
-			'resolution': inp_resolution, }
+		# 'noise': {
+		# 	'N': 0,
+		# 	'noise_source': ['GWN'],
+		# 	'noise_pars': {'amplitude': 5., 'mean': 1., 'std': 0.25},
+		# 	'rectify': True,
+		# 	'start_time': 0.,
+		# 	'stop_time': sys.float_info.max,
+		# 	'resolution': inp_resolution, }
 	}
 
 	# ######################################################################################################################
@@ -191,8 +191,16 @@ def build_parameters(lexicon_size, T):
 	out_resolution = 1.
 	filter_tau = 20.  # time constant of exponential filter (applied to spike trains)
 	state_sampling = None  # 1.(cannot start at 0)
-	readout_labels = ['ridge_classifier', 'pinv_classifier']
-	readout_algorithms = ['ridge', 'pinv']
+
+	# nSteps = 1.
+
+	readout_labels = []
+	for nn in range(int(nSteps)):
+		readout_labels.append('mem{0}'.format(nn + 1))
+	readout_labels.append('class0')
+
+	# readout_labels = ['ridge_classifier', 'pinv_classifier']
+	readout_algorithms = ['ridge' for _ in range(len(readout_labels))]
 
 	decoders = dict(
 		decoded_population=[['E', 'I'], ['E', 'I']],
@@ -211,24 +219,24 @@ def build_parameters(lexicon_size, T):
 	# ##################################################################################################################
 	# Extra analysis parameters (specific for this experiment)
 	# ==================================================================================================================
-	analysis_pars = {
-		# analysis depth
-		'depth': 1,  	# 1: save only summary of data, use only fastest measures
-						# 2: save all data, use only fastest measures
-						# 3: save only summary of data, use all available measures
-						# 4: save all data, use all available measures
-
-		'store_activity': False,  		# [int] - store all population activity in the last n steps of the test
-									# phase; if set True the entire test phase will be stored;
-
-		'population_activity': {
-			'time_bin': 1.,  		# bin width for spike counts, fano factors and correlation coefficients
-			'n_pairs': 500,  		# number of spike train pairs to consider in correlation coefficient
-			'tau': 20.,  			# time constant of exponential filter (van Rossum distance)
-			'window_len': 100,  	# length of sliding time window (for time_resolved analysis)
-			'time_resolved': False, # perform time-resolved analysis
-		}
-	}
+	# analysis_pars = {
+	# 	# analysis depth
+	# 	'depth': 1,  	# 1: save only summary of data, use only fastest measures
+	# 					# 2: save all data, use only fastest measures
+	# 					# 3: save only summary of data, use all available measures
+	# 					# 4: save all data, use all available measures
+	#
+	# 	'store_activity': False,  		# [int] - store all population activity in the last n steps of the test
+	# 								# phase; if set True the entire test phase will be stored;
+	#
+	# 	'population_activity': {
+	# 		'time_bin': 1.,  		# bin width for spike counts, fano factors and correlation coefficients
+	# 		'n_pairs': 500,  		# number of spike train pairs to consider in correlation coefficient
+	# 		'tau': 20.,  			# time constant of exponential filter (van Rossum distance)
+	# 		'window_len': 100,  	# length of sliding time window (for time_resolved analysis)
+	# 		'time_resolved': False, # perform time-resolved analysis
+	# 	}
+	# }
 	# ##################################################################################################################
 	# RETURN dictionary of Parameters dictionaries
 	# ==================================================================================================================
@@ -241,5 +249,6 @@ def build_parameters(lexicon_size, T):
 	             ('task_pars', task_pars),
 	             ('decoding_pars', decoding_pars),
 	             ('stim_pars', stim_pars),
-	             ('analysis_pars', analysis_pars)])
+	             # ('analysis_pars', analysis_pars)
+	             ])
 
