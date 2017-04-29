@@ -2440,8 +2440,8 @@ class Readout(object):
 			binary_output, output_labels, binary_target, target_labels = self.parse_outputs(output, target,
 			                                                    dimensions=n_out, set_size=test_steps,
 			                                                    method=comparison_function)
-		print binary_output.shape, binary_target.shape
-		print output_labels, target_labels
+		# print binary_output.shape, binary_target.shape
+		# print output_labels, target_labels
 		# initialize results dictionary - raw takes the direct readout output, max the binarized output and label the
 		#  labels of each step
 		performance = {'raw': {}, 'max': {}, 'label': {}}

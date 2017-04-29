@@ -5,7 +5,7 @@ from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
 from modules.visualization import set_global_rcParams, plot_input_example
-from modules.auxiliary import set_decoder_times
+from modules.auxiliary import set_decoder_times #, process_input_sequence, process_states
 import cPickle as pickle
 import numpy as np
 import itertools
@@ -18,9 +18,9 @@ import nest
 # ######################################################################################################################
 # Experiment options
 # ======================================================================================================================
-plot = True
+plot = False
 display = True
-save = True
+save = False
 save_all = False
 debug = False
 online = True

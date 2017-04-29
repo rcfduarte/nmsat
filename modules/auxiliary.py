@@ -1014,7 +1014,7 @@ def gather_states(net, enc_layer, t0, set_labels, flush_devices=True):
 			                                      stop=nest.GetKernelStatus()['time'], save=True)
 			for idx_state, n_state in enumerate(n_pop.decoding_layer.state_variables):
 				n_pop.decoding_layer.state_matrix[idx_state] = n_pop.decoding_layer.activity[idx_state].as_array()
-				print n_pop.decoding_layer.state_matrix[idx_state].shape, len(set_labels)
+				# print n_pop.decoding_layer.state_matrix[idx_state].shape, len(set_labels)
 	if flush_devices:
 		flush(net, enc_layer, decoders=True)
 

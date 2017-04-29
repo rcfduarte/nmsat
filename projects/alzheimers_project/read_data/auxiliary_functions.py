@@ -445,6 +445,7 @@ def update_spike_template(enc_layer, idx, input_signal_set, stimulus_set, local_
 		                                      resolution=0.01, rng=None, store=False)
 		noise_realization = noise_realization.time_offset(spks.last_spike_time(), True)
 		spks.merge(noise_realization)
+
 	spks = spks.time_offset(stimulus_onset, True)
 	enc_layer.update_state(spks)
 

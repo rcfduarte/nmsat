@@ -70,7 +70,7 @@ def build_parameters(kEE):
 	n_trials = 100
 	n_discard = 10
 
-	n_stim = 20
+	n_stim = 5
 
 	stim_pars = dict(
 		n_stim=n_stim,
@@ -134,14 +134,14 @@ def build_parameters(kEE):
 	encoding_pars = set_encoding_defaults(default_set=4, input_dimensions=n_stim,
 	                                      n_encoding_neurons=n_afferents, **input_synapses)
 	encoding_pars['encoder']['n_neurons'] = [n_afferents]
-	encoding_pars.update({'add_noise': 20.})
+	encoding_pars.update({'add_noise': 0.})
 
 	add_parrots(encoding_pars, n_afferents, decode=True, **{})
 
 	# ##################################################################################################################
 	# Decoding / Readout Parameters
 	# ##################################################################################################################
-	out_resolution = encoder_delay # advisable!
+	out_resolution = 0.1 # advisable!
 	filter_tau = 20.  # time constant of exponential filter (applied to spike trains)
 	state_sampling = None#np.arange(0., inp_duration + 200., 50.)#None  # 1.(cannot start at 0)
 	readout_labels = ['ridge_classifier', 'pinv_classifier']

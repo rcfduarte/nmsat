@@ -15,12 +15,12 @@ data_label = 'ED_spikepatterninput_jitter'
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'jitter': np.round(np.linspace(0.1, 100., 100), 1),
-	'trial': [0]
+	'lexicon_size': [10],
+	'T': [100] #np.arange(100, 1100, 100)
 }
 
 
-def build_parameters(jitter, trial):
+def build_parameters(lexicon_size, T):
 	# ######################################################################################################################
 	# System / Kernel Parameters
 	# ######################################################################################################################
@@ -101,9 +101,9 @@ def build_parameters(jitter, trial):
 	# - pattern mapping with cross dependencies (6);
 	# - hierarchical dependencies (7);
 
-	lexicon_size = 100
+	# lexicon_size = 100
 	n_distractors = 0  # (if applicable)
-	T = 10000
+	# T = 10000
 	T_discard = 10  # number of elements to discard (>=1, for some weird reasons..)
 
 	random_dt = False  # if True, dt becomes maximum distance (?)
@@ -169,7 +169,7 @@ def build_parameters(jitter, trial):
 	w_in = 1.
 	sig_w = 0.5 * w_in
 
-	jt = (jitter, True)
+	# jt = (jitter, True)
 	# Input connectivity
 	input_synapses = dict(
 		target_population_names=['E', 'I'],
@@ -184,7 +184,7 @@ def build_parameters(jitter, trial):
 		delay_dist=[0.1, 0.1],
 		preset_W=[None, None],
 		gen_to_enc_W=None,
-		jitter=jt)
+		jitter=None)
 
 	encoding_pars = set_encoding_defaults(default_set=4, input_dimensions=n_stim, n_encoding_neurons=n_afferents,
 	                                      **input_synapses)

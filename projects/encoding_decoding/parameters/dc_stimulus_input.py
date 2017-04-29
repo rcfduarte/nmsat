@@ -94,7 +94,7 @@ def build_parameters(lexicon_size, T):
 	# ######################################################################################################################
 	# Task and Stimulus Parameters
 	# ######################################################################################################################
-	task = 2  # Accepted tasks:
+	task = 1  # Accepted tasks:
 	# - identity mapping (1);
 	# - delayed identity mapping (2);
 	# - delayed identity mapping with distractors (3);
@@ -213,7 +213,7 @@ def build_parameters(lexicon_size, T):
 	# ==================================================================================================================
 	analysis_pars = {
 		# analysis depth
-		'depth': 3,  	# 1: save only summary of data, use only fastest measures
+		'depth': 1,  	# 1: save only summary of data, use only fastest measures
 						# 2: save all data, use only fastest measures
 						# 3: save only summary of data, use all available measures
 						# 4: save all data, use all available measures
