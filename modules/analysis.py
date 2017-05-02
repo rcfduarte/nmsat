@@ -2199,7 +2199,7 @@ class Readout(object):
 		"""
 		For a specific case, in which the readout name contains a time index
 		"""
-		index = int(self.name[-1])
+		index = int(''.join(c for c in self.name if c.isdigit()))
 		if self.name[:3] == 'mem':
 			self.index = -index
 		else:

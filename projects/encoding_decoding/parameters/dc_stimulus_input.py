@@ -16,8 +16,8 @@ data_label = 'ED_dcinput_SamplingTest0'
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'lexicon_size': [2],
-	'T': [10] #np.arange(100, 1100, 100)
+	'lexicon_size': [500],
+	'T': [10000] #np.arange(100, 1100, 100)
 }
 
 
@@ -150,7 +150,7 @@ def build_parameters(lexicon_size, T):
 		'min_amplitude': 0.,
 		'resolution': inp_resolution},
 		'noise': {
-			'N': 0, #lexicon_size,
+			'N': lexicon_size,
 			'noise_source': ['GWN'],
 			'noise_pars': {'amplitude': 5., 'mean': 1., 'std': 0.25},
 			'rectify': False,

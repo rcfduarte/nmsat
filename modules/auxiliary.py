@@ -741,7 +741,7 @@ def update_input_signals(enc_layer, idx, stimulus_seq, local_signal, dt, noise=F
 		assert(noise_parameters is not None), "Noise parameters must be provided!"
 		local_signal.input_signal = add_noise(local_signal, noise_parameters)
 
-	local_signal.input_signal.plot_random()
+	# local_signal.input_signal.plot_random()
 
 	enc_layer.update_state(local_signal.input_signal)
 
