@@ -8,29 +8,29 @@ dc_input
 - test dc_input stimulus processing
 """
 
-run = 'local'
-data_label = 'ED_dcinput_SamplingTest0'
+run = 'MPI'
+data_label = 'ED_dcinput_MPIscalling'
 
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'lexicon_size': [500],
-	'T': [10000] #np.arange(100, 1100, 100)
+	'ppn': [1, 2, 4, 8, 16],
+	# 'T': [10000] #np.arange(100, 1100, 100)
 }
 
 
-def build_parameters(lexicon_size, T):
+def build_parameters(ppn):
 	# ######################################################################################################################
 	# System / Kernel Parameters
 	# ######################################################################################################################
 	system = dict(
 		nodes=1,
-		ppn=16,
+		ppn=ppn,
 		mem=8,
 		walltime='01-00:00:00',
-		queue='batch',
+		queue='multi',
 		transient_time=1000.,
 		sim_time=1000.)
 

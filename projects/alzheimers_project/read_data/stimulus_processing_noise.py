@@ -17,7 +17,7 @@ stimulus_processing
 # data parameters
 project = 'alzheimers_project'
 data_path = '/media/neuro/Data/AD_Project/NEW/'
-data_label = 'AD_IntervalLagStudy'
+data_label = 'AD_IntervalNoise_test2' #'AD_IntervalLagStudy'
 results_path = data_path + data_label + '/Results/'
 
 # set defaults and paths
@@ -81,7 +81,9 @@ all_results = [clean_array(n[0][k].astype(float)) for n in processed_data for k 
 all_labels = [n[1] for n in processed_data]
 
 ########################################################################################################################
-keys = ['performance/EI/V_m1/ridge_classifier/raw/MSE',
+keys = ['performance/EI/spikes0/ridge_classifier/label/performance',
+		'performance/parrots/spikes0/ridge_classifier/label/performance',
+		'performance/EI/V_m1/ridge_classifier/raw/MSE',
 		'performance/EI/spikes0/ridge_classifier/raw/MSE',
 		'performance/parrots/spikes0/ridge_classifier/raw/MSE']
 
@@ -147,8 +149,8 @@ for k in keys:
 
 # k = 'performance/EI/V_m1/ridge_classifier/raw/MSE'
 # k = 'performance/parrots/spikes0/ridge_classifier/raw/MSE'
-# k = 'performance/EI/spikes0/ridge_classifier/label/performance'
-k = 'performance/parrots/spikes0/ridge_classifier/label/performance'
+k = 'performance/EI/spikes0/ridge_classifier/label/performance'
+# k = 'performance/parrots/spikes0/ridge_classifier/label/performance'
 array = all_results[all_keys.index(k)]
 
 

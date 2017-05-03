@@ -173,8 +173,7 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 
 	target_matrix = np.array(target_set.full_set.todense())
 	results = process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, accepted_idx=accept_idx,
-	                         plot=plot,
-	                         display=display, save=save, save_paths=paths)
+	                         plot=plot, display=display, save=save, save_paths=paths)
 	results.update({'timing_info': timing, 'epochs': epochs})
 
 	# ######################################################################################################################

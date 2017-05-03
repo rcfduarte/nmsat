@@ -8,13 +8,13 @@ stimulus_driven parameter file
 """
 
 run = 'local'
-data_label = 'AD_StateSamplingTests'
+data_label = 'AD_IntervalNoise_storage'
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'kEE': [100],
+	'kEE': [30],
 }
 
 
@@ -134,7 +134,7 @@ def build_parameters(kEE):
 	encoding_pars = set_encoding_defaults(default_set=4, input_dimensions=n_stim,
 	                                      n_encoding_neurons=n_afferents, **input_synapses)
 	encoding_pars['encoder']['n_neurons'] = [n_afferents]
-	encoding_pars.update({'add_noise': 20.})
+	encoding_pars.update({'add_noise': 40.})
 
 	add_parrots(encoding_pars, n_afferents, decode=True, **{})
 

@@ -263,14 +263,14 @@ def process_input_sequence(parameter_set, net, enc_layer, stimulus_set, input_si
 			for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
 				if n_pop.decoding_layer is not None:
 					n_pop.decoding_layer.sampled_times.append(state_sample_time)
-					print n_pop.decoding_layer.sampled_times
+					# print n_pop.decoding_layer.sampled_times
 
 			if save_data:
 				E_spikes = nest.GetStatus(net.device_gids[0][0])[0]['events']
 				I_spikes = nest.GetStatus(net.device_gids[1][0])[0]['events']
 				all_senders = list(itertools.chain(*[E_spikes['senders'], I_spikes['senders']]))
 				all_times = list(itertools.chain(*[E_spikes['times'], I_spikes['times']]))
-				print min(all_times), max(all_times)  # check that previous spikes were deleted
+				# print min(all_times), max(all_times)  # check that previous spikes were deleted
 				net_activity.update({'senders{0}'.format(stim_idx): all_senders, 'times{0}'.format(stim_idx):
 					all_times})
 
