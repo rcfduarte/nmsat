@@ -619,7 +619,7 @@ def set_decoder_times(enc_layer, parameter_set, sampling_interval=None, correct_
 
 def retrieve_data_set(set_name, stimulus_set, input_signal_set):
 	"""
-
+	Extract the properties of the dataset to be used
 	:param set_name:
 	:param stimulus_set:
 	:param input_signal_set:
@@ -646,7 +646,7 @@ def retrieve_data_set(set_name, stimulus_set, input_signal_set):
 
 def retrieve_stimulus_timing(input_signal_set, idx, set_size, signal_iterator, t_samp, state_sample_time, input_signal):
 	"""
-
+	Extract all relevant timing information from the current signal
 	:param input_signal_set:
 	:param idx:
 	:param set_size:
@@ -686,7 +686,8 @@ def retrieve_stimulus_timing(input_signal_set, idx, set_size, signal_iterator, t
 def update_spike_template(enc_layer, idx, input_signal_set, stimulus_set, local_signal, t_samp, input_signal, jitter,
                           stimulus_onset):
 	"""
-
+	Read the current stimulus identity, extract the corresponding spike pattern, jitter if necessary, offset to the 
+	stimulus onset time and update the spike generators
 	:param enc_layer:
 	:param idx:
 	:param input_signal_set:
@@ -726,7 +727,7 @@ def update_spike_template(enc_layer, idx, input_signal_set, stimulus_set, local_
 
 def update_input_signals(enc_layer, idx, stimulus_seq, local_signal, dt, noise=False, noise_parameters=None):
 	"""
-
+	Read the current signal and update the generators
 	:param enc_layer:
 	:param idx:
 	:param stimulus_seq:
@@ -740,9 +741,6 @@ def update_input_signals(enc_layer, idx, stimulus_seq, local_signal, dt, noise=F
 	if noise:
 		assert(noise_parameters is not None), "Noise parameters must be provided!"
 		local_signal.input_signal = add_noise(local_signal, noise_parameters)
-
-	# local_signal.input_signal.plot_random()
-
 	enc_layer.update_state(local_signal.input_signal)
 
 
@@ -1048,6 +1046,7 @@ def gather_states(net, enc_layer, t0, set_labels, flush_devices=True):
 			for idx_state, n_state in enumerate(n_pop.decoding_layer.state_variables):
 				n_pop.decoding_layer.state_matrix[idx_state] = n_pop.decoding_layer.activity[idx_state].as_array()
 				# print n_pop.decoding_layer.state_matrix[idx_state].shape, len(set_labels)
+				print nest.GetStatus(n_pop.decoding_layer.extractors[idx_state])[0]['events']['times']
 	if flush_devices:
 		flush(net, enc_layer, decoders=True)
 

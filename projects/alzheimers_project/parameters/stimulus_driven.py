@@ -134,7 +134,7 @@ def build_parameters(kEE):
 	encoding_pars = set_encoding_defaults(default_set=4, input_dimensions=n_stim,
 	                                      n_encoding_neurons=n_afferents, **input_synapses)
 	encoding_pars['encoder']['n_neurons'] = [n_afferents]
-	encoding_pars.update({'add_noise': 0.})
+	encoding_pars.update({'add_noise': 20.})
 
 	add_parrots(encoding_pars, n_afferents, decode=True, **{})
 

@@ -188,12 +188,18 @@ def generate_input_connections(n_stim, gamma_in, n_targets, r, mu_w, sig_w):
 		if gamma_in <= 1./n_stim:
 			probs[i, int(i * N_aff):int((i+1)*N_aff)] = p_m
 		else:
-			overlap = n_targets - (N_aff * n_stim)
-			print overlap
-			probs[i, int(i * N_aff):int((i + 1) * N_aff)] = p_m
+			excess = abs(n_targets - (N_aff * n_stim))
+			overlap = excess / (n_stim - 1)#abs(N_aff - (n_targets/n_stim))
+			if i == 0:
+				start_idx = 0
+				stop_idx = N_aff
+			else:
+				start_idx = stop_idx - overlap
+				stop_idx = start_idx + N_aff
+			print start_idx, stop_idx
+			probs[i, int(start_idx):int(stop_idx)] = p_m
 
 		probs[i, :] /= sum(probs[i, :])
-		#print np.sum(probs)
 		post_list = np.arange(n_targets)
 		targets = np.random.choice(post_list, N_aff, replace=False, p=probs[i, :]).astype(int)
 		A[i, targets] = 1.

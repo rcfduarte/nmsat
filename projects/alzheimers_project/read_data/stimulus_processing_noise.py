@@ -40,17 +40,19 @@ processed_data = []
 analysis_1 = {
 	'fig_title': 'Performance',
 	'ax_titles': [r'Ridge', r'Pseudoinverse'],
-	'labels': [[r'Vm', r'spikes'],
-	           [r'Vm', r'spikes']],
-	'variable_names': [['vm_ridge', 'spikes0_ridge'],
-	                   ['vm_pinv', 'spikes0_pinv']],
+	'labels': [[r'Vm', r'spikes', r'parrots'],
+	           [r'Vm', r'spikes', r'parrots']],
+	'variable_names': [['vm_ridge', 'spikes0_ridge', 'spikes0_parrots'],
+	                   ['vm_pinv', 'spikes0_pinv', 'spikes0_parrots']],
 	'key_sets': [
 		['performance/EI/V_m1/ridge_classifier/label/performance',
-		 'performance/EI/spikes0/ridge_classifier/label/performance'],
+		 'performance/EI/spikes0/ridge_classifier/label/performance',
+		 'performance/parrots/spikes0/ridge_classifier/label/performance'],
 		['performance/EI/V_m1/pinv_classifier/label/performance',
-		 'performance/EI/spikes0/pinv_classifier/label/performance'],],
+		 'performance/EI/spikes0/pinv_classifier/label/performance',
+		 'performance/parrots/spikes0/pinv_classifier/label/performance'],],
 	'plot_properties': [],
-	'plot_colors': [['k', 'g'], []]}
+	'plot_colors': [['k', 'g', 'r'], []]}
 
 processed_data.append(harvest_results(pars, analysis_1, results_path, plot=False, display=False,
                                       save=data_path+data_label))
@@ -143,7 +145,10 @@ for k in keys:
 
 ########################################################################################################################
 
-k = 'performance/EI/V_m1/ridge_classifier/raw/MSE'
+# k = 'performance/EI/V_m1/ridge_classifier/raw/MSE'
+# k = 'performance/parrots/spikes0/ridge_classifier/raw/MSE'
+# k = 'performance/EI/spikes0/ridge_classifier/label/performance'
+k = 'performance/parrots/spikes0/ridge_classifier/label/performance'
 array = all_results[all_keys.index(k)]
 
 
@@ -152,6 +157,10 @@ fig2.suptitle(k)
 ax = fig2.add_subplot(111)
 
 for xx in range(array.shape[0]):
-	pl.plot(y, array[xx, :], 'o-', label=r'k={0}'.format(x[xx]))
+	ax.plot(y, array[xx, :], 'o-', label=r'k={0}'.format(x[xx]))
+ax.set_xticks(pars.parameter_axes['yticks'])
+ax.set_xlabel(pars.parameter_axes['ylabel'])
+ax.set_xticklabels(pars.parameter_axes['yticklabels'])
+ax.set_xlim([np.min(pars.parameter_axes['yticks']), np.max(pars.parameter_axes['yticks'])])
 pl.legend()
 pl.show()

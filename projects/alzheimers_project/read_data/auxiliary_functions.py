@@ -18,14 +18,14 @@ import pickle
 def harvest_results(pars, analysis_dict, results_path, plot=True, display=True, save=False):
 	processed = dict()
 	lab = dict() # to check
-
-	fig1 = pl.figure()
-	fig1.suptitle(analysis_dict['fig_title'])
+	if plot:
+		fig1 = pl.figure()
+		fig1.suptitle(analysis_dict['fig_title'])
 	axes = []
 	for ax_n, ax_title in enumerate(analysis_dict['ax_titles']):
-		ax = fig1.add_subplot(len(analysis_dict['ax_titles']), 1, ax_n + 1)
-
-		colors = get_cmap(len(analysis_dict['key_sets'][ax_n]), 'Accent')
+		if plot:
+			ax = fig1.add_subplot(len(analysis_dict['ax_titles']), 1, ax_n + 1)
+			colors = get_cmap(len(analysis_dict['key_sets'][ax_n]), 'Accent')
 		for idx_k, keys in enumerate(analysis_dict['key_sets'][ax_n]):
 			print "\nHarvesting {0}".format(keys)
 			labels, result = pars.harvest(results_path, key_set=keys)
@@ -42,13 +42,13 @@ def harvest_results(pars, analysis_dict, results_path, plot=True, display=True, 
 			ax.set_xlim([min(pars.parameter_axes['xticks']), max(pars.parameter_axes['xticks'])])
 			ax.set_title(ax_title)
 			ax.legend()
-		axes.append(ax)
+			axes.append(ax)
 	if save and plot:
 		fig1.savefig(save + '_Results_{0}'.format(analysis_dict['fig_title']))
 	if display and plot:
 		pl.show(block=False)
 
-	return processed, lab, axes, fig1
+	return processed, lab, axes
 
 
 def process_input_sequence(parameter_set, net, enc_layer, stimulus_set, input_signal_set, set_name, record=True,
@@ -263,6 +263,7 @@ def process_input_sequence(parameter_set, net, enc_layer, stimulus_set, input_si
 			for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
 				if n_pop.decoding_layer is not None:
 					n_pop.decoding_layer.sampled_times.append(state_sample_time)
+					print n_pop.decoding_layer.sampled_times
 
 			if save_data:
 				E_spikes = nest.GetStatus(net.device_gids[0][0])[0]['events']
@@ -289,7 +290,7 @@ def process_input_sequence(parameter_set, net, enc_layer, stimulus_set, input_si
 	timing['total_time'] = (time.time() - start_time) / 60.
 
 	# gather states
-	gather_states(net, enc_layer, t0, set_labels)
+	gather_states(net, enc_layer, t0, set_labels) # , flush_devices=False)
 
 	if save_data:
 		with open(storage_paths['activity'] + storage_paths['label'] + '_NetworkActivity.pkl', 'w') as fp:
