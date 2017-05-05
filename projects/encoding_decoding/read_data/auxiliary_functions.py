@@ -6,7 +6,7 @@ from modules.analysis import Readout
 from modules.input_architect import InputSignal
 import modules.parameters as prs
 import numpy as np
-from scipy.stats import sem
+from scipy.stats import sem, truncnorm
 import itertools
 
 
@@ -165,3 +165,49 @@ def rebuild_stimulus_sequence(epochs, onset_times=None):
 				stim_seq.append(k)
 
 	return stim_seq
+
+
+def generate_input_connections(n_stim, gamma_in, n_targets, r, mu_w, sig_w):
+	"""
+	Generate structured connection matrices (direct encoding)
+	:param n_stim: Number of input stimuli
+	:param gamma_in: connection density
+	:param n_targets: number of target units
+	:param r: clustering parameter
+	:param mu_w: mean weight
+	:param sig_w: weight std
+	:return: numpy array of weights [n_stim x n_targets]
+	"""
+	N_aff = int(gamma_in * n_targets)
+	p_m = r
+	p0 = 1 - r
+	A = np.zeros((n_stim, n_targets))
+
+	probs = p0 * np.ones((n_stim, n_targets))
+	for i in range(n_stim):
+		if gamma_in <= 1./n_stim:
+			probs[i, int(i * N_aff):int((i+1)*N_aff)] = p_m
+		else:
+			excess = abs(n_targets - (N_aff * n_stim))
+			overlap = excess / (n_stim - 1)#abs(N_aff - (n_targets/n_stim))
+			if i == 0:
+				start_idx = 0
+				stop_idx = N_aff
+			else:
+				start_idx = stop_idx - overlap
+				stop_idx = start_idx + N_aff
+			print start_idx, stop_idx
+			probs[i, int(start_idx):int(stop_idx)] = p_m
+
+		probs[i, :] /= sum(probs[i, :])
+		post_list = np.arange(n_targets)
+		targets = np.random.choice(post_list, N_aff, replace=False, p=probs[i, :]).astype(int)
+		A[i, targets] = 1.
+	if sig_w:
+		a = (0.0001 - mu_w)/sig_w
+		b = ((10. * mu_w) - mu_w) / sig_w
+		W = truncnorm.rvs(a, b, loc=mu_w, scale=sig_w, size=(n_stim, n_targets))
+	else:
+		W = np.ones((n_stim, n_targets)) * mu_w
+
+	return A * W

@@ -1,25 +1,24 @@
 __author__ = 'duarte'
-from modules.parameters import ParameterSet, extract_nestvalid_dict
+from modules.parameters import ParameterSet, ParameterSpace, extract_nestvalid_dict
 from modules.input_architect import EncodingLayer, StimulusSet, InputSignalSet
 from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
 from modules.visualization import set_global_rcParams, plot_input_example
-from modules.auxiliary import process_input_sequence, process_states, set_decoder_times
+from modules.auxiliary import process_input_sequence, process_states, set_decoder_times, iterate_input_sequence
+from modules.analysis import compile_performance_results
 import cPickle as pickle
 import numpy as np
 import itertools
 import time
 import sys
-sys.path.append('../')
-from read_data.auxiliary_functions import process_input_sequence, process_states
 import nest
 
 
-def run(parameter_set, plot=False, display=False, save=True, debug=False, online=True, save_all=False):
+def run(parameter_set, plot=False, display=False, save=True, debug=False, online=True):
 	"""
-	Simulate stimulus driven network - presenting full sequence and analysing after full simulation is complete
-	:param parameter_set: must be consistent with the computation, i.e. input must be poisson...
+	Stimulus processing task with memory
+	:param parameter_set: must be consistent with the computation
 	:param plot: plot results - either show them or save to file
 	:param display: show figures/reports
 	:param save: save results
@@ -140,10 +139,9 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 	# Set-up Analysis
 	# ======================================================================================================================
 	net.connect_devices()
-	set_decoder_times(enc_layer, parameter_set,
-	                  correct_origin=parameter_set.encoding_pars.add_noise)  # iff using the fast
-	# sampling method!
-	net.connect_decoders(parameter_set.decoding_pars)
+	if hasattr(parameter_set, "decoding_pars"):
+		set_decoder_times(enc_layer, parameter_set)  # iff using the fast sampling method!
+		net.connect_decoders(parameter_set.decoding_pars)
 
 	# Attach decoders to input encoding populations
 	if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input_decoder") and \
@@ -154,27 +152,29 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 	# Run Simulation (full sequence)
 	# ======================================================================================================================
 	epochs, timing = process_input_sequence(parameter_set, net, enc_layer, stim_set, inputs, set_name='full',
-	                                        record=True, save_data=save_all, storage_paths=paths,
-	                                        extra_step=parameter_set.encoding_pars.add_noise)
+	                                        record=True)
 
-	dl = net.merged_populations[0].decoding_layer
-	if save_all:
-		samples = {'sampled_times': dl.sampled_times}
-		with open(paths['other'] + paths['label'] + '_StateSampleTimes.pkl', 'w') as fp:
-			pickle.dump(samples, fp)
+	# Slow state sampling
+	# epochs, timing = iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name='full',
+	# record=True,
+	#                        store_activity=False)
 
 	# ######################################################################################################################
 	# Process data
 	# ======================================================================================================================
-	if hasattr(parameter_set, "task_pars"):
-		accept_idx = np.where(np.array(stim_pattern.Output['Accepted']) == 'A')[0]
-	else:
-		accept_idx = None
-
 	target_matrix = np.array(target_set.full_set.todense())
-	results = process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, accepted_idx=accept_idx,
-	                         plot=plot, display=display, save=save, save_paths=paths)
+	results = process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, accepted_idx=None, plot=plot,
+	                         display=display, save=save, save_paths=paths)
 	results.update({'timing_info': timing, 'epochs': epochs})
+
+	processed_results = dict()
+	for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders]))):
+		if n_pop.decoding_layer is not None:
+			processed_results.update({n_pop.name: {}})
+			dec_layer = n_pop.decoding_layer
+			for idx_var, var in enumerate(dec_layer.state_variables):
+				processed_results[n_pop.name].update(
+					{var: compile_performance_results(dec_layer.readouts[idx_var], var)})
 
 	# ######################################################################################################################
 	# Save data
@@ -182,4 +182,7 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 	if save:
 		with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
 			pickle.dump(results, f)
+		with open(paths['results'] + 'ProcessedResults_' + parameter_set.label, 'w') as f:
+			pickle.dump(processed_results, f)
 		parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
+

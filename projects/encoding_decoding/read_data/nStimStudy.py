@@ -18,7 +18,7 @@ stimulus_processing
 
 # data parameters
 project = 'encoding_decoding'
-data_type = 'spikepatterninput' # 'dcinput' #
+data_type = 'dcinput' # 'spikepatterninput' #
 data_path = '/media/neuro/Data/EncodingDecoding_OUT/nStimStudy/'
 data_label = 'ED_{0}_nStimStudy'.format(data_type)
 results_path = data_path + data_label + '/Results/'
@@ -59,21 +59,21 @@ analysis_1 = {
 processed_data.append(harvest_results(pars, analysis_1, results_path, display=True, save=data_path+data_label))
 
 ########################################################################################################################
-# analysis_2 = {
-# 	'fig_title': 'MSE',
-# 	'ax_titles': [r'Ridge', r'Pseudoinverse'],
-# 	'labels': [[r'Vm', r'spikes'],
-# 	           [r'Vm', r'spikes']],
-# 	'variable_names': [['vm_ridge', 'spikes_ridge'],
-# 	                   ['vm_pinv', 'spikes_pinv']],
-# 	'key_sets': [
-# 		['performance/EI/V_m0/ridge_classifier/raw/MSE',
-# 		 'performance/EI/spikes1/ridge_classifier/raw/MSE',],
-# 		['performance/EI/V_m0/pinv_classifier/raw/MSE',
-# 		 'performance/EI/spikes1/pinv_classifier/raw/MSE',],],
-# 	'plot_properties': []}
-#
-# processed_data.append(harvest_results(pars, analysis_2, results_path, display=True, save=data_path+data_label))
+analysis_2 = {
+	'fig_title': 'MSE',
+	'ax_titles': [r'Ridge', r'Pseudoinverse'],
+	'labels': [[r'Vm', r'spikes'],
+	           [r'Vm', r'spikes']],
+	'variable_names': [['vm_ridge', 'spikes_ridge'],
+	                   ['vm_pinv', 'spikes_pinv']],
+	'key_sets': [
+		['performance/EI/V_m0/ridge_classifier/raw/MSE',
+		 'performance/EI/spikes1/ridge_classifier/raw/MSE',],
+		['performance/EI/V_m0/pinv_classifier/raw/MSE',
+		 'performance/EI/spikes1/pinv_classifier/raw/MSE',],],
+	'plot_properties': []}
+
+processed_data.append(harvest_results(pars, analysis_2, results_path, display=True, save=data_path+data_label))
 
 ########################################################################################################################
 analysis_3 = {
@@ -181,6 +181,64 @@ def func(x, a, b):
 
 initial_guess = [250., 1000.]
 
+###########################################
+fig = pl.figure()
+fig.suptitle(r'Squared Error')
+ax2 = fig.add_subplot(111)
+cm = get_cmap(2, 'jet')
+
+keys = ['performance/EI/V_m0/ridge_classifier/raw/MSE',
+        'performance/EI/spikes1/ridge_classifier/raw/MSE']
+# labels = []
+initial_guess = [500., 1000.]
+for idd, k in enumerate(keys):
+	idx = all_keys.index(k)
+	result = all_results[idx].astype(float)
+	if len(result.shape) > 1:
+		data = np.nanmean(result, 1)
+		x_data = pars.parameter_axes['xticks'][~np.isnan(data)]
+		y_data = data[~np.isnan(data)] * x_data
+
+		ax2.plot(x_data, y_data, 'o-', c=cm(idd), label=labels[idd])
+		ax2.fill_between(pars.parameter_axes['xticks'], np.nanmean(result, 1), np.nanmean(result,
+		             1) - sem(result, 1, nan_policy='omit'), np.nanmean(result, 1) + sem(result, 1,
+		             nan_policy='omit'))
+
+		# fit, pcov = curve_fit(func, x_data, y_data, p0=initial_guess)
+		# print fit
+		# ax2.plot(pars.parameter_axes['xticks'], func(pars.parameter_axes['xticks'], *fit), c=cm(idd))
+		#
+		# idx2 = np.argwhere(
+		# 	np.diff(np.sign(pars.parameter_axes['xticks'] - func(pars.parameter_axes['xticks'], *fit))) != 0).reshape(
+		# 	-1) + 0
+		# ax2.plot(pars.parameter_axes['xticks'][idx2], func(pars.parameter_axes['xticks'], *fit)[idx2], 'kx', ms=10,
+		#          mew=4)
+
+
+
+	# 	data = np.nanmean(result, 1)
+	# 	x_data = pars.parameter_axes['xticks'][~np.isnan(data)]
+	# 	y_data = data[~np.isnan(data)] * x_data
+	#
+	# 	ax2.plot(x_data, y_data, 'o-', c=cm(idd), label=labels[idd])
+	# 	ax2.fill_between(pars.parameter_axes['xticks'], np.nanmean(result, 1), np.nanmean(result,
+	# 	                                                                                  1) - sem(result, 1,
+	# 	                                                                                           nan_policy='omit'),
+	# 	                 np.nanmean(result, 1) + sem(result, 1,
+	# 	                                             nan_policy='omit'))
+	# else:
+	# 	ax2.plot(pars.parameter_axes['xticks'], result, '-', c=cm(idd), label=labels[idd])
+
+# ax2.plot(pars.parameter_axes['xticks'], np.sqrt(pars.parameter_axes['xticks']), 'r--')
+
+ax2.legend()
+ax2.grid(True)
+ax2.set_xlabel(r'$\mathrm{N_{u}}$')
+ax2.set_ylabel(r'$\mathrm{SE}$')
+
+pl.show()
+
+##############################################
 fig = pl.figure()
 fig.suptitle(r'Effective dimensionality')
 ax1 = fig.add_subplot(111)

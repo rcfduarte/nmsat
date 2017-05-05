@@ -8,29 +8,29 @@ dc_input
 - test dc_input stimulus processing
 """
 
-run = 'local'
-data_label = 'ED_dcinput_StateMatrix'
+run = 'MPI'
+data_label = 'ED_dcinput_MPIscalling'
 
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'lexicon_size': [10],
-	'T': [10000] #np.arange(100, 1100, 100)
+	'ppn': [1, 2, 4, 8, 16],
+	# 'T': [10000] #np.arange(100, 1100, 100)
 }
 
 
-def build_parameters(lexicon_size, T):
+def build_parameters(ppn):
 	# ######################################################################################################################
 	# System / Kernel Parameters
 	# ######################################################################################################################
 	system = dict(
 		nodes=1,
-		ppn=16,
+		ppn=ppn,
 		mem=8,
 		walltime='01-00:00:00',
-		queue='batch',
+		queue='multi',
 		transient_time=1000.,
 		sim_time=1000.)
 
@@ -149,14 +149,14 @@ def build_parameters(lexicon_size, T):
 		'max_amplitude': [inp_amplitude],
 		'min_amplitude': 0.,
 		'resolution': inp_resolution},
-		# 'noise': {
-		# 	'N': 0,
-		# 	'noise_source': ['GWN'],
-		# 	'noise_pars': {'amplitude': 5., 'mean': 1., 'std': 0.25},
-		# 	'rectify': True,
-		# 	'start_time': 0.,
-		# 	'stop_time': sys.float_info.max,
-		# 	'resolution': inp_resolution, }
+		'noise': {
+			'N': lexicon_size,
+			'noise_source': ['GWN'],
+			'noise_pars': {'amplitude': 5., 'mean': 1., 'std': 0.25},
+			'rectify': False,
+			'start_time': 0.,
+			'stop_time': sys.float_info.max,
+			'resolution': inp_resolution, }
 	}
 
 	# ######################################################################################################################
@@ -213,7 +213,7 @@ def build_parameters(lexicon_size, T):
 	# ==================================================================================================================
 	analysis_pars = {
 		# analysis depth
-		'depth': 3,  	# 1: save only summary of data, use only fastest measures
+		'depth': 1,  	# 1: save only summary of data, use only fastest measures
 						# 2: save all data, use only fastest measures
 						# 3: save only summary of data, use all available measures
 						# 4: save all data, use all available measures

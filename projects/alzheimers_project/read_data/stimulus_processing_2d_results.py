@@ -63,10 +63,11 @@ all_labels = [n[1] for n in processed_data]
 
 k = 'dimensionality/EI/V_m1'
 k_idx = all_keys.index(k)
+array = all_results[k_idx].astype(float)
 
 fig1 = pl.figure()
 fig1.suptitle(k)
-array = all_results[k_idx].astype(float)
+
 # print all_labels[0][k]
 ax_main = pl.subplot2grid((4, 4), (0, 1), colspan=3, rowspan=3)
 ax_meanx = pl.subplot2grid((4, 4), (3, 1), colspan=3, rowspan=1)

@@ -3,6 +3,7 @@ import matplotlib.pyplot as pl
 from modules.visualization import get_cmap
 from modules.auxiliary import gather_states, retrieve_data_set, retrieve_stimulus_timing, set_sampling_parameters, \
 	update_input_signals, flush, time_keep
+from modules.input_architect import generate_template
 from modules.parameters import copy_dict
 import modules.signals as signals
 import modules.analysis as analysis
@@ -13,17 +14,18 @@ from scipy.stats import sem
 import itertools
 import pickle
 
+
 def harvest_results(pars, analysis_dict, results_path, plot=True, display=True, save=False):
 	processed = dict()
 	lab = dict() # to check
-
-	fig1 = pl.figure()
-	fig1.suptitle(analysis_dict['fig_title'])
+	if plot:
+		fig1 = pl.figure()
+		fig1.suptitle(analysis_dict['fig_title'])
 	axes = []
 	for ax_n, ax_title in enumerate(analysis_dict['ax_titles']):
-		ax = fig1.add_subplot(len(analysis_dict['ax_titles']), 1, ax_n + 1)
-
-		colors = get_cmap(len(analysis_dict['key_sets'][ax_n]), 'Accent')
+		if plot:
+			ax = fig1.add_subplot(len(analysis_dict['ax_titles']), 1, ax_n + 1)
+			colors = get_cmap(len(analysis_dict['key_sets'][ax_n]), 'Accent')
 		for idx_k, keys in enumerate(analysis_dict['key_sets'][ax_n]):
 			print "\nHarvesting {0}".format(keys)
 			labels, result = pars.harvest(results_path, key_set=keys)
@@ -40,17 +42,17 @@ def harvest_results(pars, analysis_dict, results_path, plot=True, display=True, 
 			ax.set_xlim([min(pars.parameter_axes['xticks']), max(pars.parameter_axes['xticks'])])
 			ax.set_title(ax_title)
 			ax.legend()
-		axes.append(ax)
+			axes.append(ax)
 	if save and plot:
 		fig1.savefig(save + '_Results_{0}'.format(analysis_dict['fig_title']))
 	if display and plot:
 		pl.show(block=False)
 
-	return processed, lab, axes, fig1
+	return processed, lab, axes
 
 
 def process_input_sequence(parameter_set, net, enc_layer, stimulus_set, input_signal_set, set_name, record=True,
-                           save_data=False, storage_paths=None):
+                           save_data=False, storage_paths=None, extra_step=None):
 	"""
 	Faster implementation - requires sampling parameters to be pre-set (set_decoder_times)
 	:return:
@@ -97,201 +99,204 @@ def process_input_sequence(parameter_set, net, enc_layer, stimulus_set, input_si
 			pickle.dump(full_seq, fp)
 
 	####################################################################################################################
-	if sampling_times is None:  # one sample for each stimulus (acquired at the last time point of each stimulus)
-		print("\n\nSimulating {0} steps".format(str(set_size)))
+	# if sampling_times is None:  # one sample for each stimulus (acquired at the last time point of each stimulus)
+	print("\n\nSimulating {0} steps".format(str(set_size)))
 
-		# ################################ Main Loop ###################################
-		stim_idx = 0
-		simulation_time = 0.0
-		stimulus_onset = 0.0
+	# ################################ Main Loop ###################################
+	stim_idx = 0
+	simulation_time = 0.0
+	stimulus_onset = 0.0
 
-		if save_data:
-			# store initial states
-			initial_states = {}
-			for neuron_id in net.merged_populations[0].gids:
-				st = nest.GetStatus([neuron_id])[0]
-				status = copy_dict(st, {'element_type': str(st['element_type']),
-				                        'recordables': str(st['recordables']),
-				                        'model': str(st['model'])})
-				initial_states.update({neuron_id: status})
+	if save_data:
+		# store initial states
+		initial_states = {}
+		for neuron_id in net.merged_populations[0].gids:
+			st = nest.GetStatus([neuron_id])[0]
+			status = copy_dict(st, {'element_type': str(st['element_type']),
+			                        'recordables': str(st['recordables']),
+			                        'model': str(st['model'])})
+			initial_states.update({neuron_id: status})
 
-			with open(storage_paths['other'] + storage_paths['label'] + '_InitialConditions.pkl', 'w') as fp:
-				pickle.dump(initial_states, fp)
+		with open(storage_paths['other'] + storage_paths['label'] + '_InitialConditions.pkl', 'w') as fp:
+			pickle.dump(initial_states, fp)
 
-			# store connectivity
-			net.extract_synaptic_weights()
-			net.extract_synaptic_delays()
-			enc_layer.extract_connectivity(net, sub_set=False, progress=True)
+		# store connectivity
+		net.extract_synaptic_weights()
+		net.extract_synaptic_delays()
+		enc_layer.extract_connectivity(net, sub_set=False, progress=True)
 
-			connectivities = {'weights': {}, 'delays': {}}
-			connectivities['weights'].update(enc_layer.synaptic_weights)
-			connectivities['weights'].update(net.synaptic_weights)
-			connectivities['delays'].update(enc_layer.connection_delays)
-			connectivities['delays'].update(net.synaptic_delays)
+		connectivities = {'weights': {}, 'delays': {}}
+		connectivities['weights'].update(enc_layer.synaptic_weights)
+		connectivities['weights'].update(net.synaptic_weights)
+		connectivities['delays'].update(enc_layer.connection_delays)
+		connectivities['delays'].update(net.synaptic_delays)
 
-			with open(storage_paths['other'] + storage_paths['label'] + '_Connectivity.pkl', 'w') as fp:
-				pickle.dump(connectivities, fp)
+		with open(storage_paths['other'] + storage_paths['label'] + '_Connectivity.pkl', 'w') as fp:
+			pickle.dump(connectivities, fp)
 
-			# store templates
-			spike_templates = {}
-			for idx, nn in enumerate(input_signal_set.spike_patterns):
-				spike_templates.update({'stim{0}'.format(str(idx)): {'senders': [], 'times': []}})
-				all_times = []
-				all_senders = []
-				for neuron_id, spk_train in nn.spiketrains.items():
-					times = np.round(spk_train.spike_times, 1)
-					all_times.append(times)
-					all_senders.append(np.ones_like(times) * neuron_id)
+		# store templates
+		spike_templates = {}
+		for idx, nn in enumerate(input_signal_set.spike_patterns):
+			spike_templates.update({'stim{0}'.format(str(idx)): {'senders': [], 'times': []}})
+			all_times = []
+			all_senders = []
+			for neuron_id, spk_train in nn.spiketrains.items():
+				times = np.round(spk_train.spike_times, 1)
+				all_times.append(times)
+				all_senders.append(np.ones_like(times) * neuron_id)
 
-				spike_templates['stim{0}'.format(str(idx))]['times'] = list(itertools.chain(*all_times))
-				spike_templates['stim{0}'.format(str(idx))]['senders'] = list(itertools.chain(*all_senders))
+			spike_templates['stim{0}'.format(str(idx))]['times'] = list(itertools.chain(*all_times))
+			spike_templates['stim{0}'.format(str(idx))]['senders'] = list(itertools.chain(*all_senders))
 
-			with open(storage_paths['inputs'] + storage_paths['label'] + '_SpikeTemplates.pkl', 'w') as fp:
-				pickle.dump(spike_templates, fp)
+		with open(storage_paths['inputs'] + storage_paths['label'] + '_SpikeTemplates.pkl', 'w') as fp:
+			pickle.dump(spike_templates, fp)
 
-			# prepare to store network and encoder activity
-			net_activity = {}
-			stim_activity = {}
+		# prepare to store network and encoder activity
+		net_activity = {}
+		stim_activity = {}
 
-		while stim_idx < set_size:
-			state_sample_time = t_samp[stim_idx]
+	while stim_idx < set_size:
+		state_sample_time = t_samp[stim_idx]
 
-			stim_start = time.time()
-			if stim_idx == 0:
-				# generate first input
-				local_signal, stimulus_duration, stimulus_onset, t_samp, state_sample_time, simulation_time = \
-					retrieve_stimulus_timing(input_signal_set, stim_idx, set_size, signal_iterator, t_samp,
-					                         state_sample_time, input_signal)
-				epochs[set_labels[stim_idx]].append((stimulus_onset, state_sample_time))
-				state_sample_time += encoder_delay  # correct sampling time
+		stim_start = time.time()
+		if stim_idx == 0:
+			# generate first input
+			local_signal, stimulus_duration, stimulus_onset, t_samp, state_sample_time, simulation_time = \
+				retrieve_stimulus_timing(input_signal_set, stim_idx, set_size, signal_iterator, t_samp,
+				                         state_sample_time, input_signal)
+			epochs[set_labels[stim_idx]].append((stimulus_onset, state_sample_time))
+			state_sample_time += encoder_delay  # correct sampling time
 
-				print("\n\nSimulating step {0} / {1} - stimulus {2} [{3} ms]".format(str(stim_idx + 1),
-					  str(set_size), str(set_labels[stim_idx]), str(simulation_time)))
+			print("\n\nSimulating step {0} / {1} - stimulus {2} [{3} ms]".format(str(stim_idx + 1),
+				  str(set_size), str(set_labels[stim_idx]), str(simulation_time)))
 
-				# update inputs / encoders
-				if all(['spike_pattern' in n for n in list(signals.iterate_obj_list(enc_layer.generator_names))]):
-					inp_spikes = update_spike_template(enc_layer, stim_idx, input_signal_set, stimulus_set,
-					                                  local_signal, t_samp,
-					                      input_signal, jitter, stimulus_onset)
-				elif input_signal_set is not None and local_signal is not None and input_signal_set.online:
-					update_input_signals(enc_layer, stim_idx, stimulus_seq, local_signal, simulation_resolution)
+			# update inputs / encoders
+			if all(['spike_pattern' in n for n in list(signals.iterate_obj_list(enc_layer.generator_names))]):
+				inp_spikes = update_spike_template(enc_layer, stim_idx, input_signal_set, stimulus_set,
+				                                  local_signal, t_samp,
+				                      input_signal, jitter, stimulus_onset)
+			elif input_signal_set is not None and local_signal is not None and input_signal_set.online:
+				update_input_signals(enc_layer, stim_idx, stimulus_seq, local_signal, simulation_resolution)
 
-				# simulate main step:
-				net.simulate(simulation_time)
+			# simulate main step:
+			net.simulate(simulation_time)
 
-				# generate next input
-				stim_idx += 1
-				local_signal, stimulus_duration, stimulus_onset, t_samp, state_sample_time, simulation_time = \
-					retrieve_stimulus_timing(input_signal_set, stim_idx, set_size, signal_iterator, t_samp,
-					                         state_sample_time, input_signal)
+			# generate next input
+			stim_idx += 1
+			local_signal, stimulus_duration, stimulus_onset, t_samp, state_sample_time, simulation_time = \
+				retrieve_stimulus_timing(input_signal_set, stim_idx, set_size, signal_iterator, t_samp,
+				                         state_sample_time, input_signal)
 
-				# update inputs / encoders
+			# update inputs / encoders
+			if all(['spike_pattern' in n for n in list(signals.iterate_obj_list(enc_layer.generator_names))]):
+				update_spike_template(enc_layer, stim_idx, input_signal_set, stimulus_set, local_signal, t_samp,
+				                      input_signal, jitter, stimulus_onset)
+			elif input_signal_set is not None and local_signal is not None and input_signal_set.online:
+				update_input_signals(enc_layer, stim_idx, stimulus_seq, local_signal, simulation_resolution)
+
+			# simulate delays
+			net.simulate(encoder_delay + decoder_delay)
+
+			# reset
+			analysis.reset_decoders(net, enc_layer)
+
+			# add sample time to decoders...
+			for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
+				if n_pop.decoding_layer is not None:
+					n_pop.decoding_layer.sampled_times.append(state_sample_time)
+
+			if save_data:
+				E_spikes = nest.GetStatus(net.device_gids[0][0])[0]['events']
+				I_spikes = nest.GetStatus(net.device_gids[1][0])[0]['events']
+				all_senders = list(itertools.chain(*[E_spikes['senders'], I_spikes['senders']]))
+				all_times = list(itertools.chain(*[E_spikes['times'], I_spikes['times']]))
+				print min(all_times), max(all_times) # check that previous spikes were deleted
+				net_activity.update({'senders{0}'.format(stim_idx): all_senders, 'times{0}'.format(stim_idx):
+					all_times})
+
+				inp_times = []
+				inp_ids = []
+				for nn in inp_spikes.id_list:
+					spk_times = [round(n, 1) for n in inp_spikes[nn].spike_times]
+					inp_times.append(spk_times)
+					inp_ids.append(nn * np.ones_like(spk_times))
+				stim_activity.update({'senders{0}'.format(stim_idx): list(itertools.chain(*inp_times)),
+				                      'times{0}'.format(stim_idx): list(itertools.chain(*inp_ids))})
+
+			# flush unnecessary information
+			if not record:
+				flush(net, enc_layer, decoders=True)
+			else:
+				flush(net, enc_layer, decoders=False)
+
+		else:
+			print(
+				"\n\nSimulating step {0} / {1} - stimulus {2} [{3} ms]".format(str(stim_idx + 1), str(set_size),
+				                                                               str(set_labels[stim_idx]),
+				                                                               str(simulation_time)))
+			epochs[set_labels[stim_idx]].append((stimulus_onset, state_sample_time))
+
+			# simulate main step
+			net.simulate(simulation_time - encoder_delay - decoder_delay)
+
+			# generate next input
+			stim_idx += 1
+			local_signal, stimulus_duration, stimulus_onset, t_samp, state_sample_time, simulation_time = \
+				retrieve_stimulus_timing(input_signal_set, stim_idx, set_size, signal_iterator, t_samp,
+				                         state_sample_time, input_signal)
+
+			# update inputs / encoders
+			if stim_idx < set_size:
 				if all(['spike_pattern' in n for n in list(signals.iterate_obj_list(enc_layer.generator_names))]):
 					update_spike_template(enc_layer, stim_idx, input_signal_set, stimulus_set, local_signal, t_samp,
 					                      input_signal, jitter, stimulus_onset)
 				elif input_signal_set is not None and local_signal is not None and input_signal_set.online:
 					update_input_signals(enc_layer, stim_idx, stimulus_seq, local_signal, simulation_resolution)
 
-				# simulate delays
-				net.simulate(encoder_delay + decoder_delay)
+			# simulate delays
+			net.simulate(encoder_delay + decoder_delay)
 
-				# reset
-				analysis.reset_decoders(net, enc_layer)
+			# reset
+			analysis.reset_decoders(net, enc_layer)
 
-				# add sample time to decoders...
-				for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
-					if n_pop.decoding_layer is not None:
-						n_pop.decoding_layer.sampled_times.append(state_sample_time)
+			# add sample time to decoders...
+			for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
+				if n_pop.decoding_layer is not None:
+					n_pop.decoding_layer.sampled_times.append(state_sample_time)
+					# print n_pop.decoding_layer.sampled_times
 
-				if save_data:
-					E_spikes = nest.GetStatus(net.device_gids[0][0])[0]['events']
-					I_spikes = nest.GetStatus(net.device_gids[1][0])[0]['events']
-					all_senders = list(itertools.chain(*[E_spikes['senders'], I_spikes['senders']]))
-					all_times = list(itertools.chain(*[E_spikes['times'], I_spikes['times']]))
-					print min(all_times), max(all_times) # check that previous spikes were deleted
-					net_activity.update({'senders{0}'.format(stim_idx): all_senders, 'times{0}'.format(stim_idx):
-						all_times})
+			if save_data:
+				E_spikes = nest.GetStatus(net.device_gids[0][0])[0]['events']
+				I_spikes = nest.GetStatus(net.device_gids[1][0])[0]['events']
+				all_senders = list(itertools.chain(*[E_spikes['senders'], I_spikes['senders']]))
+				all_times = list(itertools.chain(*[E_spikes['times'], I_spikes['times']]))
+				# print min(all_times), max(all_times)  # check that previous spikes were deleted
+				net_activity.update({'senders{0}'.format(stim_idx): all_senders, 'times{0}'.format(stim_idx):
+					all_times})
 
-					inp_times = []
-					inp_ids = []
-					for nn in inp_spikes.id_list:
-						spk_times = [round(n, 1) for n in inp_spikes[nn].spike_times]
-						inp_times.append(spk_times)
-						inp_ids.append(nn * np.ones_like(spk_times))
-					stim_activity.update({'senders{0}'.format(stim_idx): list(itertools.chain(*inp_times)),
-					                      'times{0}'.format(stim_idx): list(itertools.chain(*inp_ids))})
-
-				# flush unnecessary information
-				if not record:
-					flush(net, enc_layer, decoders=True)
-				else:
-					flush(net, enc_layer, decoders=False)
-
+			# flush unnecessary information
+			if not record:
+				flush(net, enc_layer, decoders=True)
 			else:
-				print(
-					"\n\nSimulating step {0} / {1} - stimulus {2} [{3} ms]".format(str(stim_idx + 1), str(set_size),
-					                                                               str(set_labels[stim_idx]),
-					                                                               str(simulation_time)))
-				epochs[set_labels[stim_idx]].append((stimulus_onset, state_sample_time))
+				flush(net, enc_layer, decoders=False)
 
-				# simulate main step
-				net.simulate(simulation_time - encoder_delay - decoder_delay)
+			if stim_idx == set_size:
+				net.simulate(decoder_delay)
+				if extra_step is not None:
+					net.simulate(extra_step)
 
-				# generate next input
-				stim_idx += 1
-				local_signal, stimulus_duration, stimulus_onset, t_samp, state_sample_time, simulation_time = \
-					retrieve_stimulus_timing(input_signal_set, stim_idx, set_size, signal_iterator, t_samp,
-					                         state_sample_time, input_signal)
+		timing['step_time'].append(time_keep(start_time, stim_idx, set_size, stim_start))
 
-				# update inputs / encoders
-				if stim_idx < set_size:
-					if all(['spike_pattern' in n for n in list(signals.iterate_obj_list(enc_layer.generator_names))]):
-						update_spike_template(enc_layer, stim_idx, input_signal_set, stimulus_set, local_signal, t_samp,
-						                      input_signal, jitter, stimulus_onset)
-					elif input_signal_set is not None and local_signal is not None and input_signal_set.online:
-						update_input_signals(enc_layer, stim_idx, stimulus_seq, local_signal, simulation_resolution)
+	timing['total_time'] = (time.time() - start_time) / 60.
 
-				# simulate delays
-				net.simulate(encoder_delay + decoder_delay)
+	# gather states
+	gather_states(net, enc_layer, t0, set_labels) # , flush_devices=False)
 
-				# reset
-				analysis.reset_decoders(net, enc_layer)
-
-				# add sample time to decoders...
-				for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
-					if n_pop.decoding_layer is not None:
-						n_pop.decoding_layer.sampled_times.append(state_sample_time)
-
-				if save_data:
-					E_spikes = nest.GetStatus(net.device_gids[0][0])[0]['events']
-					I_spikes = nest.GetStatus(net.device_gids[1][0])[0]['events']
-					all_senders = list(itertools.chain(*[E_spikes['senders'], I_spikes['senders']]))
-					all_times = list(itertools.chain(*[E_spikes['times'], I_spikes['times']]))
-					print min(all_times), max(all_times)  # check that previous spikes were deleted
-					net_activity.update({'senders{0}'.format(stim_idx): all_senders, 'times{0}'.format(stim_idx):
-						all_times})
-
-				# flush unnecessary information
-				if not record:
-					flush(net, enc_layer, decoders=True)
-				else:
-					flush(net, enc_layer, decoders=False)
-
-				if stim_idx == set_size:
-					net.simulate(decoder_delay)
-
-			timing['step_time'].append(time_keep(start_time, stim_idx, set_size, stim_start))
-
-		timing['total_time'] = (time.time() - start_time) / 60.
-
-		# gather states
-		gather_states(net, enc_layer, t0, set_labels)
-
-		if save_data:
-			with open(storage_paths['activity'] + storage_paths['label'] + '_NetworkActivity.pkl', 'w') as fp:
-				pickle.dump(net_activity, fp)
-			with open(storage_paths['activity'] + storage_paths['label'] + '_InputActivity.pkl', 'w') as fp:
-				pickle.dump(stim_activity, fp)
+	if save_data:
+		with open(storage_paths['activity'] + storage_paths['label'] + '_NetworkActivity.pkl', 'w') as fp:
+			pickle.dump(net_activity, fp)
+		with open(storage_paths['activity'] + storage_paths['label'] + '_InputActivity.pkl', 'w') as fp:
+			pickle.dump(stim_activity, fp)
 
 	return epochs, timing
 
@@ -400,7 +405,7 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 
 
 def update_spike_template(enc_layer, idx, input_signal_set, stimulus_set, local_signal, t_samp, input_signal, jitter,
-                          stimulus_onset):
+                          stimulus_onset, add_noise=False):
 	"""
 
 	:param enc_layer:
@@ -435,6 +440,12 @@ def update_spike_template(enc_layer, idx, input_signal_set, stimulus_set, local_
 			spks = sk_pattern.jitter(jitter[0])
 	else:
 		spks = sk_pattern
+
+	if isinstance(add_noise, float):
+		noise_realization = generate_template(n_neurons=len(spks.id_list), rate=spks.mean_rate(), duration=add_noise,
+		                                      resolution=0.01, rng=None, store=False)
+		noise_realization = noise_realization.time_offset(spks.last_spike_time(), True)
+		spks.merge(noise_realization)
 
 	spks = spks.time_offset(stimulus_onset, True)
 	enc_layer.update_state(spks)

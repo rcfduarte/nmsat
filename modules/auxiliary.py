@@ -554,42 +554,72 @@ def set_sampling_parameters(sampling_times, input_signal_set, input_signal):
 	return t_samp, sub_sampling_times
 
 
-def set_decoder_times(enc_layer, parameter_set):
+def set_decoder_times(enc_layer, parameter_set, sampling_interval=None, correct_origin=False):
 	"""
 	Specify the origin and sampling interval, depending on the current setup
+	:sampling_interval: provide a specific interval
+	:correct_origin: force origin relative to this value
 	:return:
 	"""
 	enc_layer.determine_total_delay()
 	encoder_delay = enc_layer.total_delay
 	stim_duration = parameter_set.input_pars.signal.durations
 	stim_isi = parameter_set.input_pars.signal.i_stim_i
-
-	if (len(stim_duration) != 1 and np.mean(stim_duration) != stim_duration[0]) or all(stim_isi):
-		raise NotImplementedError("Stimulus durations should be fixed and constant and inter-stimulus intervals == 0.")
+	if isinstance(correct_origin, float) or isinstance(correct_origin, int):
+		add_origin = correct_origin
 	else:
-		duration = stim_duration[0]
+		add_origin = 0.
+	if sampling_interval is not None:
+		duration = sampling_interval
+	else:
+		sampling_interval = parameter_set.decoding_pars.sampling_times
+
+		# TODO - other variants
+		if (len(stim_duration) != 1 and np.mean(stim_duration) != stim_duration[0]) or all(stim_isi):
+			raise NotImplementedError("Stimulus durations should be fixed and constant and inter-stimulus intervals == 0.")
+		else:
+			duration = stim_duration[0]
+
+		if sampling_interval is not None:
+			# divide stimulus times
+			if isinstance(sampling_interval, list) or isinstance(sampling_interval, np.ndarray):
+				assert(all(np.diff(sampling_interval)), "Sampling interval must be constant")
+				duration = np.unique(np.diff(sampling_interval))[0]
 
 	for extractor_idx, extractor_pars in enumerate(parameter_set.decoding_pars.state_extractor.state_specs):
 		state_variable = parameter_set.decoding_pars.state_extractor.state_variable[extractor_idx]
 		if state_variable != 'spikes':
-			extractor_pars.update({'origin': encoder_delay, 'interval': duration})
+			origin = add_origin + encoder_delay
+			extractor_pars.update({'origin': add_origin + encoder_delay, 'interval': duration})
+			print("Extractor {0}: \n- origin = {1} ms\n- interval = {2}".format(state_variable, str(origin),
+			                                                                      str(duration)))
 		else:
-			extractor_pars.update({'origin': encoder_delay + 0.1, 'interval': duration})
-
+			origin = add_origin + encoder_delay + 0.1
+			extractor_pars.update({'origin': add_origin + encoder_delay + 0.1, 'interval': duration})
+			print("Extractor {0}: \n- origin = {1} ms\n- interval = {2}".format(state_variable, str(origin),
+			                                                                      str(duration)))
 	if not signals.empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input_decoder") and \
 					parameter_set.encoding_pars.input_decoder is not None:
 		for extractor_idx, extractor_pars in enumerate(
 				parameter_set.encoding_pars.input_decoder.state_extractor.state_specs):
 			state_variable = parameter_set.encoding_pars.input_decoder.state_extractor.state_variable[extractor_idx]
 			if state_variable != 'spikes':
-				extractor_pars.update({'origin': 0.0, 'interval': duration})
+				origin = add_origin + 0.0
+				extractor_pars.update({'origin': add_origin + 0.0, 'interval': duration})
+				print("Encoder Extractor {0}: \n- origin = {1} ms\n- interval = {2}".format(state_variable,
+				                                                                             str(origin),
+				                                                                      str(duration)))
 			else:
-				extractor_pars.update({'origin': 0.1, 'interval': duration})
+				origin = add_origin + 0.1
+				extractor_pars.update({'origin': add_origin + 0.1, 'interval': duration})
+				print("Encoder Extractor {0}: \n- origin = {1} ms\n- interval = {2}".format(state_variable,
+				                                                                              str(origin),
+				                                                                              str(duration)))
 
 
 def retrieve_data_set(set_name, stimulus_set, input_signal_set):
 	"""
-
+	Extract the properties of the dataset to be used
 	:param set_name:
 	:param stimulus_set:
 	:param input_signal_set:
@@ -616,7 +646,7 @@ def retrieve_data_set(set_name, stimulus_set, input_signal_set):
 
 def retrieve_stimulus_timing(input_signal_set, idx, set_size, signal_iterator, t_samp, state_sample_time, input_signal):
 	"""
-
+	Extract all relevant timing information from the current signal
 	:param input_signal_set:
 	:param idx:
 	:param set_size:
@@ -656,7 +686,8 @@ def retrieve_stimulus_timing(input_signal_set, idx, set_size, signal_iterator, t
 def update_spike_template(enc_layer, idx, input_signal_set, stimulus_set, local_signal, t_samp, input_signal, jitter,
                           stimulus_onset):
 	"""
-
+	Read the current stimulus identity, extract the corresponding spike pattern, jitter if necessary, offset to the 
+	stimulus onset time and update the spike generators
 	:param enc_layer:
 	:param idx:
 	:param input_signal_set:
@@ -694,9 +725,9 @@ def update_spike_template(enc_layer, idx, input_signal_set, stimulus_set, local_
 	enc_layer.update_state(spks)
 
 
-def update_input_signals(enc_layer, idx, stimulus_seq, local_signal, dt):
+def update_input_signals(enc_layer, idx, stimulus_seq, local_signal, dt, noise=False, noise_parameters=None):
 	"""
-
+	Read the current signal and update the generators
 	:param enc_layer:
 	:param idx:
 	:param stimulus_seq:
@@ -707,7 +738,28 @@ def update_input_signals(enc_layer, idx, stimulus_seq, local_signal, dt):
 	stim_input = coo_matrix(stimulus_seq.todense()[:, idx])
 	local_signal.input_signal = local_signal.generate_single_step(stim_input)
 	local_signal.time_offset(dt)
+	if noise:
+		assert(noise_parameters is not None), "Noise parameters must be provided!"
+		local_signal.input_signal = add_noise(local_signal, noise_parameters)
 	enc_layer.update_state(local_signal.input_signal)
+
+
+def add_noise(local_signal, noise_parameters):
+	"""
+	Add a new noise realization to each step
+	:param local_signal: 
+	:param noise_parameters: 
+	:return: 
+	"""
+	# print local_signal.global_start, local_signal.global_stop
+	local_noise = input_architect.InputNoise(noise_parameters, start_time=local_signal.input_signal.t_start,
+	                                         stop_time=local_signal.input_signal.t_stop+10)
+	local_noise.generate()
+	signal_array = local_signal.input_signal.as_array()
+	noise_array = local_noise.noise_signal.as_array()[:, :signal_array.shape[1]]
+	new_signal_array = signal_array + noise_array
+	return signals.convert_array(new_signal_array, id_list=local_signal.input_signal.id_list(),
+	                             dt=local_signal.dt, start=local_signal.input_signal.t_start, stop=local_signal.input_signal.t_stop)
 
 
 def extract_state_vectors(net, enc_layer, sample_time, store_activity):
@@ -822,6 +874,12 @@ def process_input_sequence(parameter_set, net, enc_layer, stimulus_set, input_si
 		jitter = parameter_set.encoding_pars.generator.jitter
 	else:
 		jitter = None
+	if hasattr(parameter_set.input_pars, "noise") and parameter_set.input_pars.noise.N:
+		signal_noise = True
+		signal_noise_parameters = parameter_set.input_pars.noise
+	else:
+		signal_noise = False
+		signal_noise_parameters = None
 
 	# determine set to use and its properties
 	labels, set_labels, set_size, input_signal, stimulus_seq, signal_iterator = retrieve_data_set(set_name,
@@ -864,7 +922,8 @@ def process_input_sequence(parameter_set, net, enc_layer, stimulus_set, input_si
 					update_spike_template(enc_layer, stim_idx, input_signal_set, stimulus_set, local_signal, t_samp,
 					                      input_signal, jitter, stimulus_onset)
 				elif input_signal_set is not None and local_signal is not None and input_signal_set.online:
-					update_input_signals(enc_layer, stim_idx, stimulus_seq, local_signal, simulation_resolution)
+					update_input_signals(enc_layer, stim_idx, stimulus_seq, local_signal, simulation_resolution,
+					                     signal_noise, signal_noise_parameters)
 
 				# simulate main step:
 				net.simulate(simulation_time)
@@ -880,7 +939,8 @@ def process_input_sequence(parameter_set, net, enc_layer, stimulus_set, input_si
 					update_spike_template(enc_layer, stim_idx, input_signal_set, stimulus_set, local_signal, t_samp,
 					                      input_signal, jitter, stimulus_onset)
 				elif input_signal_set is not None and local_signal is not None and input_signal_set.online:
-					update_input_signals(enc_layer, stim_idx, stimulus_seq, local_signal, simulation_resolution)
+					update_input_signals(enc_layer, stim_idx, stimulus_seq, local_signal, simulation_resolution,
+					                     signal_noise, signal_noise_parameters)
 
 				# simulate delays
 				net.simulate(encoder_delay + decoder_delay)
@@ -890,8 +950,13 @@ def process_input_sequence(parameter_set, net, enc_layer, stimulus_set, input_si
 
 				# add sample time to decoders...
 				for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
-					if n_pop.decoding_layer is not None:
+					if n_pop.decoding_layer is not None and sampling_times is None:
 						n_pop.decoding_layer.sampled_times.append(state_sample_time)
+					elif n_pop.decoding_layer is not None and (isinstance(sampling_times, list) or isinstance(
+							sampling_times, np.ndarray)):
+						sample_times = set(stimulus_onset + sampling_times)
+						samp_times = set(n_pop.decoding_layer.sampled_times)
+						n_pop.decoding_layer.sampled_times = list(np.sort(list(samp_times.union(sample_times))))
 
 				# flush unnecessary information
 				if not record:
@@ -921,7 +986,8 @@ def process_input_sequence(parameter_set, net, enc_layer, stimulus_set, input_si
 						update_spike_template(enc_layer, stim_idx, input_signal_set, stimulus_set, local_signal, t_samp,
 						                      input_signal, jitter, stimulus_onset)
 					elif input_signal_set is not None and local_signal is not None and input_signal_set.online:
-						update_input_signals(enc_layer, stim_idx, stimulus_seq, local_signal, simulation_resolution)
+						update_input_signals(enc_layer, stim_idx, stimulus_seq, local_signal, simulation_resolution,
+						                     signal_noise, signal_noise_parameters)
 
 				# simulate delays
 				net.simulate(encoder_delay + decoder_delay)
@@ -931,8 +997,13 @@ def process_input_sequence(parameter_set, net, enc_layer, stimulus_set, input_si
 
 				# add sample time to decoders...
 				for n_pop in list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders])):
-					if n_pop.decoding_layer is not None:
+					if n_pop.decoding_layer is not None and sampling_times is None:
 						n_pop.decoding_layer.sampled_times.append(state_sample_time)
+					elif n_pop.decoding_layer is not None and (isinstance(sampling_times, list) or isinstance(
+							sampling_times, np.ndarray)):
+						sample_times = set(stimulus_onset + sampling_times)
+						samp_times = set(n_pop.decoding_layer.sampled_times)
+						n_pop.decoding_layer.sampled_times = list(np.sort(list(samp_times.union(sample_times))))
 
 				# flush unnecessary information
 				if not record:
@@ -950,6 +1021,12 @@ def process_input_sequence(parameter_set, net, enc_layer, stimulus_set, input_si
 		# gather states
 		gather_states(net, enc_layer, t0, set_labels)
 
+	####################################################################################################################
+	# elif (sampling_times is not None) and (isinstance(sub_sampling_times, list) or
+	# 	                                       isinstance(sub_sampling_times, np.ndarray)):  # multiple sampling
+	# 	# times per stimulus (build multiple state matrices)
+	# 	print("\nSimulating {0} steps".format(str(set_size)))
+
 	return epochs, timing
 
 
@@ -960,7 +1037,7 @@ def gather_states(net, enc_layer, t0, set_labels, flush_devices=True):
 	:param enc_layer:
 	:return:
 	"""
-	# TODO - this is where different sampling methods are implemented...
+	# TODO - this is where different sampling methods are implemented or below in process_states
 	for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
 	                                                   net.populations, enc_layer.encoders]))):
 		if n_pop.decoding_layer is not None:
@@ -968,7 +1045,8 @@ def gather_states(net, enc_layer, t0, set_labels, flush_devices=True):
 			                                      stop=nest.GetKernelStatus()['time'], save=True)
 			for idx_state, n_state in enumerate(n_pop.decoding_layer.state_variables):
 				n_pop.decoding_layer.state_matrix[idx_state] = n_pop.decoding_layer.activity[idx_state].as_array()
-				print n_pop.decoding_layer.state_matrix[idx_state].shape, len(set_labels)
+				# print n_pop.decoding_layer.state_matrix[idx_state].shape, len(set_labels)
+				# print nest.GetStatus(n_pop.decoding_layer.extractors[idx_state])[0]['events']['times']
 	if flush_devices:
 		flush(net, enc_layer, decoders=True)
 
@@ -976,7 +1054,7 @@ def gather_states(net, enc_layer, t0, set_labels, flush_devices=True):
 def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, accepted_idx=None, plot=False,
                    display=True, save=False, save_paths=None):
 	"""
-
+	Post-processing step to set the correct timings of state samples, divide and re-organize dataset, ...
 	:param net:
 	:param enc_layer:
 	:param target_matrix:
@@ -1039,8 +1117,12 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 							results['rank'][n_pop.name].update({var + str(idx_var): analysis.get_state_rank(state_matrix)})
 						elif set_name == 'train':
 							for readout in readouts:
-								readout.train(state_matrix, np.array(target), index=None, accepted=accepted_ids,
-								              display=display)
+								if readout.name[-1].isdigit(): # memory
+									readout.set_index()
+									print readout.name, readout.index
+
+								readout.train(state_matrix, np.array(target), index=readout.index,
+								              accepted=accepted_ids, display=display)
 
 								readout.measure_stability(display=display)
 								if plot and save:
@@ -1051,17 +1133,18 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 
 						elif set_name == 'test':
 							for readout in readouts:
-								output, target = readout.test(state_matrix, np.array(target), index=None,
+								print readout.name, readout.index
+								output, tgt = readout.test(state_matrix, np.array(target), index=readout.index,
 															  accepted=accepted_ids, display=display)
 
 								results['performance'][n_pop.name][var + str(idx_var)].update(
-									{readout.name: readout.measure_performance(target, output, display=display)})
-								results['performance'][n_pop.name][var + str(idx_var)].update(
-									{readout.name: readout.measure_performance(target, display=display)})
+									{readout.name: readout.measure_performance(tgt, output, display=display)})
+								# results['performance'][n_pop.name][var + str(idx_var)].update(
+								# 	{readout.name: readout.measure_performance(tgt, display=display)})
 								results['performance'][n_pop.name][var + str(idx_var)][readout.name].update(
 									{'norm_wOut': readout.norm_wout})
-								results['dimensionality'][n_pop.name].update(
-									{var + str(idx_var): analysis.compute_dimensionality(state_matrix)})
+							results['dimensionality'][n_pop.name].update(
+								{var + str(idx_var): analysis.compute_dimensionality(state_matrix)})
 						if plot and set_name != 'transient':
 							if save:
 								analysis.analyse_state_matrix(state_matrix, labels, label=n_pop.name + var + set_name,
