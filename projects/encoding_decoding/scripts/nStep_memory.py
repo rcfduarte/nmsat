@@ -5,14 +5,13 @@ from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
 from modules.visualization import set_global_rcParams, plot_input_example
-from modules.auxiliary import set_decoder_times #, process_input_sequence, process_states
+from modules.auxiliary import process_input_sequence, process_states, set_decoder_times, iterate_input_sequence
+from modules.analysis import compile_performance_results
 import cPickle as pickle
 import numpy as np
 import itertools
 import time
 import sys
-sys.path.append('../')
-from read_data.auxiliary_functions import process_input_sequence, process_states
 import nest
 
 # ######################################################################################################################
@@ -20,15 +19,17 @@ import nest
 # ======================================================================================================================
 plot = False
 display = True
-save = False
-save_all = False
+save = True
 debug = False
 online = True
 
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-params_file = '../parameters/stimulus_driven.py'
+params_file = '../parameters/dcinput_memory.py'
+# params_file = '../../encoding_decoding/parameters/dcinput_activestate.py'
+# params_file = '../parameters/spike_pattern_input.py'
+
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -147,9 +148,9 @@ net.connect_populations(parameter_set.connection_pars)
 # Set-up Analysis
 # ======================================================================================================================
 net.connect_devices()
-set_decoder_times(enc_layer, parameter_set, correct_origin=parameter_set.encoding_pars.add_noise) # iff using the fast
-# sampling method!
-net.connect_decoders(parameter_set.decoding_pars)
+if hasattr(parameter_set, "decoding_pars"):
+	set_decoder_times(enc_layer, parameter_set) # iff using the fast sampling method!
+	net.connect_decoders(parameter_set.decoding_pars)
 
 # Attach decoders to input encoding populations
 if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input_decoder") and \
@@ -159,28 +160,27 @@ if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input
 # ######################################################################################################################
 # Run Simulation (full sequence)
 # ======================================================================================================================
-epochs, timing = process_input_sequence(parameter_set, net, enc_layer, stim_set, inputs, set_name='full',
-                                        record=True, save_data=save_all, storage_paths=paths,
-                                        extra_step=parameter_set.encoding_pars.add_noise)
+epochs, timing = process_input_sequence(parameter_set, net, enc_layer, stim_set, inputs, set_name='full', record=True)
 
-dl = net.merged_populations[0].decoding_layer
-if save_all:
-	samples = {'sampled_times': dl.sampled_times}
-	with open(paths['other']+paths['label']+'_StateSampleTimes.pkl', 'w') as fp:
-		pickle.dump(samples, fp)
+# Slow state sampling
+# epochs, timing = iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name='full', record=True,
+#                        store_activity=False)
 
 # ######################################################################################################################
 # Process data
 # ======================================================================================================================
-if hasattr(parameter_set, "task_pars"):
-	accept_idx = np.where(np.array(stim_pattern.Output['Accepted']) == 'A')[0]
-else:
-	accept_idx = None
-
 target_matrix = np.array(target_set.full_set.todense())
-results = process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, accepted_idx=accept_idx, plot=plot,
+results = process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, accepted_idx=None, plot=plot,
                    display=display, save=save, save_paths=paths)
 results.update({'timing_info': timing, 'epochs': epochs})
+
+processed_results = dict()
+for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders]))):
+	if n_pop.decoding_layer is not None:
+		processed_results.update({n_pop.name: {}})
+		dec_layer = n_pop.decoding_layer
+		for idx_var, var in enumerate(dec_layer.state_variables):
+			processed_results[n_pop.name].update({var: compile_performance_results(dec_layer.readouts[idx_var], var)})
 
 # ######################################################################################################################
 # Save data
@@ -188,5 +188,7 @@ results.update({'timing_info': timing, 'epochs': epochs})
 if save:
 	with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
 		pickle.dump(results, f)
+	with open(paths['results'] + 'ProcessedResults_' + parameter_set.label, 'w') as f:
+		pickle.dump(processed_results, f)
 	parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
 

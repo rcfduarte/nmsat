@@ -8,13 +8,13 @@ stimulus_driven parameter file
 """
 
 run = 'local'
-data_label = 'AD_ReproducibilityTest'
+data_label = 'AD_IntervalNoise_storage'
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'kEE': [10, 100],
+	'kEE': [30],
 }
 
 
@@ -67,10 +67,10 @@ def build_parameters(kEE):
 	# ##################################################################################################################
 	# Stimulus Parameters
 	# ##################################################################################################################
-	n_trials = 1000
+	n_trials = 100
 	n_discard = 10
 
-	n_stim = 50
+	n_stim = 5
 
 	stim_pars = dict(
 		n_stim=n_stim,
@@ -134,28 +134,29 @@ def build_parameters(kEE):
 	encoding_pars = set_encoding_defaults(default_set=4, input_dimensions=n_stim,
 	                                      n_encoding_neurons=n_afferents, **input_synapses)
 	encoding_pars['encoder']['n_neurons'] = [n_afferents]
+	encoding_pars.update({'add_noise': 40.})
 
 	add_parrots(encoding_pars, n_afferents, decode=True, **{})
 
 	# ##################################################################################################################
 	# Decoding / Readout Parameters
 	# ##################################################################################################################
-	out_resolution = encoder_delay # advisable!
+	out_resolution = 0.1 # advisable!
 	filter_tau = 20.  # time constant of exponential filter (applied to spike trains)
-	state_sampling = None  # 1.(cannot start at 0)
+	state_sampling = None#np.arange(0., inp_duration + 200., 50.)#None  # 1.(cannot start at 0)
 	readout_labels = ['ridge_classifier', 'pinv_classifier']
 	readout_algorithms = ['ridge', 'pinv']
 
 	decoders = dict(
-		decoded_population=[['E', 'I'], ['E', 'I'], ['E', 'I']],
-		state_variable=['spikes', 'V_m', 'spikes'],
+		decoded_population=[['E', 'I'], ['E', 'I']],
+		state_variable=['spikes', 'V_m'],
 		filter_time=filter_tau,
 		readouts=readout_labels,
 		readout_algorithms=readout_algorithms,
 		sampling_times=state_sampling,
-		reset_states=[True, False, False],
-		average_states=[False, False, False],
-		standardize=[False, False, False]
+		reset_states=[False, False],
+		average_states=[False, False],
+		standardize=[False, False]
 	)
 
 	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)

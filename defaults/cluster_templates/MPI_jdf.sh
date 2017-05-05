@@ -1,8 +1,8 @@
 #!/bin/bash
 #$ -cwd
-#$ -j y
+#$ -o /data/corpora/sge2/nbl/rendua/
+#$ -e /data/corpora/sge2/nbl/rendua/
 #$ -q {{ queue }}.q
-#$ -pe mpi {{ ppn }}
 #$ -S /bin/bash
 
 cd $SGE_O_WORKDIR

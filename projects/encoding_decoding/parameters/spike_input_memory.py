@@ -196,8 +196,14 @@ def build_parameters(lexicon_size, T):
 	out_resolution = 1.
 	filter_tau = 20.  # time constant of exponential filter (applied to spike trains)
 	state_sampling = None  # 1.(cannot start at 0)
-	readout_labels = ['ridge_classifier', 'pinv_classifier']
-	readout_algorithms = ['ridge', 'pinv']
+	nSteps = 10
+
+	readout_labels = []
+	for nn in range(int(nSteps)):
+		readout_labels.append('mem{0}'.format(nn + 1))
+	readout_labels.append('class0')
+	# readout_labels = ['ridge_classifier', 'pinv_classifier']
+	readout_algorithms = ['ridge' for _ in range(len(readout_labels))]
 
 	decoders = dict(
 		decoded_population=[['E', 'I'], ['E', 'I']],

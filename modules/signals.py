@@ -282,15 +282,24 @@ def convert_array(array, id_list, dt=None, start=None, stop=None):
 	:return:
 	"""
 	assert(isinstance(array, np.ndarray)), "Provide a numpy array as input"
-	new_AnalogSignalList = AnalogSignalList([], [], dt=dt, t_start=start, t_stop=stop,
+
+	if start is not None and stop is not None and dt is not None:
+		# time_axis = np.arange(start, stop, dt)
+		tmp = []
+		for idd in range(array.shape[1]):
+			for m_id, n_id in enumerate(id_list):
+				tmp.append((n_id, array[m_id, idd]))
+		new_AnalogSignalList = AnalogSignalList(tmp, id_list, dt=dt, t_start=start, t_stop=stop)
+	else:
+		new_AnalogSignalList = AnalogSignalList([], [], dt=dt, t_start=start, t_stop=stop,
 	                                        dims=len(id_list))
 
-	for n, id in enumerate(np.sort(id_list)):
-		try:
-			id_signal = AnalogSignal(array[n, :], dt)
-			new_AnalogSignalList.append(id, id_signal)
-		except Exception:
-			print("id %d is not in the source AnalogSignalList" % id)
+		for n, id in enumerate(np.sort(id_list)):
+			try:
+				id_signal = AnalogSignal(array[n, :], dt)
+				new_AnalogSignalList.append(id, id_signal)
+			except Exception:
+				print("id %d is not in the source AnalogSignalList" % id)
 	return new_AnalogSignalList
 
 
@@ -1302,18 +1311,27 @@ class SpikeList(object):
 			spklist.append(id, self.spiketrains[id])
 		return spklist
 
-	def __calc_startstop(self):
+	def __calc_startstop(self, t_start=None, t_stop=None):
 		"""
 		t_start and t_stop are shared for all neurons, so we take min and max values respectively.
 		"""
 		if len(self) > 0:
-			if self.t_start is None:
+			if t_start is not None:
+				self.t_start = t_start
+				for id in self.spiketrains.keys():
+					self.spiketrains[id].t_start = t_start
+
+			elif self.t_start is None:
 				start_times = np.array([self.spiketrains[idx].t_start for idx in self.id_list], np.float32)
 				self.t_start = np.min(start_times)
 				#print("Warning, t_start is infered from the data : %f" %self.t_start)
 				for id in self.spiketrains.keys():
 					self.spiketrains[id].t_start = self.t_start
-			if self.t_stop is None:
+			if t_stop is not None:
+				self.t_stop = t_stop
+				for id in self.spiketrains.keys():
+					self.spiketrains[id].t_stop = t_stop
+			elif self.t_stop is None:
 				stop_times = np.array([self.spiketrains[idx].t_stop for idx in self.id_list], np.float32)
 				self.t_stop = np.max(stop_times)
 				#print("Warning, t_stop  is infered from the data : %f" %self.t_stop)
@@ -1499,7 +1517,7 @@ class SpikeList(object):
 				if relative:
 					spiketrain.relative_times()
 				self.append(id, spiketrain)
-		self.__calc_startstop()
+		self.__calc_startstop(t_stop=self.last_spike_time())
 
 	def complete(self, id_list):
 		"""

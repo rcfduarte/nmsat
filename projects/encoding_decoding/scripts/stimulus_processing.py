@@ -16,7 +16,7 @@ import nest
 # ######################################################################################################################
 # Experiment options
 # ======================================================================================================================
-plot = True
+plot = False
 display = True
 save = True
 debug = False
@@ -25,9 +25,9 @@ online = True
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
 # ======================================================================================================================
-# params_file = '../parameters/dc_stimulus_input.py'
-params_file = '../../encoding_decoding/parameters/dcinput_activestate.py'
-# params_file = '../../encoding_decoding/parameters/spike_pattern_input.py'
+params_file = '../parameters/dc_stimulus_input.py'
+# params_file = '../../encoding_decoding/parameters/dcinput_activestate.py'
+# params_file = '../parameters/spike_pattern_input.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -158,11 +158,11 @@ if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input
 # ######################################################################################################################
 # Run Simulation (full sequence)
 # ======================================================================================================================
-# epochs, timing = process_input_sequence(parameter_set, net, enc_layer, stim_set, inputs, set_name='full', record=True)
+epochs, timing = process_input_sequence(parameter_set, net, enc_layer, stim_set, inputs, set_name='full', record=True)
 
 # Slow state sampling
-epochs, timing = iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name='full', record=True,
-                       store_activity=False)
+# epochs, timing = iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name='full', record=True,
+#                        store_activity=False)
 
 # ######################################################################################################################
 # Process data

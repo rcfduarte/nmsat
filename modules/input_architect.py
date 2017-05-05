@@ -1582,10 +1582,11 @@ class InputSignal(object):
 			if isinstance(a, list):
 				self.offset_times[idx] = [b+offset for b in a]
 
-	# TODO @comment more
 	def set_signal_online(self, stim_seq):
 		"""
-		Sets amplitudes and times online
+		Sets amplitudes and times online. Useful for very large datasets, where storing the whole input time series 
+		would consume too much memory. This function instead returns a generator, where each stimulus step is 
+		generated online
 		:param stim_seq: stimulus sequence, can be
 		:return:
 		"""
@@ -1747,7 +1748,7 @@ class InputNoise(StochasticGenerator):
 	"""
 	Generate and store AnalogSignal object referring to the noise to add to the input signal u(t)
 	"""
-	def __init__(self, initializer, rng=None, seed=None, stop_time=None):
+	def __init__(self, initializer, rng=None, seed=None, start_time=None, stop_time=None):
 		"""
 
 		:param initializer:
@@ -1761,8 +1762,6 @@ class InputNoise(StochasticGenerator):
 			initializer = parameters.ParameterSet(initializer)
 
 		assert isinstance(initializer, parameters.ParameterSet), "Initializer must be a parameter dictionary or ParameterSet"
-
-		# TODO generate iterative...
 		self.N = initializer.N
 		self.rectify = initializer.rectify
 		self.source = initializer.noise_source
@@ -1771,7 +1770,6 @@ class InputNoise(StochasticGenerator):
 		self.parameters = tmp_pars
 		self.dt = initializer.resolution
 		if isinstance(initializer.start_time, list):
-			# TODO onsets/offsets (individual durations of noise 'events')
 			self.onset_times = initializer.start_time
 			self.global_start = initializer.start_time[0]
 			self.offset_times = initializer.stop_time
@@ -1780,8 +1778,11 @@ class InputNoise(StochasticGenerator):
 			self.global_start = initializer.start_time
 			self.global_stop = initializer.stop_time
 
-		if stop_time:
+		if start_time is not None:
+			self.global_start = start_time
+		if stop_time is not None:
 			self.global_stop = stop_time
+
 		self.noise_signal = []
 		self.time_data = np.arange(self.global_start, self.global_stop, self.dt)
 
@@ -1789,7 +1790,6 @@ class InputNoise(StochasticGenerator):
 	def generate(self):
 		"""
 		"""
-
 		for ii in range(self.N):
 			if len(self.source) == 1.:
 				self.source = list(np.repeat(self.source[0], self.N))
@@ -1977,7 +1977,7 @@ class InputSignalSet(object):
 		if self.online:
 			print("- InputSignal will be generated online. {0} is now a generator.. (no noise is added...)".format(
 				set_label))
-			# TODO: Noise is not added
+			# TODO: Noise is not added here
 			self_set_signal_iterator = self_set_signal.set_signal_online(stimulus_subset)
 			self_set = self_set_signal.generate_iterative(stimulus_subset)
 		# stimulus is generated offline
@@ -3363,4 +3363,4 @@ class EncodingLayer:
 			assert (len(delay) == 1), "Heterogeneous delays in encoding layer are not supported.."
 
 		self.total_delay = float(delay)
-		print("\nTotal delays in EncodingLayer: {0} ms".format(str(self.total_delay)))
+		print("\n- total delays in EncodingLayer: {0} ms".format(str(self.total_delay)))
