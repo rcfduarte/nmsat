@@ -12,8 +12,6 @@ paths = {
 		'jdf_template': 		None,
 		'matplotlib_rc': 		NETWORK_HOME + '/defaults/matplotlib_rc',
 		'remote_directory': 	NETWORK_HOME + '/experiments/export/',
-		'report_templates_path':NETWORK_HOME + '/defaults/report_templates/',
-		'report_path': 			NETWORK_HOME + '/defaults/report_templates/',
 		'queueing_system':      None},
 
 	'Blaustein': {

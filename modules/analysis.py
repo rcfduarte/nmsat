@@ -1289,7 +1289,7 @@ def single_neuron_dcresponse(population_object, parameter_set, start=None, stop=
 					  'title': r'$AI = {0}$'.format(str(A))})
 		vz.recurrence_plot(isiis, ax=ax3, display=False, save=False, **props)
 
-		vm_plot = vz.AnalogSignalPlots(single_vm, start=interval[0], stop=interval[0]+1000)
+		vm_plot = vz.AnalogSignalPlots(single_vm, start=interval[0], stop=interval[1])#interval[0]+1000)
 		props = {'xlabel': r'Time [ms]', 'ylabel': '$V_{m} [\mathrm{mV}]$'}
 		if other_analogs is not None:
 			for signal in single_analogs:

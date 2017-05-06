@@ -26,7 +26,6 @@ The code was developed primarily for personal use, as part of a PhD thesis due t
 Optional (add functionality):
 * [PySpike](http://mariomulansky.github.io/PySpike/) version 0.5.1
 * h5py version 2.2.1 or higher
-* mayavi 
 
 #### Installing
 
