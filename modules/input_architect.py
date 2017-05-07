@@ -1,22 +1,29 @@
+__author__ = 'duarte'
 """
+========================================================================================================================
 Input Architect Module
-======================
+========================================================================================================================
 
 Classes:
 ------------
 Grammar             - wrapper for the generation of sequences of elements according to specific rules
-StimulusSet         -
+StimulusSet         - wrapper to hold and manipulate all the data pertaining to the input stimuli,
+					  labels, and corresponding time series
 StochasticGenerator - Stochastic process generator
-InputSignal         -
-InputNoise          -
-Encoder             -
+InputSignal         - generate and store AnalogSignal object referring to the structured input signal u(t)
+InputSignalSet      - class to hold and manipulate complex sets of input signals
+InputNoise          - generate and store AnalogSignal object referring to the noise to add to the input signal u(t)
+Encoder             - convert continuous signal into SpikeList objects, or create a population of spiking neurons
+					  from a given parameter set
 
 Functions:
 ------------
-load_preset_grammar - build a grammar object based on parameters stored in a file
-shotnoise_fromspikes- yields shot noise for Poisson-like spike trains
-stimulus_sequence_to_binary
-merge_signals       - sums 2 AnalogSignals
+pad_array					- pads an array with zeros along the time dimension
+generate_template			- generates a spatio-temporal spike template
+load_preset_grammar 		- build a grammar object based on parameters stored in a file
+stimulus_sequence_to_binary	-
+merge_signals       		- sums 2 AnalogSignals
+make_simple_kernel			- simple way to create a smoothing kernel for 1D convolution
 """
 # other imports
 import cPickle as pickle

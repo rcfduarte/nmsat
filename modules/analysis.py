@@ -1,3 +1,4 @@
+__author__ = 'duarte'
 """
 =====================================================================================
 Analysis Module
@@ -69,7 +70,6 @@ if has_pyspike:
 	import pyspike as spk
 
 
-############################################################################################
 def ccf(x, y, axis=None):
 	"""
 	Fast cross correlation function based on fft.
@@ -657,13 +657,14 @@ def compute_synchrony(spike_list, n_pairs=500, time_bin=1., tau=20., time_resolv
 		print("Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3))))
 	return results
 
-# TODO add more comment, what stats exactly are computed?
+# TODO add more comment, what stats exactly are computed? !!!!
 def compute_analog_stats(population, parameter_set, variable_names, analysis_interval=None, plot=False):
 	"""
-	Extract, analyse and store analog data
+	Extract, analyse and store analog data, such as the mean membrane potential or ...
+	If a single neuron is being recorded, ... Otherwise, ...
 	:param population: Population object
 	:param parameter_set: full ParameterSet object
-	:param variable_names: names of the variables of interest ?
+	:param variable_names: names of the variables of interest.  [V_m, g_ex, g_in... OTHERS?]
 	:param analysis_interval: time interval to analyse
 	:param plot: bool
 	:return results: dict
@@ -675,34 +676,33 @@ def compute_analog_stats(population, parameter_set, variable_names, analysis_int
 		print("No analog variables recorded from {0}".format(str(population.name)))
 		return results
 	else:
+		analog_vars = dict()
 		if isinstance(population.analog_activity, list):
 			for idx, nn in enumerate(variable_names):
-				locals()[nn] = population.analog_activity[idx]
-				assert isinstance(locals()[nn], sg.AnalogSignalList), "Analog activity should be saved as " \
-				                                                    "AnalogSignalList"
+				analog_vars[nn] = population.analog_activity[idx]
+				assert isinstance(analog_vars[nn], sg.AnalogSignalList), "Analog activity should be saved as " \
+																		 "AnalogSignalList"
 		else:
-			locals()[variable_names[0]] = population.analog_activity
+			analog_vars[variable_names[0]] = population.analog_activity
 
 		if plot:
 			# pick one neuron to look at its signals (to plot)
-			single_idx = np.random.permutation(locals()[variable_names[0]].id_list())[0]
+			single_idx = np.random.permutation(analog_vars[variable_names[0]].id_list())[0]
 			reversals = []
 
 		# store the ids of the recorded neurons
-		results['recorded_neurons'] = locals()[variable_names[0]].id_list()
+		results['recorded_neurons'] = analog_vars[variable_names[0]].id_list()
 
 		for idx, nn in enumerate(variable_names):
 			if analysis_interval is not None:
-				locals()[nn] = locals()[nn].time_slice(analysis_interval[0], analysis_interval[1])
-
-			time_axis = locals()[nn].time_axis()
+				analog_vars[nn] = analog_vars[nn].time_slice(analysis_interval[0], analysis_interval[1])
 
 			if plot and 'E_{0}'.format(nn[-2:]) in parameter_set.net_pars.neuron_pars[pop_idx]:
 				reversals.append(parameter_set.net_pars.neuron_pars[pop_idx]['E_{0}'.format(nn[-2:])])
 
 			if len(results['recorded_neurons']) > 1:
-				results['mean_{0}'.format(nn)] = locals()[nn].mean(axis=1)
-				results['std_{0}'.format(nn)] = locals()[nn].std(axis=1)
+				results['mean_{0}'.format(nn)] = analog_vars[nn].mean(axis=1)
+				results['std_{0}'.format(nn)] = analog_vars[nn].std(axis=1)
 
 		if len(results['recorded_neurons']) > 1:
 			results['mean_I_ex'] = []
@@ -710,22 +710,22 @@ def compute_analog_stats(population, parameter_set, variable_names, analysis_int
 			results['EI_CC'] = []
 			for idxx, nnn in enumerate(results['recorded_neurons']):
 				for idx, nn in enumerate(variable_names):
-					locals()['signal_' + nn] = locals()[nn].analog_signals[nnn].signal
-				if ('signal_V_m' in locals()) and ('signal_g_ex' in locals()) and ('signal_g_in' in locals()):
+					analog_vars['signal_' + nn] = analog_vars[nn].analog_signals[nnn].signal
+				if ('signal_V_m' in analog_vars) and ('signal_g_ex' in analog_vars) and ('signal_g_in' in analog_vars):
 					E_ex = parameter_set.net_pars.neuron_pars[pop_idx]['E_ex']
 					E_in = parameter_set.net_pars.neuron_pars[pop_idx]['E_in']
-					E_current = locals()['signal_g_ex'] * (locals()['signal_V_m'] - E_ex)
+					E_current = analog_vars['signal_g_ex'] * (analog_vars['signal_V_m'] - E_ex)
 					E_current /= 1000.
-					I_current = locals()['signal_g_in'] * (locals()['signal_V_m'] - E_in)
+					I_current = analog_vars['signal_g_in'] * (analog_vars['signal_V_m'] - E_in)
 					I_current /= 1000.
 					results['mean_I_ex'].append(np.mean(E_current))
 					results['mean_I_in'].append(np.mean(I_current))
 					cc = np.corrcoef(E_current, I_current)
 					results['EI_CC'].append(np.unique(cc[cc != 1.]))
-				elif ('signal_I_ex' in locals()) and ('signal_I_in' in locals()):
-					results['mean_I_ex'].append(np.mean(locals()['signal_I_ex'])/1000.)  # /1000. to get results in nA
-					results['mean_I_in'].append(np.mean(locals()['signal_I_in'])/1000.)
-					cc = np.corrcoef(locals()['signal_I_ex'], locals()['signal_I_in'])
+				elif ('signal_I_ex' in analog_vars) and ('signal_I_in' in analog_vars):
+					results['mean_I_ex'].append(np.mean(analog_vars['signal_I_ex'])/1000.)  # /1000. to get results in nA
+					results['mean_I_in'].append(np.mean(analog_vars['signal_I_in'])/1000.)
+					cc = np.corrcoef(analog_vars['signal_I_ex'], analog_vars['signal_I_in'])
 					results['EI_CC'].append(np.unique(cc[cc != 1.]))
 			results['EI_CC'] = np.array(list(itertools.chain(*results['EI_CC'])))
 			# remove nans and infs
@@ -733,13 +733,13 @@ def compute_analog_stats(population, parameter_set, variable_names, analysis_int
 			results['EI_CC'] = np.extract(np.logical_not(np.isinf(results['EI_CC'])), results['EI_CC'])
 
 		if 'V_m' in variable_names and plot:
-			results['single_Vm'] = locals()['V_m'].analog_signals[single_idx].signal
-			results['single_idx'] = single_idx
-			results['time_axis'] = locals()['V_m'].analog_signals[single_idx].time_axis()
+			results['single_Vm'] 	= analog_vars['V_m'].analog_signals[single_idx].signal
+			results['single_idx'] 	= single_idx
+			results['time_axis'] 	= analog_vars['V_m'].analog_signals[single_idx].time_axis()
 			variable_names.remove('V_m')
 
 			for idxx, nnn in enumerate(variable_names):
-				cond = locals()[nnn].analog_signals[single_idx].signal
+				cond = analog_vars[nnn].analog_signals[single_idx].signal
 
 				if 'I_ex' in variable_names:
 					results['I_{0}'.format(nnn[-2:])] = cond
@@ -750,20 +750,26 @@ def compute_analog_stats(population, parameter_set, variable_names, analysis_int
 					results['I_{0}'.format(nnn[-2:])] /= 1000.
 				else:
 					results['single_{0}'.format(nnn)] = cond
+
 		return results
 
 
 def compute_dimensionality(activity_matrix, pca_obj=None, label='', plot=False, display=True, save=False):
 	"""
 	Measure the effective dimensionality of population responses. Based on Abbott et al. (). Interactions between
-	intrinsic and stimilus-evoked activity in recurrent neural networks
+	intrinsic and stimulus-evoked activity in recurrent neural networks.
+
 	:param activity_matrix: matrix to analyze (NxT)
 	:param pca_obj: if pre-computed, otherwise None
-	:return:
+	:param label:
+	:param plot:
+	:param display:
+	:param save:
+	:return: (float) dimensionality
 	"""
 	assert(check_dependency('sklearn')), "PCA analysis requires scikit learn"
 	if display:
-		print("Determining effective dimensionality..")
+		print("Determining effective dimensionality...")
 		t_start = time.time()
 	if pca_obj is None:
 		pca_obj = sk.PCA(n_components=np.shape(activity_matrix)[0])
@@ -821,10 +827,14 @@ def dimensionality_reduction(state_matrix, data_label='', labels=None, metric=No
                              colormap='jet', display=True, save=False):
 	"""
 	Fit and test various algorithms, to extract a reasonable 3D projection of the data for visualization
-	:param activity_matrix: matrix to analyze (NxT)
+
+	:param state_matrix: matrix to analyze (NxT)
+	:param data_label:
+	:param labels:
 	:param metric: [str] metric to use (if None all will be tested)
 	:param standardize:
 	:param plot:
+	:param colormap:
 	:param display:
 	:param save:
 	:return:
@@ -912,8 +922,6 @@ def dimensionality_reduction(state_matrix, data_label='', labels=None, metric=No
 			                 neighbors_algorithm='auto', n_jobs=-1)
 			iso = iso_fit.fit_transform(state_matrix.T)
 			if display:
-				# print("Elapsed time: {0} s / Reconstruction error = {1}".format(str(time.time() - t_start), str(
-				# 		iso_fit.reconstruction_error_)))
 				print("Elapsed time: {0} s / Reconstruction error = ".format(str(time.time() - t_start)))
 			if plot:
 				fig4 = pl.figure()
@@ -935,8 +943,6 @@ def dimensionality_reduction(state_matrix, data_label='', labels=None, metric=No
 				spec_fit = man.SpectralEmbedding(n_components=3, affinity=n, n_jobs=-1)
 				spec = spec_fit.fit_transform(state_matrix.T)
 				if display:
-					# print("\t{0} - {1} s / Reconstruction error = {2}".format(n, str(time.time() - t_start), str(
-					# 	spec_fit.reconstruction_error_)))
 					print("Elapsed time: {0} s / Reconstruction error = ".format(str(time.time() - t_start)))
 				if plot:
 					ax = fig5.add_subplot(1, 2, i + 1, projection='3d')
@@ -953,8 +959,6 @@ def dimensionality_reduction(state_matrix, data_label='', labels=None, metric=No
 			mds = man.MDS(n_components=3, n_jobs=-1)
 			mds_fit = mds.fit_transform(state_matrix.T)
 			if display:
-				# print("Elapsed time: {0} s / Reconstruction error = {1}".format(str(time.time() - t_start), str(
-				# 		mds.reconstruction_error_)))
 				print("Elapsed time: {0} s / Reconstruction error = ".format(str(time.time() - t_start)))
 			if plot:
 				fig6 = pl.figure()
@@ -969,8 +973,6 @@ def dimensionality_reduction(state_matrix, data_label='', labels=None, metric=No
 			tsne = man.TSNE(n_components=3, init='pca')
 			tsne_emb = tsne.fit_transform(state_matrix.T)
 			if display:
-				# print("Elapsed time: {0} s / Reconstruction error = {1}".format(str(time.time() - t_start), str(
-				# 		tsne.reconstruction_error_)))
 				print("Elapsed time: {0} s / Reconstruction error = ".format(str(time.time() - t_start)))
 			if plot:
 				fig7 = pl.figure()
@@ -998,6 +1000,13 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 	:param parameter_set: complete ParameterSet
 	:param analysis_interval: list or tuple with [start_time, stop time] specifying the time interval to analyse
 	:param prng: numpy.random object for precise experiment reproduction
+	:param epochs:
+	:param plot:
+	:param display:
+	:param save:
+	:param color_map:
+	:param color_subpop:
+	:param analysis_pars:
 	:return:
 	"""
 	if analysis_pars is None:
@@ -1046,10 +1055,11 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 
 		if pars_activity.time_resolved:
 			# *** Averaged time-resolved metrics
-			results['spiking_activity'][population_object.name].update(compute_time_resolved_statistics(spike_list,
-			                        label=population_object.name, time_bin=pars_activity.time_bin, epochs=epochs,
-									window_len=pars_activity.window_len, color_map=color_map,
-									display=display, plot=plot, save=save))
+			results['spiking_activity'][population_object.name].update(
+				compute_time_resolved_statistics(spike_list, label=population_object.name,
+												 time_bin=pars_activity.time_bin, epochs=epochs,
+												 window_len=pars_activity.window_len, color_map=color_map,
+												 display=display, plot=plot, save=save))
 		if plot:
 			results['metadata']['spike_list'] = spike_list
 
@@ -1097,11 +1107,11 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 				                                                                 analysis_interval, plot))
 	if plot:
 		vz.plot_state_analysis(parameter_set, results, summary_only=bool(ap.depth % 2 != 0),
-										  start=analysis_interval[0], stop=analysis_interval[1],
-										  display=display, save=save)
+							   start=analysis_interval[0], stop=analysis_interval[1],
+							   display=display, save=save)
 	return results
 
-
+# TODO is this needed?
 def epoch_based_analysis(population_object, epochs):
 	"""
 	Analyse population activity on a trial-by-trial basis
@@ -1116,8 +1126,14 @@ def epoch_based_analysis(population_object, epochs):
 
 def analyse_activity_dynamics(activity_matrix, epochs=None, label='', plot=False, display=False, save=False):
 	"""
-	Perform standard analyses on population activity
+	Perform standard analyses on population activity.
+
 	:param activity_matrix: NxT continuous activity matrix
+	:param epochs:
+	:param label:
+	:param plot:
+	:param display:
+	:param save:
 	:return: results dictionary
 	"""
 	if isinstance(activity_matrix, sg.AnalogSignalList):
@@ -1195,8 +1211,13 @@ def compute_time_resolved_statistics(spike_list, label='', time_bin=1., window_l
 
 def compute_spikelist_metrics(spike_list, label, analysis_pars):
 	"""
+	Computes the ISI, firing activity and synchrony statistics for a given spike list.
 
-	:return:
+	:param spike_list: SpikeList object for which the statistics are computed
+	:param label: (string) population name or something else
+	:param analysis_pars: ParameterSet object containing the analysis parameters
+
+	:return: dictionary with the results for the given label, with statistics as (sub)keys
 	"""
 	ap = analysis_pars
 	pars_activity = ap.population_activity
@@ -1214,14 +1235,14 @@ def compute_spikelist_metrics(spike_list, label, analysis_pars):
 	results[label].update(compute_synchrony(spike_list, n_pairs=pars_activity.n_pairs,
 											time_bin=pars_activity.time_bin, tau=pars_activity.tau,
 											time_resolved=pars_activity.time_resolved, depth=ap.depth))
-
 	return results
 
 
-def single_neuron_dcresponse(population_object, parameter_set, start=None, stop=None, plot=True, display=True,
-							 save=False):
+def single_neuron_dcresponse(population_object, parameter_set, start=None, stop=None,
+							 plot=True, display=True, save=False):
 	"""
-	extract relevant data and analyse single neuron fI curves and other measures
+	Extract relevant data and analyse single neuron fI curves and other measures.
+
 	:param population_object:
 	:param parameter_set:
 	:param start:
@@ -1314,10 +1335,19 @@ def single_neuron_dcresponse(population_object, parameter_set, start=None, stop=
 				time_axis=vm_list.analog_signals[vm_list.analog_signals.keys()[0]].time_axis(), AI=A)
 
 
-def single_neuron_responses(population_object, parameter_set, pop_idx=0, start=None, stop=None, plot=True, display=True,
-							save=False):
+def single_neuron_responses(population_object, parameter_set, pop_idx=0, start=None, stop=None,
+							plot=True, display=True, save=False):
 	"""
-	Responses of a single neuron (population_object.populations[pop_idx] should be the single neuron)
+	Responses of a single neuron (population_object.populations[pop_idx] should be the single neuron).
+
+	:param population_object:
+	:param parameter_set:
+	:param pop_idx:
+	:param start:
+	:param stop:
+	:param plot:
+	:param display:
+	:param save:
 	:return:
 	"""
 	results = dict(rate=0, isis=[0, 0], cv_isi=0, ff=None, vm=[], I_e=[], I_i=[], time_data=[])
@@ -1442,7 +1472,11 @@ def single_neuron_responses(population_object, parameter_set, pop_idx=0, start=N
 def ssa_lifetime(pop_obj, parameter_set, input_off=1000., display=True):
 	"""
 
-	:param spike_list:
+
+	:param pop_obj:
+	:param parameter_set:
+	:param input_off:
+	:param display:
 	:return:
 	"""
 	results = dict(ssa={})
@@ -1483,7 +1517,7 @@ def ssa_lifetime(pop_obj, parameter_set, input_off=1000., display=True):
 
 	return results
 
-
+# TODO remove?
 def fmf_readout(response, target, readout, index, label='', plot=False, display=False, save=False):
 	"""
 	(to be removed)
@@ -1544,7 +1578,7 @@ def fmf_readout(response, target, readout, index, label='', plot=False, display=
 	                'NRMSE': NRMSE, 'norm_wOut': norm_wout, 'fmf': fmf}
 
 
-# TODO update
+# TODO update / is it defunct? calls inexisting functions
 def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True,
 						   debug=False, plot=True, display=True, save=False):
 	"""
@@ -1766,7 +1800,7 @@ def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True
 						save_pth = save_path + str(resp_idx)
 					else:
 						save_pth = False
-
+					# TODO these functions don't exist anymore
 					plot_fmf(t_axis, fmf, globals()['ax1_{0}'.format(resp_idx)],
 							 label=pop.name + 'State_{0}'.format(str(resp_idx)), display=display, save=save_pth)
 					plot_acc(steps, np.array([fmf]), fit_params, acc_function, title=r'Fading Memory Fit',
@@ -1781,7 +1815,11 @@ def analyse_state_matrix(state, stim_labels, label='', plot=True, display=True, 
 	"""
 
 	:param state:
-	:param stim:
+	:param stim_labels:
+	:param label:
+	:param plot:
+	:param display:
+	:param save:
 	:return:
 	"""
 	pca_obj = sk.PCA(n_components=3)
@@ -1995,10 +2033,14 @@ def compile_performance_results(readout_set, state_variable=''):
 
 def analyse_state_divergence(parameter_set, net, clone, plot=True, display=True, save=False):
 	"""
-	Analyse how responses from net and clone diverge (primarily for perturbation analysis)
+	Analyse how responses from net and clone diverge (primarily for perturbation analysis).
+
 	:param parameter_set:
 	:param net: Network object
 	:param clone: Network object
+	:param plot:
+	:param display:
+	:param save:
 	:return:
 	"""
 	results = dict()
@@ -2145,6 +2187,8 @@ def analyse_state_divergence(parameter_set, net, clone, plot=True, display=True,
 def calculate_ranks(network):
 	"""
 	Calculate the rank of all state matrices stored in the population's decoding_layers
+
+	:param network: Network object
 	:return dict: {population_name: {state_variable: rank}}
 	"""
 	results = dict()
@@ -2167,7 +2211,7 @@ def calculate_ranks(network):
 
 def get_state_rank(matrix):
 	"""
-	Calculate the rank of all state matrices
+	Calculates the rank of all state matrices.
 	:return:
 	"""
 	return np.linalg.matrix_rank(matrix)
@@ -2193,11 +2237,11 @@ class Readout(object):
 		self.norm_wout = None
 		self.performance = {}
 		if display:
-			print(("\t- Readout {0} [trained with {1}]".format(self.name, self.rule)))
+			print("\t- Readout {0} [trained with {1}]".format(self.name, self.rule))
 
 	def set_index(self):
 		"""
-		For a specific case, in which the readout name contains a time index
+		For a specific case, in which the readout name contains a time index.
 		"""
 		index = int(''.join(c for c in self.name if c.isdigit()))
 		if self.name[:3] == 'mem':
@@ -2207,9 +2251,14 @@ class Readout(object):
 
 	def train(self, state_train, target_train, index=None, accepted=None, display=True):
 		"""
-		Train readout
+		Train readout.
+
 		:param state_train: np.ndarray state matrix
 		:param target_train: np.ndarray()
+		:param index:
+		:param accepted:
+		:param display:
+		:return:
 		"""
 		assert (isinstance(state_train, np.ndarray)), "Provide state matrix as array"
 		assert (isinstance(target_train, np.ndarray)), "Provide target matrix as array"
@@ -2307,7 +2356,14 @@ class Readout(object):
 
 	def test(self, state_test, target_test=None, index=None, accepted=None, display=True):
 		"""
-		Acquire readout output in test phase
+		Acquire readout output in test phase.
+
+		:param state_test:
+		:param target_test:
+		:param index:
+		:param accepted:
+		:param display:
+		:return:
 		"""
 		assert (isinstance(state_test, np.ndarray)), "Provide state matrix as array"
 		if target_test is not None:
@@ -2342,7 +2398,12 @@ class Readout(object):
 	def parse_outputs(output, target, dimensions, set_size, method='WTA', k=1):
 		"""
 
-		:param self:
+		:param output:
+		:param target:
+		:param dimensions:
+		:param set_size:
+		:param method:
+		:param k:
 		:return:
 		"""
 		is_binary_target = np.all(np.unique(target) == [0., 1.])
@@ -2401,9 +2462,11 @@ class Readout(object):
 	def measure_performance(self, target, output=None, comparison_function=None, display=True):
 		"""
 		Compute readout performance according to different metrics.
+
 		:param target: target output [numpy.array (binary or real-valued) or list (labels)]
 		:param output:
-		:param labeled:
+		:param comparison_function:
+		:param display:
 		:return:
 		"""
 		assert (isinstance(target, np.ndarray)), "Provide target matrix as array"
@@ -2488,14 +2551,14 @@ class Readout(object):
 
 	def copy(self):
 		"""
-		Copy the readout object
+		Copy the readout object.
 		:return: new Readout object
 		"""
 		return copy.deepcopy(self)
 
 	def reset(self):
 		"""
-		Reset current readout
+		Reset current readout.
 		:return:
 		"""
 		initializer = pa.ParameterSet({'label': self.name, 'algorithm': self.rule})
@@ -2503,7 +2566,7 @@ class Readout(object):
 
 	def plot_weights(self, display=True, save=False):
 		"""
-		Plots a histogram with the current weights
+		Plots a histogram with the current weights.
 		"""
 		vz.plot_w_out(self.weights, label=self.name+'-'+self.rule, display=display, save=save)
 
@@ -2518,11 +2581,11 @@ class Readout(object):
 class DecodingLayer(object):
 	"""
 	The Decoder reads population activity in response to patterned inputs,
-	extracts the network state (according to specifications) and trains readout weights
+	extracts the network state (according to specifications) and trains readout weights.
 	"""
 	def __init__(self, initializer, population):
 		"""
-		Create and connect decoders to population
+		Create and connect decoders to population.
 
 		:param initializer: ParameterSet object or dictionary specifying decoding parameters
 		:param population:
@@ -2598,8 +2661,8 @@ class DecodingLayer(object):
 			                                                                      self.extractors[-1]))
 			if hasattr(initializer, "readout"):
 				pars_readout = pa.ParameterSet(initializer.readout[state_idx])
-				implemented_algorithms = ['pinv', 'ridge', 'logistic', 'svm-linear', 'svm-rbf', 'perceptron', 'elastic',
-				                          'bayesian_ridge']
+				implemented_algorithms = ['pinv', 'ridge', 'logistic', 'svm-linear', 'svm-rbf',
+										  'perceptron', 'elastic', 'bayesian_ridge']
 
 				for n_readout in range(pars_readout.N):
 					if len(pars_readout.algorithm) == pars_readout.N:
@@ -2733,7 +2796,7 @@ class DecodingLayer(object):
 				raise TypeError("Incorrect Decoder ID")
 
 			all_responses.append(responses)
-			print(("Elapsed time: {0} s".format(str(time.time()-start_time1))))
+			print("Elapsed time: {0} s".format(str(time.time()-start_time1)))
 		if save:
 			for idx, n_response in enumerate(all_responses):
 				self.activity[idx] = n_response
@@ -2742,7 +2805,8 @@ class DecodingLayer(object):
 
 	def extract_state_vector(self, time_point=200., save=True, reset=False):
 		"""
-		Read population responses within a local time window and extract a single state vector at the specified time
+		Read population responses within a local time window and extract a single state vector at the specified time.
+
 		:param time_point: in ms
 		:param lag: length of local time window = [time_point-lag, time_point]
 		:param save: bool - store state vectors in the decoding layer or return them
@@ -2816,15 +2880,15 @@ class DecodingLayer(object):
 			if self.standardize_states[0]:
 				st = StandardScaler().fit_transform(st.T).T
 			states.append(st)
-			# states.append(st)
 			self.state_matrix = states
 
 	def evaluate_decoding(self, n_neurons=10, display=False, save=False):
 		"""
-		Make sure the state extraction process is consistent
+		Make sure the state extraction process is consistent.
 
-		:param spike_list: raw spiking activity data for this population
 		:param n_neurons: choose n random neurons to plot
+		:param display:
+		:param save:
 		:return:
 		"""
 		spike_list = self.source_population.spiking_activity
@@ -2838,7 +2902,7 @@ class DecodingLayer(object):
 
 	def reset_states(self):
 		"""
-		Sets all state variables to 0
+		Sets all state variables to 0.
 		:return:
 		"""
 		for idx_state, n_state in enumerate(self.state_variables):
@@ -2861,7 +2925,7 @@ class DecodingLayer(object):
 
 	def determine_total_delay(self):
 		"""
-		Determine the connection delays involved in the decoding layer
+		Determine the connection delays involved in the decoding layer.
 		:return:
 		"""
 		for idx, extractor_id in enumerate(self.extractors):
@@ -2891,9 +2955,9 @@ class DecodingLayer(object):
 				# delay = np.unique(np.array(delays[delays.nonzero()].todense()))
 				# assert (len(delay) == 1), "Heterogeneous delays in decoding layer are not supported.."
 				self.total_delays[idx] = 0.#0.float(delay)
-		print(("\n- total delays in Population {0} DecodingLayer {1}: {2} ms".format(str(self.source_population.name),
+		print("\n- total delays in Population {0} DecodingLayer {1}: {2} ms".format(str(self.source_population.name),
 		                                                                          str(self.state_variables),
-		                                                                          str(self.total_delays))))
+		                                                                          str(self.total_delays)))
 
 
 '''
@@ -2923,7 +2987,6 @@ class DecodingLayer(object):
 
 '''
 
-
 def reset_decoders(net, enc_layer):
 	"""
 	Reset all decoders
@@ -2935,223 +2998,3 @@ def reset_decoders(net, enc_layer):
 	                                                   net.populations, enc_layer.encoders]))):
 		if n_pop.decoding_layer is not None:
 			n_pop.decoding_layer.reset_states()
-
-
-
-# def train_all_readouts(parameters, net, stim, input_signal, encoding_layer, flush=False, debug=False, plot=True,
-# 					   display=True, save=False):
-# 	"""
-# 		Train all readouts attached to network object
-# 	:param parameters:
-# 	:return:
-# 	"""
-# 	from modules.na import Network
-# 	from modules.input_architect import InputSignal
-# 	from modules.signals import empty
-# 	assert(isinstance(net, Network)), "Please provide Network object"
-# 	assert(isinstance(parameters, prs.ParameterSet)), "parameters must be a ParameterSet object"
-# 	assert(isinstance(input_signal, InputSignal) or isinstance(input_signal, np.ndarray)), \
-# 		"input_signal must be an InputSignal object or numpy array / matrix"
-#
-# 	sampling_rate = parameters.decoding_pars.global_sampling_times
-# 	if isinstance(input_signal, np.ndarray):
-# 		target 		= input_signal
-# 		set_labels 	= stim.train_set_labels
-# 	elif sampling_rate is None or isinstance(sampling_rate, list) or isinstance(sampling_rate, np.ndarray):
-# 		target 		= stim.train_set.todense()
-# 		set_labels 	= stim.train_set_labels
-# 	else:
-# 		unfold_n = int(round(sampling_rate ** (-1)))
-# 		if input_signal.online:
-# 			if not isinstance(input_signal.duration_parameters[0], float) or not isinstance(
-# 					input_signal.interval_parameters[0], float):
-# 				# TODO - implement other variants
-# 				raise NotImplementedError("Input signal duration has to be constant.. Variants are not implemented yet")
-# 			else:
-# 				total_samples = (input_signal.duration_parameters[0] + input_signal.interval_parameters[0]) * len(
-# 					stim.train_set_labels)
-# 				step_size = input_signal.duration_parameters[0] + input_signal.interval_parameters[0]
-# 				target = np.repeat(stim.train_set.todense(), step_size, axis=1)
-# 				assert(target.shape[1] == total_samples), "Inconsistent dimensions in setting continuous targets"
-# 		else:
-# 			target = input_signal.generate_square_signal()[:, ::int(unfold_n)]
-# 		onset_idx = [[] for _ in range(target.shape[0])]
-# 		offset_idx = [[] for _ in range(target.shape[0])]
-# 		labels = []
-# 		set_labels = {}
-# 		for k in range(target.shape[0]):
-# 			stim_idx = np.where(stim.train_set.todense()[k, :])[1]
-# 			if stim_idx.shape[1]:
-# 				labels.append(np.unique(np.array(stim.train_set_labels)[stim_idx])[0])
-# 				if input_signal.online:
-# 					iddxs = np.array(np.where(target[k, :])[1])
-# 				else:
-# 					iddxs = np.array(np.where(target[k, :])[0])
-# 				idx_diff = np.array(np.diff(iddxs))
-# 				if len(idx_diff.shape) > 1:
-# 					idx_diff = idx_diff[0]
-# 					iddxs = iddxs[0]
-# 				onset_idx[k] = [x for idd, x in enumerate(iddxs) if idx_diff[idd-1] > 1 or x == 0]
-# 				offset_idx[k] = [x for idd, x in enumerate(iddxs) if idd<len(iddxs)-1 and (idx_diff[idd] > 1 or x == len(
-# 					target[k, :]))]
-# 				offset_idx.append(iddxs[-1])
-# 		set_labels.update({'dimensions': target.shape[0], 'labels': labels, 'onset_idx': onset_idx, 'offset_idx':
-# 			offset_idx})
-#
-# 	if isinstance(save, dict):
-# 		if save['label']:
-# 			paths = save
-# 			save = True
-# 		else:
-# 			save = False
-#
-# 	# read from all state matrices
-# 	for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations, net.populations,
-# 													   encoding_layer.encoders]))):
-# 		if not empty(n_pop.state_matrix):
-# 			state_dimensions = np.array(n_pop.state_matrix).shape
-# 			population_readouts = n_pop.readouts
-# 			chunker = lambda lst, sz: [lst[i:i + sz] for i in range(0, len(lst), sz)]
-# 			n_pop.readouts = chunker(population_readouts, len(population_readouts) / state_dimensions[0])
-# 			# copy readouts for each state matrix
-# 			if n_pop.state_sample_times:
-# 				n_copies = len(n_pop.state_sample_times)
-# 				all_readouts = n_pop.copy_readout_set(n_copies)
-# 				n_pop.readouts = all_readouts
-#
-# 			for idx_state, n_state in enumerate(n_pop.state_matrix):
-# 				if not isinstance(n_state, list):
-# 					print("\nTraining {0} readouts from Population {1}".format(str(n_pop.decoding_pars['readout'][
-# 																					   'N']), str(n_pop.name)))
-# 					label = n_pop.name + '-Train-StateVar{0}'.format(str(idx_state))
-# 					if save:
-# 						np.save(paths['activity'] + label, n_state)
-# 					if debug:
-# 						if save:
-# 							save_path = paths['figures'] + label
-# 						else:
-# 							save_path = False
-# 						analyse_state_matrix(n_state, set_labels, label=label, plot=plot, display=display,
-# 											 save=save_path)
-# 					for readout in n_pop.readouts[idx_state]:
-# 						readout.set_index()
-# 						discrete_readout_train(n_state, target, readout, readout.index)
-# 				else:
-# 					for iddx_state, nn_state in enumerate(n_state):
-# 						readout_set = n_pop.readouts[iddx_state]
-# 						print("\nTraining {0} readouts from Population {1} [t = {2}]".format(
-# 							str(n_pop.decoding_pars['readout']['N']), str(n_pop.name), str(n_pop.state_sample_times[iddx_state])))
-# 						label = n_pop.name + '-Train-StateVar{0}-sample{1}'.format(str(idx_state),
-# 																				   str(iddx_state))
-# 						if save:
-# 							np.save(paths['activity'] + label, n_state)
-# 						if debug:
-# 							if save:
-# 								save_path = paths['figures'] + label
-# 							else:
-# 								save_path = False
-# 							analyse_state_matrix(nn_state, stim.train_set_labels, label=label, plot=plot,
-# 												 display=display,
-# 												 save=save_path)
-# 						for readout in readout_set[idx_state]:
-# 							readout.set_index()
-# 							discrete_readout_train(nn_state, target, readout, readout.index)
-# 				if flush:
-# 					n_pop.flush_states()
-#
-#
-# def test_all_readouts(parameters, net, stim, input_signal, encoding_layer=None, flush=False, debug=False, plot=True,
-# 					  display=True, save=False):
-# 	"""
-# 	Test and measure performance of all readouts attached to Network object
-# 	:param net:
-# 	:param stim:
-# 	:param flush:
-# 	:return:
-# 	"""
-# 	assert (isinstance(net, na.Network)), "Please provide Network object"
-# 	assert (isinstance(parameters, prs.ParameterSet)), "parameters must be a ParameterSet object"
-# 	assert (isinstance(input_signal, ips.InputSignal) or isinstance(input_signal, np.ndarray)), \
-# 		"input_signal must be an InputSignal object or numpy array / matrix"
-#
-# 	sampling_rate = parameters.decoding_pars.global_sampling_times
-# 	if isinstance(input_signal, np.ndarray):
-# 		# if a custom training target was provided
-# 		target 		= input_signal
-# 		set_labels 	= stim.test_set_labels
-# 	elif sampling_rate is None or isinstance(sampling_rate, list) or isinstance(sampling_rate, np.ndarray):
-# 		target 		= stim.test_set.todense()
-# 		set_labels 	= stim.test_set_labels
-# 	else:
-# 		unfold_n 	= int(round(sampling_rate ** (-1)))
-# 		target 		= input_signal.generate_square_signal()[:, ::int(unfold_n)]
-# 		onset_idx 	= [[] for _ in range(target.shape[0])]
-# 		offset_idx 	= [[] for _ in range(target.shape[0])]
-# 		labels 		= []
-# 		set_labels 	= {}
-# 		for k in range(target.shape[0]):
-# 			stim_idx = np.where(stim.test_set.todense()[k, :])[1]
-# 			if stim_idx.shape[1]:
-# 				labels.append(np.unique(np.array(stim.test_set_labels)[stim_idx])[0])
-# 				iddxs 		  = np.where(target[k, :])[0]
-# 				idx_diff 	  = np.diff(iddxs)
-# 				onset_idx[k]  = [x for idd, x in enumerate(iddxs) if idx_diff[idd - 1] > 1 or x == 0]
-# 				offset_idx[k] = [x for idd, x in enumerate(iddxs) if
-# 								 idd < len(iddxs) - 1 and (idx_diff[idd] > 1 or x == len(target[k, :]))]
-# 				offset_idx.append(iddxs[-1])
-# 		set_labels.update({'dimensions': target.shape[0], 'labels': labels, 'onset_idx': onset_idx,
-# 						   'offset_idx': offset_idx})
-#
-# 	if isinstance(save, dict):
-# 		if save['label']:
-# 			paths = save
-# 			save = True
-# 		else:
-# 			save = False
-#
-# 	# state of merged populations
-# 	if encoding_layer is not None:
-# 		all_populations = list(itertools.chain(*[net.merged_populations, net.populations, encoding_layer.encoders]))
-# 	else:
-# 		all_populations = list(itertools.chain(*[net.merged_populations, net.populations]))
-#
-# 	for ctr, n_pop in enumerate(all_populations):
-# 		if not sg.empty(n_pop.state_matrix):
-# 			for idx_state, n_state in enumerate(n_pop.state_matrix):
-# 				if not isinstance(n_state, list):
-# 					print("\nTesting {0} readouts from Population {1} [{2}]".format(str(n_pop.decoding_pars['readout'][
-# 												'N']), str(n_pop.name), str(n_pop.state_variables[idx_state])))
-# 					label = n_pop.name + '-Test-StateVar{0}'.format(str(idx_state))
-# 					if save:
-# 						np.save(paths['activity'] + label, n_state)
-# 					if debug:
-# 						if save:
-# 							save_path = paths['figures'] + label
-# 						else:
-# 							save_path = False
-# 						analyse_state_matrix(n_state, set_labels, label=label, plot=plot, display=display,
-# 											 save=save_path)
-# 					for readout in n_pop.readouts[idx_state]:
-# 						discrete_readout_test(n_state, target, readout, readout.index)
-# 				else:
-# 					for iddx_state, nn_state in enumerate(n_state):
-# 						readout_set = n_pop.readouts[iddx_state]
-# 						print("\nTesting {0} readouts from Population {1} [t = {2}]".format(
-# 							str(n_pop.decoding_pars['readout'][
-# 									'N']), str(n_pop.name), str(n_pop.state_sample_times[iddx_state])))
-# 						label = n_pop.name + '-Test-StateVar{0}-sample{1}'.format(str(idx_state),
-# 																				  str(iddx_state))
-# 						if save:
-# 							np.save(paths['activity'] + label, n_state)
-# 						if debug:
-# 							if save:
-# 								save_path = paths['figures'] + label
-# 							else:
-# 								save_path = False
-# 							analyse_state_matrix(nn_state, set_labels, label=label, plot=plot,
-# 												 display=display,
-# 												 save=save_path)
-# 						for readout in readout_set[idx_state]:
-# 							discrete_readout_test(nn_state, target, readout, readout.index)
-# 			if flush:
-# 				n_pop.flush_states()
