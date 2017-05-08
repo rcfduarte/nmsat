@@ -1,0 +1,101 @@
+# Copyright (c) 2016-2017 Martin Donath <martin.donath@squidfunk.com>
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to
+# deal in the Software without restriction, including without limitation the
+# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+# sell copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
+
+# Project information
+site_name: Neural Microcircuit Simulation and Analysis Toolkit (NMSAT)
+site_description:
+site_author: Renato Duarte
+site_url: https://zbarni.github.io/network_simulation_testbed/
+
+# Repository
+repo_name: zbarni/network_simulation_testbed
+repo_url: https://github.com/zbarni/network_simulation_testbed
+
+# Copyright
+copyright: ' Copyright &copy; 2017 Renato Duarte'
+
+# Theme directory
+theme_dir: material
+
+# Options
+extra:
+  feature:
+    tabs: false
+  palette:
+    primary: indigo
+    accent: indigo
+  social:
+    - type: globe
+      link: http://struct.cc
+    - type: github-alt
+      link: https://github.com/rcfduarte
+    - type: twitter
+      link: https://twitter.com/rcfduarte
+    - type: linkedin
+      link:
+
+# Extensions
+markdown_extensions:
+  - markdown.extensions.admonition
+  - markdown.extensions.codehilite(guess_lang=false)
+  - markdown.extensions.def_list
+  - markdown.extensions.footnotes
+  - markdown.extensions.meta
+  - markdown.extensions.toc(permalink=true)
+  - pymdownx.arithmatex
+  - pymdownx.betterem(smart_enable=all)
+  - pymdownx.caret
+  - pymdownx.critic
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:pymdownx.emoji.to_svg
+  - pymdownx.inlinehilite
+  - pymdownx.magiclink
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences
+  - pymdownx.tasklist(custom_checkbox=true)
+  - pymdownx.tilde
+
+# Page tree
+pages:
+  - Overview: index.md
+  - Installation: installation.md
+  - Framework description:
+    - Quick overview: framework-description.md
+    - Standard use case: standard-use-case.md
+    - Parameters file and parameters module: parameters.md
+    - Input specification and generation: input.md
+    - Encoding layer: encoding.md
+    - Populations and networks: populations-and-networks.md
+    - Decoding Layer: decoding.md
+    - Analysis and visualization: analysis-and-visualization.md
+  - Examples:
+    - Single neuron fI curve : single-neuron-fi-curve.md
+    - Single neuron with patterned synaptic input: single-neuron-with-patterned-synaptic-input.md
+    - Balanced random network: balanced-random-network.md
+    - Stimulus processing: stimulus-processing.md
+  - Release notes: release-notes.md
+  - Contributing: contributing.md
+  - License: license.md
+
+# Google Analytics
+google_analytics:
+  - !!python/object/apply:os.getenv ["GOOGLE_ANALYTICS_KEY"]
+  - auto
