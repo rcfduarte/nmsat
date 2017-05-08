@@ -11,10 +11,6 @@ def set_kernel_defaults(run_type='local', data_label='', **system_pars):
 	:param default_set:
 	:return:
 	"""
-	if run_type == 'local':
-		run = True
-	else:
-		run = False
 	keys = ['nodes', 'ppn', 'mem', 'walltime', 'queue', 'sim_time', 'transient_time']
 	if not np.mean(np.sort(system_pars.keys()) == np.sort(keys)).astype(bool):
 		raise TypeError("system parameters dictionary must contain the following keys {0}".format(str(keys)))
@@ -32,7 +28,7 @@ def set_kernel_defaults(run_type='local', data_label='', **system_pars):
 		'data_path': paths[run_type]['data_path'],
 		'mpl_path': paths[run_type]['matplotlib_rc'],
 		'overwrite_files': True,
-		'print_time': run,
+		'print_time': (run_type == 'local'),
 		'rng_seeds': range(msd + N_vp + 1, msd + 2 * N_vp + 1),
 		'grng_seed': msd + N_vp,
 		'total_num_virtual_procs': N_vp,
@@ -40,7 +36,7 @@ def set_kernel_defaults(run_type='local', data_label='', **system_pars):
 		'np_seed': np_seed,
 
 		'system': {
-			'local': run,
+			'local': (run_type == 'local'),
 			'system_label': run_type,
 			'queueing_system': paths[run_type]['queueing_system'],
 			'jdf_template': paths[run_type]['jdf_template'],

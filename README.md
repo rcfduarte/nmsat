@@ -43,7 +43,6 @@ due to the strict specificities on the structure of the parameters dictionaries 
 Optional (add functionality):
 * [PySpike](http://mariomulansky.github.io/PySpike/) version 0.5.1
 * h5py version 2.2.1 or higher
-* mayavi 
 
 #### Installing
 
