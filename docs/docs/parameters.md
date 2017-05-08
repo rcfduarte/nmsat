@@ -15,6 +15,8 @@ Furthermore, modifications of the parameter values are accepted with some restri
 on what is currently implemented.
 
 
+
+
 Typically the following imports are necessary in a parameter file:
 
 ```python
@@ -30,11 +32,12 @@ system_name = 'local'
 data_label  = 'example1_singleneuron_fI'
 ```
 
-It is important to make sure that the system_name corresponds to a key in the paths dictionary.
-Also, it is always advisable to provide apropriate labels for the data.
+It is important to make sure that the `system_name` corresponds to a key in the `paths` dictionary.
+Also, it is always advisable to provide appropriate labels for the data.
 
 ### Parameter range declarations and build function
-(...)
+
+TBD
 
 ```python
 return dict([('kernel_pars', kernel_pars),

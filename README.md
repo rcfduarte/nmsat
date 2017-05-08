@@ -31,18 +31,22 @@ pressures of a PhD project and the very broad scope, the code is imperfect and u
 development. Despite our best efforts, it is prone to errors and often difficult to understand, particularly
 due to the strict specificities on the structure of the parameters dictionaries and how they are used.
 
+For a detailed description of the framework and to make the most out of it, please read the 
+[documentation](https://zbarni.github.io/network_simulation_testbed/). 
+
 #### Dependencies
 
-* Python 2.7
-* [NEST](http://www.nest-simulator.org/) version 2.8.0 or higher
-* numpy version 1.7.0 or higher 
-* scipy version 0.12.0 or higher
-* scikit-learn version 0.18.0 or higher
-* matplotlib version 1.2.0 or higher
+* **Python** 2.7
+* [**NEST**](http://www.nest-simulator.org/) version 2.8.0 or higher
+* **numpy** version 1.7.0 or higher 
+* **scipy** version 0.12.0 or higher
+* **scikit-learn** version 0.18.0 or higher
+* **matplotlib** version 1.2.0 or higher
 
-Optional (add functionality):
-* [PySpike](http://mariomulansky.github.io/PySpike/) version 0.5.1
-* h5py version 2.2.1 or higher
+Optional (for additional functionality):
+* **PySpike** version 0.5.1
+* **h5py** version 2.2.1 or higher
+* **mayavi** 
 
 #### Installing
 
@@ -103,7 +107,7 @@ where `parameters_file` refers to the (full or relative) path to the parameters 
 set (must match the name of a file in the project’s ’computations’ folder) and `extra_parameters` are
 parameter=value pairs for different, extra parameters (specific to each computation).
 
-To run experiments on a cluster, please check out the [documentation](/standard-use-case/#cluster).
+To run experiments on a cluster, please check out the [documentation](https://zbarni.github.io/network_simulation_testbed/standard-use-case/#cluster).
 
 <!--A numerical simulation/experiment is specified as a global parameter file, a complete script parsing the parameters and executing the experiment (primarily usefull for development/debugging) and a similar function that executes the same series of commands but can be executed directly from main as:-->
 <!--```-->
