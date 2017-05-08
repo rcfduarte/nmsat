@@ -691,6 +691,95 @@ dictionaries is the critical element to make everything work. If the naming conv
 errors will follow.</p>
 <p>Furthermore, modifications of the parameter values are accepted with some restrictions, depending
 on what is currently implemented.</p>
+<p>We start with a trimmed version of the parameter file in the <a href="../single-neuron-fi-curve/">fI curve example</a>, to explain the 
+ its basic components and structure:</p>
+<div class="codehilite"><pre><span></span><span class="kn">from</span> <span class="nn">defaults.paths</span> <span class="kn">import</span> <span class="n">paths</span>
+<span class="kn">from</span> <span class="nn">modules.parameters</span> <span class="kn">import</span> <span class="n">ParameterSet</span><span class="p">,</span> <span class="n">copy_dict</span>
+
+<span class="n">system_name</span> <span class="o">=</span> <span class="s1">&#39;local&#39;</span>
+<span class="n">data_label</span>  <span class="o">=</span> <span class="s1">&#39;example1_singleneuron_fI&#39;</span>
+
+<span class="c1"># ######################################################################################################################</span>
+<span class="c1"># PARAMETER RANGE declarations</span>
+<span class="c1"># ======================================================================================================================</span>
+<span class="n">parameter_range</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;max_current&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">800.</span><span class="p">]</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span> <span class="nf">build_parameters</span><span class="p">(</span><span class="n">max_current</span><span class="p">):</span>
+    <span class="c1"># ##################################################################################################################</span>
+    <span class="c1"># DC input parameters</span>
+    <span class="c1"># ==================================================================================================================</span>
+    <span class="n">total_time</span> <span class="o">=</span> <span class="mf">10000.</span>        <span class="c1"># total simulation time [ms]</span>
+    <span class="n">analysis_interval</span> <span class="o">=</span> <span class="mf">1000.</span>  <span class="c1"># duration of each current step [ms]</span>
+    <span class="n">min_current</span> <span class="o">=</span> <span class="mf">0.</span>           <span class="c1"># initial current amplitude [pA]</span>
+
+
+    <span class="c1"># ##################################################################################################################</span>
+    <span class="c1"># System / Kernel Parameters</span>
+    <span class="c1"># ##################################################################################################################</span>
+    <span class="c1"># system-specific parameters (resource allocation, simulation times)</span>
+    <span class="n">system_pars</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">nodes</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="o">...</span>
+    <span class="p">)</span>
+
+    <span class="c1"># main kernel parameter set</span>
+    <span class="n">kernel_pars</span> <span class="o">=</span> <span class="n">ParameterSet</span><span class="p">({</span>
+        <span class="s1">&#39;resolution&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="o">...</span>
+    <span class="p">})</span>
+    <span class="c1"># ##################################################################################################################</span>
+    <span class="c1"># Recording devices</span>
+    <span class="c1"># ##################################################################################################################</span>
+    <span class="n">multimeter</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;start&#39;</span><span class="p">:</span> <span class="mf">0.</span><span class="p">,</span>
+        <span class="s1">&#39;stop&#39;</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">float_info</span><span class="o">.</span><span class="n">max</span><span class="p">,</span>
+        <span class="o">...</span>
+    <span class="p">}</span>
+
+    <span class="c1"># ##################################################################################################################</span>
+    <span class="c1"># Neuron, Synapse and Network Parameters</span>
+    <span class="c1"># ##################################################################################################################</span>
+    <span class="n">neuron_pars</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;AdEx&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="s1">&#39;aeif_cond_exp&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;C_m&#39;</span><span class="p">:</span> <span class="mf">250.0</span><span class="p">,</span>
+                <span class="o">...</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="n">net_pars</span> <span class="o">=</span> <span class="n">ParameterSet</span><span class="p">({</span>
+        <span class="s1">&#39;n_populations&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">neuron_pars</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span>
+        <span class="s1">&#39;pop_names&#39;</span><span class="p">:</span> <span class="n">pop_names</span><span class="p">,</span>
+        <span class="o">...</span>
+    <span class="p">})</span>
+
+    <span class="n">neuron_pars</span> <span class="o">=</span> <span class="n">ParameterSet</span><span class="p">(</span><span class="n">neuron_pars</span><span class="p">)</span>
+
+    <span class="c1"># ##################################################################################################################</span>
+    <span class="c1"># Input/Encoding Parameters</span>
+    <span class="c1"># ##################################################################################################################</span>
+    <span class="n">encoding_pars</span> <span class="o">=</span> <span class="n">ParameterSet</span><span class="p">({</span>
+        <span class="s1">&#39;generator&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s1">&#39;labels&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;DC_Input&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;models&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;step_current_generator&#39;</span><span class="p">],</span>
+        <span class="p">}</span>
+        <span class="o">...</span>
+    <span class="p">})</span>
+
+    <span class="c1"># ##################################################################################################################</span>
+    <span class="c1"># Return dictionary of Parameters dictionaries</span>
+    <span class="c1"># ==================================================================================================================</span>
+    <span class="k">return</span> <span class="nb">dict</span><span class="p">([(</span><span class="s1">&#39;kernel_pars&#39;</span><span class="p">,</span>    <span class="n">kernel_pars</span><span class="p">),</span>
+                 <span class="p">(</span><span class="s1">&#39;neuron_pars&#39;</span><span class="p">,</span>    <span class="n">neuron_pars</span><span class="p">),</span>
+                 <span class="p">(</span><span class="s1">&#39;net_pars&#39;</span><span class="p">,</span>       <span class="n">net_pars</span><span class="p">),</span>
+                 <span class="p">(</span><span class="s1">&#39;encoding_pars&#39;</span><span class="p">,</span>  <span class="n">encoding_pars</span><span class="p">)])</span>
+</pre></div>
+
+
 <p>Typically the following imports are necessary in a parameter file:</p>
 <div class="codehilite"><pre><span></span><span class="kn">from</span> <span class="nn">defaults.paths</span> <span class="kn">import</span> <span class="n">paths</span>  
 <span class="kn">from</span> <span class="nn">modules.parameters</span> <span class="kn">import</span> <span class="n">ParameterSet</span>
@@ -704,10 +793,9 @@ will determine the system-specific paths to use as well as the label for data st
 </pre></div>
 
 
-<p>It is important to make sure that the system_name corresponds to a key in the paths dictionary.
-Also, it is always advisable to provide apropriate labels for the data.</p>
+<p>It is important to make sure that the <code>system_name</code> corresponds to a key in the <code>paths</code> dictionary.
+Also, it is always advisable to provide appropriate labels for the data.</p>
 <h3 id="parameter-range-declarations-and-build-function">Parameter range declarations and build function<a class="headerlink" href="#parameter-range-declarations-and-build-function" title="Permanent link">&para;</a></h3>
-<p>(...)</p>
 <div class="codehilite"><pre><span></span><span class="k">return</span> <span class="nb">dict</span><span class="p">([(</span><span class="s1">&#39;kernel_pars&#39;</span><span class="p">,</span> <span class="n">kernel_pars</span><span class="p">),</span>
              <span class="p">(</span><span class="s1">&#39;neuron_pars&#39;</span><span class="p">,</span> <span class="n">neuron_pars</span><span class="p">),</span>
              <span class="p">(</span><span class="s1">&#39;net_pars&#39;</span><span class="p">,</span> <span class="n">net_pars</span><span class="p">),</span>
