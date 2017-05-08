@@ -11,7 +11,7 @@
 
     
     <url>
-     <loc>http://squidfunk.github.io/mkdocs-material//getting-started/</loc>
+     <loc>http://squidfunk.github.io/mkdocs-material//installation/</loc>
      <lastmod>2017-05-08</lastmod>
      <changefreq>daily</changefreq>
     </url>
@@ -20,57 +20,53 @@
     
         
     <url>
-     <loc>http://squidfunk.github.io/mkdocs-material//extensions/admonition/</loc>
+     <loc>http://squidfunk.github.io/mkdocs-material//framework-description/</loc>
      <lastmod>2017-05-08</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
-     <loc>http://squidfunk.github.io/mkdocs-material//extensions/codehilite/</loc>
+     <loc>http://squidfunk.github.io/mkdocs-material//standard-use-case/</loc>
      <lastmod>2017-05-08</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
-     <loc>http://squidfunk.github.io/mkdocs-material//extensions/footnotes/</loc>
+     <loc>http://squidfunk.github.io/mkdocs-material//parameters/</loc>
      <lastmod>2017-05-08</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
-     <loc>http://squidfunk.github.io/mkdocs-material//extensions/metadata/</loc>
+     <loc>http://squidfunk.github.io/mkdocs-material//input/</loc>
      <lastmod>2017-05-08</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
-     <loc>http://squidfunk.github.io/mkdocs-material//extensions/permalinks/</loc>
+     <loc>http://squidfunk.github.io/mkdocs-material//encoding/</loc>
      <lastmod>2017-05-08</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
-     <loc>http://squidfunk.github.io/mkdocs-material//extensions/pymdown/</loc>
+     <loc>http://squidfunk.github.io/mkdocs-material//populations-and-networks/</loc>
      <lastmod>2017-05-08</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
-    
-
-    
     <url>
-     <loc>http://squidfunk.github.io/mkdocs-material//specimen/</loc>
+     <loc>http://squidfunk.github.io/mkdocs-material//decoding/</loc>
      <lastmod>2017-05-08</lastmod>
      <changefreq>daily</changefreq>
     </url>
-    
-
-    
+        
     <url>
-     <loc>http://squidfunk.github.io/mkdocs-material//customization/</loc>
+     <loc>http://squidfunk.github.io/mkdocs-material//analysis-and-visualization/</loc>
      <lastmod>2017-05-08</lastmod>
      <changefreq>daily</changefreq>
     </url>
+        
     
 
     

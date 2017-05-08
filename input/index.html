@@ -1,0 +1,1294 @@
+
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A Material Design theme for MkDocs">
+      
+      
+        <link rel="canonical" href="http://squidfunk.github.io/mkdocs-material/input/">
+      
+      
+        <meta name="author" content="Renato Duarte">
+      
+      
+        <link rel="shortcut icon" href="../assets/images/favicon.png">
+      
+      <meta name="generator" content="mkdocs-0.16.3, mkdocs-material-1.6.1">
+    
+    
+      
+        <title>Input specification and generation - Neural Microcircuit Simulation and Analysis Toolkit (NMSAT)</title>
+      
+    
+    
+      <script src="../assets/javascripts/modernizr-56ade86843.js"></script>
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/application-4d0d3f2fbf.css">
+      
+        <link rel="stylesheet" href="../assets/stylesheets/application-f78e5cb881.palette.css">
+      
+    
+    
+      
+        
+        
+        
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700|Roboto+Mono">
+        <style>body,input{font-family:"Roboto","Helvetica Neue",Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono","Courier New",Courier,monospace}</style>
+      
+      <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    
+    
+    
+  </head>
+  
+  
+  
+  
+    <body data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    <svg class="md-svg">
+      <defs>
+        
+        
+          <svg xmlns="http://www.w3.org/2000/svg" width="416" height="448" viewBox="0 0 416 448" id="github"><path fill="currentColor" d="M160 304q0 10-3.125 20.5t-10.75 19T128 352t-18.125-8.5-10.75-19T96 304t3.125-20.5 10.75-19T128 256t18.125 8.5 10.75 19T160 304zm160 0q0 10-3.125 20.5t-10.75 19T288 352t-18.125-8.5-10.75-19T256 304t3.125-20.5 10.75-19T288 256t18.125 8.5 10.75 19T320 304zm40 0q0-30-17.25-51T296 232q-10.25 0-48.75 5.25Q229.5 240 208 240t-39.25-2.75Q130.75 232 120 232q-29.5 0-46.75 21T56 304q0 22 8 38.375t20.25 25.75 30.5 15 35 7.375 37.25 1.75h42q20.5 0 37.25-1.75t35-7.375 30.5-15 20.25-25.75T360 304zm56-44q0 51.75-15.25 82.75-9.5 19.25-26.375 33.25t-35.25 21.5-42.5 11.875-42.875 5.5T212 416q-19.5 0-35.5-.75t-36.875-3.125-38.125-7.5-34.25-12.875T37 371.5t-21.5-28.75Q0 312 0 260q0-59.25 34-99-6.75-20.5-6.75-42.5 0-29 12.75-54.5 27 0 47.5 9.875t47.25 30.875Q171.5 96 212 96q37 0 70 8 26.25-20.5 46.75-30.25T376 64q12.75 25.5 12.75 54.5 0 21.75-6.75 42 34 40 34 99.5z"/></svg>
+        
+      </defs>
+    </svg>
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="drawer">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="search">
+    <label class="md-overlay" data-md-component="overlay" for="drawer"></label>
+    
+      <header class="md-header" data-md-component="header">
+  <nav class="md-header-nav md-grid">
+    <div class="md-flex">
+      <div class="md-flex__cell md-flex__cell--shrink">
+        
+          <a href="http://squidfunk.github.io/mkdocs-material/" title="Neural Microcircuit Simulation and Analysis Toolkit (NMSAT)" class="md-icon md-icon--home md-header-nav__button">
+          </a>
+        
+      </div>
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <label class="md-icon md-icon--menu md-header-nav__button" for="drawer"></label>
+      </div>
+      <div class="md-flex__cell md-flex__cell--stretch">
+        <span class="md-flex__ellipsis md-header-nav__title">
+          
+            
+              
+                <span class="md-header-nav__parent">
+                  Framework description
+                </span>
+              
+            
+            Input specification and generation
+          
+        </span>
+      </div>
+      <div class="md-flex__cell md-flex__cell--shrink">
+        
+          <label class="md-icon md-icon--search md-header-nav__button" for="search"></label>
+          
+<div class="md-search" data-md-component="search">
+  <label class="md-search__overlay" for="search"></label>
+  <div class="md-search__inner">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" required placeholder="Search" accesskey="s" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query">
+      <label class="md-icon md-search__icon" for="search"></label>
+      <button type="reset" class="md-icon md-search__icon" data-md-component="reset">close</button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="result">
+          <div class="md-search-result__meta" data-md-lang-result-none="No matching documents" data-md-lang-result-one="1 matching document" data-md-lang-result-other="# matching documents">
+            Type to start searching
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+        
+      </div>
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <div class="md-header-nav__source">
+          
+            
+
+
+  
+
+
+  <a href="https://github.com/squidfunk/mkdocs-material" title="Go to repository" class="md-source" data-md-source="github">
+    
+      <div class="md-source__icon">
+        <svg viewBox="0 0 24 24" width="24" height="24">
+          <use xlink:href="#github" width="24" height="24"></use>
+        </svg>
+      </div>
+    
+    <div class="md-source__repository">
+      squidfunk/mkdocs-material
+    </div>
+  </a>
+
+          
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+    
+    <div class="md-container">
+      
+      
+      <main class="md-main">
+        <div class="md-main__inner md-grid" data-md-component="container">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" data-md-level="0">
+  <label class="md-nav__title md-nav__title--site" for="drawer">
+    
+      <i class="md-icon md-icon--home md-nav__button"></i>
+    
+    Neural Microcircuit Simulation and Analysis Toolkit (NMSAT)
+  </label>
+  
+    <div class="md-nav__source">
+      
+
+
+  
+
+
+  <a href="https://github.com/squidfunk/mkdocs-material" title="Go to repository" class="md-source" data-md-source="github">
+    
+      <div class="md-source__icon">
+        <svg viewBox="0 0 24 24" width="24" height="24">
+          <use xlink:href="#github" width="24" height="24"></use>
+        </svg>
+      </div>
+    
+    <div class="md-source__repository">
+      squidfunk/mkdocs-material
+    </div>
+  </a>
+
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href=".." title="Overview" class="md-nav__link">
+      Overview
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../installation/" title="Installation" class="md-nav__link">
+      Installation
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3" checked>
+    
+    <label class="md-nav__link" for="nav-3">
+      Framework description
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-3">
+        Framework description
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../framework-description/" title="Quick overview" class="md-nav__link">
+      Quick overview
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../standard-use-case/" title="Standard use case" class="md-nav__link">
+      Standard use case
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../parameters/" title="Parameters file and parameters module" class="md-nav__link">
+      Parameters file and parameters module
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="toc">
+        Input specification and generation
+      </label>
+    
+    <a href="./" title="Input specification and generation" class="md-nav__link md-nav__link--active">
+      Input specification and generation
+    </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#installation" title="Installation" class="md-nav__link">
+    Installation
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#installing-mkdocs" title="Installing MkDocs" class="md-nav__link">
+    Installing MkDocs
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#installing-material" title="Installing Material" class="md-nav__link">
+    Installing Material
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#using-pip" title="using pip" class="md-nav__link">
+    using pip
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-choco" title="using choco" class="md-nav__link">
+    using choco
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cloning-from-github" title="cloning from GitHub" class="md-nav__link">
+    cloning from GitHub
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#troubleshooting" title="Troubleshooting" class="md-nav__link">
+    Troubleshooting
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage" title="Usage" class="md-nav__link">
+    Usage
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#options" title="Options" class="md-nav__link">
+    Options
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#changing-the-color-palette" title="Changing the color palette" class="md-nav__link">
+    Changing the color palette
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#primary-colors" title="Primary colors" class="md-nav__link">
+    Primary colors
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#accent-colors" title="Accent colors" class="md-nav__link">
+    Accent colors
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changing-the-font-family" title="Changing the font family" class="md-nav__link">
+    Changing the font family
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-source-repository" title="Adding a source repository" class="md-nav__link">
+    Adding a source repository
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-logo" title="Adding a logo" class="md-nav__link">
+    Adding a logo
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-social-links" title="Adding social links" class="md-nav__link">
+    Adding social links
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#google-analytics-integration" title="Google Analytics integration" class="md-nav__link">
+    Google Analytics integration
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#disqus-integation" title="Disqus integation" class="md-nav__link">
+    Disqus integation
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#localization" title="Localization" class="md-nav__link">
+    Localization
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tabs" title="Tabs" class="md-nav__link">
+    Tabs
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#more-advanced-customization" title="More advanced customization" class="md-nav__link">
+    More advanced customization
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extensions" title="Extensions" class="md-nav__link">
+    Extensions
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#full-example" title="Full example" class="md-nav__link">
+    Full example
+  </a>
+  
+</li>
+      
+      
+      
+    </ul>
+  
+</nav>
+    
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../encoding/" title="Encoding layer" class="md-nav__link">
+      Encoding layer
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../populations-and-networks/" title="Populations and networks" class="md-nav__link">
+      Populations and networks
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../decoding/" title="Decoding Layer" class="md-nav__link">
+      Decoding Layer
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../analysis-and-visualization/" title="Analysis and visualization" class="md-nav__link">
+      Analysis and visualization
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../release-notes/" title="Release notes" class="md-nav__link">
+      Release notes
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../contributing/" title="Contributing" class="md-nav__link">
+      Contributing
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../license/" title="License" class="md-nav__link">
+      License
+    </a>
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#installation" title="Installation" class="md-nav__link">
+    Installation
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#installing-mkdocs" title="Installing MkDocs" class="md-nav__link">
+    Installing MkDocs
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#installing-material" title="Installing Material" class="md-nav__link">
+    Installing Material
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#using-pip" title="using pip" class="md-nav__link">
+    using pip
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-choco" title="using choco" class="md-nav__link">
+    using choco
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cloning-from-github" title="cloning from GitHub" class="md-nav__link">
+    cloning from GitHub
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#troubleshooting" title="Troubleshooting" class="md-nav__link">
+    Troubleshooting
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage" title="Usage" class="md-nav__link">
+    Usage
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#options" title="Options" class="md-nav__link">
+    Options
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#changing-the-color-palette" title="Changing the color palette" class="md-nav__link">
+    Changing the color palette
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#primary-colors" title="Primary colors" class="md-nav__link">
+    Primary colors
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#accent-colors" title="Accent colors" class="md-nav__link">
+    Accent colors
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changing-the-font-family" title="Changing the font family" class="md-nav__link">
+    Changing the font family
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-source-repository" title="Adding a source repository" class="md-nav__link">
+    Adding a source repository
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-logo" title="Adding a logo" class="md-nav__link">
+    Adding a logo
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-social-links" title="Adding social links" class="md-nav__link">
+    Adding social links
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#google-analytics-integration" title="Google Analytics integration" class="md-nav__link">
+    Google Analytics integration
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#disqus-integation" title="Disqus integation" class="md-nav__link">
+    Disqus integation
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#localization" title="Localization" class="md-nav__link">
+    Localization
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tabs" title="Tabs" class="md-nav__link">
+    Tabs
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#more-advanced-customization" title="More advanced customization" class="md-nav__link">
+    More advanced customization
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extensions" title="Extensions" class="md-nav__link">
+    Extensions
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#full-example" title="Full example" class="md-nav__link">
+    Full example
+  </a>
+  
+</li>
+      
+      
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                
+                <h1 id="getting-started">Getting started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h1>
+<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
+<div class="admonition tip">
+<p class="admonition-title">Set up Material using Docker</p>
+<p>The official <a href="https://hub.docker.com/r/squidfunk/mkdocs-material/">Docker image</a> for Material comes with all dependencies
+pre-installed and ready-to-use with the latest version published on PyPI,
+packaged in a very small image (28MB compressed).</p>
+</div>
+<h3 id="installing-mkdocs">Installing MkDocs<a class="headerlink" href="#installing-mkdocs" title="Permanent link">&para;</a></h3>
+<p>Before installing <a href="http://www.mkdocs.org">MkDocs</a>, you need to make sure you have Python and <code>pip</code>
+– the Python package manager – up and running. You can verify if you're already
+good to go with the following commands:</p>
+<div class="codehilite"><pre><span></span>python --version
+<span class="c1"># Python 2.7.13</span>
+pip --version
+<span class="c1"># pip 9.0.1</span>
+</pre></div>
+
+
+<p>Installing and verifying MkDocs is as simple as:</p>
+<div class="codehilite"><pre><span></span>pip install mkdocs <span class="o">&amp;&amp;</span> mkdocs --version
+<span class="c1"># mkdocs, version 0.16.0</span>
+</pre></div>
+
+
+<div class="admonition warning">
+<p class="admonition-title">MkDocs version requirements</p>
+<p>Material requires MkDocs &gt;= 0.16.</p>
+</div>
+<p>Furthermore, it is highly recommended to install <a href="http://pygments.org">Pygments</a> and the
+<a href="http://facelessuser.github.io/pymdown-extensions/">PyMdown Extensions</a> to get the most out of the Material theme:</p>
+<div class="codehilite"><pre><span></span>pip install pygments
+pip install pymdown-extensions
+</pre></div>
+
+
+<h3 id="installing-material">Installing Material<a class="headerlink" href="#installing-material" title="Permanent link">&para;</a></h3>
+<h4 id="using-pip">using pip<a class="headerlink" href="#using-pip" title="Permanent link">&para;</a></h4>
+<p>Material can be installed with <code>pip</code>:</p>
+<div class="codehilite"><pre><span></span>pip install mkdocs-material
+</pre></div>
+
+
+<h4 id="using-choco">using choco<a class="headerlink" href="#using-choco" title="Permanent link">&para;</a></h4>
+<p>If you're on Windows you can use <a href="https://chocolatey.org">Chocolatey</a> to install <a href="https://chocolatey.org/packages/mkdocs-material">Material</a>:</p>
+<div class="codehilite"><pre><span></span>choco install mkdocs-material
+</pre></div>
+
+
+<p>This will also install all required dependencies like <a href="https://chocolatey.org/packages/python">Python</a> and
+<a href="https://chocolatey.org/packages/mkdocs">MkDocs</a>.</p>
+<h4 id="cloning-from-github">cloning from GitHub<a class="headerlink" href="#cloning-from-github" title="Permanent link">&para;</a></h4>
+<p>Material can also be used without a system-wide installation by cloning the
+repository into a subfolder of your project's root directory:</p>
+<div class="codehilite"><pre><span></span>git clone https://github.com/squidfunk/mkdocs-material.git
+</pre></div>
+
+
+<p>This is especially useful if you want to extend the theme and override some
+parts of the theme. The theme will reside in the folder
+<code>mkdocs-material/material</code>.</p>
+<h3 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h3>
+<div class="admonition warning">
+<p class="admonition-title">Installation on macOS</p>
+<p>When you're running the pre-installed version of Python on macOS, <code>pip</code>
+tries to install packages in a folder for which your user might not have
+the adequate permissions. There are two possible solutions for this:</p>
+<ol>
+<li>
+<p><strong>Installing in user space</strong> (recommended): Provide the <code>--user</code> flag
+  to the install command and <code>pip</code> will install the package in a user-site
+  location. This is the recommended way.</p>
+</li>
+<li>
+<p><strong>Switching to a homebrewed Python</strong>: Upgrade your Python installation
+  to a self-contained solution by installing Python with Homebrew. This
+  should eliminate a lot of problems you may be having with <code>pip</code>.</p>
+</li>
+</ol>
+</div>
+<div class="admonition failure">
+<p class="admonition-title">Error: unrecognized theme 'material'</p>
+<p>If you run into this error, the most common reason is that you installed
+MkDocs through some package manager (e.g. Homebrew or <code>apt-get</code>) and the
+Material theme through <code>pip</code>, so both packages end up in different
+locations. MkDocs only checks it's install location for themes.</p>
+</div>
+<h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h2>
+<p>In order to enable the Material theme just add one of the following lines to
+your <code>mkdocs.yml</code>. If you installed Material using pip:</p>
+<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">theme</span><span class="p p-Indicator">:</span> <span class="s">&#39;material&#39;</span>
+</pre></div>
+
+
+<p>If you cloned Material from GitHub:</p>
+<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">theme_dir</span><span class="p p-Indicator">:</span> <span class="s">&#39;mkdocs-material/material&#39;</span>
+</pre></div>
+
+
+<p>MkDocs includes a development server, so you can review your changes as you go.
+The development server can be started with the following command:</p>
+<div class="codehilite"><pre><span></span>mkdocs serve
+</pre></div>
+
+
+<p>Now you can point your browser to <a href="http://localhost:8000">localhost:8000</a> and the Material theme
+should be visible. From here on, you can start writing your documentation, or
+read on and customize the theme through some options.</p>
+<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<p>The Material theme adds some extra variables for configuration via your
+project's <code>mkdocs.yml</code>. See the following sections for all available options.</p>
+<h3 id="changing-the-color-palette">Changing the color palette<a class="headerlink" href="#changing-the-color-palette" title="Permanent link">&para;</a></h3>
+<p>Material defines a default hue for every primary and accent color on Google's
+Material Design <a href="http://www.materialui.co/colors">color palette</a>. This makes it very easy to change the
+overall look of the theme. Just set the primary and accent colors using the
+following variables in your <code>mkdocs.yml</code>:</p>
+<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">extra</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">palette</span><span class="p p-Indicator">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">primary</span><span class="p p-Indicator">:</span> <span class="s">&#39;indigo&#39;</span>
+    <span class="l l-Scalar l-Scalar-Plain">accent</span><span class="p p-Indicator">:</span> <span class="s">&#39;light</span><span class="nv"> </span><span class="s">blue&#39;</span>
+</pre></div>
+
+
+<p>Color names are case-insensitive, but must match the names of the Material
+Design color palette. Valid values are: <code>red</code>, <code>pink</code>, <code>purple</code>, <code>deep purple</code>,
+<code>indigo</code>, <code>blue</code>, <code>light blue</code>, <code>cyan</code>, <code>teal</code>, <code>green</code>, <code>light green</code>, <code>lime</code>,
+<code>yellow</code>, <code>amber</code>, <code>orange</code>, <code>deep orange</code>, <code>brown</code>, <code>grey</code> and <code>blue grey</code>.
+The last three colors can only be used as a primary color.</p>
+<p>If the color is set via this configuration, an additional CSS file that
+defines the color palette is included. If you want to keep things lean, clone
+the repository and recompile the theme with your custom colors set. See the
+guide on <a href="customization.md">customization</a> for more information.</p>
+<h4 id="primary-colors">Primary colors<a class="headerlink" href="#primary-colors" title="Permanent link">&para;</a></h4>
+<p>Click on a tile to change the primary color of the theme:</p>
+<p><button data-md-color-primary="red">Red</button>
+<button data-md-color-primary="pink">Pink</button>
+<button data-md-color-primary="purple">Purple</button>
+<button data-md-color-primary="deep-purple">Deep Purple</button>
+<button data-md-color-primary="indigo">Indigo</button>
+<button data-md-color-primary="blue">Blue</button>
+<button data-md-color-primary="light-blue">Light Blue</button>
+<button data-md-color-primary="cyan">Cyan</button>
+<button data-md-color-primary="teal">Teal</button>
+<button data-md-color-primary="green">Green</button>
+<button data-md-color-primary="light-green">Light Green</button>
+<button data-md-color-primary="lime">Lime</button>
+<button data-md-color-primary="yellow">Yellow</button>
+<button data-md-color-primary="amber">Amber</button>
+<button data-md-color-primary="orange">Orange</button>
+<button data-md-color-primary="deep-orange">Deep Orange</button>
+<button data-md-color-primary="brown">Brown</button>
+<button data-md-color-primary="grey">Grey</button>
+<button data-md-color-primary="blue-grey">Blue Grey</button></p>
+<script>
+  var buttons = document.querySelectorAll("button[data-md-color-primary]");
+  Array.prototype.forEach.call(buttons, function(button) {
+    button.addEventListener("click", function() {
+      document.body.dataset.mdColorPrimary = this.dataset.mdColorPrimary;
+    })
+  })
+</script>
+
+<h4 id="accent-colors">Accent colors<a class="headerlink" href="#accent-colors" title="Permanent link">&para;</a></h4>
+<p>Click on a tile to change the accent color of the theme:</p>
+<p><button data-md-color-accent="red">Red</button>
+<button data-md-color-accent="pink">Pink</button>
+<button data-md-color-accent="purple">Purple</button>
+<button data-md-color-accent="deep-purple">Deep Purple</button>
+<button data-md-color-accent="indigo">Indigo</button>
+<button data-md-color-accent="blue">Blue</button>
+<button data-md-color-accent="light-blue">Light Blue</button>
+<button data-md-color-accent="cyan">Cyan</button>
+<button data-md-color-accent="teal">Teal</button>
+<button data-md-color-accent="green">Green</button>
+<button data-md-color-accent="light-green">Light Green</button>
+<button data-md-color-accent="lime">Lime</button>
+<button data-md-color-accent="yellow">Yellow</button>
+<button data-md-color-accent="amber">Amber</button>
+<button data-md-color-accent="orange">Orange</button>
+<button data-md-color-accent="deep-orange">Deep Orange</button></p>
+<script>
+  var buttons = document.querySelectorAll("button[data-md-color-accent]");
+  Array.prototype.forEach.call(buttons, function(button) {
+    button.addEventListener("click", function() {
+      document.body.dataset.mdColorAccent = this.dataset.mdColorAccent;
+    })
+  })
+</script>
+
+<h3 id="changing-the-font-family">Changing the font family<a class="headerlink" href="#changing-the-font-family" title="Permanent link">&para;</a></h3>
+<p>Material uses the <a href="https://fonts.google.com/specimen/Roboto">Roboto font family</a> by default, specifically the regular
+sans-serif type for text and the <code>monospaced</code> type for code. Both fonts are
+loaded from <a href="https://fonts.google.com">Google Fonts</a> and can easily be changed to other fonts, like
+for example the <a href="https://fonts.google.com/specimen/Ubuntu">Ubuntu font family</a>:</p>
+<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">extra</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">font</span><span class="p p-Indicator">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">text</span><span class="p p-Indicator">:</span> <span class="s">&#39;Ubuntu&#39;</span>
+    <span class="l l-Scalar l-Scalar-Plain">code</span><span class="p p-Indicator">:</span> <span class="s">&#39;Ubuntu</span><span class="nv"> </span><span class="s">Mono&#39;</span>
+</pre></div>
+
+
+<p>The text font will be loaded in font-weights 400 and <strong>700</strong>, the <code>monospaced</code>
+font in regular weight. If you want to load fonts from other destinations or
+don't want to use the Google Fonts loading magic, just set <code>font</code> to <code>false</code>:</p>
+<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">extra</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">font</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span>
+</pre></div>
+
+
+<h3 id="adding-a-source-repository">Adding a source repository<a class="headerlink" href="#adding-a-source-repository" title="Permanent link">&para;</a></h3>
+<p>To include a link to the repository of your project within your documentation,
+set the following variables via your project's <code>mkdocs.yml</code>:</p>
+<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">repo_name</span><span class="p p-Indicator">:</span> <span class="s">&#39;my-github-handle/my-project&#39;</span>
+<span class="l l-Scalar l-Scalar-Plain">repo_url</span><span class="p p-Indicator">:</span> <span class="s">&#39;https://github.com/my-github-handle/my-project&#39;</span>
+</pre></div>
+
+
+<p>Material will render the name of the repository next to the search bar on
+big screens and as part of the main navigation drawer on smaller screen sizes.
+Furthermore, if <code>repo_url</code> points to a GitHub, BitBucket or GitLab repository,
+the respective service logo will be shown next to the name of the repository.
+Additionally, for GitHub, the number of stars and forks is shown.</p>
+<div class="admonition warning">
+<p class="admonition-title">Why is there an edit button at the top of every article?</p>
+<p>If the <code>repo_url</code> is set to a GitHub or BitBucket repository, and the
+<code>repo_name</code> is set to <em>GitHub</em> or <em>BitBucket</em> (implied by default), an
+edit button will appear at the top of every article. This is the automatic
+behavior that MkDocs implements. See the <a href="http://www.mkdocs.org/user-guide/configuration/#edit_uri">MkDocs documentation</a> on more
+guidance regarding the <code>edit_uri</code> attribute, which defines whether the edit
+button is shown or not.</p>
+</div>
+<h3 id="adding-a-logo">Adding a logo<a class="headerlink" href="#adding-a-logo" title="Permanent link">&para;</a></h3>
+<p>Material makes it easy to add your logo. Your logo should have rectangular
+shape with a minimum resolution of 128x128, leave some room towards the edges
+and be composed of high contrast areas on a transparent ground, as it will be
+placed on the colored header bar and drawer. Simply create the folder
+<code>docs/images</code>, add your logo and embed it with:</p>
+<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">extra</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">logo</span><span class="p p-Indicator">:</span> <span class="s">&#39;images/logo.svg&#39;</span>
+</pre></div>
+
+
+<h3 id="adding-social-links">Adding social links<a class="headerlink" href="#adding-social-links" title="Permanent link">&para;</a></h3>
+<p>If you want to link your social accounts, the Material theme provides an easy
+way for doing this in the footer of the documentation using the automatically
+included <a href="http://fontawesome.io/icons/">FontAwesome</a> webfont. The syntax is simple – the <code>type</code> must
+denote the name of the social service, e.g. <code>github</code>, <code>twitter</code> or <code>linkedin</code>
+and the <code>link</code> must contain the URL you want to link to:</p>
+<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">extra</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">social</span><span class="p p-Indicator">:</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="s">&#39;github&#39;</span>
+      <span class="l l-Scalar l-Scalar-Plain">link</span><span class="p p-Indicator">:</span> <span class="s">&#39;https://github.com/squidfunk&#39;</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="s">&#39;twitter&#39;</span>
+      <span class="l l-Scalar l-Scalar-Plain">link</span><span class="p p-Indicator">:</span> <span class="s">&#39;https://twitter.com/squidfunk&#39;</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="s">&#39;linkedin&#39;</span>
+      <span class="l l-Scalar l-Scalar-Plain">link</span><span class="p p-Indicator">:</span> <span class="s">&#39;https://de.linkedin.com/in/martin-donath-20a95039&#39;</span>
+</pre></div>
+
+
+<p>The links are generated in order and the <code>type</code> of the links must match the
+name of the FontAwesome glyph. The <code>fa</code> is automatically added, so <code>github</code>
+will result in <code>fa fa-github</code>.</p>
+<h3 id="google-analytics-integration">Google Analytics integration<a class="headerlink" href="#google-analytics-integration" title="Permanent link">&para;</a></h3>
+<p>MkDocs makes it easy to integrate site tracking with Google Analytics.
+Besides basic tracking, clicks on all outgoing links can be tracked as well as
+how site search is used. Tracking can be activated in your project's
+<code>mkdocs.yml</code>:</p>
+<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">google_analytics</span><span class="p p-Indicator">:</span>
+  <span class="p p-Indicator">-</span> <span class="s">&#39;UA-XXXXXXXX-X&#39;</span>
+  <span class="p p-Indicator">-</span> <span class="s">&#39;auto&#39;</span>
+</pre></div>
+
+
+<h3 id="disqus-integation">Disqus integation<a class="headerlink" href="#disqus-integation" title="Permanent link">&para;</a></h3>
+<p>Material for MkDocs is integrated with <a href="https://disqus.com">Disqus</a>, so if you want to add a
+comments section to your documentation set the shortname of your Disqus project
+in your <code>mkdocs.yml</code>:</p>
+<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">extra</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">disqus</span><span class="p p-Indicator">:</span> <span class="s">&#39;your-disqus-shortname&#39;</span>
+</pre></div>
+
+
+<p>A new entry at the bottom of the table of contents is generated that is linking
+to the comments section. The necessary JavaScript is automatically included.</p>
+<h3 id="localization">Localization<a class="headerlink" href="#localization" title="Permanent link">&para;</a></h3>
+<p>Material for MkDocs supports internationalization (i18n). In order to translate
+the labels (e.g. <em>Previous</em> and <em>Next</em> in the footer), you can override the
+file <code>partials/language.html</code> and provide your own translations inside the
+macro <code>t</code>:</p>
+<div class="codehilite"><pre><span></span><span class="cp">{%</span> <span class="k">macro</span> <span class="nv">t</span><span class="o">(</span><span class="nv">key</span><span class="o">)</span> <span class="cp">%}{{</span> <span class="o">{</span>
+  <span class="s2">&quot;language&quot;</span><span class="o">:</span> <span class="s2">&quot;en&quot;</span><span class="o">,</span>
+  <span class="s2">&quot;edit.link.title&quot;</span><span class="o">:</span> <span class="s2">&quot;Edit this page&quot;</span><span class="o">,</span>
+  <span class="s2">&quot;footer.previous&quot;</span><span class="o">:</span> <span class="s2">&quot;Previous&quot;</span><span class="o">,</span>
+  <span class="s2">&quot;footer.next&quot;</span><span class="o">:</span> <span class="s2">&quot;Next&quot;</span><span class="o">,</span>
+  <span class="s2">&quot;meta.comments&quot;</span><span class="o">:</span> <span class="s2">&quot;Comments&quot;</span><span class="o">,</span>
+  <span class="s2">&quot;meta.source&quot;</span><span class="o">:</span> <span class="s2">&quot;Source&quot;</span><span class="o">,</span>
+  <span class="s2">&quot;search.placeholder&quot;</span><span class="o">:</span> <span class="s2">&quot;Search&quot;</span><span class="o">,</span>
+  <span class="s2">&quot;search.result.placeholder&quot;</span><span class="o">:</span> <span class="s2">&quot;Type to start searching&quot;</span><span class="o">,</span>
+  <span class="s2">&quot;search.result.none&quot;</span><span class="o">:</span> <span class="s2">&quot;No matching documents&quot;</span><span class="o">,</span>
+  <span class="s2">&quot;search.result.one&quot;</span><span class="o">:</span> <span class="s2">&quot;1 matching document&quot;</span><span class="o">,</span>
+  <span class="s2">&quot;search.result.other&quot;</span><span class="o">:</span> <span class="s2">&quot;# matching documents&quot;</span><span class="o">,</span>
+  <span class="s2">&quot;source.link.title&quot;</span><span class="o">:</span> <span class="s2">&quot;Go to repository&quot;</span><span class="o">,</span>
+  <span class="s2">&quot;toc.title&quot;</span><span class="o">:</span> <span class="s2">&quot;Table of contents&quot;</span>
+<span class="o">}[</span><span class="nv">key</span><span class="o">]</span> <span class="cp">}}{%</span> <span class="k">endmacro</span> <span class="cp">%}</span><span class="x"></span>
+</pre></div>
+
+
+<p>Just copy the file from the original theme and make your adjustments. See the
+section on <a href="customization.md#overriding-partials">overriding partials</a> and the general guide on
+<a href="customization.md#extending-the-theme">theme extension</a> in the customization guide.</p>
+<h3 id="tabs">Tabs<a class="headerlink" href="#tabs" title="Permanent link">&para;</a></h3>
+<p>From version 1.1.0 on, Material supports another layer on top of the main
+navigation for larger screens in the form of tabs. This is especially useful
+for larger documentation projects with a few top-level sections. Tabs can be
+enabled by setting the respective feature flag to true:</p>
+<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">extra</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">feature</span><span class="p p-Indicator">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">tabs</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+</pre></div>
+
+
+<h3 id="more-advanced-customization">More advanced customization<a class="headerlink" href="#more-advanced-customization" title="Permanent link">&para;</a></h3>
+<p>If you want to change the general appearance of the Material theme, see
+<a href="customization.md">this article</a> for more information on advanced customization.</p>
+<h2 id="extensions">Extensions<a class="headerlink" href="#extensions" title="Permanent link">&para;</a></h2>
+<p>MkDocs supports several <a href="http://www.mkdocs.org/user-guide/writing-your-docs/#markdown-extensions">Markdown extensions</a>. The following extensions
+are not enabled by default (see the link for which are enabled by default)
+but highly recommended, so they should be switched on at all times:</p>
+<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">markdown_extensions</span><span class="p p-Indicator">:</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">admonition</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">codehilite(guess_lang=false)</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">toc(permalink=true)</span>
+</pre></div>
+
+
+<p>For more information, see the following list of extensions supported by the
+Material theme including more information regarding installation and usage:</p>
+<ul>
+<li><a href="extensions/admonition.md">Admonition</a></li>
+<li><a href="extensions/codehilite.md">Codehilite</a></li>
+<li><a href="extensions/footnotes.md">Footnotes</a></li>
+<li><a href="extensions/metadata.md">Metadata</a></li>
+<li><a href="extensions/permalinks.md">Permalinks</a></li>
+<li><a href="extensions/pymdown.md">PyMdown Extensions</a></li>
+</ul>
+<h2 id="full-example">Full example<a class="headerlink" href="#full-example" title="Permanent link">&para;</a></h2>
+<p>Below is a full example configuration for a <code>mkdocs.yml</code>:</p>
+<div class="codehilite"><pre><span></span><span class="c1"># Project information</span>
+<span class="l l-Scalar l-Scalar-Plain">site_name</span><span class="p p-Indicator">:</span> <span class="s">&#39;My</span><span class="nv"> </span><span class="s">Project&#39;</span>
+<span class="l l-Scalar l-Scalar-Plain">site_description</span><span class="p p-Indicator">:</span> <span class="s">&#39;A</span><span class="nv"> </span><span class="s">short</span><span class="nv"> </span><span class="s">description</span><span class="nv"> </span><span class="s">of</span><span class="nv"> </span><span class="s">my</span><span class="nv"> </span><span class="s">project&#39;</span>
+<span class="l l-Scalar l-Scalar-Plain">site_author</span><span class="p p-Indicator">:</span> <span class="s">&#39;John</span><span class="nv"> </span><span class="s">Doe&#39;</span>
+<span class="l l-Scalar l-Scalar-Plain">site_url</span><span class="p p-Indicator">:</span> <span class="s">&#39;https://my-github-handle.github.io/my-project&#39;</span>
+
+<span class="c1"># Repository</span>
+<span class="l l-Scalar l-Scalar-Plain">repo_name</span><span class="p p-Indicator">:</span> <span class="s">&#39;my-github-handle/my-project&#39;</span>
+<span class="l l-Scalar l-Scalar-Plain">repo_url</span><span class="p p-Indicator">:</span> <span class="s">&#39;https://github.com/my-github-handle/my-project&#39;</span>
+
+<span class="c1"># Copyright</span>
+<span class="l l-Scalar l-Scalar-Plain">copyright</span><span class="p p-Indicator">:</span> <span class="s">&#39;Copyright</span><span class="nv"> </span><span class="s">&amp;copy;</span><span class="nv"> </span><span class="s">2016</span><span class="nv"> </span><span class="s">-</span><span class="nv"> </span><span class="s">2017</span><span class="nv"> </span><span class="s">John</span><span class="nv"> </span><span class="s">Doe&#39;</span>
+
+<span class="c1"># Documentation and theme</span>
+<span class="l l-Scalar l-Scalar-Plain">theme</span><span class="p p-Indicator">:</span> <span class="s">&#39;material&#39;</span>
+
+<span class="c1"># Options</span>
+<span class="l l-Scalar l-Scalar-Plain">extra</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">logo</span><span class="p p-Indicator">:</span> <span class="s">&#39;images/logo.svg&#39;</span>
+  <span class="l l-Scalar l-Scalar-Plain">palette</span><span class="p p-Indicator">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">primary</span><span class="p p-Indicator">:</span> <span class="s">&#39;indigo&#39;</span>
+    <span class="l l-Scalar l-Scalar-Plain">accent</span><span class="p p-Indicator">:</span> <span class="s">&#39;indigo&#39;</span>
+  <span class="l l-Scalar l-Scalar-Plain">font</span><span class="p p-Indicator">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">text</span><span class="p p-Indicator">:</span> <span class="s">&#39;Roboto&#39;</span>
+    <span class="l l-Scalar l-Scalar-Plain">code</span><span class="p p-Indicator">:</span> <span class="s">&#39;Roboto</span><span class="nv"> </span><span class="s">Mono&#39;</span>
+  <span class="l l-Scalar l-Scalar-Plain">social</span><span class="p p-Indicator">:</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="s">&#39;github&#39;</span>
+      <span class="l l-Scalar l-Scalar-Plain">link</span><span class="p p-Indicator">:</span> <span class="s">&#39;https://github.com/john-doe&#39;</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="s">&#39;twitter&#39;</span>
+      <span class="l l-Scalar l-Scalar-Plain">link</span><span class="p p-Indicator">:</span> <span class="s">&#39;https://twitter.com/jonh-doe&#39;</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="s">&#39;linkedin&#39;</span>
+      <span class="l l-Scalar l-Scalar-Plain">link</span><span class="p p-Indicator">:</span> <span class="s">&#39;https://de.linkedin.com/in/john-doe&#39;</span>
+
+<span class="c1"># Google Analytics</span>
+<span class="l l-Scalar l-Scalar-Plain">google_analytics</span><span class="p p-Indicator">:</span>
+  <span class="p p-Indicator">-</span> <span class="s">&#39;UA-XXXXXXXX-X&#39;</span>
+  <span class="p p-Indicator">-</span> <span class="s">&#39;auto&#39;</span>
+
+<span class="c1"># Extensions</span>
+<span class="l l-Scalar l-Scalar-Plain">markdown_extensions</span><span class="p p-Indicator">:</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">admonition</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">codehilite(guess_lang=false)</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">toc(permalink=true)</span>
+</pre></div>
+                
+                  
+                
+              
+              
+                
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+<footer class="md-footer">
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid">
+        
+          <a href="../parameters/" title="Parameters file and parameters module" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
+            </div>
+            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                Parameters file and parameters module
+              </span>
+            </div>
+          </a>
+        
+        
+          <a href="../encoding/" title="Encoding layer" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                Encoding layer
+              </span>
+            </div>
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-forward md-footer-nav__button"></i>
+            </div>
+          </a>
+        
+      </nav>
+    </div>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+          <div class="md-footer-copyright__highlight">
+            Copyright &copy; 2016 - 2017 Martin Donath
+          </div>
+        
+        powered by
+        <a href="http://www.mkdocs.org" title="MkDocs">MkDocs</a>
+        and
+        <a href="http://squidfunk.github.io/mkdocs-material/" title="Material for MkDocs">
+          Material for MkDocs</a>
+      </div>
+      
+        
+  <div class="md-footer-social">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    
+      <a href="http://struct.cc" class="md-footer-social__link fa fa-globe"></a>
+    
+      <a href="https://github.com/squidfunk" class="md-footer-social__link fa fa-github-alt"></a>
+    
+      <a href="https://twitter.com/squidfunk" class="md-footer-social__link fa fa-twitter"></a>
+    
+      <a href="https://de.linkedin.com/in/martin-donath-20a95039" class="md-footer-social__link fa fa-linkedin"></a>
+    
+  </div>
+
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    
+      <script src="../assets/javascripts/application-6b599127bc.js"></script>
+      <script>app.initialize({url:{base:".."}})</script>
+      
+    
+    
+      
+      <script>!function(e,t,a,n,o,c,i){e.GoogleAnalyticsObject=o,e[o]=e[o]||function(){(e[o].q=e[o].q||[]).push(arguments)},e[o].l=1*new Date,c=t.createElement(a),i=t.getElementsByTagName(a)[0],c.async=1,c.src=n,i.parentNode.insertBefore(c,i)}(window,document,"script","https://www.google-analytics.com/analytics.js","ga"),ga("create","None","auto"),ga("set","anonymizeIp",!0),ga("send","pageview");var links=document.getElementsByTagName("a");Array.prototype.map.call(links,function(e){e.host!=document.location.host&&e.addEventListener("click",function(){var t=e.getAttribute("data-md-action")||"follow";ga("send","event","outbound",t,e.href)})});var query=document.forms.search.query;query.addEventListener("blur",function(){if(this.value){var e=document.location.pathname;ga("send","pageview",e+"?q="+this.value)}})</script>
+      
+    
+  </body>
+</html>
