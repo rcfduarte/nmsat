@@ -59,13 +59,13 @@ This last step requires the user to manually specify all the paths for his syste
 
 ```python
 paths = {
-	'system_label': {
-		'data_path': 			NMSAT_HOME + '/data/',
-		'jdf_template': 		NMSAT_HOME + '/defaults/cluster_templates/Blaustein_jdf.sh',
-		'matplotlib_rc': 		NMSAT_HOME + '/defaults/matplotlib_rc',
-		'remote_directory': 	NMSAT_HOME + '/export/',
-		'queueing_system':      'slurm'}
-		}
+  'system_label': {
+  'data_path':            NMSAT_HOME + '/data/',
+  'jdf_template':         NMSAT_HOME + '/defaults/cluster_templates/Blaustein_jdf.sh',
+  'matplotlib_rc':        NMSAT_HOME + '/defaults/matplotlib_rc',
+  'remote_directory':     NMSAT_HOME + '/export/',
+  'queueing_system':      'slurm'}
+}
 ```
 
 The `system_label` specifies the name of the system. If running simulations on a local machine, the name must be set as 'local' (which is the default), otherwise, it can be any arbitrary name, as long as it is used consistently throughout (see examples). The remaining entries in this dictionary refer to:
@@ -112,7 +112,7 @@ To run experiments on a cluster, please check out the [documentation](/standard-
 <!--```-->
 <!--All the details and specificities of the experiment are determined in complex parameters files. The main computation function then parses the contents of these files and, following the specifications, assembles and runs the simulation, using the framework's modules to build, simulate, analyse and plot. -->
 
-###Simulation output
+### Simulation output
 
 After a simulation is completed, all the relevant output data is stored in the pre-specified data_path,
 within a folder named after the project label. The output data structure is organized as follows:
@@ -128,7 +128,7 @@ data
 │   ├── Output
 ```
 
-###Analysing and plotting
+### Analysing and plotting
 Analysis and plotting can be (and usually is) done within the main computation, so as to extract and
 store only the information that is relevant for the specific experiment. Multiple, standard analysis and
 plotting routines are implemented for various complex experiments, with specific objectives. Naturally,
@@ -139,7 +139,7 @@ Alternatively, as all the relevant data is stored in the results dictionaries, y
 process it offline, applying the same or novel visualization routines.
 
 
-###Harvesting stored results
+### Harvesting stored results
 The Results folder stores all the simulation results for the given experiment, as pickle dictionaries.
 Within each project, as mentioned earlier, a read_data folder should be included, which contains files
 to parse and extract the stored results (see examples).
@@ -166,7 +166,7 @@ pars.print_stored_keys(results_path)
 data_array = pars.harvest(results_path, key_set='dict_key1/dict_key1.1/dict_key1.1.1')
 ```
 
-#### Examples
+### Examples
 
 Complete examples can be found in the `nmsat/projects/examples` folder. Currently there are 4 examples that you 
 can try out:
@@ -188,7 +188,7 @@ For more details about each example read the **Examples** section in the [docume
 [r.duarte@fz-juelich.de](r.duarte@fz-juelich.de)
 
 ### Citing us
-If you find NMT useful and use it in your research, please cite it as [zenodo]
+If you find NMSAT useful and use it in your research, please cite it as [zenodo]
 
 ### License 
 
