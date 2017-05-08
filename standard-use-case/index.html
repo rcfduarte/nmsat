@@ -294,6 +294,27 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#simulation-output" title="Simulation output" class="md-nav__link">
+    Simulation output
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#analysing-and-plotting" title="Analysing and plotting" class="md-nav__link">
+    Analysing and plotting
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#harvesting-stored-results" title="Harvesting stored results" class="md-nav__link">
+    Harvesting stored results
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -461,6 +482,27 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#simulation-output" title="Simulation output" class="md-nav__link">
+    Simulation output
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#analysing-and-plotting" title="Analysing and plotting" class="md-nav__link">
+    Analysing and plotting
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#harvesting-stored-results" title="Harvesting stored results" class="md-nav__link">
+    Harvesting stored results
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -525,6 +567,52 @@ to match your cluster requirements</li>
 <li>go to <code>nmsat/export/my_project_name/</code> and submit jobs  via</li>
 </ol>
 <div class="codehilite"><pre><span></span><span class="n">python</span> <span class="n">submit_jobs</span><span class="o">.</span><span class="n">py</span> <span class="mi">0</span> <span class="mi">1</span>
+</pre></div>
+
+
+<h3 id="simulation-output">Simulation output<a class="headerlink" href="#simulation-output" title="Permanent link">&para;</a></h3>
+<p>After a simulation is completed, all the relevant output data is stored in the pre-specified data_path,
+within a folder named after the project label. The output data structure is organized as follows:</p>
+<div class="codehilite"><pre><span></span>data
+├── experiment_label
+│   ├── Figures
+│   ├── Results
+│   ├── Parameters
+│   ├── Activity
+│   ├── Input
+│   ├── Output
+</pre></div>
+
+
+<h3 id="analysing-and-plotting">Analysing and plotting<a class="headerlink" href="#analysing-and-plotting" title="Permanent link">&para;</a></h3>
+<p>Analysis and plotting can be (and usually is) done within the main computation, so as to extract and
+store only the information that is relevant for the specific experiment. Multiple, standard analysis and
+plotting routines are implemented for various complex experiments, with specific objectives. Naturally,
+this is highly mutable as new experiments always require specific analyses methods.</p>
+<p>Alternatively, as all the relevant data is stored in the results dictionaries, you can read it and
+process it offline, applying the same or novel visualization routines.</p>
+<h3 id="harvesting-stored-results">Harvesting stored results<a class="headerlink" href="#harvesting-stored-results" title="Permanent link">&para;</a></h3>
+<p>The Results folder stores all the simulation results for the given experiment, as pickle dictionaries.
+Within each project, as mentioned earlier, a read_data folder should be included, which contains files
+to parse and extract the stored results (see examples).</p>
+<div class="codehilite"><pre><span></span><span class="n">project</span>      <span class="o">=</span> <span class="s1">&#39;project_name&#39;</span>
+<span class="n">data_path</span>    <span class="o">=</span> <span class="s1">&#39;/path/label/&#39;</span>
+<span class="n">data_label</span>   <span class="o">=</span> <span class="s1">&#39;example1&#39;</span>
+<span class="n">results_path</span> <span class="o">=</span> <span class="n">data_path</span> <span class="o">+</span> <span class="n">data_label</span> <span class="o">+</span> <span class="s1">&#39;/Results/&#39;</span>
+
+<span class="c1"># set defaults and paths</span>
+<span class="n">set_project_paths</span><span class="p">(</span><span class="n">project</span><span class="p">)</span>
+<span class="n">set_global_rcParams</span><span class="p">(</span><span class="n">paths</span><span class="p">[</span><span class="s1">&#39;local&#39;</span><span class="p">][</span><span class="s1">&#39;matplotlib_rc&#39;</span><span class="p">])</span>
+
+<span class="c1"># re-create ParameterSpace</span>
+<span class="n">pars_file</span> <span class="o">=</span> <span class="n">data_path</span> <span class="o">+</span> <span class="n">data_label</span> <span class="o">+</span> <span class="s1">&#39;_ParameterSpace.py&#39;</span>
+<span class="n">pars</span> <span class="o">=</span> <span class="n">ParameterSpace</span><span class="p">(</span><span class="n">pars_file</span><span class="p">)</span>
+
+<span class="c1"># print the full nested structure of the results dictionaries</span>
+<span class="n">pars</span><span class="o">.</span><span class="n">print_stored_keys</span><span class="p">(</span><span class="n">results_path</span><span class="p">)</span>
+
+<span class="c1"># harvest a specific result based on the results structure</span>
+<span class="n">data_array</span> <span class="o">=</span> <span class="n">pars</span><span class="o">.</span><span class="n">harvest</span><span class="p">(</span><span class="n">results_path</span><span class="p">,</span> <span class="n">key_set</span><span class="o">=</span><span class="s1">&#39;dict_key1/dict_key1.1/dict_key1.1.1&#39;</span><span class="p">)</span>
 </pre></div>
                 
                   
