@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+    
+    <url>
+     <loc>http://squidfunk.github.io/mkdocs-material//</loc>
+     <lastmod>2017-05-08</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+    
+
+    
+    <url>
+     <loc>http://squidfunk.github.io/mkdocs-material//getting-started/</loc>
+     <lastmod>2017-05-08</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+    
+
+    
+        
+    <url>
+     <loc>http://squidfunk.github.io/mkdocs-material//extensions/admonition/</loc>
+     <lastmod>2017-05-08</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    <url>
+     <loc>http://squidfunk.github.io/mkdocs-material//extensions/codehilite/</loc>
+     <lastmod>2017-05-08</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    <url>
+     <loc>http://squidfunk.github.io/mkdocs-material//extensions/footnotes/</loc>
+     <lastmod>2017-05-08</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    <url>
+     <loc>http://squidfunk.github.io/mkdocs-material//extensions/metadata/</loc>
+     <lastmod>2017-05-08</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    <url>
+     <loc>http://squidfunk.github.io/mkdocs-material//extensions/permalinks/</loc>
+     <lastmod>2017-05-08</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    <url>
+     <loc>http://squidfunk.github.io/mkdocs-material//extensions/pymdown/</loc>
+     <lastmod>2017-05-08</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    
+
+    
+    <url>
+     <loc>http://squidfunk.github.io/mkdocs-material//specimen/</loc>
+     <lastmod>2017-05-08</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+    
+
+    
+    <url>
+     <loc>http://squidfunk.github.io/mkdocs-material//customization/</loc>
+     <lastmod>2017-05-08</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+    
+
+    
+    <url>
+     <loc>http://squidfunk.github.io/mkdocs-material//release-notes/</loc>
+     <lastmod>2017-05-08</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+    
+
+    
+    <url>
+     <loc>http://squidfunk.github.io/mkdocs-material//contributing/</loc>
+     <lastmod>2017-05-08</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+    
+
+    
+    <url>
+     <loc>http://squidfunk.github.io/mkdocs-material//license/</loc>
+     <lastmod>2017-05-08</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+    
+
+</urlset>
