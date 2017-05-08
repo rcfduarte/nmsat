@@ -3,7 +3,7 @@
 
     
     <url>
-     <loc>http://squidfunk.github.io/mkdocs-material//</loc>
+     <loc>https://zbarni.github.io/network_simulation_testbed//</loc>
      <lastmod>2017-05-08</lastmod>
      <changefreq>daily</changefreq>
     </url>
@@ -11,7 +11,7 @@
 
     
     <url>
-     <loc>http://squidfunk.github.io/mkdocs-material//installation/</loc>
+     <loc>https://zbarni.github.io/network_simulation_testbed//installation/</loc>
      <lastmod>2017-05-08</lastmod>
      <changefreq>daily</changefreq>
     </url>
@@ -20,49 +20,77 @@
     
         
     <url>
-     <loc>http://squidfunk.github.io/mkdocs-material//framework-description/</loc>
+     <loc>https://zbarni.github.io/network_simulation_testbed//framework-description/</loc>
      <lastmod>2017-05-08</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
-     <loc>http://squidfunk.github.io/mkdocs-material//standard-use-case/</loc>
+     <loc>https://zbarni.github.io/network_simulation_testbed//standard-use-case/</loc>
      <lastmod>2017-05-08</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
-     <loc>http://squidfunk.github.io/mkdocs-material//parameters/</loc>
+     <loc>https://zbarni.github.io/network_simulation_testbed//parameters/</loc>
      <lastmod>2017-05-08</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
-     <loc>http://squidfunk.github.io/mkdocs-material//input/</loc>
+     <loc>https://zbarni.github.io/network_simulation_testbed//input/</loc>
      <lastmod>2017-05-08</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
-     <loc>http://squidfunk.github.io/mkdocs-material//encoding/</loc>
+     <loc>https://zbarni.github.io/network_simulation_testbed//encoding/</loc>
      <lastmod>2017-05-08</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
-     <loc>http://squidfunk.github.io/mkdocs-material//populations-and-networks/</loc>
+     <loc>https://zbarni.github.io/network_simulation_testbed//populations-and-networks/</loc>
      <lastmod>2017-05-08</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
-     <loc>http://squidfunk.github.io/mkdocs-material//decoding/</loc>
+     <loc>https://zbarni.github.io/network_simulation_testbed//decoding/</loc>
      <lastmod>2017-05-08</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
-     <loc>http://squidfunk.github.io/mkdocs-material//analysis-and-visualization/</loc>
+     <loc>https://zbarni.github.io/network_simulation_testbed//analysis-and-visualization/</loc>
+     <lastmod>2017-05-08</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    
+
+    
+        
+    <url>
+     <loc>https://zbarni.github.io/network_simulation_testbed//single-neuron-fi-curve/</loc>
+     <lastmod>2017-05-08</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    <url>
+     <loc>https://zbarni.github.io/network_simulation_testbed//single-neuron-with-patterned-synaptic-input/</loc>
+     <lastmod>2017-05-08</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    <url>
+     <loc>https://zbarni.github.io/network_simulation_testbed//balanced-random-network/</loc>
+     <lastmod>2017-05-08</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    <url>
+     <loc>https://zbarni.github.io/network_simulation_testbed//stimulus-processing/</loc>
      <lastmod>2017-05-08</lastmod>
      <changefreq>daily</changefreq>
     </url>
@@ -71,7 +99,7 @@
 
     
     <url>
-     <loc>http://squidfunk.github.io/mkdocs-material//release-notes/</loc>
+     <loc>https://zbarni.github.io/network_simulation_testbed//release-notes/</loc>
      <lastmod>2017-05-08</lastmod>
      <changefreq>daily</changefreq>
     </url>
@@ -79,7 +107,7 @@
 
     
     <url>
-     <loc>http://squidfunk.github.io/mkdocs-material//contributing/</loc>
+     <loc>https://zbarni.github.io/network_simulation_testbed//contributing/</loc>
      <lastmod>2017-05-08</lastmod>
      <changefreq>daily</changefreq>
     </url>
@@ -87,7 +115,7 @@
 
     
     <url>
-     <loc>http://squidfunk.github.io/mkdocs-material//license/</loc>
+     <loc>https://zbarni.github.io/network_simulation_testbed//license/</loc>
      <lastmod>2017-05-08</lastmod>
      <changefreq>daily</changefreq>
     </url>
