@@ -2,7 +2,7 @@
 
 ## What is it?
 
-NMSAT is a python package that provides a set of tools to build, simulate and analyse neuronal
+NMSAT is a Python package that provides a set of tools to build, simulate and analyse neuronal
 microcircuit models with any degree of complexity, as well as to probe the circuits with arbitrarily
 complex input stimuli / signals and to analyse the relevant functional aspects of single neuron,
 population and network dynamics. It provides a high-level wrapper for PyNEST (which is used as
@@ -22,7 +22,7 @@ local machine, in a computer cluster or a supercomputer, with straightforward re
 The code is licensed under GPLv3 and available on [GitHub](https://github.com/zbarni/network_simulation_testbed).
 
 
-## Getting started
+## Disclaimer
 
 The code was developed primarily for personal use, as part of a PhD thesis due to the need to perform
 similar experiments and analyses on very diverse systems. The goal was to use the same code to

@@ -14,8 +14,95 @@ errors will follow.
 Furthermore, modifications of the parameter values are accepted with some restrictions, depending
 on what is currently implemented.
 
+We start with a trimmed version of the parameter file in the [fI curve example](single-neuron-fi-curve/), to explain the 
+ its basic components and structure:
+
+```python
+from defaults.paths import paths
+from modules.parameters import ParameterSet, copy_dict
+
+system_name = 'local'
+data_label  = 'example1_singleneuron_fI'
+
+# ######################################################################################################################
+# PARAMETER RANGE declarations
+# ======================================================================================================================
+parameter_range = {
+	'max_current': [800.]
+}
 
 
+def build_parameters(max_current):
+	# ##################################################################################################################
+	# DC input parameters
+	# ==================================================================================================================
+	total_time = 10000.        # total simulation time [ms]
+	analysis_interval = 1000.  # duration of each current step [ms]
+	min_current = 0.           # initial current amplitude [pA]
+
+
+	# ##################################################################################################################
+	# System / Kernel Parameters
+	# ##################################################################################################################
+	# system-specific parameters (resource allocation, simulation times)
+	system_pars = dict(
+		nodes=1,
+	    ...
+	)
+
+	# main kernel parameter set
+	kernel_pars = ParameterSet({
+		'resolution': 0.1,
+		...
+	})
+	# ##################################################################################################################
+	# Recording devices
+	# ##################################################################################################################
+	multimeter = {
+		'start': 0.,
+		'stop': sys.float_info.max,
+	    ...
+	}
+
+	# ##################################################################################################################
+	# Neuron, Synapse and Network Parameters
+	# ##################################################################################################################
+	neuron_pars = {
+		'AdEx': {
+				'model': 'aeif_cond_exp',
+				'C_m': 250.0,
+		        ...
+		}
+	}
+
+	net_pars = ParameterSet({
+		'n_populations': len(neuron_pars.keys()),
+		'pop_names': pop_names,
+		...
+	})
+	
+	neuron_pars = ParameterSet(neuron_pars)
+
+	# ##################################################################################################################
+	# Input/Encoding Parameters
+	# ##################################################################################################################
+	encoding_pars = ParameterSet({
+		'generator': {
+			'N': 1,
+			'labels': ['DC_Input'],
+			'models': ['step_current_generator'],
+		}
+	    ...
+	})
+
+	# ##################################################################################################################
+	# Return dictionary of Parameters dictionaries
+	# ==================================================================================================================
+	return dict([('kernel_pars',    kernel_pars),
+	             ('neuron_pars',    neuron_pars),
+	             ('net_pars',       net_pars),
+	             ('encoding_pars',  encoding_pars)])
+```
 
 Typically the following imports are necessary in a parameter file:
 
@@ -37,22 +124,53 @@ Also, it is always advisable to provide appropriate labels for the data.
 
 ### Parameter range declarations and build function
 
-TBD
+NMSAT allows the definition of ranges for the values of various parameters of choice via the `parameter_range` dictionary,
+in order simplify running the same experiment when only some parameter values change:
+ 
+```python
+parameter_range = {
+	'max_current': [800.]
+}
+
+def build_parameters(max_current):
+    ...
+```
+In this case, only one simulation will be executed where `max_current = 800.`. However, the following code 
 
 ```python
-return dict([('kernel_pars', kernel_pars),
-             ('neuron_pars', neuron_pars),
-             ('net_pars', net_pars),
+parameter_range = {
+	'max_current': [800., 1200.],
+	'total_time': [1000.]
+}
+
+def build_parameters(max_current, total_time):
+    ...
+```
+
+will result in 2 separate runs, one for each parameter combination:
+
+* `max_current = 800., total_time = 1000.`
+* `max_current = 1200., total_time = 1000.`
+
+The `build_parameters(...)` function is required in every parameter file. If the `parameter_range` dictionary is not 
+empty, its keys (more precisely equivalent variable names) are passed as arguments to the function.
+
+### Parameter types
+The returned value of the `build_parameters(...)` function is a dictionary of `ParameterSets`, containing all the
+necessary types of parameters to be used by the main experiment. These parameters defined in the function are themselves
+`ParameterSets` dictionaries:
+
+```python
+return dict([('kernel_pars',   kernel_pars),
+             ('neuron_pars',   neuron_pars),
+             ('net_pars',      net_pars),
              ('encoding_pars', encoding_pars)])
 ```
 
-### Parameter types
-The output of the build_parameters function is a dictionary of ParameterSets, containing all the
-necessary types of parameters to be used by the main experiment. Acceptable types (with examples
-of use) are:
+Each key in the returned dictionary must match the name of the variable. Acceptable types (with examples of use) are: 
 
 #### **Kernel** 
-Specify all relevant system and simulation parameters.
+Specifies all relevant system and simulation parameters.
 
 ```python
 kernel_pars = ParameterSet({
@@ -94,12 +212,11 @@ nest.SetKernelStatus(extract_nestvalid_dict(kernel_pars.as_dict(), param_type='k
 ```
 
 #### **Neuron** 
-neuron model parameters, must stricly abide by the naming conventions of the NEST
-model requested. For example:
+Neuron model parameters, must strictly abide by the naming conventions of the NEST model requested. For example:
 
 ```python
 neuron_pars = {
-	'neuron_name': {
+	'neuron_population_name': {   # 
 		'model': 'iaf_psc_exp',
 		'C_m': 250.0,
 		'E_L': 0.0,
@@ -121,27 +238,32 @@ from the multiple populations:
 ```python
 net_pars = {
 	'n_populations': 2,			# total number of populations
-	'pop_names': ['E', 'I'],
-	'n_neurons': [8000, 2000],
-	'neuron_pars': [neuron_pars['E'], neuron_pars['I']],
-	'randomize_neuron_pars': [{'V_m': (np.random.uniform, {'low': 0.0, 'high': 15.})}, # if necessary
-	                          {'V_m': (np.random.uniform, {'low': 0.0, 'high': 15.})}],
-	'topology': [False, False],
-	'topology_dict': [None, None],
-	'record_spikes': [True, True],
-	'spike_device_pars': [copy_dict(rec_devices,
-	                                {'model': 'spike_detector',
-	                                 'record_to': ['memory'],
-	                                 'label': ''}),
-	                      copy_dict(rec_devices,
-	                                {'model': 'spike_detector',
-	                                 'record_to': ['memory'],
-	                                 'label': ''})],
-	'record_analogs': [False, False],
-	'analog_device_pars': [None, None]}
+	'pop_names': ['E', 'I'],    # names for each population, here 'E' for excitatory and 'I' for inhibitory
+	'n_neurons': [8000, 2000],  # number of neurons in each population
+	'neuron_pars': [
+	        neuron_pars['E'],   # neuron parameters for population name 'E' 
+	        neuron_pars['I']],  # neuron parameters for population name 'I'
+	'randomize_neuron_pars': [  # randomize certain parameters if necessary
+	        {'V_m': (np.random.uniform, {'low': 0.0, 'high': 15.})},  
+	        {'V_m': (np.random.uniform, {'low': 0.0, 'high': 15.})}], 
+	'topology': [False, False],     # does the network have topology? True or False
+	'topology_dict': [None, None],  # dictionary with topology parameters, 
+	                                # if topology is set to True for the population 
+	'record_spikes': [True, True],  # whether to record spikes for each population
+	'spike_device_pars': [          # parameters for spike recording devices
+	        copy_dict(rec_devices,
+                    {'model': 'spike_detector',
+                     'record_to': ['memory'],
+                     'label': ''}),
+            copy_dict(rec_devices,
+                    {'model': 'spike_detector',
+                     'record_to': ['memory'],
+                     'label': ''})],
+	'record_analogs': [False, False],   # whether to record analog data for each population
+	'analog_device_pars': [None, None]} # parameters for analog devices
 ```
 
-Note that the dimensionality of all the list parameters has to be equal to n_populations. If
+Note that the dimensionality of all the list parameters has to be equal to `n_populations`. If
 these parameters are all correctly set, generating a network is as simple as:
 
 
@@ -157,41 +279,49 @@ the multiple populations:
 
 ```python
 connection_pars = {
-	'n_synapse_types': 4,	# [int] - total number of connections to establish 
-	'synapse_types':	# [list of tuples] - each tuple corresponds to 1 connection and 
-				# has the form (tget_pop_label, src_pop_label)   
-		[('E', 'E'), ('E', 'I'), ('I', 'E'), ('I', 'I')], 
-	'topology_dependent':	# [list of bool] - whether synaptic connections are 
-				# established relying on nest.topology module
-		[False, False, False, False], 
-	'models': 		# [list of str] - names of the synapse models to realize on each
-				# synapse type
-		['static_synapse', 'static_synapse', 'static_synapse', 'static_synapse'],           
-	'model_pars':		# [list of dict] - each entry in the list contains the synapse
-				# dictionary (if necessary) for the corresponding synapse model
-		[synapse_pars_dict, synapse_pars_dict, synapse_pars_dict, synapse_pars_dict],     
-	'weight_dist':	# [list of dict] -  
-		[common_syn_specs['weight'], common_syn_specs['weight'], 
-		 common_syn_specs['weight'], common_syn_specs['weight']],
-	'pre_computedW': # Provide an externally specified connectivity matrix
-			# if pre-computed weights matrices are provided, delays also
-			# need to be pre-specified, as an array with the same dimensions
-			# as W, with delay values on each corresponding entry.
-			# Alternatively, if all delays are the same, just provide a
-			# single number.
-		[None, None, None, None],
+    # [int] - total number of connections to establish
+	'n_synapse_types': 4,
+	 
+	 # [list of tuples] - each tuple corresponds to 1 connection and 
+	 # has the form (tget_pop_label, src_pop_label)
+	'synapse_types': [('E', 'E'), ('E', 'I'), ('I', 'E'), ('I', 'I')],
+	
+	# [list of bool] - whether synaptic connections are 
+	# established relying on nest.topology module
+	'topology_dependent':[False, False, False, False],
+	 
+	# [list of str] - names of the synapse models to realize on each synapse type
+	'models': ['static_synapse', 'static_synapse', 'static_synapse', 'static_synapse'],  
+	         
+    # [list of dict] - each entry in the list contains the synapse
+    # dictionary (if necessary) for the corresponding synapse model
+	'model_pars': [synapse_pars_dict, synapse_pars_dict, 
+	               synapse_pars_dict, synapse_pars_dict],
+	     
+    # [list of dict] - weight distribution parameters (in NEST format)
+	'weight_dist': [common_syn_specs['weight'], common_syn_specs['weight'], 
+                    common_syn_specs['weight'], common_syn_specs['weight']],
+	
+	# Provide an externally specified connectivity matrix if
+    # pre-computed weights matrices are provided, delays also need 
+    # to be pre-specified, as an array with the same dimensions as W, 
+    # with delay values on each corresponding entry. Alternatively, 
+    # if all delays are the same, just provide a single number.
+	'pre_computedW': [None, None, None, None],
 
+    # [list of dict] - delay distribution parameters (in NEST format)
 	'delay_dist': [common_syn_specs['delay'], common_syn_specs['delay'],
-				common_syn_specs['delay'], common_syn_specs['delay']],
+				   common_syn_specs['delay'], common_syn_specs['delay']],
 
-	'conn_specs':	# [list of dict] - for topological connections
-		[conn_specs, conn_specs, conn_specs, conn_specs],
+    # [list of dict] - for topological connections
+	'conn_specs': [conn_specs, conn_specs, conn_specs, conn_specs],
 
+    # [list of dict] - 
 	'syn_specs': []
 ```
 
-To connect the network, just provide this parameter set to the connect method of the Network
-object (for complex connectivity schemes, it is worth setting the progress=True to accompany the
+To connect the network, just provide this parameter set to the connect method of the `Network`
+object (for complex connectivity schemes, it is worth setting the `progress=True` to accompany the
 connection progress):
 
 ```python
@@ -204,13 +334,14 @@ Stimulus or task parameters:
 
 ```python
 stim_pars = {
-		'n_stim': 10,		# number of stimuli
-		'elements': ['A', 'B', 'C', ...],
-		'grammar': None, #!!
-		'full_set_length': int(T + T_discard), # total samples
-		'transient_set_length': int(T_discard), 
-		'train_set_length': int(0.8 * T),
-		'test_set_length': int(0.2 * T)}
+		'n_stim': 10,		        # number of stimuli
+		'elements': ['A', 'B',      #  
+		             'C', ...],
+		'grammar': None,            #!!
+		'full_set_length': int(T + T_discard),  # total samples
+		'transient_set_length': int(T_discard), # size of transient set (will be discarded)
+		'train_set_length': int(0.8 * T),       # size of training set
+		'test_set_length': int(0.2 * T)}        # size of test set
 ```
 
 To generate a stimulus set:
@@ -227,57 +358,67 @@ Specifies the stimulus transduction and/or the input signal properties:
 ```python
 input_pars = {
 	'signal': {
-		'N': 3,		# Dimensionality of the signal 
-		'durations':	# Duration of each stimulus presentation. 
-			# Various settings are allowed:
-			# - List of n_trials elements whose values correspond to the 
-			# duration of 1 stimulus presentation
-			# - List with one single element (uniform durations)
-			# - Tuple of (function, function parameters) specifying 
-			# distributions for these values, 
-			# - List of N lists of any of the formats specified... (*)
-		[(np.random.uniform, {'low': 500., 'high': 500., 'size': n_trials})],
+		'N': 3,		# Dimensionality of the signal
+		 
+        # Duration of each stimulus presentation. 
+        # Various settings are allowed:
+        #   - List of n_trials elements whose values correspond to the 
+        #     duration of 1 stimulus presentation
+        #   - List with one single element (uniform durations)
+        #   - Tuple of (function, function parameters) specifying 
+        #     distributions for these values, 
+        #   - List of N lists of any of the formats specified... (*)
+		'durations': [(np.random.uniform, {'low': 500., 'high': 500., 'size': n_trials})],
 
-		'i_stim_i':	# Inter-stimulus intervals - same settings as 'durations'.
-			[(np.random.uniform, {'low': 0., 'high': 0., 'size': n_trials-1})],
+        # Inter-stimulus intervals - same settings as 'durations'.
+		'i_stim_i':	[(np.random.uniform, {'low': 0., 'high': 0., 'size': n_trials-1})],
 
-		'kernel': ('box', {}),	# input mask - implemented options:
-				# box({}), exp({'tau'}), double_exp({'tau_1','tau_2'}), 
-				# gauss({'mu', 'sigma'})
+        # input mask - implemented options:
+        #   box({}), exp({'tau'}), double_exp({'tau_1','tau_2'}), gauss({'mu', 'sigma'})
+		'kernel': ('box', {}),	
 
-		'start_time': 0.,			# global signal onset time
+		'start_time': 0.,			        # global signal onset time
 		'stop_time': sys.float_info.max,	# global signal offset time
-
-		'max_amplitude':	# maximum signal amplitude - as in durations and i_stim_i,
-					# can be a list of values, or a function with parameters
-			[(np.random.uniform, {'low': 10., 'high': 100., 'size': n_trials})],
+        
+        # maximum signal amplitude - as in durations and i_stim_i,
+        # can be a list of values, or a function with parameters
+		'max_amplitude': [(np.random.uniform, {'low': 10., 'high': 100., 'size': n_trials})],
 
 		'min_amplitude': 0.,	# minimum amplitude - will be added to the signal
-		'resolution': 1.	# temporal resolution
+		'resolution': 1.	    # temporal resolution
 		},
 
 	'noise': {
 		'N': 3,	# Dimensionality of the noise component (common or 
 			# multiple independent noise sources)
-		'noise_source': ['GWN'],	# [list] - Type of noise:
-			#  - Either a string for 'OU', 'GWN'
-			#  - or a function, e.g. np.random.uniform
-		'noise_pars':	# [dict] Parameters (specific for each type of noise):
-					# - 'OU' -> {'tau', 'sigma', 'y0'}
-					# - 'GWN' -> {'amplitude', 'mean', 'std'}
-					# - function parameters dictionary (see function documentation)
-			{'amplitude': 1., 'mean': 1., 'std': 0.1},
-		'rectify': True,	# [bool] - rectify noise component 
-		'start_time': 0.,	# global onset time (single value), 
-			# or local onset times if multiple instances are required (list)
-		'stop_time': sys.float_info.max,	# global offset time (single value), or local offset#
-			# times, if multiple instances are required
-		'resolution': 1.,	# signal resolution (dt)}}
+			
+        # [list] - Type of noise:
+        #  - Either a string for 'OU', 'GWN'
+        #  - or a function, e.g. np.random.uniform
+		'noise_source': ['GWN'],
+			
+		# [dict] Parameters (specific for each type of noise):
+        # - 'OU' -> {'tau', 'sigma', 'y0'}
+        # - 'GWN' -> {'amplitude', 'mean', 'std'}
+        # - function parameters dictionary (see function documentation)
+		'noise_pars': {'amplitude': 1., 'mean': 1., 'std': 0.1},
+		
+		'rectify': True,	# [bool] - rectify noise component
+		 
+		# global onset time (single value), 
+		# or local onset times if multiple instances are required (list)
+		'start_time': 0.,	
+		
+		# global offset time (single value), or local offset
+		# times, if multiple instances are required
+		'stop_time': sys.float_info.max,	
+		
+		'resolution': 1.,	                # signal resolution (dt)}}
 ```
 
-Note: the chosen specifications of ’durations’, ’i_stim_i’ and ’max_amplitude’
-must be consistent, i.e., if ’durations’ is provided as a single element list, the same format must
-be applied to ’i_stim_i’ and ’max_amplitude’. (test)
+**Note:** the chosen specifications of `durations`, `i_stim_i` and `max_amplitude`
+must be consistent, i.e., if `durations` is provided as a single element list, the same format must
+be applied to `i_stim_i` and `max_amplitude`. (test)
 
 ```python
 inputs = InputSignalSet(parameter_set, stim_set, online=online)
