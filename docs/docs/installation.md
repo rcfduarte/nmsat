@@ -2,7 +2,7 @@
 
 We currently don’t provide the code as a standard library that can be easily installed. In future
 versions, we will try to work on this and improve usability. For the moment, to use the code there is
-no explicit installation involved. Just fork and clone the github repository from [here.](https://github.com/zbarni/network_simulation_testbed)
+no explicit installation involved. Just fork and clone the Github repository from [here.](https://github.com/zbarni/network_simulation_testbed)
 
 
 ## Dependencies
@@ -14,9 +14,9 @@ no explicit installation involved. Just fork and clone the github repository fro
 * **scikit-learn** version 0.18.0 or higher
 * **matplotlib** version 1.2.0 or higher
 
-Optional (for more functionality):
+Optional (for additional functionality):
 
-* [**PySpike**](http://mariomulansky.github.io/PySpike/) version 0.5.1
+* **PySpike** version 0.5.1
 * **h5py** version 2.2.1 or higher
 * **mayavi** 
 
