@@ -796,19 +796,48 @@ will determine the system-specific paths to use as well as the label for data st
 <p>It is important to make sure that the <code>system_name</code> corresponds to a key in the <code>paths</code> dictionary.
 Also, it is always advisable to provide appropriate labels for the data.</p>
 <h3 id="parameter-range-declarations-and-build-function">Parameter range declarations and build function<a class="headerlink" href="#parameter-range-declarations-and-build-function" title="Permanent link">&para;</a></h3>
-<div class="codehilite"><pre><span></span><span class="k">return</span> <span class="nb">dict</span><span class="p">([(</span><span class="s1">&#39;kernel_pars&#39;</span><span class="p">,</span> <span class="n">kernel_pars</span><span class="p">),</span>
-             <span class="p">(</span><span class="s1">&#39;neuron_pars&#39;</span><span class="p">,</span> <span class="n">neuron_pars</span><span class="p">),</span>
-             <span class="p">(</span><span class="s1">&#39;net_pars&#39;</span><span class="p">,</span> <span class="n">net_pars</span><span class="p">),</span>
+<p>NMSAT allows the definition of ranges for the values of various parameters of choice via the <code>parameter_range</code> dictionary,
+in order simplify running the same experiment when only some parameter values change:</p>
+<p><div class="codehilite"><pre><span></span><span class="n">parameter_range</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;max_current&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">800.</span><span class="p">]</span>
+<span class="p">}</span>
+
+<span class="k">def</span> <span class="nf">build_parameters</span><span class="p">(</span><span class="n">max_current</span><span class="p">):</span>
+    <span class="o">...</span>
+</pre></div>
+
+In this case, only one simulation will be executed where <code>max_current = 800.</code>. However, the following code </p>
+<div class="codehilite"><pre><span></span><span class="n">parameter_range</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;max_current&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">800.</span><span class="p">,</span> <span class="mf">1200.</span><span class="p">],</span>
+    <span class="s1">&#39;total_time&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1000.</span><span class="p">]</span>
+<span class="p">}</span>
+
+<span class="k">def</span> <span class="nf">build_parameters</span><span class="p">(</span><span class="n">max_current</span><span class="p">,</span> <span class="n">total_time</span><span class="p">):</span>
+    <span class="o">...</span>
+</pre></div>
+
+
+<p>will result in 2 separate runs, one for each parameter combination:</p>
+<ul>
+<li><code>max_current = 800., total_time = 1000.</code></li>
+<li><code>max_current = 1200., total_time = 1000.</code></li>
+</ul>
+<p>The <code>build_parameters(...)</code> function is required in every parameter file. If the <code>parameter_range</code> dictionary is not 
+empty, its keys (more precisely equivalent variable names) are passed as arguments to the function.</p>
+<h3 id="parameter-types">Parameter types<a class="headerlink" href="#parameter-types" title="Permanent link">&para;</a></h3>
+<p>The returned value of the <code>build_parameters(...)</code> function is a dictionary of <code>ParameterSets</code>, containing all the
+necessary types of parameters to be used by the main experiment. These parameters defined in the function are themselves
+<code>ParameterSets</code> dictionaries:</p>
+<div class="codehilite"><pre><span></span><span class="k">return</span> <span class="nb">dict</span><span class="p">([(</span><span class="s1">&#39;kernel_pars&#39;</span><span class="p">,</span>   <span class="n">kernel_pars</span><span class="p">),</span>
+             <span class="p">(</span><span class="s1">&#39;neuron_pars&#39;</span><span class="p">,</span>   <span class="n">neuron_pars</span><span class="p">),</span>
+             <span class="p">(</span><span class="s1">&#39;net_pars&#39;</span><span class="p">,</span>      <span class="n">net_pars</span><span class="p">),</span>
              <span class="p">(</span><span class="s1">&#39;encoding_pars&#39;</span><span class="p">,</span> <span class="n">encoding_pars</span><span class="p">)])</span>
 </pre></div>
 
 
-<h3 id="parameter-types">Parameter types<a class="headerlink" href="#parameter-types" title="Permanent link">&para;</a></h3>
-<p>The output of the build_parameters function is a dictionary of ParameterSets, containing all the
-necessary types of parameters to be used by the main experiment. Acceptable types (with examples
-of use) are:</p>
+<p>Each key in the returned dictionary must match the name of the variable. Acceptable types (with examples of use) are: </p>
 <h4 id="kernel"><strong>Kernel</strong><a class="headerlink" href="#kernel" title="Permanent link">&para;</a></h4>
-<p>Specify all relevant system and simulation parameters.</p>
+<p>Specifies all relevant system and simulation parameters.</p>
 <div class="codehilite"><pre><span></span><span class="n">kernel_pars</span> <span class="o">=</span> <span class="n">ParameterSet</span><span class="p">({</span>
     <span class="s1">&#39;resolution&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>      <span class="c1"># simulation resolution</span>
     <span class="s1">&#39;sim_time&#39;</span><span class="p">:</span> <span class="mf">1000.</span><span class="p">,</span>      <span class="c1"># total simulation time (often not required)</span>
@@ -848,10 +877,9 @@ of use) are:</p>
 
 
 <h4 id="neuron"><strong>Neuron</strong><a class="headerlink" href="#neuron" title="Permanent link">&para;</a></h4>
-<p>neuron model parameters, must stricly abide by the naming conventions of the NEST
-model requested. For example:</p>
+<p>Neuron model parameters, must strictly abide by the naming conventions of the NEST model requested. For example:</p>
 <div class="codehilite"><pre><span></span><span class="n">neuron_pars</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;neuron_name&#39;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s1">&#39;neuron_population_name&#39;</span><span class="p">:</span> <span class="p">{</span>   <span class="c1"># </span>
         <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="s1">&#39;iaf_psc_exp&#39;</span><span class="p">,</span>
         <span class="s1">&#39;C_m&#39;</span><span class="p">:</span> <span class="mf">250.0</span><span class="p">,</span>
         <span class="s1">&#39;E_L&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
@@ -871,28 +899,33 @@ in the network parameter dictionary, where the code will use them.</p>
 from the multiple populations:</p>
 <div class="codehilite"><pre><span></span><span class="n">net_pars</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s1">&#39;n_populations&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>         <span class="c1"># total number of populations</span>
-    <span class="s1">&#39;pop_names&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">],</span>
-    <span class="s1">&#39;n_neurons&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">8000</span><span class="p">,</span> <span class="mi">2000</span><span class="p">],</span>
-    <span class="s1">&#39;neuron_pars&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">neuron_pars</span><span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">],</span> <span class="n">neuron_pars</span><span class="p">[</span><span class="s1">&#39;I&#39;</span><span class="p">]],</span>
-    <span class="s1">&#39;randomize_neuron_pars&#39;</span><span class="p">:</span> <span class="p">[{</span><span class="s1">&#39;V_m&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;low&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;high&#39;</span><span class="p">:</span> <span class="mf">15.</span><span class="p">})},</span> <span class="c1"># if necessary</span>
-                              <span class="p">{</span><span class="s1">&#39;V_m&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;low&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;high&#39;</span><span class="p">:</span> <span class="mf">15.</span><span class="p">})}],</span>
-    <span class="s1">&#39;topology&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">False</span><span class="p">,</span> <span class="bp">False</span><span class="p">],</span>
-    <span class="s1">&#39;topology_dict&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">],</span>
-    <span class="s1">&#39;record_spikes&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">True</span><span class="p">,</span> <span class="bp">True</span><span class="p">],</span>
-    <span class="s1">&#39;spike_device_pars&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">copy_dict</span><span class="p">(</span><span class="n">rec_devices</span><span class="p">,</span>
-                                    <span class="p">{</span><span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="s1">&#39;spike_detector&#39;</span><span class="p">,</span>
-                                     <span class="s1">&#39;record_to&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;memory&#39;</span><span class="p">],</span>
-                                     <span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">}),</span>
-                          <span class="n">copy_dict</span><span class="p">(</span><span class="n">rec_devices</span><span class="p">,</span>
-                                    <span class="p">{</span><span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="s1">&#39;spike_detector&#39;</span><span class="p">,</span>
-                                     <span class="s1">&#39;record_to&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;memory&#39;</span><span class="p">],</span>
-                                     <span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">})],</span>
-    <span class="s1">&#39;record_analogs&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">False</span><span class="p">,</span> <span class="bp">False</span><span class="p">],</span>
-    <span class="s1">&#39;analog_device_pars&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">]}</span>
+    <span class="s1">&#39;pop_names&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">],</span>    <span class="c1"># names for each population, here &#39;E&#39; for excitatory and &#39;I&#39; for inhibitory</span>
+    <span class="s1">&#39;n_neurons&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">8000</span><span class="p">,</span> <span class="mi">2000</span><span class="p">],</span>  <span class="c1"># number of neurons in each population</span>
+    <span class="s1">&#39;neuron_pars&#39;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="n">neuron_pars</span><span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">],</span>   <span class="c1"># neuron parameters for population name &#39;E&#39; </span>
+            <span class="n">neuron_pars</span><span class="p">[</span><span class="s1">&#39;I&#39;</span><span class="p">]],</span>  <span class="c1"># neuron parameters for population name &#39;I&#39;</span>
+    <span class="s1">&#39;randomize_neuron_pars&#39;</span><span class="p">:</span> <span class="p">[</span>  <span class="c1"># randomize certain parameters if necessary</span>
+            <span class="p">{</span><span class="s1">&#39;V_m&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;low&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;high&#39;</span><span class="p">:</span> <span class="mf">15.</span><span class="p">})},</span>  
+            <span class="p">{</span><span class="s1">&#39;V_m&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;low&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;high&#39;</span><span class="p">:</span> <span class="mf">15.</span><span class="p">})}],</span> 
+    <span class="s1">&#39;topology&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">False</span><span class="p">,</span> <span class="bp">False</span><span class="p">],</span>     <span class="c1"># does the network have topology? True or False</span>
+    <span class="s1">&#39;topology_dict&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">],</span>  <span class="c1"># dictionary with topology parameters, </span>
+                                    <span class="c1"># if topology is set to True for the population </span>
+    <span class="s1">&#39;record_spikes&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">True</span><span class="p">,</span> <span class="bp">True</span><span class="p">],</span>  <span class="c1"># whether to record spikes for each population</span>
+    <span class="s1">&#39;spike_device_pars&#39;</span><span class="p">:</span> <span class="p">[</span>          <span class="c1"># parameters for spike recording devices</span>
+            <span class="n">copy_dict</span><span class="p">(</span><span class="n">rec_devices</span><span class="p">,</span>
+                    <span class="p">{</span><span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="s1">&#39;spike_detector&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;record_to&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;memory&#39;</span><span class="p">],</span>
+                     <span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">}),</span>
+            <span class="n">copy_dict</span><span class="p">(</span><span class="n">rec_devices</span><span class="p">,</span>
+                    <span class="p">{</span><span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="s1">&#39;spike_detector&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;record_to&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;memory&#39;</span><span class="p">],</span>
+                     <span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">})],</span>
+    <span class="s1">&#39;record_analogs&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">False</span><span class="p">,</span> <span class="bp">False</span><span class="p">],</span>   <span class="c1"># whether to record analog data for each population</span>
+    <span class="s1">&#39;analog_device_pars&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">]}</span> <span class="c1"># parameters for analog devices</span>
 </pre></div>
 
 
-<p>Note that the dimensionality of all the list parameters has to be equal to n_populations. If
+<p>Note that the dimensionality of all the list parameters has to be equal to <code>n_populations</code>. If
 these parameters are all correctly set, generating a network is as simple as:</p>
 <div class="codehilite"><pre><span></span><span class="n">net</span> <span class="o">=</span> <span class="n">Network</span><span class="p">(</span><span class="n">net_pars</span><span class="p">)</span>
 <span class="n">net</span><span class="o">.</span><span class="n">connect_devices</span><span class="p">()</span>
@@ -903,42 +936,50 @@ these parameters are all correctly set, generating a network is as simple as:</p
 <p>Connectivity parameters, specifying the composition, topology and connectivity of
 the multiple populations:</p>
 <div class="codehilite"><pre><span></span><span class="n">connection_pars</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;n_synapse_types&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>   <span class="c1"># [int] - total number of connections to establish </span>
-    <span class="s1">&#39;synapse_types&#39;</span><span class="p">:</span>    <span class="c1"># [list of tuples] - each tuple corresponds to 1 connection and </span>
-                <span class="c1"># has the form (tget_pop_label, src_pop_label)   </span>
-        <span class="p">[(</span><span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="s1">&#39;E&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="s1">&#39;E&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">)],</span> 
-    <span class="s1">&#39;topology_dependent&#39;</span><span class="p">:</span>   <span class="c1"># [list of bool] - whether synaptic connections are </span>
-                <span class="c1"># established relying on nest.topology module</span>
-        <span class="p">[</span><span class="bp">False</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="bp">False</span><span class="p">],</span> 
-    <span class="s1">&#39;models&#39;</span><span class="p">:</span>       <span class="c1"># [list of str] - names of the synapse models to realize on each</span>
-                <span class="c1"># synapse type</span>
-        <span class="p">[</span><span class="s1">&#39;static_synapse&#39;</span><span class="p">,</span> <span class="s1">&#39;static_synapse&#39;</span><span class="p">,</span> <span class="s1">&#39;static_synapse&#39;</span><span class="p">,</span> <span class="s1">&#39;static_synapse&#39;</span><span class="p">],</span>           
-    <span class="s1">&#39;model_pars&#39;</span><span class="p">:</span>       <span class="c1"># [list of dict] - each entry in the list contains the synapse</span>
-                <span class="c1"># dictionary (if necessary) for the corresponding synapse model</span>
-        <span class="p">[</span><span class="n">synapse_pars_dict</span><span class="p">,</span> <span class="n">synapse_pars_dict</span><span class="p">,</span> <span class="n">synapse_pars_dict</span><span class="p">,</span> <span class="n">synapse_pars_dict</span><span class="p">],</span>     
-    <span class="s1">&#39;weight_dist&#39;</span><span class="p">:</span>  <span class="c1"># [list of dict] -  </span>
-        <span class="p">[</span><span class="n">common_syn_specs</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">],</span> <span class="n">common_syn_specs</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">],</span> 
-         <span class="n">common_syn_specs</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">],</span> <span class="n">common_syn_specs</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">]],</span>
-    <span class="s1">&#39;pre_computedW&#39;</span><span class="p">:</span> <span class="c1"># Provide an externally specified connectivity matrix</span>
-            <span class="c1"># if pre-computed weights matrices are provided, delays also</span>
-            <span class="c1"># need to be pre-specified, as an array with the same dimensions</span>
-            <span class="c1"># as W, with delay values on each corresponding entry.</span>
-            <span class="c1"># Alternatively, if all delays are the same, just provide a</span>
-            <span class="c1"># single number.</span>
-        <span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">],</span>
+    <span class="c1"># [int] - total number of connections to establish</span>
+    <span class="s1">&#39;n_synapse_types&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
 
+     <span class="c1"># [list of tuples] - each tuple corresponds to 1 connection and </span>
+     <span class="c1"># has the form (tget_pop_label, src_pop_label)</span>
+    <span class="s1">&#39;synapse_types&#39;</span><span class="p">:</span> <span class="p">[(</span><span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="s1">&#39;E&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="s1">&#39;E&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">)],</span>
+
+    <span class="c1"># [list of bool] - whether synaptic connections are </span>
+    <span class="c1"># established relying on nest.topology module</span>
+    <span class="s1">&#39;topology_dependent&#39;</span><span class="p">:[</span><span class="bp">False</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="bp">False</span><span class="p">],</span>
+
+    <span class="c1"># [list of str] - names of the synapse models to realize on each synapse type</span>
+    <span class="s1">&#39;models&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;static_synapse&#39;</span><span class="p">,</span> <span class="s1">&#39;static_synapse&#39;</span><span class="p">,</span> <span class="s1">&#39;static_synapse&#39;</span><span class="p">,</span> <span class="s1">&#39;static_synapse&#39;</span><span class="p">],</span>  
+
+    <span class="c1"># [list of dict] - each entry in the list contains the synapse</span>
+    <span class="c1"># dictionary (if necessary) for the corresponding synapse model</span>
+    <span class="s1">&#39;model_pars&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">synapse_pars_dict</span><span class="p">,</span> <span class="n">synapse_pars_dict</span><span class="p">,</span> 
+                   <span class="n">synapse_pars_dict</span><span class="p">,</span> <span class="n">synapse_pars_dict</span><span class="p">],</span>
+
+    <span class="c1"># [list of dict] - weight distribution parameters (in NEST format)</span>
+    <span class="s1">&#39;weight_dist&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">common_syn_specs</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">],</span> <span class="n">common_syn_specs</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">],</span> 
+                    <span class="n">common_syn_specs</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">],</span> <span class="n">common_syn_specs</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">]],</span>
+
+    <span class="c1"># Provide an externally specified connectivity matrix if</span>
+    <span class="c1"># pre-computed weights matrices are provided, delays also need </span>
+    <span class="c1"># to be pre-specified, as an array with the same dimensions as W, </span>
+    <span class="c1"># with delay values on each corresponding entry. Alternatively, </span>
+    <span class="c1"># if all delays are the same, just provide a single number.</span>
+    <span class="s1">&#39;pre_computedW&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">],</span>
+
+    <span class="c1"># [list of dict] - delay distribution parameters (in NEST format)</span>
     <span class="s1">&#39;delay_dist&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">common_syn_specs</span><span class="p">[</span><span class="s1">&#39;delay&#39;</span><span class="p">],</span> <span class="n">common_syn_specs</span><span class="p">[</span><span class="s1">&#39;delay&#39;</span><span class="p">],</span>
-                <span class="n">common_syn_specs</span><span class="p">[</span><span class="s1">&#39;delay&#39;</span><span class="p">],</span> <span class="n">common_syn_specs</span><span class="p">[</span><span class="s1">&#39;delay&#39;</span><span class="p">]],</span>
+                   <span class="n">common_syn_specs</span><span class="p">[</span><span class="s1">&#39;delay&#39;</span><span class="p">],</span> <span class="n">common_syn_specs</span><span class="p">[</span><span class="s1">&#39;delay&#39;</span><span class="p">]],</span>
 
-    <span class="s1">&#39;conn_specs&#39;</span><span class="p">:</span>   <span class="c1"># [list of dict] - for topological connections</span>
-        <span class="p">[</span><span class="n">conn_specs</span><span class="p">,</span> <span class="n">conn_specs</span><span class="p">,</span> <span class="n">conn_specs</span><span class="p">,</span> <span class="n">conn_specs</span><span class="p">],</span>
+    <span class="c1"># [list of dict] - for topological connections</span>
+    <span class="s1">&#39;conn_specs&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">conn_specs</span><span class="p">,</span> <span class="n">conn_specs</span><span class="p">,</span> <span class="n">conn_specs</span><span class="p">,</span> <span class="n">conn_specs</span><span class="p">],</span>
 
+    <span class="c1"># [list of dict] - </span>
     <span class="s1">&#39;syn_specs&#39;</span><span class="p">:</span> <span class="p">[]</span>
 </pre></div>
 
 
-<p>To connect the network, just provide this parameter set to the connect method of the Network
-object (for complex connectivity schemes, it is worth setting the progress=True to accompany the
+<p>To connect the network, just provide this parameter set to the connect method of the <code>Network</code>
+object (for complex connectivity schemes, it is worth setting the <code>progress=True</code> to accompany the
 connection progress):</p>
 <div class="codehilite"><pre><span></span><span class="n">net</span><span class="o">.</span><span class="n">connect_populations</span><span class="p">(</span><span class="n">parameter_set</span><span class="o">.</span><span class="n">connection_pars</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 </pre></div>
@@ -947,13 +988,14 @@ connection progress):</p>
 <h4 id="stimulus"><strong>Stimulus</strong><a class="headerlink" href="#stimulus" title="Permanent link">&para;</a></h4>
 <p>Stimulus or task parameters:</p>
 <div class="codehilite"><pre><span></span><span class="n">stim_pars</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s1">&#39;n_stim&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>       <span class="c1"># number of stimuli</span>
-        <span class="s1">&#39;elements&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
-        <span class="s1">&#39;grammar&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span> <span class="c1">#!!</span>
-        <span class="s1">&#39;full_set_length&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">T</span> <span class="o">+</span> <span class="n">T_discard</span><span class="p">),</span> <span class="c1"># total samples</span>
-        <span class="s1">&#39;transient_set_length&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">T_discard</span><span class="p">),</span> 
-        <span class="s1">&#39;train_set_length&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="mf">0.8</span> <span class="o">*</span> <span class="n">T</span><span class="p">),</span>
-        <span class="s1">&#39;test_set_length&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="mf">0.2</span> <span class="o">*</span> <span class="n">T</span><span class="p">)}</span>
+        <span class="s1">&#39;n_stim&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>               <span class="c1"># number of stimuli</span>
+        <span class="s1">&#39;elements&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">,</span>      <span class="c1">#  </span>
+                     <span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+        <span class="s1">&#39;grammar&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>            <span class="c1">#!!</span>
+        <span class="s1">&#39;full_set_length&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">T</span> <span class="o">+</span> <span class="n">T_discard</span><span class="p">),</span>  <span class="c1"># total samples</span>
+        <span class="s1">&#39;transient_set_length&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">T_discard</span><span class="p">),</span> <span class="c1"># </span>
+        <span class="s1">&#39;train_set_length&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="mf">0.8</span> <span class="o">*</span> <span class="n">T</span><span class="p">),</span>       <span class="c1">#</span>
+        <span class="s1">&#39;test_set_length&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="mf">0.2</span> <span class="o">*</span> <span class="n">T</span><span class="p">)}</span>        <span class="c1">#</span>
 </pre></div>
 
 
