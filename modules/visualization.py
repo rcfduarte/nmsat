@@ -643,7 +643,6 @@ def plot_single_raster(times, ax, t_start=0, t_stop=1000):
 		ax.set_xticklabels([])
 
 
-
 def plot_acc(t, accs, fit_params, acc_function, title='', ax=None, display=True, save=False):
 	"""
 
@@ -840,7 +839,7 @@ def plot_w_out(w_out, label, display=True, save=False):
 	Creates a histogram of the readout weights
 	"""
 	fig1, ax1 = pl.subplots()
-	fig1.suptitle(r"${0}$ - Biclustering W out".format(str(label)))
+	fig1.suptitle("{0} - Biclustering W out".format(str(label)))
 	n_clusters = np.min(w_out.shape)
 	n_bars = np.max(w_out.shape)
 	model = SpectralBiclustering(n_clusters=n_clusters, method='log',
@@ -856,13 +855,14 @@ def plot_w_out(w_out, label, display=True, save=False):
 
 	if np.argmin(w_out.shape) == 0:
 		w_out = w_out.copy().T
+	##########################################################
 	fig = pl.figure()
 	for n in range(n_clusters):
-		locals()['ax_{0}'.format(str(n))] = fig.add_subplot(1, n_clusters, n+1)
-		locals()['ax_{0}'.format(str(n))].barh(range(n_bars), w_out[:, n], height=1.0, linewidth=0, alpha=0.8)
-		locals()['ax_{0}'.format(str(n))].set_ylim([0, w_out.shape[0]])
-		locals()['ax_{0}'.format(str(n))].set_xticklabels([])
-		locals()['ax_{0}'.format(str(n))].set_yticklabels([])
+		ax = fig.add_subplot(1, n_clusters, n+1)
+		ax.barh(range(n_bars), w_out[:, n], height=1.0, linewidth=0, alpha=0.8)
+		ax.set_ylim([0, w_out.shape[0]])
+		# ax.set_xticklabels([])
+		# ax.set_yticklabels([])
 	if save:
 		assert isinstance(save, str), "Please provide filename"
 		fig1.savefig(save+'W_out_Biclustering.pdf')
@@ -2719,7 +2719,7 @@ def progress_bar(progress):
 	sys.stdout.flush()
 
 
-def plot_target_out(target, output, label='', display=False, save=False):
+def plot_target_out(target, output, time_axis=None, label='', display=False, save=False):
 	"""
 
 	:param target:
@@ -2737,6 +2737,10 @@ def plot_target_out(target, output, label='', display=False, save=False):
 	else:
 		tg = target[0]
 		oo = output[:, 0]
+
+	if time_axis is None:
+		time_axis = np.arange(tg.shape[1])
+
 	ax2ins = zoomed_inset_axes(ax2, 0.5, loc=1)
 	ax2ins.plot(tg, c='r')
 	ax2ins.plot(oo, c='b')
@@ -2985,7 +2989,7 @@ def plot_dimensionality(result, pca_obj, rotated_data=None, data_label='', displ
 	ax71.grid(False)
 	ax72 = fig7.add_subplot(122)
 
-	ax71.plot(rotated_data[:, 0], rotated_data[:, 1], rotated_data[:, 2], color='r', lw=2, alpha=0.8)
+	ax71.plot(rotated_data[:, 0], rotated_data[:, 1], rotated_data[:, 2], '.-',color='r', lw=2, alpha=0.8)
 	ax71.set_title(r'${0} - (3 PCs) = {1}$'.format(data_label, str(round(np.sum(
 		pca_obj.explained_variance_ratio_[:3]), 1))))
 	ax72.plot(pca_obj.explained_variance_ratio_, 'ob')
@@ -2994,13 +2998,13 @@ def plot_dimensionality(result, pca_obj, rotated_data=None, data_label='', displ
 	                        np.max(pca_obj.explained_variance_ratio_), len(pca_obj.explained_variance_ratio_)),
 	          '--r', lw=2.5)
 	ax72.set_xlabel(r'PC')
-	ax72.set_ylabel(r'Variance Explained (%)')
+	ax72.set_ylabel(r'Variance Explained')
 	ax72.set_xlim([0, round(result) * 2])
 	ax72.set_ylim([0, np.max(pca_obj.explained_variance_ratio_)])
 	if display:
 		pl.show(False)
 	if save:
-		fig7.savefig(save + '{0}_dimensionality.pdf'.format(str(save)))
+		fig7.savefig(save + '{0}_dimensionality.pdf'.format(data_label))
 
 
 def plot_synaptic_currents(I_ex, I_in, time_axis):
