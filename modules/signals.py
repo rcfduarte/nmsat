@@ -271,6 +271,25 @@ def hammingDistance(s1, s2):
     return sum(bool(ord(ch1) - ord(ch2)) for ch1, ch2 in zip(s1, s2))
 
 
+#################################################################################
+def narma(input, n=10):
+	"""
+	Returns the n-th order non-linear autoregressive moving average (NARMA) of the input time series
+	:return: 
+	"""
+	if isinstance(input, AnalogSignalList):
+		input = input.as_array()
+
+	output = np.zeros_like(input)
+	for i in range(input.shape[0]):
+		for t in range(input.shape[1]):
+			for k in range(n-1, input.shape[1] - 1):
+				output[i, k + 1] = .2 * output[i, k] + .004 * output[i, k] * np.sum(output[i, k - (n - 1):k + 1]) + \
+				                         1.5 * input[i, k - (n-1)] * input[i, k] + .001
+		assert(not np.any(np.isinf(output))), "Unstable solution"
+	return output
+
+
 ##################################################################################
 def convert_array(array, id_list, dt=None, start=None, stop=None):
 	"""

@@ -343,64 +343,8 @@ def check_signal_dimensions(input_signal, target_signal):
 		                                                                                          target_signal.shape))
 
 
-def nrmse(input_signal, target_signal):
-	"""
-	(from Oger)
-	Calculates the normalized root mean square error (NRMSE) of the input signal compared to the target signal.
-
-	:param input_signal: array
-	:param target_signal: array
-	:return: NRMSE
-	"""
-	check_signal_dimensions(input_signal, target_signal)
-	if len(target_signal) == 1:
-		raise NotImplementedError('The NRMSE is not defined for signals of length 1 since they have no variance.')
-	input_signal = input_signal.flatten()
-	target_signal = target_signal.flatten()
-
-	# Use normalization with N-1, as in matlab
-	var = target_signal.std(ddof=1) ** 2
-
-	error = (target_signal - input_signal) ** 2
-
-	return np.sqrt(error.mean() / var)
-
-
-def nmse(input_signal, target_signal):
-	"""
-	(from Oger)
-	Calculates the normalized mean square error (NMSE) of the input signal compared to the target signal.
-	:param input_signal: array
-	:param target_signal: array
-	:return: RMSE
-	"""
-	check_signal_dimensions(input_signal, target_signal)
-	input_signal = input_signal.flatten()
-	targetsignal = target_signal.flatten()
-
-	var = targetsignal.std()**2
-
-	error = (targetsignal - input_signal) ** 2
-	return error.mean() / var
-
-
-def rmse(input_signal, target_signal):
-	"""
-	(from Oger)
-	Calculates the root mean square error (RMSE) of the input signal compared target target signal.
-	:param input_signal: array
-	:param target_signal: array
-	:return: RMSE
-	"""
-	check_signal_dimensions(input_signal, target_signal)
-
-	error = (target_signal.flatten() - input_signal.flatten()) ** 2
-	return np.sqrt(error.mean())
-
-
 def mse(input_signal, target_signal):
 	"""
-	(from Oger)
 	Calculates the mean square error (MSE) of the input signal compared target signal.
 	:param input_signal: array
 	:param target_signal: array
@@ -409,65 +353,6 @@ def mse(input_signal, target_signal):
 	check_signal_dimensions(input_signal, target_signal)
 	error = (target_signal.flatten() - input_signal.flatten()) ** 2
 	return error.mean()
-
-
-# def loss_01(input_signal, target_signal):
-# 	"""
-# 	(from Oger)
-# 	Returns the fraction of timesteps where input_signal is unequal to target_signal
-# 	:param input_signal: array
-# 	:param target_signal: array
-# 	:return: loss
-# 	"""
-# 	check_signal_dimensions(input_signal, target_signal)
-# 	return np.mean(np.any(input_signal != target_signal, 1))
-
-
-# def cosine(input_signal, target_signal):
-# 	"""
-# 	(from Oger)
-# 	Compute cosine of the angle between two vectors. This error measure measures the extent to which two vectors
-# 	point in the same direction. A value of 1 means complete alignment, a value of 0 means the vectors are orthogonal.
-# 	:param input_signal: array
-# 	:param target_signal: array
-# 	:return: cos
-# 	"""
-# 	check_signal_dimensions(input_signal, target_signal)
-# 	return float(np.dot(input_signal, target_signal)) / (np.linalg.norm(input_signal) * np.linalg.norm(
-# 			target_signal))
-
-
-# def ce(input_signal, target_signal):
-# 	"""
-# 	(from Oger)
-# 	Compute cross-entropy loss function. Returns the negative log-likelyhood of the target_signal labels as predicted by
-# 	the input_signal values.
-# 	:param input_signal: array
-# 	:param target_signal: array
-# 	:return:
-# 	"""
-# 	check_signal_dimensions(input_signal, target_signal)
-#
-# 	if np.rank(target_signal)>1 and target_signal.shape[1] > 1:
-# 		error = np.sum(-np.log(input_signal[target_signal == 1]))
-#
-# 		if np.isnan(error):
-# 			inp = input_signal[target_signal == 1]
-# 			inp[inp == 0] = float(np.finfo(input_signal.dtype).tiny)
-# 			error = -np.sum(np.log(inp))
-# 	else:
-# 		error = -np.sum(np.log(input_signal[target_signal == 1]))
-# 		error -= np.sum(np.log(1 - input_signal[target_signal == 0]))
-#
-# 		if np.isnan(error):
-# 			inp = input_signal[target_signal == 1]
-# 			inp[inp == 0] = float(np.finfo(input_signal.dtype).tiny)
-# 			error = -np.sum(np.log(inp))
-# 			inp = 1 - input_signal[target_signal == 0]
-# 			inp[inp == 0] = float(np.finfo(input_signal.dtype).tiny)
-# 			error -= np.sum(np.log(inp))
-#
-# 	return error
 
 
 # TODO when classes are finished, integrate this function and update arguments
@@ -520,6 +405,7 @@ def compute_isi_stats(spike_list, summary_only=True, display=True):
 
 	return results
 
+
 # TODO when classes are finished, integrate this function and update arguments
 def compute_spike_stats(spike_list, time_bin=1., summary_only=False, display=False):
 	"""
@@ -555,48 +441,6 @@ def compute_spike_stats(spike_list, time_bin=1., summary_only=False, display=Fal
 		print("Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3))))
 	return results
 
-
-# def time_resolved_fano_factor(spike_list, time_points, **params):
-# 	"""
-# 	Regress the spike-count variance versus the mean and report the slope (FF).
-# 	Analysis is done at multiple time points.
-# 	The distribution of mean counts is matched (via downselection), so that all time points
-# 	have the same distribution of mean counts
-# 	:param spike_list: SpikeList object - binary spike count vectors will be extracted. The data analyzed takes
-# 	the form of a binary matrix with 1 row per trial / neuron and 1 column per ms.
-# 	:param time_points: time points to report
-# 	:param params: [dict] - if any of the fields is not provided, it will be replaced by the default value
-# 		- 'box_width' - width of sliding window
-# 		- 'match_reps' - number of random choices regarding which points to throw away when matching distributions
-# 		- 'bin_spacing' - bin width when computing distributions of mean counts
-# 		- 'align_time' - time of event that data are aligned to (output times are expressed relative to this)
-# 		- 'weighted_regression' - self-explanatory
-# 	:return results: [dict] -
-# 		- 'fano_factor' - FF for each time (after down-sampling to match distribution across times)
-# 		- 'fano_95CI' - 95% confidence intervals on the FF
-# 		- 'scatter_data' - data for variance VS mean scatter plot
-# 		- 'fano_factors' - FF for all data points (no down-sampling or matching)
-# 		- 'fano_all_95CI' - 95% confidence intervals for the above
-# 		- ''
-# 	Based on Churchland et al. (2010) Stimulus onset quenches neural variability: a widespread cortical phenomenon.
-# 	"""
-# 	#TODO - incomplete (attempt to adapt from Matlab code)
-# 	default_params = {'box_width': 50, 'match_reps': 10, 'bin_spacing': 0.25, 'align_time': 0, 'weighted_regression':
-# 		True}
-# 	parameter_fields = ['box_width', 'match_reps', 'bin_spacing', 'align_time', 'weighted_regression']
-# 	for k, v in default_params.items():
-# 		if params.has_key(k):
-# 			default_params[k] = params[k]
-#
-# 	# Acquire binary count data
-# 	counts = spike_list.spike_counts(dt=1., normalized=False, binary=True)
-# 	weighting_epsilon = 1. * default_params['box_width'] / 1000.
-#
-# 	# main
-# 	max_rate = 0   # keep track of max rate across all times / conditions
-# 	# trial_count =
-# 	t_start = time_points - np.floor(default_params['box_width']/2.) + 1
-# 	t_end = time_points - np.ceil(default_params['box_width']/2.) + 1
 
 # TODO when classes are finished, integrate this function and update arguments
 def compute_synchrony(spike_list, n_pairs=500, time_bin=1., tau=20., time_resolved=False, display=True, depth=4):
@@ -656,6 +500,7 @@ def compute_synchrony(spike_list, n_pairs=500, time_bin=1., tau=20., time_resolv
 	if display:
 		print("Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3))))
 	return results
+
 
 # TODO add more comment, what stats exactly are computed? !!!!
 def compute_analog_stats(population, parameter_set, variable_names, analysis_interval=None, plot=False):
@@ -1111,55 +956,6 @@ def characterize_population_activity(population_object, parameter_set, analysis_
 							   display=display, save=save)
 	return results
 
-# TODO is this needed?
-def epoch_based_analysis(population_object, epochs):
-	"""
-	Analyse population activity on a trial-by-trial basis
-	:return:
-	"""
-	pass
-	# unique_labels = np.unique(epochs.keys())
-	# full_data_set = {lab: {} for lab in unique_labels}
-	# for epoch_label, epoch_times in epochs.items():
-	# 	full_data_set[lab].update({epoch_label: spike_list.time_slice(epoch_times[0], epoch_times[1])})
-
-
-def analyse_activity_dynamics(activity_matrix, epochs=None, label='', plot=False, display=False, save=False):
-	"""
-	Perform standard analyses on population activity.
-
-	:param activity_matrix: NxT continuous activity matrix
-	:param epochs:
-	:param label:
-	:param plot:
-	:param display:
-	:param save:
-	:return: results dictionary
-	"""
-	if isinstance(activity_matrix, sg.AnalogSignalList):
-		activity_matrix = activity_matrix.as_array()
-	assert(isinstance(activity_matrix, np.ndarray)), "Activity matrix must be numpy array or AnalogSignalList"
-	assert(check_dependency('sklearn')), "Scikits-learn is necessary for this analysis"
-
-	results = {}
-
-	pca_obj = sk.PCA(n_components=activity_matrix.shape[0])
-	X = pca_obj.fit_transform(activity_matrix.T)
-	print("Explained Variance (first 3 components): %s" % str(pca_obj.explained_variance_ratio_[:3]))
-	results.update({'dimensionality': compute_dimensionality(activity_matrix, pca_obj=pca_obj, display=True)})
-	if plot:
-		vz.plot_dimensionality(results, pca_obj, X, data_label=label, display=display, save=save)
-	if epochs is not None:
-		for epoch_label, epoch_time in epochs.items():
-			# print epoch_label
-			resp = activity_matrix[:, int(epoch_time[0]):int(epoch_time[1])]
-
-			results.update({epoch_label: {}})
-			results[epoch_label].update(analyse_activity_dynamics(resp, epochs=None, label=epoch_label, plot=False,
-			                                                     display=False, save=False))
-	# TODO extend to other standard measurements
-	return results
-
 
 def compute_time_resolved_statistics(spike_list, label='', time_bin=1., window_len=100, epochs=None,
                                      color_map='colorwarm', display=True, plot=False, save=False):
@@ -1517,372 +1313,106 @@ def ssa_lifetime(pop_obj, parameter_set, input_off=1000., display=True):
 
 	return results
 
-# TODO remove?
-def fmf_readout(response, target, readout, index, label='', plot=False, display=False, save=False):
+
+def calculate_error(output, target, display=True):
 	"""
-	(to be removed)
-	This function is specific to the fading memory estimation, and performs all the necessary computations to compute
-	the fading memory function
-	:return:
+	Determine the MAE and MSE of output and target signals
+	:return: 
 	"""
-	label += str(round(np.median(response), 1))
-	state = response[:, index:]
-	target = target[:, :-index]
-	readout.train(state, target)
-	norm_wout = readout.measure_stability()
-	print("|W_out| [{0}] = {1}".format(readout.name, str(norm_wout)))
-
-	output = readout.test(state)
-
-	if output.shape == target.shape:
-		MAE = np.mean(output - target)
-		MSE = mse(output, target)
-		RMSE = rmse(output, target)
-		NMSE = nmse(output, target)
-		NRMSE = nrmse(output[0], target[0])
-
-		print("\t- MAE = {0}".format(str(MAE)))
-		print("\t- MSE = {0}".format(str(MSE)))
-		print("\t- NMSE = {0}".format(str(NMSE)))
-		print("\t- RMSE = {0}".format(str(RMSE)))
-		print("\t- NRMSE = {0}".format(str(NRMSE)))
-
-		COV = (np.cov(target, output) ** 2.)
-		VARS = np.var(output) * np.var(target)
-		FMF = COV / VARS
-		fmf = FMF[0, 1]
-		print("M[k] = {0}".format(str(FMF[0, 1])))
-	else:
-		MAE = np.mean(output.T - target)
-		MSE = mse(output.T, target)
-		RMSE = rmse(output.T, target)
-		NMSE = nmse(output.T, target)
-		NRMSE = nrmse(output[:, 0], target[0])
-
-		print("\t- MAE = {0}".format(str(MAE)))
-		print("\t- MSE = {0}".format(str(MSE)))
-		print("\t- NMSE = {0}".format(str(NMSE)))
-		print("\t- RMSE = {0}".format(str(RMSE)))
-		print("\t- NRMSE = {0}".format(str(NRMSE)))
-
-		COV = np.cov(target[0, :], output[:, 0]) ** 2.
-		VARS = np.var(target) * np.var(output)
-		FMF = COV / VARS
-		fmf = FMF[0, 1]
-		print("\t- M[k] = {0}".format(str(FMF[0, 1])))
-
-	if plot:
-		vz.plot_target_out(target, output, label, display, save)
-
-	return output, {'MAE': MAE, 'MSE': MSE, 'NMSE': NMSE, 'RMSE': RMSE,
-	                'NRMSE': NRMSE, 'norm_wOut': norm_wout, 'fmf': fmf}
-
-
-# TODO update / is it defunct? calls inexisting functions
-def evaluate_fading_memory(net, parameter_set, input, total_time, normalize=True,
-						   debug=False, plot=True, display=True, save=False):
-	"""
-
-	:param net:
-	:param parameter_set:
-	:param input:
-	:param total_time:
-	:param normalize:
-	:param debug:
-	:param plot:
-	:param display:
-	:param save:
-	:return:
-	"""
-	results = {}
-	#######################################################################################
-	# Train Readouts
-	# =====================================================================================
-	# Set targets
-	cut_off_time = parameter_set.kernel_pars.transient_t
-	t_axis = np.arange(cut_off_time, total_time, parameter_set.input_pars.noise.resolution)
-	global_target = input.noise_signal.time_slice(t_start=cut_off_time, t_stop=total_time).as_array()
-
-	# Set baseline random output (for comparison)
-	input_noise_r2 = ia.InputNoise(parameter_set.input_pars.noise,
-	                               stop_time=total_time)
-	input_noise_r2.generate()
-	input.re_seed(parameter_set.kernel_pars.np_seed)
-
-	baseline_out = input_noise_r2.noise_signal.time_slice(t_start=cut_off_time,
-														  t_stop=total_time).as_array()
-
-	if normalize:
-		global_target /= parameter_set.input_pars.noise.noise_pars.amplitude
-		global_target -= np.mean(global_target)  # parameter_set.input_pars.noise.noise_pars.mean
-		baseline_out /= parameter_set.input_pars.noise.noise_pars.amplitude
-		baseline_out -= np.mean(baseline_out)  # parameter_set.input_pars.noise.noise_pars.mean
-
-	print("\n*******************************\nFading Memory Evaluation\n*******************************\nBaseline (" \
-		  "random): ")
-
-	# Error
-	MAE = np.mean(np.abs(baseline_out[0] - global_target[0]))
-	MSE = mse(baseline_out, global_target)
-	RMSE = rmse(baseline_out, global_target)
-	NMSE = nmse(baseline_out, global_target)
-	NRMSE = nrmse(baseline_out[0], global_target[0])
-
-	print("\t- MAE = {0}".format(str(MAE)))
-	print("\t- MSE = {0}".format(str(MSE)))
-	print("\t- NMSE = {0}".format(str(NMSE)))
-	print("\t- RMSE = {0}".format(str(RMSE)))
-	print("\t- NRMSE = {0}".format(str(NRMSE)))
-	# memory
-	COV = (np.cov(global_target, baseline_out) ** 2.)
-	VARS = np.var(baseline_out) * np.var(global_target)
+	MAE = np.abs(np.mean(output - target))
+	MSE = mse(output, target)
+	COV = (np.cov(target, output) ** 2.)
+	VARS = np.var(output) * np.var(target)
 	FMF = COV / VARS
-	print("\t- M[0] = {0}".format(str(FMF[0, 1])))
-	results['Baseline'] = {'MAE': MAE,
-						   'MSE': MSE,
-						   'NMSE': NMSE,
-						   'RMSE': RMSE,
-						   'NRMSE': NRMSE,
-						   'M[0]': FMF[0, 1]}
-
-	#################################
-	# Train Readouts
-	#################################
-	read_pops = []
-
-	if not sg.empty(net.merged_populations):
-		for n_pop in net.merged_populations:
-			if save:
-				save_path = save + n_pop.name
-			else:
-				save_path = False
-
-			results['{0}'.format(n_pop.name)] = {}
-			if hasattr(n_pop, "decoding_pars"):
-				print("\nPopulation {0}".format(n_pop.name))
-				read_pops.append(n_pop)
-				internal_indices = [int(readout.name[len(readout.name.rstrip('0123456789')):])+1 for readout in
-									n_pop.readouts]
-
-				for index, readout in enumerate(n_pop.readouts):
-					internal_idx = internal_indices[index]
-					if len(n_pop.response_matrix) == 1:
-						response_matrix = n_pop.response_matrix[0].as_array()
-						if internal_idx == 1:
-							output, results_1 = fmf_readout(response_matrix, global_target, readout, internal_idx,
-															label=n_pop.name, plot=plot, display=display,
-															save=save_path)
-						else:
-							output, results_1 = fmf_readout(response_matrix, global_target, readout, internal_idx,
-															label=n_pop.name, plot=False, display=False, save=False)
-
-						results['{0}'.format(n_pop.name)].update(
-								{'Readout_{1}'.format(n_pop.name, str(index)): results_1})
-
-					else:
-						for resp_idx, n_response in enumerate(n_pop.response_matrix):
-							response_matrix = n_response.as_array()
-							if internal_idx == 1:
-								output, results_1 = fmf_readout(response_matrix, global_target, readout, internal_idx,
-																label=n_pop.name, plot=plot, display=display,
-																save=save_path)
-							else:
-								output, results_1 = fmf_readout(response_matrix, global_target, readout, internal_idx,
-																label=n_pop.name, plot=plot, display=display,
-																save=save_path)
-
-							results['{0}'.format(n_pop.name)].update(
-									{'Readout_{0}_R{1}'.format(str(resp_idx), str(index)): results_1})
-	if not sg.empty(net.state_extractors):
-		for n_pop in net.populations:
-			if save:
-				save_path = save + n_pop.name
-			else:
-				save_path = False
-
-			results['{0}'.format(n_pop.name)] = {}
-			if hasattr(n_pop, "decoding_pars"):
-				print("\nPopulation {0}".format(n_pop.name))
-				read_pops.append(n_pop)
-				internal_indices = [int(readout.name[len(readout.name.rstrip('0123456789')):])+1 for readout in
-									n_pop.readouts]
-
-				if len(n_pop.response_matrix) == 1:
-					for index, readout in enumerate(n_pop.readouts):
-						internal_idx = internal_indices[index]
-						response_matrix = n_pop.response_matrix[0].as_array()
-
-						if internal_idx == 1:
-							output, results_1 = fmf_readout(response_matrix, global_target, readout, internal_idx,
-															label=n_pop.name, plot=True,
-															display=display, save=save_path)
-						else:
-							output, results_1 = fmf_readout(response_matrix, global_target, readout, internal_idx,
-															label=n_pop.name, plot=False, display=False, save=False)
-
-						results['{0}'.format(n_pop.name)].update(
-								{'Readout_{1}'.format(n_pop.name, str(index)): results_1})
-
-				else:
-					for resp_idx, n_response in enumerate(n_pop.response_matrix):
-						partition_idx = len(n_pop.readouts) / len(n_pop.response_matrix)
-						readout_set = n_pop.readouts[resp_idx * partition_idx:(resp_idx+1)*partition_idx]
-						internal_idxx = [int(n.name.strip('mem'))+1 for n in readout_set]
-
-						for index, readout in enumerate(readout_set):
-							internal_idx = internal_idxx[index]
-							response_matrix = n_response.as_array()
-
-							if internal_idx == 1:
-								output, results_1 = fmf_readout(response_matrix, global_target, readout, internal_idx,
-																label=n_pop.name, plot=plot, display=display,
-																save=save_path)
-							else:
-								output, results_1 = fmf_readout(response_matrix, global_target, readout, internal_idx,
-																label=n_pop.name, plot=False, display=False, save=False)
-
-							results['{0}'.format(n_pop.name)].update(
-									{'Readout_{0}_R{1}'.format(str(resp_idx), str(index)): results_1})
-
-	for pop in read_pops:
-		dx = np.min(np.diff(t_axis))
-		if plot:
-			globals()['fig_{0}'.format(pop.name)] = plt.figure()
-			globals()['fig_{0}1'.format(pop.name)] = plt.figure()
-
-		if len(pop.response_matrix) == 1:
-			fmf = [results[pop.name][x]['fmf'] for idx, x in enumerate(np.sort(results[pop.name].keys()))]
-			initial_guess = 1., 1., 10.
-			steps = np.arange(0., len(fmf)*dx, dx)
-			fit_params, _ = opt.leastsq(err_func, initial_guess, args=(steps, fmf, acc_function))
-			error = np.sum((fmf - acc_function(steps, *fit_params)) ** 2)
-			MC_trap = np.trapz(fmf, dx=dx)
-			MC_simp = integ.simps(fmf, dx=dx)
-			MC_trad = np.sum(fmf[1:])
-			results[pop.name]['MC'] = {'MC_trap': MC_trap, 'MC_simp': MC_simp, 'MC_trad': MC_trad}
-
-			if plot:
-				ax_1 = globals()['fig_{0}'.format(pop.name)].add_subplot(111)
-				ax_2 = globals()['fig_{0}1'.format(pop.name)].add_subplot(111)
-				vz.plot_fmf(t_axis, fmf, ax_1, label=pop.name, display=display, save=save_path)
-				vz.plot_acc(steps, np.array(fmf), fit_params, acc_function, title=r'Fading Memory Fit',
-						 ax=ax_2, display=display, save=str(save_path) + 'fmf')
-		else:
-			ax_ctr = 0
-			remove_keys = []
-			for resp_idx, n_response in enumerate(pop.response_matrix):
-				ax_ctr += 1
-				remove_keys.append('MC'+str(resp_idx))
-				# split readout results:
-				readout_labels = [x for x in results[pop.name].keys() if x not in remove_keys and int(x[8]) == resp_idx]
-				sorted_labels = [int(n[n.index('_R')+2:]) for n in readout_labels]
-				sorted_indices = np.argsort(sorted_labels)
-				sorted_labels = [readout_labels[n] for n in sorted_indices]
-				readout_set_results = [results[pop.name][x] for x in sorted_labels]
-				fmf = [x['fmf'] for x in readout_set_results]
-				initial_guess = 1., 1., 10.
-				steps = np.arange(0., len(fmf) * dx, dx)
-				fit_params, _ = opt.leastsq(err_func, initial_guess, args=(steps, fmf, acc_function))
-				error = np.sum((fmf - acc_function(steps, *fit_params)) ** 2)
-
-				MC_trap = np.trapz(fmf, dx=dx)
-				MC_simp = integ.simps(fmf, dx=dx)
-				MC_trad = np.sum(fmf[1:])
-				results[pop.name]['MC'+str(resp_idx)] = {'MC_trap': MC_trap, 'MC_simp': MC_simp, 'MC_trad': MC_trad*dx}
-
-				if plot:
-					globals()['ax1_{0}'.format(resp_idx)] = globals()['fig_{0}'.format(pop.name)].add_subplot(1,
-									len(pop.response_matrix), ax_ctr)
-					globals()['ax1_{0}1'.format(resp_idx)] = globals()['fig_{0}1'.format(pop.name)].add_subplot(1,
-									len(pop.response_matrix), ax_ctr)
-
-					if save:
-						save_pth = save_path + str(resp_idx)
-					else:
-						save_pth = False
-					# TODO these functions don't exist anymore
-					plot_fmf(t_axis, fmf, globals()['ax1_{0}'.format(resp_idx)],
-							 label=pop.name + 'State_{0}'.format(str(resp_idx)), display=display, save=save_pth)
-					plot_acc(steps, np.array([fmf]), fit_params, acc_function, title=r'Fading Memory Fit',
-							 ax=globals()['ax1_{0}1'.format(resp_idx)], display=display, save=save_path)
-
-		return results
+	fmf = FMF[0, 1]
+	if display:
+		print("- MAE = {0}".format(str(MAE)))
+		print("- MSE = {0}".format(str(MSE)))
+		print("M[k] = {0}".format(str(FMF[0, 1])))
+	return {'MAE': MAE, 'MSE': MSE, 'fmf': fmf}
 
 
-# TODO is this not redundant with analyse_activity_dynamics? - should be combined, but now they are doing different
-# things..
-def analyse_state_matrix(state, stim_labels, label='', plot=True, display=True, save=False):
+def analyse_state_matrix(state, stim_labels=None, epochs=None, label='', plot=True, display=True, save=False):
 	"""
-
-	:param state:
-	:param stim_labels:
-	:param label:
-	:param plot:
-	:param display:
-	:param save:
-	:return:
+	Use PCA to peer into the population responses
+	:param state: state matrix X 
+	:param stim_labels: stimulus labels (if each sample corresponds to a unique label)
+	:param label: data label
+	:return results: dimensionality results 
 	"""
+	if isinstance(state, sg.AnalogSignalList):
+		state = state.as_array()
+	assert(isinstance(state, np.ndarray)), "Activity matrix must be numpy array or AnalogSignalList"
+	results = {}
+
 	pca_obj = sk.PCA(n_components=3)
 	X_r = pca_obj.fit(state.T).transform(state.T)
 	print("Explained Variance (first 3 components): %s" % str(pca_obj.explained_variance_ratio_))
 
-	if not isinstance(stim_labels, dict):
-		label_seq = np.array(list(sg.iterate_obj_list(stim_labels)))
-		n_elements = np.unique(label_seq)
+	if stim_labels is None:
+		pca_obj = sk.PCA(n_components=state.shape[0])
+		X = pca_obj.fit_transform(state.T)
+		print("Explained Variance (first 3 components): %s" % str(pca_obj.explained_variance_ratio_[:3]))
+		results.update({'dimensionality': compute_dimensionality(state, pca_obj=pca_obj, display=True)})
 		if plot:
-			fig1 = pl.figure()
-			ax1 = fig1.add_subplot(111)
-			vz.plot_state_matrix(state, stim_labels, ax=ax1, label=label, display=False, save=False)
-
-			fig2 = pl.figure()
-			fig2.clf()
-			exp_var = [round(n, 2) for n in pca_obj.explained_variance_ratio_]
-			fig2.suptitle(r'${0} - PCA (var = {1})$'.format(str(label), str(exp_var)),
-						  fontsize=20)
-
-			ax2 = fig2.add_subplot(111, projection='3d')
-			colors_map = vz.get_cmap(N=len(n_elements), cmap='Paired')
-			ax2.set_xlabel(r'$PC_{1}$')
-			ax2.set_ylabel(r'$PC_{2}$')
-			ax2.set_zlabel(r'$PC_{3}$')
-
-			ccs = [colors_map(ii) for ii in range(len(n_elements))]
-			for color, index, lab in zip(ccs, n_elements, n_elements):
-				locals()['sc_{0}'.format(str(index))] = ax2.scatter(X_r[np.where(np.array(list(itertools.chain(
-					label_seq))) == index)[0], 0], X_r[np.where(np.array(list(itertools.chain(label_seq))) == index)[
-								0],  1], X_r[np.where(np.array(list(itertools.chain(label_seq))) == index)[0], 2],
-																	s=50, c=color, label=lab)
-			scatters = [locals()['sc_{0}'.format(str(ind))] for ind in n_elements]
-			#pl.legend(tuple(scatters), tuple(n_elements))
-			pl.legend(loc=0, handles=scatters)
-
-			if display:
-				pl.show(block=False)
-			if save:
-				fig1.savefig(save + 'state_matrix_{0}.pdf'.format(label))
-				fig2.savefig(save + 'pca_representation_{0}.pdf'.format(label))
+			vz.plot_dimensionality(results['dimensionality'], pca_obj, X, data_label=label, display=display, save=save)
+		if epochs is not None:
+			for epoch_label, epoch_time in epochs.items():
+				resp = state[:, int(epoch_time[0]):int(epoch_time[1])]
+				results.update({epoch_label: {}})
+				results[epoch_label].update(analyse_state_matrix(resp, epochs=None, label=epoch_label, plot=False,
+				                                                      display=False, save=False))
 	else:
-		if plot:
-			fig1 = pl.figure()
-			ax = fig1.add_subplot(111, projection='3d')
-			ax.plot(X_r[:, 0], X_r[:, 1], X_r[:, 2], color='r', lw=2)
-			ax.set_title(label + r'$ - (3PCs) $= {0}$'.format(str(round(np.sum(pca_obj.explained_variance_ratio_[:3]),
-																	1))))
-			ax.grid()
-			if display:
-				pl.show(False)
-			if save:
-				fig1.savefig(save + 'pca_representation_{0}.pdf'.format(label))
+		if not isinstance(stim_labels, dict):
+			label_seq = np.array(list(sg.iterate_obj_list(stim_labels)))
+			n_elements = np.unique(label_seq)
+			if plot:
+				fig1 = pl.figure()
+				ax1 = fig1.add_subplot(111)
+				vz.plot_state_matrix(state, stim_labels, ax=ax1, label=label, display=False, save=False)
+
+				fig2 = pl.figure()
+				fig2.clf()
+				exp_var = [round(n, 2) for n in pca_obj.explained_variance_ratio_]
+				fig2.suptitle(r'${0} - PCA (var = {1})$'.format(str(label), str(exp_var)),
+							  fontsize=20)
+
+				ax2 = fig2.add_subplot(111, projection='3d')
+				colors_map = vz.get_cmap(N=len(n_elements), cmap='Paired')
+				ax2.set_xlabel(r'$PC_{1}$')
+				ax2.set_ylabel(r'$PC_{2}$')
+				ax2.set_zlabel(r'$PC_{3}$')
+
+				ccs = [colors_map(ii) for ii in range(len(n_elements))]
+				for color, index, lab in zip(ccs, n_elements, n_elements):
+					locals()['sc_{0}'.format(str(index))] = ax2.scatter(X_r[np.where(np.array(list(itertools.chain(
+						label_seq))) == index)[0], 0], X_r[np.where(np.array(list(itertools.chain(label_seq))) == index)[
+									0],  1], X_r[np.where(np.array(list(itertools.chain(label_seq))) == index)[0], 2],
+																		s=50, c=color, label=lab)
+				scatters = [locals()['sc_{0}'.format(str(ind))] for ind in n_elements]
+				#pl.legend(tuple(scatters), tuple(n_elements))
+				pl.legend(loc=0, handles=scatters)
+
+				if display:
+					pl.show(block=False)
+				if save:
+					fig1.savefig(save + 'state_matrix_{0}.pdf'.format(label))
+					fig2.savefig(save + 'pca_representation_{0}.pdf'.format(label))
+		else:
+			if plot:
+				fig1 = pl.figure()
+				ax = fig1.add_subplot(111, projection='3d')
+				ax.plot(X_r[:, 0], X_r[:, 1], X_r[:, 2], color='r', lw=2)
+				ax.set_title(label + r'$ - (3PCs) $= {0}$'.format(str(round(np.sum(pca_obj.explained_variance_ratio_[:3]),
+																		1))))
+				ax.grid()
+				if display:
+					pl.show(False)
+				if save:
+					fig1.savefig(save + 'pca_representation_{0}.pdf'.format(label))
+	return results
 
 
-def advanced_state_analysis(state, stim_labels=None, label='', plot=True, display=True, save=False):
-	"""
-	"""
-	pass
-
-
-# TODO is this still needed? there's the same function in DecodingLayer - that is evaluate_decoding - yes,
-# this is evaluate_encoding ;)
 def evaluate_encoding(enc_layer, parameter_set, analysis_interval, input_signal, plot=True, display=True, save=False):
 	"""
 	Determine the quality of the encoding method (if there are encoders), by reading out the state of the encoders
