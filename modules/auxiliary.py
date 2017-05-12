@@ -1051,8 +1051,8 @@ def gather_states(net, enc_layer, t0, set_labels, flush_devices=True):
 		flush(net, enc_layer, decoders=True)
 
 
-def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, accepted_idx=None, plot=False,
-                   display=True, save=False, save_paths=None):
+def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, accepted_idx=None,
+				   evaluation_method=None, plot=False, display=True, save=False, save_paths=None):
 	"""
 	Post-processing step to set the correct timings of state samples, divide and re-organize dataset, ...
 	:param net:
@@ -1114,7 +1114,8 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 						print "\nPopulation {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
 																					str(state_matrix.shape))
 						if set_name == 'unique':
-							results['rank'][n_pop.name].update({var + str(idx_var): analysis.get_state_rank(state_matrix)})
+							results['rank'][n_pop.name].update({var + str(idx_var):
+																	analysis.get_state_rank(state_matrix)})
 						elif set_name == 'train':
 							for readout in readouts:
 								if readout.name[-1].isdigit(): # memory
@@ -1138,7 +1139,8 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 															  accepted=accepted_ids, display=display)
 
 								results['performance'][n_pop.name][var + str(idx_var)].update(
-									{readout.name: readout.measure_performance(tgt, output, display=display)})
+									{readout.name: readout.measure_performance(tgt, output, evaluation_method,
+																			   display=display)})
 								# results['performance'][n_pop.name][var + str(idx_var)].update(
 								# 	{readout.name: readout.measure_performance(tgt, display=display)})
 								results['performance'][n_pop.name][var + str(idx_var)][readout.name].update(
