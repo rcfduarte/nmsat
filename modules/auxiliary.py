@@ -713,8 +713,7 @@ def update_spike_template(enc_layer, idx, input_signal_set, stimulus_set, local_
 		if jitter[1]:  # compensate for boundary effects
 			sk_pattern.jitter(jitter[0])
 			resize_window = sk_pattern.time_parameters()
-			spks = sk_pattern.time_slice(resize_window[0] + jitter[0], resize_window[1] - jitter[
-				0])
+			spks = sk_pattern.time_slice(resize_window[0] + jitter[0], resize_window[1] - jitter[0])
 			spks.time_offset(-jitter[0])
 		else:
 			spks = sk_pattern.jitter(jitter[0])
@@ -1136,7 +1135,7 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 							for readout in readouts:
 								print readout.name, readout.index
 								output, tgt = readout.test(state_matrix, np.array(target), index=readout.index,
-															  accepted=accepted_ids, display=display)
+														   accepted=accepted_ids, display=display)
 
 								results['performance'][n_pop.name][var + str(idx_var)].update(
 									{readout.name: readout.measure_performance(tgt, output, evaluation_method,

@@ -1965,6 +1965,7 @@ class Readout(object):
 				"Incorrect output dimensions ({0})".format(str(output.shape))
 
 		# set binary_output and output_labels
+		# print output
 		if not is_binary_output:
 			binary_output = np.zeros((dimensions, set_size))
 			if method == 'WTA':
@@ -2035,15 +2036,14 @@ class Readout(object):
 
 		if evaluation_method is None:
 			binary_output, output_labels, binary_target, target_labels = self.parse_outputs(output, target,
-			                                                    dimensions=n_out, set_size=test_steps, k=1)
+			                                            dimensions=n_out, set_size=test_steps, k=1)
 		else:
 			binary_output, output_labels, binary_target, target_labels = self.parse_outputs(output, target,
 														dimensions=n_out, set_size=test_steps, method=evaluation_method)
-
-		# print binary_output.shape, binary_target.shape
-		# print output_labels, target_labels
+		print binary_output
+		print binary_target
 		# initialize results dictionary - raw takes the direct readout output, max the binarized output and label the
-		#  labels of each step
+		# labels of each step
 		performance = {'raw': {}, 'max': {}, 'label': {}}
 
 		if not is_labeled_output:  # some readouts just provide class labels
@@ -2060,7 +2060,8 @@ class Readout(object):
 			# Max performance measures
 			performance['max']['MSE'] = met.mean_squared_error(binary_target, binary_output)
 			performance['max']['MAE'] = met.mean_absolute_error(binary_target, binary_output)
-			performance['max']['accuracy'] = met.accuracy_score(binary_target, binary_output)
+			performance['max']['accuracy'] = 1 - np.mean(np.absolute(binary_target - binary_output))
+			
 			print("Readout {0} [max output]: \n  - MSE = {1}".format(str(self.name), str(performance['max']['MSE'])))
 			print("Readout {0} [max output]: \n  - MAE = {1}".format(str(self.name), str(performance['max']['MAE'])))
 			print("Readout {0} [max output]: \n  - accuracy = {1}".format(str(self.name),
@@ -2069,7 +2070,7 @@ class Readout(object):
 			performance['label']['performance'] = met.accuracy_score(target_labels, output_labels)
 			performance['label']['hamm_loss'] 	= met.hamming_loss(target_labels, output_labels)
 			performance['label']['precision'] 	= met.average_precision_score(binary_output, binary_target,
-																			average='weighted')
+																			   average='weighted')
 			performance['label']['f1_score'] 	= met.f1_score(binary_target, binary_output, average='weighted')
 			performance['label']['recall'] 		= met.recall_score(target_labels, output_labels, average='weighted')
 			performance['label']['confusion'] 	= met.confusion_matrix(target_labels, output_labels)
@@ -2256,10 +2257,10 @@ class DecodingLayer(object):
 		:return:
 		"""
 		all_responses = []
-		print(("\nExtracting and storing recorded activity from state extractors [Population {0}]:".format(str(
-			self.source_population.name))))
+		print("\nExtracting and storing recorded activity from state extractors [Population {0}]:".format(str(
+			self.source_population.name)))
 		for idx, n_state in enumerate(self.extractors):
-			print(("  - Reading extractor {0} [{1}]".format(n_state, str(self.state_variables[idx]))))
+			print("  - Reading extractor {0} [{1}]".format(n_state, str(self.state_variables[idx])))
 			start_time1 = time.time()
 			if nest.GetStatus(n_state)[0]['to_memory']:
 				initializer = n_state
