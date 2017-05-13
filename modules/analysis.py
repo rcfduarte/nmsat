@@ -1263,6 +1263,7 @@ def single_neuron_responses(population_object, parameter_set, pop_idx=0, start=N
 			assert isinstance(save, str), "Please provide filename"
 			if isinstance(fig, mpl.figure.Figure):
 				fig.savefig(save + population_object.name + '_SingleNeuron.pdf')
+	a = results.pop('isi')
 	return results
 
 

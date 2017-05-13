@@ -12,20 +12,21 @@ noise_driven_dynamics
 __author__ = 'duarte'
 
 run = 'local'
-data_label = 'TS0_noisedrivendynamics_test'
+data_label = 'HT_noisedrivendynamics_baseline'
 project_label = 'Timescales'
-heterogeneity = {'synaptic': True, 'neuronal': False, 'structural': False}
+heterogeneity = {'synaptic': False, 'neuronal': False, 'structural': False}
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-
+	'nu_x': np.arange(0., 105., 5.),
+	'trial': np.arange(10)
 	}
 
 
 ########################################################################################################################
-def build_parameters():
+def build_parameters(nu_x):
 	# ######################################################################################################################
 	# System / Kernel Parameters
 	# ######################################################################################################################
@@ -59,48 +60,31 @@ def build_parameters():
 	epsilon, weights, delays = connection_parameters(heterogeneous=heterogeneity['synaptic'])
 
 	# connection weights
-	gamma_E = 3.
-	gamma_I1 = 1.
-	gamma_I2 = 1.
-
-	wEE = 0.45
-	wEI1 = gamma_E * wEE #5.148#
-	wEI2 = gamma_E * wEE #4.85#
-	wI1E = 1.65
-	wI1I1 = gamma_I1 * wI1E #2.22 #
-	wI1I2 = gamma_I1 * wI1E #1.47 #
-	wI2E = 0.638
-	wI2I1 = gamma_I2 * wI2E #1.4 #
-	wI2I2 = gamma_I2 * wI2E #0.83 #
+	# gamma_E = 3.
+	# gamma_I1 = 1.
+	# gamma_I2 = 1.
 	#
-	if heterogeneity['synaptic']:
-		# weights = {}
-		# for k in epsilon.keys():
-		# 	w_var = locals()['w{0}'.format(k)]
-		# 	ln_pars = determine_lognormal_parameters(w_var, 4*w_var, median=w_var)
-		# 	weights.update({k: {'distribution': 'lognormal_clipped', 'mu': ln_pars[0], 'sigma': ln_pars[1],
-		# 	                    'low': 0.00001, 'high': 100*w_var}})
-		weights = {'EE': {'distribution': 'lognormal_clipped', 'mu': wEE, 'sigma': 0.5*wEE, 'low': 0.0001, 'high': 100*wEE},
-		           'I1E': {'distribution': 'lognormal_clipped', 'mu': wI1E, 'sigma': 0.5*wI1E, 'low': 0.0001,
-		                   'high': 100*wI1E},
-		           'I2E': {'distribution': 'lognormal_clipped', 'mu': wI2E, 'sigma': 0.5*wI2E, 'low': 0.0001,
-		                   'high': 100*wI2E},
-		           'EI1': {'distribution': 'lognormal_clipped', 'mu': wEI1, 'sigma': 0.5*wEI1, 'low': 0.0001,
-		                   'high': 100*wEI1},
-		           'EI2': {'distribution': 'lognormal_clipped', 'mu': wEI2, 'sigma': 0.5*wEI2, 'low': 0.0001,
-		                   'high': 100*wEI2},
-		           'I1I1': {'distribution': 'lognormal_clipped', 'mu': wI1I1, 'sigma': 0.5*wI1I1, 'low': 0.0001,
-		                    'high': 100*wI1I1},
-		           'I2I1': {'distribution': 'lognormal_clipped', 'mu': wI2I1, 'sigma': 0.5*wI2I1, 'low': 0.0001,
-		                    'high': 100*wI2I1},
-		           'I1I2': {'distribution': 'lognormal_clipped', 'mu': wI1I2, 'sigma': 0.5*wI1I2, 'low': 0.0001,
-		                    'high': 100*wI1I2},
-		           'I2I2': {'distribution': 'lognormal_clipped', 'mu': wI2I2, 'sigma': 0.5*wI2I2, 'low': 0.0001,
-		                    'high': 100*wI2I2},}
-	else:
-		weights = {'EE': wEE, 'I1E': wI1E, 'I2E': wI2E,
-		           'EI1': wEI1, 'EI2': wEI2, 'I1I1': wI1I1,
-		           'I2I1': wI2I1, 'I1I2': wI1I2, 'I2I2': wI2I2,}
+	# wEE = 0.45
+	# wEI1 = gamma_E * wEE #5.148#
+	# wEI2 = gamma_E * wEE #4.85#
+	# wI1E = 1.65
+	# wI1I1 = gamma_I1 * wI1E #2.22 #
+	# wI1I2 = gamma_I1 * wI1E #1.47 #
+	# wI2E = 0.638
+	# wI2I1 = gamma_I2 * wI2E #1.4 #
+	# wI2I2 = gamma_I2 * wI2E #0.83 #
+	# #
+	# if heterogeneity['synaptic']:
+	# 	weights = {}
+	# 	for k in epsilon.keys():
+	# 		w_var = locals()['w{0}'.format(k)]
+	# 		ln_pars = determine_lognormal_parameters(w_var, 5*w_var, median=w_var)
+	# 		weights.update({k: {'distribution': 'lognormal_clipped', 'mu': ln_pars[0], 'sigma': ln_pars[1],
+	# 		                    'low': 0.00001, 'high': 100*w_var}})
+	# else:
+	# 	weights = {'EE': wEE, 'I1E': wI1E, 'I2E': wI2E,
+	# 	           'EI1': wEI1, 'EI2': wEI2, 'I1I1': wI1I1,
+	# 	           'I2I1': wI2I1, 'I1I2': wI1I2, 'I2I2': wI2I2,}
 
 	# recurrent synapses
 	# receptor order = (1) AMPA, (2) GABAa, (3) NMDA, (4) GABAb
@@ -134,14 +118,14 @@ def build_parameters():
 	                                                              random_parameters=randomized_pars, **recurrent_synapses)
 	net_pars['record_analogs'] = [True, False, False]
 	multimeter = rec_device_defaults(device_type='multimeter')
-	multimeter.update({'record_from': ['V_m', 'I_ex', 'I_in'], 'record_n': 1})
+	multimeter.update({'record_from': ['V_m', 'I_ex', 'I_in'], 'record_n': 1000})
 	net_pars['analog_device_pars'] = [copy_dict(multimeter, {'label': 'E_analogs'}),
 	                                  {}, {}]
 
 	# ######################################################################################################################
 	# Encoding Parameters
 	# ######################################################################################################################
-	nu_x = 5.
+	# nu_x = 5.
 	k_x = epsilon['EE'] * nE
 	w_in = weights['EE']
 	d_in = delays['EE']

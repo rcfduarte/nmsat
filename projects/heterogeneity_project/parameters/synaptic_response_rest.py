@@ -13,9 +13,9 @@ synaptic_responses@rest
 """
 
 run = 'local'
-data_label = 'EE_heterogeneous'
-neuron_type = 'E'
-connection_type = 'EE'  # 'target source'
+data_label = 'I2E_heterogeneous'
+neuron_type = 'I2'
+connection_type = 'I2E'  # 'target source'
 
 heterogeneity = {'synaptic': True, 'neuronal': False, 'structural': False}
 n_neurons = 1000

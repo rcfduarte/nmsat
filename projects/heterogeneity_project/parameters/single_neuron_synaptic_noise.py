@@ -54,8 +54,6 @@ def build_parameters(nu_x):
 	N = 25000
 	nE = 0.8 * N
 	nI = 0.2 * N
-	nI1 = 0.35 * nI
-	nI2 = 0.65 * nI
 
 	epsilon, weights, delays = connection_parameters(heterogeneous=heterogeneity['synaptic'])
 
