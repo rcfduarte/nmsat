@@ -20,13 +20,13 @@ heterogeneity = {'synaptic': False, 'neuronal': False, 'structural': False}
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
-	'nu_x': np.arange(0., 105., 5.),
-	'trial': np.arange(10)
+	'nu_x': [10.],# np.arange(0., 105., 5.),
+	'trial': [0]#np.arange(10)
 	}
 
 
 ########################################################################################################################
-def build_parameters(nu_x):
+def build_parameters(nu_x, trial):
 	# ######################################################################################################################
 	# System / Kernel Parameters
 	# ######################################################################################################################
@@ -51,7 +51,7 @@ def build_parameters(nu_x):
 		neuron_set = 1.1
 
 	# Population sizes
-	N = 25000
+	N = 2500 #25000
 	nE = 0.8 * N
 	nI = 0.2 * N
 	nI1 = 0.35 * nI
@@ -127,8 +127,6 @@ def build_parameters(nu_x):
 	# ######################################################################################################################
 	# nu_x = 5.
 	k_x = epsilon['EE'] * nE
-	w_in = weights['EE']
-	d_in = delays['EE']
 
 	encoding_pars = set_encoding_defaults(default_set=0)
 
@@ -140,8 +138,8 @@ def build_parameters(nu_x):
 			'syn_specs': {},
 			'models': 'static_synapse',
 			'model_pars': {},
-			'weight_dist': w_in,
-			'delay_dist': d_in})
+			'weight_dist': 1.,
+			'delay_dist': 0.1})
 	add_background_noise(encoding_pars, background_noise)
 
 	encoding_pars.encoder.update({
@@ -174,7 +172,7 @@ def build_parameters(nu_x):
 	# ==================================================================================================================
 	analysis_pars = {
 		# analysis depth
-		'depth': 1,  	# 1: save only summary of data, use only fastest measures
+		'depth': 3,  	# 1: save only summary of data, use only fastest measures
 						# 2: save all data, use only fastest measures
 						# 3: save only summary of data, use all available measures
 						# 4: save all data, use all available measures

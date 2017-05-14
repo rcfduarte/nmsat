@@ -13,9 +13,9 @@ synaptic_responses@rest
 """
 
 run = 'local'
-data_label = 'I2E_heterogeneous'
-neuron_type = 'I2'
-connection_type = 'I2E'  # 'target source'
+data_label = 'EI1_heterogeneous'
+neuron_type = 'E'
+connection_type = 'EI1'  # 'target source'
 
 heterogeneity = {'synaptic': True, 'neuronal': False, 'structural': False}
 n_neurons = 1000
@@ -60,6 +60,9 @@ def build_parameters():
 		neuron_pars = set_neuron_defaults(default_set=1.1)
 		randomized_pars.update({neuron_type: {}})
 
+	if connection_type[-1] != 'E':
+		neuron_pars[neuron_type]['E_L'] = -55.
+		# neuron_pars[neuron_type]['V_m'] = -70.
 	# neuron_pars[neuron_type]['E_L'] = -55.
 
 	# neuron_pars[neuron_type]['rec_cond'][neuron_pars[neuron_type]['rec_names'].index('AMPA')] = ampa

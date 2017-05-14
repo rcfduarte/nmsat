@@ -60,8 +60,8 @@ def build_parameters():
 		neuron_pars = set_neuron_defaults(default_set=1.1)
 		randomized_pars.update({neuron_type: {}})
 
-	# if neuron_type[0] == 'I':
-	# 	neuron_pars[neuron_type]['E_L'] = -55.
+	if neuron_type[0] == 'I':
+		neuron_pars[neuron_type]['E_L'] = -55.
 	# else:
 	# 	neuron_pars[neuron_type]['E_L'] = -70.
 	# 	neuron_pars[neuron_type]['V_m'] = -70.
