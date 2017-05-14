@@ -713,8 +713,7 @@ def update_spike_template(enc_layer, idx, input_signal_set, stimulus_set, local_
 		if jitter[1]:  # compensate for boundary effects
 			sk_pattern.jitter(jitter[0])
 			resize_window = sk_pattern.time_parameters()
-			spks = sk_pattern.time_slice(resize_window[0] + jitter[0], resize_window[1] - jitter[
-				0])
+			spks = sk_pattern.time_slice(resize_window[0] + jitter[0], resize_window[1] - jitter[0])
 			spks.time_offset(-jitter[0])
 		else:
 			spks = sk_pattern.jitter(jitter[0])
@@ -1051,8 +1050,8 @@ def gather_states(net, enc_layer, t0, set_labels, flush_devices=True):
 		flush(net, enc_layer, decoders=True)
 
 
-def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, accepted_idx=None, plot=False,
-                   display=True, save=False, save_paths=None):
+def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, accepted_idx=None,
+				   evaluation_method=None, plot=False, display=True, save=False, save_paths=None):
 	"""
 	Post-processing step to set the correct timings of state samples, divide and re-organize dataset, ...
 	:param net:
@@ -1114,7 +1113,8 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 						print "\nPopulation {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
 																					str(state_matrix.shape))
 						if set_name == 'unique':
-							results['rank'][n_pop.name].update({var + str(idx_var): analysis.get_state_rank(state_matrix)})
+							results['rank'][n_pop.name].update({var + str(idx_var):
+																	analysis.get_state_rank(state_matrix)})
 						elif set_name == 'train':
 							for readout in readouts:
 								if readout.name[-1].isdigit(): # memory
@@ -1135,10 +1135,11 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 							for readout in readouts:
 								print readout.name, readout.index
 								output, tgt = readout.test(state_matrix, np.array(target), index=readout.index,
-															  accepted=accepted_ids, display=display)
+														   accepted=accepted_ids, display=display)
 
 								results['performance'][n_pop.name][var + str(idx_var)].update(
-									{readout.name: readout.measure_performance(tgt, output, display=display)})
+									{readout.name: readout.measure_performance(tgt, output, evaluation_method,
+																			   display=display)})
 								# results['performance'][n_pop.name][var + str(idx_var)].update(
 								# 	{readout.name: readout.measure_performance(tgt, display=display)})
 								results['performance'][n_pop.name][var + str(idx_var)][readout.name].update(

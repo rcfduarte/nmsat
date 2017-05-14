@@ -21,7 +21,7 @@ local machine, in a computer cluster or a supercomputer, with straightforward re
 The code is licensed under GPLv3 and available on [GitHub](https://github.com/zbarni/network_simulation_testbed).
 
 
-### Getting started
+### Disclaimer
 
 The code was developed primarily for personal use, as part of a PhD thesis due to the need to perform
 similar experiments and analyses on very diverse systems. The goal was to use the same code to
@@ -30,6 +30,8 @@ reproducible manner, while making efficient use of computing resources. Due to t
 pressures of a PhD project and the very broad scope, the code is imperfect and under active use /
 development. Despite our best efforts, it is prone to errors and often difficult to understand, particularly
 due to the strict specificities on the structure of the parameters dictionaries and how they are used.
+
+### Getting started
 
 For a detailed description of the framework and to make the most out of it, please read the 
 [documentation](https://zbarni.github.io/network_simulation_testbed/). 

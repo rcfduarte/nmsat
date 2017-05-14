@@ -1415,11 +1415,19 @@ def analyse_state_matrix(state, stim_labels=None, epochs=None, label='', plot=Tr
 	return results
 
 
-def evaluate_encoding(enc_layer, parameter_set, analysis_interval, input_signal, plot=True, display=True, save=False):
+def evaluate_encoding(enc_layer, parameter_set, analysis_interval, input_signal, method=None,
+					  plot=True, display=True, save=False):
 	"""
 	Determine the quality of the encoding method (if there are encoders), by reading out the state of the encoders
-	and training it to reconstruct the input signal
+	and training it to reconstruct the input signal.
+
 	:param enc_layer:
+	:param parameter_set:
+	:param analysis_interval:
+	:param input_signal:
+	:param plot:
+	:param display:
+	:param save:
 	:return:
 	"""
 	assert(isinstance(analysis_interval, list)), "Incorrect analysis_interval"
@@ -1457,7 +1465,7 @@ def evaluate_encoding(enc_layer, parameter_set, analysis_interval, input_signal,
 			analysis_signal = input_signal.time_slice(analysis_interval[0], analysis_interval[1])
 			inp_readout.train(inp_responses, analysis_signal.as_array())
 			inp_readout.test(inp_responses)
-			perf = inp_readout.measure_performance(analysis_signal.as_array())
+			perf = inp_readout.measure_performance(analysis_signal.as_array(), method)
 
 			input_out = ia.InputSignal()
 			input_out.load_signal(inp_readout.output.T, dt=input_signal.dt, onset=analysis_interval[0],
@@ -1959,15 +1967,20 @@ class Readout(object):
 				"Incorrect output dimensions ({0})".format(str(output.shape))
 
 		# set binary_output and output_labels
+		# print output
 		if not is_binary_output:
 			binary_output = np.zeros((dimensions, set_size))
 			if method == 'WTA':
 				for kk in range(output.shape[1]):
 					args = np.argsort(output[:, kk])[-k:]
 					binary_output[args, kk] = 1.
-			else:
+			elif method == 'L_RSc':
+				# used for Legenstein_RSc, more commenting to follow
+				print("Measuring performance for Legenstein ReScience")
 				for kk in range(output.shape[1]):
 					binary_output[np.where(output[:, kk] >= 0), kk] = 1.
+			else:
+				raise ValueError("Unknown method for performance measurement! Exiting..")
 		else:
 			binary_output = output
 		if not is_labeled_output:
@@ -1991,13 +2004,13 @@ class Readout(object):
 
 		return binary_output, output_labels, binary_target, target_labels
 
-	def measure_performance(self, target, output=None, comparison_function=None, display=True):
+	def measure_performance(self, target, output=None, evaluation_method='WTA', display=True):
 		"""
 		Compute readout performance according to different metrics.
 
 		:param target: target output [numpy.array (binary or real-valued) or list (labels)]
 		:param output:
-		:param comparison_function:
+		:param evaluation_method:
 		:param display:
 		:return:
 		"""
@@ -2007,8 +2020,6 @@ class Readout(object):
 			output = self.output
 
 		# check what type of data is provided
-		is_binary_target = np.all(np.unique(target) == [0., 1.])
-		is_binary_output = np.all(np.unique(output) == [0., 1.])
 		is_labeled_target = (len(target.shape) == 1)
 		is_labeled_output = (len(output.shape) == 1)
 
@@ -2025,24 +2036,23 @@ class Readout(object):
 		else:
 			raise TypeError("Incorrect data shapes")
 
-		if comparison_function is None:
+		if evaluation_method is None:
 			binary_output, output_labels, binary_target, target_labels = self.parse_outputs(output, target,
-			                                                    dimensions=n_out, set_size=test_steps, k=1)
+			                                            dimensions=n_out, set_size=test_steps, k=1)
 		else:
 			binary_output, output_labels, binary_target, target_labels = self.parse_outputs(output, target,
-			                                                    dimensions=n_out, set_size=test_steps,
-			                                                    method=comparison_function)
-		# print binary_output.shape, binary_target.shape
-		# print output_labels, target_labels
+														dimensions=n_out, set_size=test_steps, method=evaluation_method)
+		print binary_output
+		print binary_target
 		# initialize results dictionary - raw takes the direct readout output, max the binarized output and label the
-		#  labels of each step
+		# labels of each step
 		performance = {'raw': {}, 'max': {}, 'label': {}}
 
 		if not is_labeled_output:  # some readouts just provide class labels
 			# Raw performance measures
 			performance['raw']['MSE'] = met.mean_squared_error(target, output)
 			performance['raw']['MAE'] = met.mean_absolute_error(target, output)
-			print("Readout {0} [raw ouput]: \n  - MSE = {1}".format(str(self.name), str(performance['raw']['MSE'])))
+			print("Readout {0} [raw output]: \n  - MSE = {1}".format(str(self.name), str(performance['raw']['MSE'])))
 			# if is_binary_target and not is_binary_output and len(output.shape) > 1:
 			# 	pb_cc = []
 			# 	for n in range(target.shape[0]):
@@ -2052,20 +2062,25 @@ class Readout(object):
 			# Max performance measures
 			performance['max']['MSE'] = met.mean_squared_error(binary_target, binary_output)
 			performance['max']['MAE'] = met.mean_absolute_error(binary_target, binary_output)
-			# performance['max']['performance'] = 1. - np.mean(np.abs(binary_target - binary_output))
+			performance['max']['accuracy'] = 1 - np.mean(np.absolute(binary_target - binary_output))
+			
+			print("Readout {0} [max output]: \n  - MSE = {1}".format(str(self.name), str(performance['max']['MSE'])))
+			print("Readout {0} [max output]: \n  - MAE = {1}".format(str(self.name), str(performance['max']['MAE'])))
+			print("Readout {0} [max output]: \n  - accuracy = {1}".format(str(self.name),
+																		  str(performance['max']['accuracy'])))
 
 			performance['label']['performance'] = met.accuracy_score(target_labels, output_labels)
 			performance['label']['hamm_loss'] 	= met.hamming_loss(target_labels, output_labels)
 			performance['label']['precision'] 	= met.average_precision_score(binary_output, binary_target,
-																			average='weighted')
+																			   average='weighted')
 			performance['label']['f1_score'] 	= met.f1_score(binary_target, binary_output, average='weighted')
 			performance['label']['recall'] 		= met.recall_score(target_labels, output_labels, average='weighted')
 			performance['label']['confusion'] 	= met.confusion_matrix(target_labels, output_labels)
 			performance['label']['jaccard'] 	= met.jaccard_similarity_score(target_labels, output_labels)
 			performance['label']['class_support'] = met.precision_recall_fscore_support(target_labels, output_labels)
 
-			print("Readout {0} Performance: \n  - Labels = {1}".format(str(self.name), str(performance['label'][
-				'performance'])))
+			print("Readout {0} Performance: \n  - Labels = {1}".format(str(self.name),
+																	   str(performance['label']['performance'])))
 			if display:
 				print(met.classification_report(target_labels, output_labels))
 
@@ -2244,10 +2259,10 @@ class DecodingLayer(object):
 		:return:
 		"""
 		all_responses = []
-		print(("\nExtracting and storing recorded activity from state extractors [Population {0}]:".format(str(
-			self.source_population.name))))
+		print("\nExtracting and storing recorded activity from state extractors [Population {0}]:".format(str(
+			self.source_population.name)))
 		for idx, n_state in enumerate(self.extractors):
-			print(("  - Reading extractor {0} [{1}]".format(n_state, str(self.state_variables[idx]))))
+			print("  - Reading extractor {0} [{1}]".format(n_state, str(self.state_variables[idx])))
 			start_time1 = time.time()
 			if nest.GetStatus(n_state)[0]['to_memory']:
 				initializer = n_state
