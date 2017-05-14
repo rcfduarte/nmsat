@@ -201,10 +201,6 @@ if not empty(enc_layer.encoders) and hasattr(parameter_set.encoding_pars, "input
 epochs, timing = auxiliary.process_input_sequence(parameter_set, net, enc_layer, stim,
 												  inputs, set_name='full', record=True)
 
-print net.populations[0].spiking_activity
-print net.populations[1].spiking_activity
-print net.merged_populations[0].spiking_activity
-# sp = SpikePlots(net.merged_populations[0].spiking_activity.spikelist)
 # Slow state sampling
 # epochs, timing = iterate_input_sequence(net, enc_layer, parameter_set, stim_set, inputs, set_name='full', record=True,
 #                        store_activity=False)

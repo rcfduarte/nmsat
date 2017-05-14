@@ -2060,7 +2060,7 @@ class Readout(object):
 			# Max performance measures
 			performance['max']['MSE'] = met.mean_squared_error(binary_target, binary_output)
 			performance['max']['MAE'] = met.mean_absolute_error(binary_target, binary_output)
-			performance['max']['accuracy'] = met.accuracy_score(binary_target, binary_output)
+			performance['max']['accuracy'] = 1 - np.mean(np.absolute(binary_target - binary_output))
 			print("Readout {0} [max output]: \n  - MSE = {1}".format(str(self.name), str(performance['max']['MSE'])))
 			print("Readout {0} [max output]: \n  - MAE = {1}".format(str(self.name), str(performance['max']['MAE'])))
 			print("Readout {0} [max output]: \n  - accuracy = {1}".format(str(self.name),
@@ -2256,10 +2256,10 @@ class DecodingLayer(object):
 		:return:
 		"""
 		all_responses = []
-		print(("\nExtracting and storing recorded activity from state extractors [Population {0}]:".format(str(
-			self.source_population.name))))
+		print("\nExtracting and storing recorded activity from state extractors [Population {0}]:".format(str(
+			self.source_population.name)))
 		for idx, n_state in enumerate(self.extractors):
-			print(("  - Reading extractor {0} [{1}]".format(n_state, str(self.state_variables[idx]))))
+			print("  - Reading extractor {0} [{1}]".format(n_state, str(self.state_variables[idx])))
 			start_time1 = time.time()
 			if nest.GetStatus(n_state)[0]['to_memory']:
 				initializer = n_state

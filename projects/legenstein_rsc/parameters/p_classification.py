@@ -98,8 +98,8 @@ data_label 		= 'Legenstein_classification'
 project_label 	= 'Legenstein_RSc'
 
 parameter_range = {
-	# 'kernel_lambda': [0.5, 1., 2., 3., 4., 6., 8.],
-	# 'W_scale': [0.1, 0.5, 1., 2., 4., 8.]
+	'kernel_lambda': [0.5, 1., 2., 3., 4., 6., 8.],
+	'W_scale': [0.1, 0.5, 1., 2., 4., 8.]
 }
 
 def topology_random_grid_3D(size_x, size_y, size_z, layers=None):
@@ -112,6 +112,10 @@ def topology_random_grid_3D(size_x, size_y, size_z, layers=None):
 	:param layers: a list specifying how many neurons should be placed on each layer
 	:return:
 	"""
+	size_x = int(size_x)
+	size_y = int(size_y)
+	size_z = int(size_z)
+
 	if layers is None:
 		layers = [size_x * size_y * size_z]
 
@@ -135,10 +139,14 @@ def topology_random_grid_3D(size_x, size_y, size_z, layers=None):
 	return layer_positions
 
 
-# def build_parameters(kernel_lambda, W_scale):
-def build_parameters():
-	kernel_lambda 	= 0.00000000000001  # definition corresponds exactly to the one in the paper
-	W_scale 	 	= 1.
+def build_parameters(kernel_lambda, W_scale):
+# def build_parameters():
+	grid_X = 6.
+	grid_Y = 6.
+	grid_Z = 15.
+
+	# kernel_lambda 	= 8.  # definition corresponds exactly to the one in the paper
+	# W_scale 	 	= 8.
 	# ######################################################################################################################
 	# System / Kernel Parameters
 	# ######################################################################################################################
@@ -178,8 +186,7 @@ def build_parameters():
 		pre_computedW 	= [None, None, None, None],
 		# TODO in the paper this is actually a normal distribution, for now fixed but later try changing it?
 		# Maass 2002 says nA as unit, NEST uses pA.. 1.2 nA == 1200 pA
-		# weights 		= [1200 * W_scale, -3000 * W_scale, 1600 * W_scale, -2800 * W_scale],
-		weights 		= [0, 0, 0, 0],
+		weights 		= [1200 * W_scale, -3000 * W_scale, 1600 * W_scale, -2800 * W_scale],
 		delays 			= [delayEE, delay, delay, delay],
 		conn_specs 		= [   {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
 							   'kernel': {'gaussian': {'p_center': connect_C_EE, 'sigma': kernel_sigma, 'mean': 0., 'c': 0.}}},
@@ -244,17 +251,17 @@ def build_parameters():
 									   'C_m': 30. * 1000})  # C_m is in pF as required by the neuron model
 
 	connection_pars.topology_dependent = [True, True, True, True]
-	grid_positions = topology_random_grid_3D(6, 6, 15, [int(6*6*15*N_e), int(6*6*15*N_i)])
+	grid_positions = topology_random_grid_3D(grid_X, grid_Y, grid_Z, [int(N*N_e), int(N*N_i)])
 
 	net_pars.update({ 'topology': 		[True, True],
-					  'topology_dict': 	[{'positions': grid_positions[0], 'extent':	[6., 6., 15.]},
-										 {'positions': grid_positions[1], 'extent': [6., 6., 15.]}]})
+					  'topology_dict': 	[{'positions': grid_positions[0], 'extent':	[grid_X, grid_Y, grid_Z]},
+										 {'positions': grid_positions[1], 'extent': [grid_X, grid_Y, grid_Z]}]})
 
 	# ######################################################################################################################
 	# Input Parameters
 	# ######################################################################################################################
-	n_trials 	= 30
-	n_discard 	= 2
+	n_trials 	= 100
+	n_discard 	= 10
 
 	n_stim = 4
 
@@ -269,7 +276,7 @@ def build_parameters():
 	)
 
 	inp_resolution 		= 1.
-	inp_amplitude 		= 20. # 20.
+	inp_amplitude 		= 20.
 	inp_duration 		= 200.
 	inter_stim_interval = 0.
 
@@ -282,15 +289,15 @@ def build_parameters():
 					'stop_time'		: sys.float_info.max,
 					'max_amplitude'	: [inp_amplitude],
 					'min_amplitude'	: 0.,
-					'resolution'	: inp_resolution},
-					'noise': {
-						'N'				: 0,
-						'noise_source'	: ['GWN'],
-						'noise_pars'	: {'amplitude': 5., 'mean': 1., 'std': 0.25},
-						'rectify'		: True,
-						'start_time'	: 0.,
-						'stop_time'		: sys.float_info.max,
-						'resolution'	: inp_resolution, } }
+					'resolution'	: inp_resolution},}
+					# 'noise': {
+					# 	'N'				: 0,
+					# 	'noise_source'	: ['GWN'],
+					# 	'noise_pars'	: {'amplitude': 5., 'mean': 1., 'std': 0.25},
+					# 	'rectify'		: True,
+					# 	'start_time'	: 0.,
+					# 	'stop_time'		: sys.float_info.max,
+					# 	'resolution'	: inp_resolution, } }
 
 	# ######################################################################################################################
 	# Encoding Parameters
@@ -299,7 +306,7 @@ def build_parameters():
 	n_afferents = 4		                           # number of stimulus-specific afferents (if necessary)
 	n_stim 		= stim_pars['n_stim']              # number of different input stimuli
 
-	w_in = 00. # [pA] In the case of input synapses the parameter A had a value of 0.1 nA.
+	w_in = 100. # [pA] In the case of input synapses the parameter A had a value of 0.1 nA.
 
 	# Input connectivity
 	input_synapses = dict(
@@ -341,21 +348,15 @@ def build_parameters():
 
 	## Set decoders for input population (if applicable)
 	input_decoder=dict(
-		# state_variable		= ['spikes'],
-		# filter_time			= filter_tau,
-		# readouts			= readout_labels,
-		# readout_algorithms	= ['pinv'],
-		# output_resolution	= inp_resolution,
-		# sampling_times		= state_sampling)
-		state_variable	= ['spikes'],
-		filter_time		= filter_tau,
-		readouts		= readout_labels,
-		readout_algorithms=readout_algorithms,
-		output_resolution=out_resolution,
-		sampling_times=state_sampling,
-		reset_states=[True],
-		average_states=[True],
-		standardize=[False])
+		state_variable		= ['spikes'],
+		filter_time			= filter_tau,
+		readouts			= readout_labels,
+		readout_algorithms	= readout_algorithms,
+		output_resolution	= out_resolution,
+		sampling_times		= state_sampling,
+		reset_states		= [True],
+		average_states		= [True],
+		standardize			= [False])
 
 	encoding_pars = add_input_decoders(encoding_pars, input_decoder, kernel_pars)
 
@@ -393,5 +394,3 @@ def build_parameters():
 				 ('decoding_pars', 	decoding_pars),
 				 ('stim_pars', 		stim_pars),
 				 ('connection_pars',connection_pars)])
-
-# build_parameters()

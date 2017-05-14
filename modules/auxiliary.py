@@ -992,6 +992,16 @@ def process_input_sequence(parameter_set, net, enc_layer, stimulus_set, input_si
 				# simulate delays
 				net.simulate(encoder_delay + decoder_delay)
 
+				# TODO debug, remove
+				# spike_devices = nest.GetStatus([x[0][0] for x in net.device_gids])
+				# print spike_devices[0]['events']['times']
+				# print spike_devices[1]['events']['times']
+				# assert all([len(x['events']['times']) == 0 for x in spike_devices])
+				# # debug, make sure all filtering neuron V_m is 0
+				# assert all([nest.GetStatus([n])[0]['V_m'] == 0 for n in range(554, 1094)])
+				# for x in nest.GetStatus([1094])[0]['events']['V_m']:
+				# 	assert x == 0.
+
 				# reset
 				analysis.reset_decoders(net, enc_layer)
 
