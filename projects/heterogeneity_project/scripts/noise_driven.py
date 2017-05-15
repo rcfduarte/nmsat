@@ -87,15 +87,26 @@ if plot and debug:
 	topology = TopologyPlots(parameter_set.connection_pars, net)
 	topology.print_network(depth=3)
 
-	net_graph = topology.to_graph_object().to_directed()
-	in_degrees = net_graph.in_degree()  # dictionary node:degree
-	in_values = sorted(set(in_degrees.values()))
-	in_hist = [in_degrees.values().count(x) for x in in_values]
-
-	# plot degree distributions
-	for ctr, n_pop in enumerate(net.populations):
-		pop_graph = net_graph.nodes()[-(ctr+1)]
-		print len(pop_graph.nodes()), len(n_pop.gids)
+	# net_graph = topology.to_graph_object().to_directed()
+	#
+	# # plot degree distributions
+	# sub_populations = [_ for _ in net.populations]
+	# colors = ['r', 'b', 'Orange']
+	# fig_degree = pl.figure()
+	# ax1_deg = fig_degree.add_subplot(121)
+	# ax2_deg = fig_degree.add_subplot(122)
+	# for ctr, n_pop in enumerate(net.populations):
+	# 	pop_graph = net_graph.nodes()[-(ctr+1)].to_directed()
+	#
+	# 	idx = parameter_set.net_pars.n_neurons.index(len(pop_graph.nodes()))
+	# 	pop_name = parameter_set.net_pars.pop_names[idx]
+	# 	pop_graph.name = pop_name
+	# 	sub_populations[idx] = pop_graph
+	#
+	# 	in_degree = sorted(set(pop_graph.in_degree().values()))
+	# 	out_degree = sorted(set(pop_graph.out_degree().values()))
+	#
+	# 	plot_histograms([ax1_deg, ax2_deg], [in_degree, out_degree], [100, 100], [])
 
 	# plot weight matrices
 	fig_W = pl.figure()

@@ -14,7 +14,7 @@ __author__ = 'duarte'
 run = 'local'
 data_label = 'HT_noisedrivendynamics_baseline'
 project_label = 'Timescales'
-heterogeneity = {'synaptic': False, 'neuronal': False, 'structural': False}
+heterogeneity = {'synaptic': True, 'neuronal': False, 'structural': False}
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations
@@ -51,7 +51,7 @@ def build_parameters(nu_x, trial):
 		neuron_set = 1.1
 
 	# Population sizes
-	N = 2500 #25000
+	N = 25000
 	nE = 0.8 * N
 	nI = 0.2 * N
 	nI1 = 0.35 * nI
