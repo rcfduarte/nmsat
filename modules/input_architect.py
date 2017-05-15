@@ -460,7 +460,7 @@ class StochasticGenerator:
 
 	def OU_generator(self, dt, tau, sigma, y0, t_start=0.0, t_stop=1000.0, rectify=False, array=False, time_it=False):
 		"""
-		Generates an Orstein-Uhlnbeck process using the forward euler method. The function returns
+		Generates an Ornstein-Uhlenbeck process using the forward euler method. The function returns
 		an AnalogSignal object.
 
 		:param dt: the time resolution in milliseconds of th signal
@@ -472,6 +472,7 @@ class StochasticGenerator:
 		:param array: if True, the functions returns the tuple (y,t)
 					  where y and t are the OU signal and the time bins, respectively,
 					  and are both numpy arrays.
+		:return AnalogSignal
 		"""
 		if time_it:
 			t1 = time.time()
@@ -1798,7 +1799,7 @@ class InputNoise(StochasticGenerator):
 		"""
 		"""
 		for ii in range(self.N):
-			if len(self.source) == 1.:
+			if len(self.source) == 1:
 				self.source = list(np.repeat(self.source[0], self.N))
 			if not isinstance(self.source[ii], basestring):
 				amplitude = self.parameters.pop('amplitude')
@@ -2336,7 +2337,7 @@ class Generator:
 	def update_state(self, signal):
 		"""
 		For online generation, the input signal is given iteratively
-		and the state of the generator objects needs tobe updated
+		and the state of the generator objects needs to be updated
 		:param signal:
 		:return
 		"""
@@ -2361,6 +2362,7 @@ class Generator:
 			else:
 				assert(isinstance(signal, signals.AnalogSignalList)), "Incorrect signal format!"
 
+			# TODO this has to be adjusted, To be continued @Barni
 			if self.input_dimension != len(signal):
 				self.input_dimension = len(signal)
 
@@ -2374,6 +2376,7 @@ class Generator:
 				if self.model == 'step_current_generator':
 					nest.SetStatus(self.gids[nn], {'amplitude_times': t_axis, 'amplitude_values': s_data})
 				elif self.model == 'inh_poisson_generator' and 'inh_poisson_generator' in nest.Models():
+
 					nest.SetStatus(self.gids[nn], {'rate_times': t_axis, 'rate_values': s_data})
 
 
@@ -2528,7 +2531,7 @@ class EncodingLayer:
 						encoders.append(Encoder(parameters.ParameterSet(enc_dict)))
 
 					print("- {0} Population of {1} neurons [{2}-{3}]".format(encoder_pars.models[nn],
-					                                                         str(encoder_pars.n_neurons),
+					                                                         str(encoder_pars.n_neurons[nn]),
 					                                                         str(min(gids)),
 					                                                         str(max(gids))))
 					if encoder_pars.record_spikes[nn]:
