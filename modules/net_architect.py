@@ -47,7 +47,7 @@ def verify_pars_consistency(pars_set, not_allowed_keys, n=0):
 	# return np.mean([len(v) for v in clean_dict.itervalues()]) == n
 	for k, v in clean_dict.iteritems():
 		if len(v) != n:
-			raise ValueError("Dimensionality of parameters ({0}) is inconsistent!".format(str(k)))
+			raise ValueError("Dimensionality of parameters ({0} : {1}) is inconsistent!".format(str(k), str(v)))
 
 
 def extract_weights_matrix(src_gids, tgets_gids, progress=True):
@@ -385,8 +385,8 @@ class Network(object):
 							subpop_dict.update({'is_subpop': False, 'gids': gids})
 							populations[n].append(Population(parameters.ParameterSet(subpop_dict)))
 
-						print(("- Population {0!s}, with ids [{1!s}-{2!s}]".format(net_pars_set.pop_names[n][nn],
-																							 min(gids), max(gids))))
+						print("- Population {0!s}, with ids [{1!s}-{2!s}]".format(net_pars_set.pop_names[n][nn],
+																							 min(gids), max(gids)))
 
 				else:
 					# create a normal population

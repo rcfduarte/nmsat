@@ -1,10 +1,11 @@
 __author__ = 'duarte'
 from modules.parameters import ParameterSet, ParameterSpace, extract_nestvalid_dict
-from modules.input_architect import EncodingLayer
+from modules.input_architect import EncodingLayer, InputSignalSet, InputNoise, InputSignal
 from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list
-from modules.analysis import single_neuron_dcresponse
+from modules.analysis import single_neuron_responses
+from modules.visualization import  InputPlots
 import cPickle as pickle
 import numpy as np
 import scipy.stats as stats
@@ -25,6 +26,7 @@ plot = True
 display = True
 save = True
 debug = False
+online = True
 
 
 # ######################################################################################################################
@@ -74,16 +76,31 @@ for idx, n in enumerate(list(iterate_obj_list(net.populations))):
 		for k, v in randomize.items():
 			n.randomize_initial_states(k, randomization_function=v[0], **v[1])
 
+########################################################################################################################
+# Build Input Signal Sets
+# ======================================================================================================================
+assert hasattr(parameter_set, "input_pars")
+# Current input (need to build noise signal)
+total_stimulation_time = parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t
+input_noise = InputNoise(parameter_set.input_pars.noise, stop_time=total_stimulation_time)
+input_noise.generate()
+input_noise.re_seed(parameter_set.kernel_pars.np_seed)
+
+# if plot:
+# 	inp_plot = InputPlots(stim_obj=None, input_obj=None, noise_obj=input_noise)
+# 	inp_plot.plot_noise_component(display=display, save=False)
+
 # ######################################################################################################################
 # Build and connect input
 # ======================================================================================================================
-enc_layer = EncodingLayer(parameter_set.encoding_pars, online=True)
+enc_layer = EncodingLayer(parameter_set.encoding_pars, signal=input_noise)
 enc_layer.connect(parameter_set.encoding_pars, net)
 
 # ######################################################################################################################
-# Set-up Analysis
+# Connect Network
 # ======================================================================================================================
 net.connect_devices()
+net.connect_populations(parameter_set.connection_pars)
 
 # ######################################################################################################################
 # Simulate
@@ -106,7 +123,21 @@ net.flush_records()
 # ######################################################################################################################
 # Analyse / plot data
 # ======================================================================================================================
-
+results = dict()
+input_pops = ['E_inputs', 'I_inputs']
+analysis_interval = [parameter_set.kernel_pars.transient_t,
+                     parameter_set.kernel_pars.transient_t+parameter_set.kernel_pars.sim_time]
+for idd, nam in enumerate(net.population_names):
+	if nam not in input_pops:
+		results.update({nam: {}})
+		results[nam] = single_neuron_responses(net.populations[idd],
+		                                       parameter_set, pop_idx=idd,
+		                                       start=analysis_interval[0],
+		                                       stop=analysis_interval[1],
+		                                       plot=plot, display=display,
+		                                       save=paths['figures']+paths['label'])
+		if results[nam]['rate']:
+			print 'Output Rate [{0}] = {1} spikes/s'.format(str(nam), str(results[nam]['rate']))
 
 # ######################################################################################################################
 # Save data

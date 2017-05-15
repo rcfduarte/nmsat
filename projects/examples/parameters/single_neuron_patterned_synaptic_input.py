@@ -68,6 +68,7 @@ def build_parameters():
 		neuron_params = [neuron_pars[n] for n in neuron_pars.keys()]
 	else:
 		neuron_params = [neuron_pars[neuron_pars.keys()[0]]]
+
 	net_pars = ParameterSet({
 		'n_populations': len(neuron_pars.keys()),
 		'pop_names': pop_names,
@@ -77,23 +78,25 @@ def build_parameters():
 		'topology': [False for _ in neuron_pars.keys()],
 		'topology_dict': [None for _ in neuron_pars.keys()],
 		'record_spikes': [True for _ in neuron_pars.keys()],
-		'spike_device_pars': [None for _ in neuron_pars.keys()],#[copy_dict(multimeter, {'model': 'spike_detector'}) for _ in neuron_pars.keys()],
+		'spike_device_pars': [rec_device_defaults(device_type='spike_detector', label='single_neuron_spikes') for _ in
+		                      neuron_pars.keys()],
 		'record_analogs': [False for _ in neuron_pars.keys()],
 		'analog_device_pars': [None for _ in neuron_pars.keys()]
 		# 'analog_device_pars': [copy_dict(multimeter, {'record_from': ['V_m'], 'record_n': 1}) for _ in
 		# 					   neuron_pars.keys()],
 	})
 	neuron_pars = ParameterSet(neuron_pars)
-	# ######################################################################################################################
+	# ##################################################################################################################
 	# Input Parameters
-	# ######################################################################################################################
-	inp_resolution = 0.1
+	# ##################################################################################################################
+	inp_resolution = 0.1 # @Renato: QUESTION is this 1.0 or 0.1? we actually want the rates to change only every 1. ms, no?
 
 	input_pars = {
 		'noise':
 			{'N': 2,
+			 'label': 'OU_generator',
 			 'noise_source': ['OU'],
-			 'noise_pars': {'amplitude': 5., 'mean': 1., 'std': 0.25},
+			 'noise_pars': {'dt': inp_resolution, 'tau': 30., 'sigma': 20., 'y0': 15., 'label': 'OU_generator'},
 			 'rectify': False,
 			 'start_time': 0.,
 			 'stop_time': sys.float_info.max,
@@ -102,45 +105,45 @@ def build_parameters():
 	# ##################################################################################################################
 	# Encoding Parameters
 	# ##################################################################################################################
-	n_afferents = 2
 	encoder_delay = 0.1
-	w_in = 90.
+	w_E = 20.
+	w_I = w_E * -8.
 
 	encoding_pars = {
 		'encoder': {
 			'N': 2,
-			'labels': ['parrot_blue', 'parrot_red'],
+			'labels': ['parrot_exc', 'parrot_inh'],
 			'models': ['parrot_neuron', 'parrot_neuron'],
 			'model_pars': [None, None],
-			'n_neurons': [10, 10],
+			'n_neurons': [8, 2],
 			'neuron_pars': [{'model': 'parrot_neuron'}, {'model': 'parrot_neuron'}],
 			'topology': [False, False],
 			'topology_dict': [None, None],
-			'record_spikes': [True, True],
-			'spike_device_pars': [None, None],
+			'record_spikes': [False, False],
+			'spike_device_pars': [{}, {}],
 			'record_analogs': [False, False],
-			'analog_device_pars': [None, None]},
+			'analog_device_pars': [{}, {}]},
 		'generator': {
 			'N': 2,
-			'labels': ['inh_poisson_blue', 'inh_poisson_red'],
+			'labels': ['inh_poisson_exc', 'inh_poisson_inh'],
 			'models': ['inh_poisson_generator', 'inh_poisson_generator'],
-			'model_pars': [{'start': 0., 'stop': sys.float_info.max, 'origin': 0.}],
+			'model_pars': [{'start': 0., 'stop': sys.float_info.max, 'origin': 0.},
+						   {'start': 0., 'stop': sys.float_info.max, 'origin': 0.}],
 			'topology': [False, False],
 			'topology_pars': [None, None]},
 		'connectivity': {
-			'synapse_name': ['static_synapse_blue', 'static_synapse_red'],
-			'connections': [('parrot_blue', 'inh_poisson_blue'), ('parrot_red', 'inh_poisson_red')],
+			'synapse_name': ['static_synapse_exc', 'static_synapse_inh'],
+			'connections': [('parrot_exc', 'inh_poisson_exc'), ('parrot_inh', 'inh_poisson_inh')],
 			'topology_dependent': [False, False],
-			'conn_specs': [{'rule': 'one_to_one'}, {'rule': 'one_to_one'}],
+			'conn_specs': [{'rule': 'all_to_all'}, {'rule': 'all_to_all'}],
 			'syn_specs': [{}, {}],
 			'models': ['static_synapse', 'static_synapse'],
-			'model_pars': [{}],
-			'weight_dist': [w_in, w_in],
+			'model_pars': [{}, {}],
+			'weight_dist': [w_E, w_I],
 			'delay_dist': [encoder_delay, encoder_delay],
 			'preset_W': [None, None]}
 	}
 
-	encoding_pars['encoder']['n_neurons'] = [n_afferents]
 	encoding_pars = ParameterSet(encoding_pars)
 
 	# ##################################################################################################################
@@ -150,10 +153,6 @@ def build_parameters():
 				 ('input_pars', 	input_pars),
 				 ('neuron_pars', 	neuron_pars),
 				 ('net_pars',	 	net_pars),
-				 ('encoding_pars', 	encoding_pars),
-				 # ('decoding_pars', 	decoding_pars),
-				 # ('stim_pars', 		stim_pars),
-				 # ('connection_pars',connection_pars)
-				 ])
+				 ('encoding_pars', 	encoding_pars),])
 
 
