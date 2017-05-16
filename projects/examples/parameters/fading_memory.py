@@ -121,7 +121,7 @@ def build_parameters():
 	filter_tau = 20.  # time constant of exponential filter (applied to spike trains)
 	state_sampling = None#np.arange(0., inp_duration + 200., 50.)#None  # 1.(cannot start at 0)
 
-	max_lag = 100. # how many steps to readout
+	max_lag = 10. # how many steps to readout
 	# specify readouts
 	readout_labels = []
 	for nn in range(int(max_lag)):

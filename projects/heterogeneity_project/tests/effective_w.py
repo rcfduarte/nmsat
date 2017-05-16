@@ -1,24 +1,28 @@
 __author__ = 'duarte'
+import sys
 from modules.parameters import ParameterSpace, ParameterSet, extract_nestvalid_dict
+from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
-from modules.net_architect import Network
 from modules.input_architect import EncodingLayer
-from modules.visualization import set_global_rcParams
-from modules.analysis import single_neuron_responses
+from modules.visualization import set_global_rcParams, TopologyPlots
+from modules.analysis import characterize_population_activity, cross_correlogram
+import time
 import numpy as np
 import nest
 import cPickle as pickle
+import matplotlib.pyplot as pl
 
 
 plot = True
 display = True
-save = False
+save = True
+debug = False
 
 ###################################################################################
 # Extract parameters from file and build global ParameterSet
 # =================================================================================
-params_file = '../parameters/single_neuron_synaptic_noise.py'
+params_file = '../parameters/noise_driven_dynamics.py'
 
 parameter_set = ParameterSpace(params_file)[0]
 parameter_set = parameter_set.clean(termination='pars')
@@ -38,7 +42,6 @@ paths = set_storage_locations(parameter_set, save)
 
 np.random.seed(parameter_set.kernel_pars['np_seed'])
 results = dict()
-
 
 # ######################################################################################################################
 # Set kernel and simulation parameters
@@ -76,7 +79,44 @@ net.connect_devices()
 # ######################################################################################################################
 # Connect Network
 # ======================================================================================================================
-net.connect_populations(parameter_set.connection_pars)
+net.connect_populations(parameter_set.connection_pars, progress=True)
+
+if plot and debug:
+	net.extract_synaptic_weights()
+	topology = TopologyPlots(parameter_set.connection_pars, net)
+	topology.print_network(depth=3)
+
+	fig_W = pl.figure()
+	ax1 = pl.subplot2grid((6, 6), (0, 0), rowspan=4, colspan=4)
+	ax2 = pl.subplot2grid((6, 6), (5, 0), rowspan=1, colspan=4)
+	ax3 = pl.subplot2grid((6, 6), (0, 5), rowspan=4, colspan=1)
+	ax4 = pl.subplot2grid((6, 6), (5, 5), rowspan=1, colspan=1)
+	topology.plot_connectivity(parameter_set.connection_pars.synapse_types,
+ 	                           ax=[ax1, ax3, ax2, ax4], display=display, save=paths['figures']+paths['label'])
+	fig_wdist = pl.figure()
+	axw1 = fig_wdist.add_subplot(221)
+	axw2 = fig_wdist.add_subplot(222)
+	axw3 = fig_wdist.add_subplot(223)
+	axw4 = fig_wdist.add_subplot(224)
+	topology.plot_weight_histograms(parameter_set.connection_pars.synapse_types,
+ 	                           ax=[axw1, axw2, axw3, axw4], display=display, save=paths['figures']+paths['label'])
+	net.extract_synaptic_delays()
+	fig_d = pl.figure()
+	axd1 = pl.subplot2grid((6, 6), (0, 0), rowspan=4, colspan=4)
+	axd2 = pl.subplot2grid((6, 6), (5, 0), rowspan=1, colspan=4)
+	axd3 = pl.subplot2grid((6, 6), (0, 5), rowspan=4, colspan=1)
+	axd4 = pl.subplot2grid((6, 6), (5, 5), rowspan=1, colspan=1)
+	topology.plot_connectivity_delays(parameter_set.connection_pars.synapse_types,
+ 	                           ax=[axd1, axd3, axd2, axd4], display=display, save=paths['figures']+paths['label'])
+	fig_ddist = pl.figure()
+	axd1 = fig_ddist.add_subplot(221)
+	axd2 = fig_ddist.add_subplot(222)
+	axd3 = fig_ddist.add_subplot(223)
+	axd4 = fig_ddist.add_subplot(224)
+	topology.plot_delay_histograms(parameter_set.connection_pars.synapse_types,
+	                                ax=[axd1, axd2, axd3, axd4], display=display,
+	                                save=paths['figures'] + paths['label'])
+	#pl.show()
 
 # ######################################################################################################################
 # Simulate
@@ -98,44 +138,57 @@ net.extract_network_activity()
 # ######################################################################################################################
 # Analyse / plot data
 # ======================================================================================================================
-input_pops = ['E_inputs', 'I1_inputs', 'I2_inputs']
-for idd, nam in enumerate(net.population_names):
-	if nam not in input_pops:
-		results.update({nam: {}})
-		results[nam] = single_neuron_responses(net.populations[idd],
-		                                       parameter_set, pop_idx=idd,
-		                                       start=analysis_interval[0],
-		                                       stop=analysis_interval[1],
-		                                       plot=plot, display=display,
-		                                       save=paths['figures']+paths['label'])
-		if results[nam]['rate']:
-			print 'Output Rate [{0}] = {1} spikes/s'.format(str(nam), str(results[nam]['rate']))
+# net.extract_synaptic_weights()
 
-		if not empty(net.analog_activity[idd]) and parameter_set.net_pars.record_analogs[idd] and 'G_syn_tot' in \
-				parameter_set.net_pars.analog_device_pars[idd]['record_from']:
-			g_total_idx = parameter_set.net_pars.analog_device_pars[idd]['record_from'].index('G_syn_tot')
-			Cm = nest.GetStatus(net.populations[idd].gids)[0]['C_m']
-			G_total = net.analog_activity[idd][g_total_idx].as_array()[0]
-			tau_eff = G_total / Cm
-			print nam, np.mean(tau_eff), np.std(tau_eff)
-			results[nam]['tau_eff'] = (np.mean(tau_eff), np.std(tau_eff))
+conn = nest.GetConnections(list(np.unique(net.populations[0].gids)), list(np.unique(net.populations[0].gids)))
+w_eff = np.zeros((len(np.unique(net.populations[0].gids)), len(np.unique(net.populations[0].gids))))
+spks = net.populations[0].spiking_activity
 
-			vm_idx = parameter_set.net_pars.analog_device_pars[idd]['record_from'].index('V_m')
-			vm = net.analog_activity[idd][vm_idx].as_array()[0]
-			print nam, np.mean(vm), np.std(vm)
-			results[nam]['mean_V'] = (np.mean(vm), np.std(vm))
+tgets_gids = list(np.unique(net.populations[0].gids))
+src_gids = list(np.unique(net.populations[0].gids))
 
-			inh = np.mean(results[nam]['I_i'] / 1000.)
-			exc = np.mean(results[nam]['I_e'] / 1000.)
-			ei_ratio = np.abs(np.abs(inh) - np.abs(exc))
-			print "EI amplitude difference [nA]: {0}".format(str(ei_ratio))
-			results[nam]['IE_ratio'] = ei_ratio
+for idx, n in enumerate(conn):
+	source = n[0]
+	target = n[1]
 
+	spks_j = spks.spiketrains[n[0]].spikes_to_states_binary(0.1)
+	spks_i = spks.spiketrains[n[1]].spikes_to_states_binary(0.1)
 
-# ######################################################################################################################
-# Save data
-# ======================================================================================================================
-if save:
-	with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
-		pickle.dump(results, f)
-	parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
+	print np.sum(spks_j), np.sum(spks_i)
+	lag, corr = cross_correlogram(spks_i, spks_j, max_lag=1000, dt=0.1, plot=False)
+	print np.mean(corr)
+
+	w_eff[n[1] - min(tgets_gids), n[0] - min(src_gids)] = np.mean(corr)
+
+#
+#
+# parameter_set.analysis_pars.pop('label')
+# start_analysis = time.time()
+# results.update(characterize_population_activity(net, parameter_set, analysis_interval, epochs=None,
+#                                                 color_map='jet', plot=plot,
+#                                                 display=display, save=paths['figures']+paths['label'],
+#                                                 color_subpop=True, analysis_pars=parameter_set.analysis_pars))
+# print "\nElapsed time (state characterization): {0}".format(str(time.time() - start_analysis))
+#
+#
+# if 'mean_I_ex' in results['analog_activity']['E'].keys():
+# 	inh = np.array(results['analog_activity']['E']['mean_I_in'])
+# 	exc = np.array(results['analog_activity']['E']['mean_I_ex'])
+# 	ei_ratios = np.abs(np.abs(inh) - np.abs(exc))
+# 	ei_ratios_corrected = np.abs(np.abs(inh - np.mean(inh)) - np.abs(exc - np.mean(exc)))
+# 	print "EI amplitude difference: {0} +- {1}".format(str(np.mean(ei_ratios)), str(np.std(ei_ratios)))
+# 	print "EI amplitude difference (amplitude corrected): {0} +- {1}".format(str(np.mean(ei_ratios_corrected)),
+# 	                                                                         str(np.std(ei_ratios_corrected)))
+# 	results['analog_activity']['E']['IE_ratio'] = np.mean(ei_ratios)
+# 	results['analog_activity']['E']['IE_ratio_corrected'] = np.mean(ei_ratios_corrected)
+#
+# # ######################################################################################################################
+# # Save data
+# # ======================================================================================================================
+# if save:
+# 	with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
+# 		pickle.dump(results, f)
+# 	parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
+#
+# if display:
+# 	pl.show()

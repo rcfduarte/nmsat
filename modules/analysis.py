@@ -165,6 +165,7 @@ def cross_correlogram(x, y, max_lag=100., dt=0.1, plot=True):
 		ax.set_xlim(lag[cutoff[0]], lag[cutoff[1]])
 		ax.axvline(x=lag[pos_ix], ymin=np.min(corr), ymax=np.max(corr), linewidth=1.5, color='c')
 		plt.show()
+	return lag, corr
 
 
 def simple_frequency_spectrum(x):
@@ -1262,6 +1263,7 @@ def single_neuron_responses(population_object, parameter_set, pop_idx=0, start=N
 			assert isinstance(save, str), "Please provide filename"
 			if isinstance(fig, mpl.figure.Figure):
 				fig.savefig(save + population_object.name + '_SingleNeuron.pdf')
+	a = results.pop('isi')
 	return results
 
 
