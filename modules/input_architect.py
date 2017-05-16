@@ -2277,7 +2277,7 @@ class Generator:
 	def __init__(self, initializer, input_signal=None, dims=None):
 		"""
 		Create and setup the generators, assigning them the correct labels and ids
-		:param initializer: ParameterSet or dict with generator parameters (see GeneratorLayer.create_generators())
+		:param initializer: ParameterSet or dict with generator parameters (see EncodingLayer.create_generators())
 		:param input_signal: signal object to be converted (either AnalogSignalList or SpikeList) - determines the
 		dimensionality of the input to the generator
 		:param dims: if the generator input is an encoder, dimensionality needs to be specified
@@ -2302,7 +2302,10 @@ class Generator:
 			self.time_data = []
 
 		# if dimensions are provided, overrides current value
-		self.input_dimension = dims if dims is not None else 1
+		if dims is not None:
+			self.input_dimension = dims
+		elif self.input_dimension is None:
+			self.input_dimension = 1
 
 		self.gids 		= []
 		self.layer_gid 	= None
@@ -2362,7 +2365,6 @@ class Generator:
 			else:
 				assert(isinstance(signal, signals.AnalogSignalList)), "Incorrect signal format!"
 
-			# TODO this has to be adjusted, To be continued @Barni
 			if self.input_dimension != len(signal):
 				self.input_dimension = len(signal)
 
@@ -2371,13 +2373,14 @@ class Generator:
 				s_data = signal[nn].raw_data()#[1:]
 				if len(t_axis) != len(s_data):
 					t_axis = t_axis[:-1]
-				# print min(t_axis), max(t_axis)
 
 				if self.model == 'step_current_generator':
 					nest.SetStatus(self.gids[nn], {'amplitude_times': t_axis, 'amplitude_values': s_data})
-				elif self.model == 'inh_poisson_generator' and 'inh_poisson_generator' in nest.Models():
-
-					nest.SetStatus(self.gids[nn], {'rate_times': t_axis, 'rate_values': s_data})
+				elif self.model == 'inh_poisson_generator':
+					if 'inh_poisson_generator' in nest.Models():
+						nest.SetStatus(self.gids[nn], {'rate_times': t_axis, 'rate_values': s_data})
+					else:
+						raise NotImplementedError("Inhomogeneous Poisson Generator not supported by NEST version!")
 
 
 ########################################################################################################################
@@ -2554,7 +2557,7 @@ class EncodingLayer:
 
 		def create_generators(encoding_pars, signal=None, input_dim=None):
 			"""
-			Create all necessary generator objects
+			Creates all necessary generator objects.
 			:param encoding_pars: global encoding parameters
 			:param signal:
 			:param input_dim:
@@ -2575,17 +2578,17 @@ class EncodingLayer:
 					source = tmp[idx][1]
 					if source in encoding_pars.encoder.labels:
 						src_idx = encoding_pars.encoder.labels.index(source)
-						input_dims = encoding_pars.encoder.n_neurons[src_idx]
+						tmp_input_dims = encoding_pars.encoder.n_neurons[src_idx]
 					else:
-						input_dims = None  # will be assessed from the signal
+						tmp_input_dims = None  # will be assessed from the signal
 				elif pars.labels[n] == 'spike_pattern':
-					input_dims = encoding_pars.encoder.n_neurons[0]
+					tmp_input_dims = encoding_pars.encoder.n_neurons[0]
 				elif pars.labels[n] == 'X_noise':
-					input_dims = 1
+					tmp_input_dims = 1
 				elif input_dim is not None:
-					input_dims = input_dim
+					tmp_input_dims = input_dim
 				else:
-					input_dims = None
+					tmp_input_dims = None
 
 				# create a specific parameter set for each generator
 				gen_pars_dict = {'label': pars.labels[n],
@@ -2593,7 +2596,7 @@ class EncodingLayer:
 				                 'model_pars': pars.model_pars[n],
 				                 'topology': pars.topology[n],
 				                 'topology_pars': pars.topology_pars[n]}
-				gen = Generator(gen_pars_dict, signal, dims=input_dims)
+				gen = Generator(gen_pars_dict, signal, dims=tmp_input_dims)
 				generators.append(gen)
 				generator_labels.append(gen.name)
 				print("- {0} [{1}-{2}]".format(pars.labels[n], str(min(gen.gids)), str(max(gen.gids))))
@@ -2616,10 +2619,9 @@ class EncodingLayer:
 			if hasattr(initializer, 'generator'):
 				self.generators, self.generator_names = create_generators(initializer, signal)
 
-	def _get_connection_type_and_parameters(self, encoding_pars, conn_pars, idx,
-	                                         populations, pop_objs):
+	def _get_connection_type_and_parameters(self, encoding_pars, conn_pars, idx, populations, pop_objs):
 		"""
-		Determine the type of the connecting populations and their parameters
+		Determine the type of the connecting populations and their parameters.
 		:param encoding_pars:
 		:param conn_pars:
 		:param idx:
@@ -2630,10 +2632,6 @@ class EncodingLayer:
 		src_name = conn_pars.connections[idx][1]
 		tget_name = conn_pars.connections[idx][0]
 
-		# if hasattr(encoding_pars, 'encoder'): TODO this was giving errors and I couldn't understand what it was for..
-		# 	if (src_name in encoding_pars.encoder.labels) or (tget_name in encoding_pars.encoder.labels) and \
-		# 			not encoding_pars.encoder.N:
-		# 		raise NameError("")  # to continue here
 		if hasattr(encoding_pars, 'encoder') and (src_name in encoding_pars.encoder.labels):
 			src_id = encoding_pars.encoder.labels.index(src_name)
 			src_dims = self.encoders[src_id].size
@@ -2723,7 +2721,6 @@ class EncodingLayer:
 				src_gids, src_id, src_dims, src_tp, tget_gids, tget_id, tget_dims, tget_tp = \
 					self._get_connection_type_and_parameters(encoding_pars, conn_pars, idx, populations, pop_objs)
 			except NameError:  # we just continue, nothing special or wrong here
-				# print "error"
 				continue
 
 			if "synapse_name" in conn_pars and conn_pars.synapse_name[idx] is not None:
