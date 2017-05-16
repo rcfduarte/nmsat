@@ -83,40 +83,92 @@ net.connect_populations(parameter_set.connection_pars, progress=True)
 
 if plot and debug:
 	net.extract_synaptic_weights()
+	net.extract_synaptic_delays()
 	topology = TopologyPlots(parameter_set.connection_pars, net)
 	topology.print_network(depth=3)
 
+	# net_graph = topology.to_graph_object().to_directed()
+	#
+	# # plot degree distributions
+	# sub_populations = [_ for _ in net.populations]
+	# colors = ['r', 'b', 'Orange']
+	# fig_degree = pl.figure()
+	# ax1_deg = fig_degree.add_subplot(121)
+	# ax2_deg = fig_degree.add_subplot(122)
+	# for ctr, n_pop in enumerate(net.populations):
+	# 	pop_graph = net_graph.nodes()[-(ctr+1)].to_directed()
+	#
+	# 	idx = parameter_set.net_pars.n_neurons.index(len(pop_graph.nodes()))
+	# 	pop_name = parameter_set.net_pars.pop_names[idx]
+	# 	pop_graph.name = pop_name
+	# 	sub_populations[idx] = pop_graph
+	#
+	# 	in_degree = sorted(set(pop_graph.in_degree().values()))
+	# 	out_degree = sorted(set(pop_graph.out_degree().values()))
+	#
+	# 	plot_histograms([ax1_deg, ax2_deg], [in_degree, out_degree], [100, 100], [])
+
+	# plot weight matrices
 	fig_W = pl.figure()
-	ax1 = pl.subplot2grid((6, 6), (0, 0), rowspan=4, colspan=4)
-	ax2 = pl.subplot2grid((6, 6), (5, 0), rowspan=1, colspan=4)
-	ax3 = pl.subplot2grid((6, 6), (0, 5), rowspan=4, colspan=1)
-	ax4 = pl.subplot2grid((6, 6), (5, 5), rowspan=1, colspan=1)
+	ax1 = pl.subplot2grid((13, 13), (1, 1), rowspan=6, colspan=6)
+	ax2 = pl.subplot2grid((13, 13), (1, 8), rowspan=6, colspan=2)
+	ax3 = pl.subplot2grid((13, 13), (1, 11), rowspan=6, colspan=3)
+	ax4 = pl.subplot2grid((13, 13), (8, 1), rowspan=2, colspan=6)
+	ax5 = pl.subplot2grid((13, 13), (11, 1), rowspan=3, colspan=6)
+	ax6 = pl.subplot2grid((13, 13), (8, 8), rowspan=2, colspan=2)
+	ax7 = pl.subplot2grid((13, 13), (8, 11), rowspan=2, colspan=3)
+	ax8 = pl.subplot2grid((13, 13), (11, 8), rowspan=3, colspan=2)
+	ax9 = pl.subplot2grid((13, 13), (11, 11), rowspan=3, colspan=3)
+
 	topology.plot_connectivity(parameter_set.connection_pars.synapse_types,
- 	                           ax=[ax1, ax3, ax2, ax4], display=display, save=paths['figures']+paths['label'])
+ 	                           ax=[ax1, ax3, ax2, ax4, ax5, ax6, ax7, ax8, ax9],
+                               display=display, save=paths['figures']+paths['label'])
+
+	# plot weight distributions
 	fig_wdist = pl.figure()
-	axw1 = fig_wdist.add_subplot(221)
-	axw2 = fig_wdist.add_subplot(222)
-	axw3 = fig_wdist.add_subplot(223)
-	axw4 = fig_wdist.add_subplot(224)
+	axw1 = fig_wdist.add_subplot(331)
+	axw2 = fig_wdist.add_subplot(332)
+	axw3 = fig_wdist.add_subplot(333)
+	axw4 = fig_wdist.add_subplot(334)
+	axw5 = fig_wdist.add_subplot(335)
+	axw6 = fig_wdist.add_subplot(336)
+	axw7 = fig_wdist.add_subplot(337)
+	axw8 = fig_wdist.add_subplot(338)
+	axw9 = fig_wdist.add_subplot(339)
 	topology.plot_weight_histograms(parameter_set.connection_pars.synapse_types,
- 	                           ax=[axw1, axw2, axw3, axw4], display=display, save=paths['figures']+paths['label'])
-	net.extract_synaptic_delays()
+ 	                           ax=[axw1, axw2, axw3, axw4, axw5, axw6, axw7, axw8, axw9],
+                                    display=display, save=paths['figures']+paths['label'])
+
+	# plot delay matrices
 	fig_d = pl.figure()
-	axd1 = pl.subplot2grid((6, 6), (0, 0), rowspan=4, colspan=4)
-	axd2 = pl.subplot2grid((6, 6), (5, 0), rowspan=1, colspan=4)
-	axd3 = pl.subplot2grid((6, 6), (0, 5), rowspan=4, colspan=1)
-	axd4 = pl.subplot2grid((6, 6), (5, 5), rowspan=1, colspan=1)
+	axd1 = pl.subplot2grid((13, 13), (1, 1), rowspan=6, colspan=6)
+	axd2 = pl.subplot2grid((13, 13), (1, 8), rowspan=6, colspan=2)
+	axd3 = pl.subplot2grid((13, 13), (1, 11), rowspan=6, colspan=3)
+	axd4 = pl.subplot2grid((13, 13), (8, 1), rowspan=2, colspan=6)
+	axd5 = pl.subplot2grid((13, 13), (11, 1), rowspan=3, colspan=6)
+	axd6 = pl.subplot2grid((13, 13), (8, 8), rowspan=2, colspan=2)
+	axd7 = pl.subplot2grid((13, 13), (8, 11), rowspan=2, colspan=3)
+	axd8 = pl.subplot2grid((13, 13), (11, 8), rowspan=3, colspan=2)
+	axd9 = pl.subplot2grid((13, 13), (11, 11), rowspan=3, colspan=3)
 	topology.plot_connectivity_delays(parameter_set.connection_pars.synapse_types,
- 	                           ax=[axd1, axd3, axd2, axd4], display=display, save=paths['figures']+paths['label'])
+ 	                           ax=[axd1, axd3, axd2, axd4, axd5, axd6, axd7, axd8, axd9],
+                            display=display, save=paths['figures']+paths['label'])
+
+	# plot delay histograms
 	fig_ddist = pl.figure()
-	axd1 = fig_ddist.add_subplot(221)
-	axd2 = fig_ddist.add_subplot(222)
-	axd3 = fig_ddist.add_subplot(223)
-	axd4 = fig_ddist.add_subplot(224)
+	axd1 = fig_ddist.add_subplot(331)
+	axd2 = fig_ddist.add_subplot(332)
+	axd3 = fig_ddist.add_subplot(333)
+	axd4 = fig_ddist.add_subplot(334)
+	axd5 = fig_ddist.add_subplot(335)
+	axd6 = fig_ddist.add_subplot(336)
+	axd7 = fig_ddist.add_subplot(337)
+	axd8 = fig_ddist.add_subplot(338)
+	axd9 = fig_ddist.add_subplot(339)
 	topology.plot_delay_histograms(parameter_set.connection_pars.synapse_types,
-	                                ax=[axd1, axd2, axd3, axd4], display=display,
-	                                save=paths['figures'] + paths['label'])
-	#pl.show()
+	                                ax=[axd1, axd2, axd3, axd4, axd5, axd6, axd7, axd8, axd9],
+	                               display=display, save=paths['figures'] + paths['label'])
+	pl.show()
 
 # ######################################################################################################################
 # Simulate

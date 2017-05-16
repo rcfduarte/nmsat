@@ -12,17 +12,20 @@ or with SingleNeuron_SynapticInput.py (debugging)
 __author__ = 'duarte'
 
 run = 'local'
-data_label = 'TS0_singleNeuron_SynapticInput'
-heterogeneity = {'neuron': False, 'structural': False, 'synapse': False}
+data_label = 'HT_singleneuron_RTF_homogeneous'
+heterogeneity = {'synaptic': False, 'neuronal': False, 'structural': False}
+
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations
 # ======================================================================================================================
 parameter_range = {
+	'nu_x': np.arange(0., 50., 1.)
 	}
 
+
 ########################################################################################################################
-def build_parameters():
+def build_parameters(nu_x):
 	# ######################################################################################################################
 	# System / Kernel Parameters
 	# ######################################################################################################################
@@ -33,15 +36,15 @@ def build_parameters():
 		walltime='00:20:00:00',
 		queue='singlenode',
 		transient_time=1000.,
-		sim_time=5000.)
+		sim_time=10000.)
 
 	kernel_pars = set_kernel_defaults(run_type=run, data_label=data_label, **system)
 
 	# ######################################################################################################################
 	# Neuron, Synapse and Network Parameters
 	# ######################################################################################################################
-	randomized_pars = randomize_neuron_parameters(heterogeneity['neuron'])
-	if heterogeneity['neuron']:
+	randomized_pars = randomize_neuron_parameters(heterogeneity['neuronal'])
+	if heterogeneity['neuronal']:
 		neuron_set = 1.2
 	else:
 		neuron_set = 1.1
@@ -51,28 +54,9 @@ def build_parameters():
 	N = 25000
 	nE = 0.8 * N
 	nI = 0.2 * N
-	nI1 = 0.35 * nI
-	nI2 = 0.65 * nI
 
-	# connection densities
-	epsilon = {'EE': 0.168, 'I1E': 0.575, 'I2E': 0.242,
-	           'EI1': 0.6, 'EI2': 0.465, 'I1I1': 0.55,
-	           'I2I1': 0.241, 'I1I2': 0.379, 'I2I2': 0.381,}
-	# connection delays
-	if heterogeneity['synapse']:
-		delays = {'EE': {'distribution': 'lognormal', 'mu': 1.8, 'sigma': 0.25},
-		          'I1E': {'distribution': 'lognormal', 'mu': 1.2, 'sigma': 0.2},
-		          'I2E': {'distribution': 'lognormal', 'mu': 1.5, 'sigma': 0.2},
-		          'EI1': {'distribution': 'lognormal', 'mu': 0.8, 'sigma': 0.1},
-		          'EI2': {'distribution': 'lognormal', 'mu': 1.5, 'sigma': 0.2},
-		          'I1I1': {'distribution': 'lognormal', 'mu': 1., 'sigma': 0.1},
-		          'I2I1': {'distribution': 'lognormal', 'mu': 1.2, 'sigma': 0.3},
-		          'I1I2': {'distribution': 'lognormal', 'mu': 1.5, 'sigma': 0.5},
-		          'I2I2': {'distribution': 'lognormal', 'mu': 1.5, 'sigma': 0.3}}
-	else:
-		delays = {'EE': 1.8, 'I1E': 1.2, 'I2E': 1.5,
-		          'EI1': 0.8, 'EI2': 1.5, 'I1I1': 1.,
-		          'I2I1': 1.2, 'I1I2': 1.5, 'I2I2': 1.5, }
+	epsilon, weights, delays = connection_parameters(heterogeneous=heterogeneity['synaptic'])
+
 	# connection weights
 	# gamma_E = 4.0
 	# gamma_I1 = 2.0
@@ -106,24 +90,7 @@ def build_parameters():
 	# 	weights = {'EE': wEE, 'I1E': wI1E, 'I2E': wI2E,
 	# 	           'EI1': wEI1, 'EI2': wEI2, 'I1I1': wI1I1,
 	# 	           'I2I1': wI2I1, 'I1I2': wI1I2, 'I2I2': wI2I2,}
-	if heterogeneity['synapse']:
-		weights = {'EE': {'distribution': 'lognormal_clipped', 'mu': 0.45, 'sigma': 1., 'low': 0.0001, 'high': 50.},
-		           'I1E': {'distribution': 'lognormal_clipped', 'mu': 1.65, 'sigma': 1., 'low': 0.0001, 'high': 150.},
-		           'I2E': {'distribution': 'lognormal_clipped', 'mu': 0.638, 'sigma': 1., 'low': 0.0001, 'high': 60.},
-		           'EI1': {'distribution': 'lognormal_clipped', 'mu': 5.148, 'sigma': 1., 'low': 0.0001, 'high': 500.},
-		           'EI2': {'distribution': 'lognormal_clipped', 'mu': 4.85, 'sigma': 1., 'low': 0.0001, 'high': 500.},
-		           'I1I1': {'distribution': 'lognormal_clipped', 'mu': 2.22, 'sigma': 1., 'low': 0.0001,
-		                    'high': 250.},
-		           'I2I1': {'distribution': 'lognormal_clipped', 'mu': 1.4, 'sigma': 1., 'low': 0.0001,
-		                    'high': 150.},
-		           'I1I2': {'distribution': 'lognormal_clipped', 'mu': 1.47, 'sigma': 1., 'low': 0.0001,
-		                    'high': 150.},
-		           'I2I2': {'distribution': 'lognormal_clipped', 'mu': 0.83, 'sigma': 1., 'low': 0.0001,
-		                    'high': 100.},}
-	else:
-		weights = {'EE': 0.45, 'I1E': 1.65, 'I2E': 0.638,
-		           'EI1': 5.148, 'EI2': 4.85, 'I1I1': 2.22,
-		           'I2I1': 1.4, 'I1I2': 1.47, 'I2I2': 0.83,}
+
 	# devices
 	multimeter = rec_device_defaults(device_type='multimeter')
 	multimeter.update({'record_from': ['V_m', 'I_ex', 'I_in', 'G_syn_tot'], 'record_n': 1})
@@ -163,10 +130,8 @@ def build_parameters():
 	# ######################################################################################################################
 	# Encoding Parameters
 	# ######################################################################################################################
-	nu_x = 5.
+	# nu_x = 5.
 	k_x = epsilon['EE'] * nE
-	w_in = weights['EE']
-	d_in = delays['EE']
 
 	encoding_pars = set_encoding_defaults(default_set=0)
 
