@@ -993,9 +993,9 @@ connection progress):</p>
                      <span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
         <span class="s1">&#39;grammar&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>            <span class="c1">#!!</span>
         <span class="s1">&#39;full_set_length&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">T</span> <span class="o">+</span> <span class="n">T_discard</span><span class="p">),</span>  <span class="c1"># total samples</span>
-        <span class="s1">&#39;transient_set_length&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">T_discard</span><span class="p">),</span> <span class="c1"># </span>
-        <span class="s1">&#39;train_set_length&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="mf">0.8</span> <span class="o">*</span> <span class="n">T</span><span class="p">),</span>       <span class="c1">#</span>
-        <span class="s1">&#39;test_set_length&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="mf">0.2</span> <span class="o">*</span> <span class="n">T</span><span class="p">)}</span>        <span class="c1">#</span>
+        <span class="s1">&#39;transient_set_length&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">T_discard</span><span class="p">),</span> <span class="c1"># size of transient set (will be discarded)</span>
+        <span class="s1">&#39;train_set_length&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="mf">0.8</span> <span class="o">*</span> <span class="n">T</span><span class="p">),</span>       <span class="c1"># size of training set</span>
+        <span class="s1">&#39;test_set_length&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="mf">0.2</span> <span class="o">*</span> <span class="n">T</span><span class="p">)}</span>        <span class="c1"># size of test set</span>
 </pre></div>
 
 
@@ -1009,58 +1009,68 @@ connection progress):</p>
 <p>Specifies the stimulus transduction and/or the input signal properties:</p>
 <div class="codehilite"><pre><span></span><span class="n">input_pars</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s1">&#39;signal&#39;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>     <span class="c1"># Dimensionality of the signal </span>
-        <span class="s1">&#39;durations&#39;</span><span class="p">:</span>    <span class="c1"># Duration of each stimulus presentation. </span>
-            <span class="c1"># Various settings are allowed:</span>
-            <span class="c1"># - List of n_trials elements whose values correspond to the </span>
-            <span class="c1"># duration of 1 stimulus presentation</span>
-            <span class="c1"># - List with one single element (uniform durations)</span>
-            <span class="c1"># - Tuple of (function, function parameters) specifying </span>
-            <span class="c1"># distributions for these values, </span>
-            <span class="c1"># - List of N lists of any of the formats specified... (*)</span>
-        <span class="p">[(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;low&#39;</span><span class="p">:</span> <span class="mf">500.</span><span class="p">,</span> <span class="s1">&#39;high&#39;</span><span class="p">:</span> <span class="mf">500.</span><span class="p">,</span> <span class="s1">&#39;size&#39;</span><span class="p">:</span> <span class="n">n_trials</span><span class="p">})],</span>
+        <span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>     <span class="c1"># Dimensionality of the signal</span>
 
-        <span class="s1">&#39;i_stim_i&#39;</span><span class="p">:</span> <span class="c1"># Inter-stimulus intervals - same settings as &#39;durations&#39;.</span>
-            <span class="p">[(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;low&#39;</span><span class="p">:</span> <span class="mf">0.</span><span class="p">,</span> <span class="s1">&#39;high&#39;</span><span class="p">:</span> <span class="mf">0.</span><span class="p">,</span> <span class="s1">&#39;size&#39;</span><span class="p">:</span> <span class="n">n_trials</span><span class="o">-</span><span class="mi">1</span><span class="p">})],</span>
+        <span class="c1"># Duration of each stimulus presentation. </span>
+        <span class="c1"># Various settings are allowed:</span>
+        <span class="c1">#   - List of n_trials elements whose values correspond to the </span>
+        <span class="c1">#     duration of 1 stimulus presentation</span>
+        <span class="c1">#   - List with one single element (uniform durations)</span>
+        <span class="c1">#   - Tuple of (function, function parameters) specifying </span>
+        <span class="c1">#     distributions for these values, </span>
+        <span class="c1">#   - List of N lists of any of the formats specified... (*)</span>
+        <span class="s1">&#39;durations&#39;</span><span class="p">:</span> <span class="p">[(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;low&#39;</span><span class="p">:</span> <span class="mf">500.</span><span class="p">,</span> <span class="s1">&#39;high&#39;</span><span class="p">:</span> <span class="mf">500.</span><span class="p">,</span> <span class="s1">&#39;size&#39;</span><span class="p">:</span> <span class="n">n_trials</span><span class="p">})],</span>
 
-        <span class="s1">&#39;kernel&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;box&#39;</span><span class="p">,</span> <span class="p">{}),</span>  <span class="c1"># input mask - implemented options:</span>
-                <span class="c1"># box({}), exp({&#39;tau&#39;}), double_exp({&#39;tau_1&#39;,&#39;tau_2&#39;}), </span>
-                <span class="c1"># gauss({&#39;mu&#39;, &#39;sigma&#39;})</span>
+        <span class="c1"># Inter-stimulus intervals - same settings as &#39;durations&#39;.</span>
+        <span class="s1">&#39;i_stim_i&#39;</span><span class="p">:</span> <span class="p">[(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;low&#39;</span><span class="p">:</span> <span class="mf">0.</span><span class="p">,</span> <span class="s1">&#39;high&#39;</span><span class="p">:</span> <span class="mf">0.</span><span class="p">,</span> <span class="s1">&#39;size&#39;</span><span class="p">:</span> <span class="n">n_trials</span><span class="o">-</span><span class="mi">1</span><span class="p">})],</span>
 
-        <span class="s1">&#39;start_time&#39;</span><span class="p">:</span> <span class="mf">0.</span><span class="p">,</span>           <span class="c1"># global signal onset time</span>
+        <span class="c1"># input mask - implemented options:</span>
+        <span class="c1">#   box({}), exp({&#39;tau&#39;}), double_exp({&#39;tau_1&#39;,&#39;tau_2&#39;}), gauss({&#39;mu&#39;, &#39;sigma&#39;})</span>
+        <span class="s1">&#39;kernel&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;box&#39;</span><span class="p">,</span> <span class="p">{}),</span>  
+
+        <span class="s1">&#39;start_time&#39;</span><span class="p">:</span> <span class="mf">0.</span><span class="p">,</span>                   <span class="c1"># global signal onset time</span>
         <span class="s1">&#39;stop_time&#39;</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">float_info</span><span class="o">.</span><span class="n">max</span><span class="p">,</span>    <span class="c1"># global signal offset time</span>
 
-        <span class="s1">&#39;max_amplitude&#39;</span><span class="p">:</span>    <span class="c1"># maximum signal amplitude - as in durations and i_stim_i,</span>
-                    <span class="c1"># can be a list of values, or a function with parameters</span>
-            <span class="p">[(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;low&#39;</span><span class="p">:</span> <span class="mf">10.</span><span class="p">,</span> <span class="s1">&#39;high&#39;</span><span class="p">:</span> <span class="mf">100.</span><span class="p">,</span> <span class="s1">&#39;size&#39;</span><span class="p">:</span> <span class="n">n_trials</span><span class="p">})],</span>
+        <span class="c1"># maximum signal amplitude - as in durations and i_stim_i,</span>
+        <span class="c1"># can be a list of values, or a function with parameters</span>
+        <span class="s1">&#39;max_amplitude&#39;</span><span class="p">:</span> <span class="p">[(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;low&#39;</span><span class="p">:</span> <span class="mf">10.</span><span class="p">,</span> <span class="s1">&#39;high&#39;</span><span class="p">:</span> <span class="mf">100.</span><span class="p">,</span> <span class="s1">&#39;size&#39;</span><span class="p">:</span> <span class="n">n_trials</span><span class="p">})],</span>
 
         <span class="s1">&#39;min_amplitude&#39;</span><span class="p">:</span> <span class="mf">0.</span><span class="p">,</span>    <span class="c1"># minimum amplitude - will be added to the signal</span>
-        <span class="s1">&#39;resolution&#39;</span><span class="p">:</span> <span class="mf">1.</span>    <span class="c1"># temporal resolution</span>
+        <span class="s1">&#39;resolution&#39;</span><span class="p">:</span> <span class="mf">1.</span>        <span class="c1"># temporal resolution</span>
         <span class="p">},</span>
 
     <span class="s1">&#39;noise&#39;</span><span class="p">:</span> <span class="p">{</span>
         <span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="c1"># Dimensionality of the noise component (common or </span>
             <span class="c1"># multiple independent noise sources)</span>
-        <span class="s1">&#39;noise_source&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;GWN&#39;</span><span class="p">],</span>    <span class="c1"># [list] - Type of noise:</span>
-            <span class="c1">#  - Either a string for &#39;OU&#39;, &#39;GWN&#39;</span>
-            <span class="c1">#  - or a function, e.g. np.random.uniform</span>
-        <span class="s1">&#39;noise_pars&#39;</span><span class="p">:</span>   <span class="c1"># [dict] Parameters (specific for each type of noise):</span>
-                    <span class="c1"># - &#39;OU&#39; -&gt; {&#39;tau&#39;, &#39;sigma&#39;, &#39;y0&#39;}</span>
-                    <span class="c1"># - &#39;GWN&#39; -&gt; {&#39;amplitude&#39;, &#39;mean&#39;, &#39;std&#39;}</span>
-                    <span class="c1"># - function parameters dictionary (see function documentation)</span>
-            <span class="p">{</span><span class="s1">&#39;amplitude&#39;</span><span class="p">:</span> <span class="mf">1.</span><span class="p">,</span> <span class="s1">&#39;mean&#39;</span><span class="p">:</span> <span class="mf">1.</span><span class="p">,</span> <span class="s1">&#39;std&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">},</span>
-        <span class="s1">&#39;rectify&#39;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span>    <span class="c1"># [bool] - rectify noise component </span>
-        <span class="s1">&#39;start_time&#39;</span><span class="p">:</span> <span class="mf">0.</span><span class="p">,</span>   <span class="c1"># global onset time (single value), </span>
-            <span class="c1"># or local onset times if multiple instances are required (list)</span>
-        <span class="s1">&#39;stop_time&#39;</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">float_info</span><span class="o">.</span><span class="n">max</span><span class="p">,</span>    <span class="c1"># global offset time (single value), or local offset#</span>
-            <span class="c1"># times, if multiple instances are required</span>
-        <span class="s1">&#39;resolution&#39;</span><span class="p">:</span> <span class="mf">1.</span><span class="p">,</span>   <span class="c1"># signal resolution (dt)}}</span>
+
+        <span class="c1"># [list] - Type of noise:</span>
+        <span class="c1">#  - Either a string for &#39;OU&#39;, &#39;GWN&#39;</span>
+        <span class="c1">#  - or a function, e.g. np.random.uniform</span>
+        <span class="s1">&#39;noise_source&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;GWN&#39;</span><span class="p">],</span>
+
+        <span class="c1"># [dict] Parameters (specific for each type of noise):</span>
+        <span class="c1"># - &#39;OU&#39; -&gt; {&#39;tau&#39;, &#39;sigma&#39;, &#39;y0&#39;}</span>
+        <span class="c1"># - &#39;GWN&#39; -&gt; {&#39;amplitude&#39;, &#39;mean&#39;, &#39;std&#39;}</span>
+        <span class="c1"># - function parameters dictionary (see function documentation)</span>
+        <span class="s1">&#39;noise_pars&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;amplitude&#39;</span><span class="p">:</span> <span class="mf">1.</span><span class="p">,</span> <span class="s1">&#39;mean&#39;</span><span class="p">:</span> <span class="mf">1.</span><span class="p">,</span> <span class="s1">&#39;std&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">},</span>
+
+        <span class="s1">&#39;rectify&#39;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span>    <span class="c1"># [bool] - rectify noise component</span>
+
+        <span class="c1"># global onset time (single value), </span>
+        <span class="c1"># or local onset times if multiple instances are required (list)</span>
+        <span class="s1">&#39;start_time&#39;</span><span class="p">:</span> <span class="mf">0.</span><span class="p">,</span>   
+
+        <span class="c1"># global offset time (single value), or local offset</span>
+        <span class="c1"># times, if multiple instances are required</span>
+        <span class="s1">&#39;stop_time&#39;</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">float_info</span><span class="o">.</span><span class="n">max</span><span class="p">,</span>    
+
+        <span class="s1">&#39;resolution&#39;</span><span class="p">:</span> <span class="mf">1.</span><span class="p">,</span>                   <span class="c1"># signal resolution (dt)}}</span>
 </pre></div>
 
 
-<p>Note: the chosen specifications of ’durations’, ’i_stim_i’ and ’max_amplitude’
-must be consistent, i.e., if ’durations’ is provided as a single element list, the same format must
-be applied to ’i_stim_i’ and ’max_amplitude’. (test)</p>
+<p><strong>Note:</strong> the chosen specifications of <code>durations</code>, <code>i_stim_i</code> and <code>max_amplitude</code>
+must be consistent, i.e., if <code>durations</code> is provided as a single element list, the same format must
+be applied to <code>i_stim_i</code> and <code>max_amplitude</code>. (test)</p>
 <div class="codehilite"><pre><span></span><span class="n">inputs</span> <span class="o">=</span> <span class="n">InputSignalSet</span><span class="p">(</span><span class="n">parameter_set</span><span class="p">,</span> <span class="n">stim_set</span><span class="p">,</span> <span class="n">online</span><span class="o">=</span><span class="n">online</span><span class="p">)</span>
 <span class="n">inputs</span><span class="o">.</span><span class="n">generate_datasets</span><span class="p">(</span><span class="n">stim_set</span><span class="p">)</span>
 </pre></div>

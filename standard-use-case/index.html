@@ -595,7 +595,7 @@
                 
                   <h1>Standard use case</h1>
                 
-                <p>A numerical experiment in this framework consists of 2 or 3 main files (see examples):</p>
+                <p>A numerical experiment in this framework consists of 2 or 3 main files (see Examples section):</p>
 <ul>
 <li><strong>parameters_file</strong> - specifying all the complex parameter sets and dictionaries required to set up
 the experiment.</li>
@@ -604,19 +604,19 @@ These scripts parse the parameters_file and run the complete experiment</li>
 <li><strong>computation_file</strong> - after the development and testing phase is completed, the experiment can
 be copied to a computation_file, which can be used from the main... (*)</li>
 </ul>
-<p>These files should be stored within a <code>project</code> folder, and in the <code>parameters</code>, <code>scripts</code> and <code>computations</code> 
+<p>These files should be stored within a <code>project/</code> folder, and in the <code>parameters/</code>, <code>scripts/</code> and <code>computations/</code> 
 folders, respectively.</p>
 <h2 id="running-an-experiment">Running an experiment<a class="headerlink" href="#running-an-experiment" title="Permanent link">&para;</a></h2>
 <p>The way in which an experiment is run depends on the system used:</p>
 <h3 id="local-machine">Local machine<a class="headerlink" href="#local-machine" title="Permanent link">&para;</a></h3>
-<p>Just go to the main nmsat directory and execute the experiment as:</p>
+<p>Just go to the main <code>nmsat/</code> directory and execute the experiment as:</p>
 <div class="codehilite"><pre><span></span><span class="n">python</span> <span class="n">main</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">f</span> <span class="p">{</span><span class="n">parameters_file</span><span class="p">}</span> <span class="o">-</span><span class="n">c</span> <span class="p">{</span><span class="n">computation_function</span><span class="p">}</span> <span class="o">--</span><span class="n">extra</span> <span class="p">{</span><span class="n">extra_parameters</span><span class="p">}</span>
 </pre></div>
 
 
 <p>where <code>parameters_file</code> refers to the (full or relative) path to the parameters file for the experiment,
 <code>computation_function</code> is the name of the computation function to be executed on that parameter
-set (must match the name of a file in the project’s ’computations’ folder) and <code>extra_parameters</code> are
+set (must match the name of a file in the project’s <code>computations/</code> folder) and <code>extra_parameters</code> are
 parameter=value pairs for different, extra parameters (specific to each computation).</p>
 <h3 id="cluster">Cluster<a class="headerlink" href="#cluster" title="Permanent link">&para;</a></h3>
 <p>On a computer cluster or supercomputer, the execution of the framework has a slightly different meaning. 
