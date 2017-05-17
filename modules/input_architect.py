@@ -1077,8 +1077,8 @@ class StimulusSet(object):
 			self.full_set_labels = list(itertools.chain(*self.full_set_labels))
 			self.full_set = self.stimulus_sequence_to_binary(self.full_set_labels)
 			print("- Creating unique stimulus sequence [{0}]".format(str(len(self.unique_set_labels))))
-
-		print("- Skipping generation of unique stimulus sequence, not required.")
+		else:
+			print("- Skipping generation of unique stimulus sequence, not required.")
 
 	def divide_set(self, transient_set_length, train_set_length, test_set_length):
 		"""
@@ -1855,16 +1855,18 @@ class InputNoise(StochasticGenerator):
 ########################################################################################################################
 class InputSignalSet(object):
 	"""
-	Class to hold and manipulate complex sets of input signals
+	Class to hold and manipulate complex sets of input signals.
 	"""
 
 	def __init__(self, parameter_set, stim_obj=None, rng=None, online=False):
 		"""
+		Initialize member variables. If the input stimuli are spike patterns, generates a spike
+		pattern template for each stimulus.
 
-		:param parameter_set:
-		:param stim_obj:
-		:param rng:
-		:param online:
+		:param parameter_set: (ParameterSet) global parameter set
+		:param stim_obj: (StimulusSet) stimulus set for which the input signal set should be created
+		:param rng: pseudo random number generator
+		:param online: (bool) generate input signals online (memory efficient) or not
 		"""
 		print("\nGenerating Input Signals: ")
 		self.online = online
@@ -1893,21 +1895,16 @@ class InputSignalSet(object):
 			self.full_set_signal_iterator = None
 		if 'spike_pattern' in parameter_set.encoding_pars.generator.labels and stim_obj is not None:
 			self.spike_patterns = []
-			n_input_neurons = parameter_set.encoding_pars.encoder.n_neurons[0]
-			pattern_duration = parameter_set.input_pars.signal.durations
-			rate = parameter_set.input_pars.signal.max_amplitude
-			resolution = parameter_set.input_pars.signal.resolution
+			n_input_neurons 	= parameter_set.encoding_pars.encoder.n_neurons[0]
+			pattern_duration 	= parameter_set.input_pars.signal.durations
+			rate 				= parameter_set.input_pars.signal.max_amplitude
+			resolution 			= parameter_set.input_pars.signal.resolution
 
 			if parameter_set.encoding_pars.generator.gen_to_enc_W is None:
 				for n in range(stim_obj.dims):
-					if len(pattern_duration) == stim_obj.dims:
-						duration = pattern_duration[n]
-					else:
-						duration = pattern_duration[0]
-					if len(rate) == stim_obj.dims:
-						rt = rate[n]
-					else:
-						rt = rate[0]
+					duration = pattern_duration[n] if len(pattern_duration) == stim_obj.dims else pattern_duration[0]
+					rt = rate[n] if len(rate) == stim_obj.dims else rate[0]
+
 					if parameter_set.encoding_pars.generator.jitter is not None and \
 							parameter_set.encoding_pars.generator.jitter[1]:
 						duration += (parameter_set.encoding_pars.generator.jitter[0] * 2)
@@ -1952,7 +1949,7 @@ class InputSignalSet(object):
 			self.unique_set_noise = None
 			self.unique_stimulation_time = 0
 
-	def generate_generic_set(self, stimulus_set, stimulus_subset, set_label, timestamp_correction=None):
+	def generate_generic_set(self, stimulus_subset, set_label, timestamp_correction=None):
 		"""
 		Generic function used by several functions (generate_full_set, generate_train_set, etc.) to generate
 		or initialize input signals corresponding to the stimulus set being generated
@@ -1976,7 +1973,7 @@ class InputSignalSet(object):
 
 		assert (stimulus_subset is not None), "No {0} in the provided StimulusSet object, skipping...".format(set_label)
 		self_set_signal = InputSignal(self.parameters.signal, self.online)
-		print("- Generating {0}-dimensional input signal [{1}]".format(str(stimulus_set.dims), set_label))
+		print("- Generating {0}-dimensional input signal [{1}]".format(str(self.parameters.signal.N), set_label))
 		# stimulus is generated online
 		if self.online:
 			print("- InputSignal will be generated online. {0} is now a generator.. (no noise is added...)".format(
@@ -2022,7 +2019,7 @@ class InputSignalSet(object):
 					self_set.load_signal(merged_signal.as_array(), onset=self.parameters.noise.start_time,
 					                     inherit_from=self_set_signal)
 					print("- Generating and adding {0}-dimensional input noise (t={1})".format(
-						str(stimulus_set.dims), str(set_stimulation_time)))
+						str(self.parameters.signal.N), str(set_stimulation_time)))
 
 		return self_set, self_set_signal, self_set_signal_iterator, self_set_noise, set_stimulation_time
 
@@ -2033,7 +2030,7 @@ class InputSignalSet(object):
 		:return:
 		"""
 
-		result = self.generate_generic_set(stimulus_set, stimulus_set.full_set, "full_set") 
+		result = self.generate_generic_set(stimulus_set.full_set, "full_set")
 		self.full_set                  = result[0]
 		self.full_set_signal           = result[1]
 		self.full_set_signal_iterator  = result[2]
@@ -2046,7 +2043,7 @@ class InputSignalSet(object):
 		:param stimulus_set:
 		:return:
 		"""
-		result = self.generate_generic_set(stimulus_set, stimulus_set.transient_set, "transient_set") 
+		result = self.generate_generic_set(stimulus_set.transient_set, "transient_set")
 		self.transient_set                  = result[0]
 		self.transient_set_signal           = result[1]
 		self.transient_set_signal_iterator  = result[2]
@@ -2061,7 +2058,7 @@ class InputSignalSet(object):
 		"""
 		timestep_correction = self.transient_stimulation_time
 
-		result = self.generate_generic_set(stimulus_set, stimulus_set.unique_set, "unique_set", timestep_correction)
+		result = self.generate_generic_set(stimulus_set.unique_set, "unique_set", timestep_correction)
 		self.unique_set                  = result[0]
 		self.unique_set_signal           = result[1]
 		self.unique_set_signal_iterator  = result[2]
@@ -2078,7 +2075,7 @@ class InputSignalSet(object):
 		if hasattr(self, "unique_set"):
 			timestep_correction += self.unique_stimulation_time
 
-		result = self.generate_generic_set(stimulus_set, stimulus_set.train_set, "train_set", timestep_correction)
+		result = self.generate_generic_set(stimulus_set.train_set, "train_set", timestep_correction)
 		self.train_set                  = result[0]
 		self.train_set_signal           = result[1]
 		self.train_set_signal_iterator  = result[2]
@@ -2095,7 +2092,7 @@ class InputSignalSet(object):
 		if hasattr(self, "unique_set"):
 			timestep_correction += self.unique_stimulation_time
 
-		result = self.generate_generic_set(stimulus_set, stimulus_set.test_set, "test_set", timestep_correction)
+		result = self.generate_generic_set(stimulus_set.test_set, "test_set", timestep_correction)
 		self.test_set                  = result[0]
 		self.test_set_signal           = result[1]
 		self.test_set_signal_iterator  = result[2]
@@ -2111,7 +2108,7 @@ class InputSignalSet(object):
 		self.generate_full_set(stim)
 		if not signals.empty(stim.transient_set_labels):
 			self.generate_transient_set(stim)
-		if hasattr(stim, "unique_set") and not signals.empty(stim.unique_set):
+		if hasattr(stim, "unique_set") and not signals.empty(stim.unique_set_labels):
 			self.generate_unique_set(stim)
 		self.generate_train_set(stim)
 		self.generate_test_set(stim)
@@ -2336,24 +2333,26 @@ class Generator:
 	def update_state(self, signal):
 		"""
 		For online generation, the input signal is given iteratively
-		and the state of the generator objects needs to be updated
-		:param signal:
+		and the state of the NEST generator objects needs to be updated.
+		:param signal: (SpikeList, InputSignal, InputNoise, AnalogSignalList) object containing
+					   the values (e.g., spike times) to update the generators with
 		:return
 		"""
+		# for a SpikeList object, update the corresponding NEST spike generators
 		if isinstance(signal, signals.SpikeList):
 			# TODO - check spike_generator properties; if allow_offgrid_spikes, there's no need to round..
 			rounding_precision = signals.determine_decimal_digits(signal.raw_data()[:, 0][0])
-			check_timing = []
+			# check_timing = []
 			for nn in signal.id_list:
 				spk_times = [round(n, rounding_precision) for n in signal[nn].spike_times]  # to be sure
 				nest.SetStatus(self.gids[nn], {'spike_times': spk_times})
 				# TODO check this, seems a bit off...
-				check_timing.append(all(spk_times == np.round(nest.GetStatus(self.gids[nn], 'spike_times')[0],
-															  rounding_precision)))
-
-			print(all(check_timing)) #debug
-
+			# 	check_timing.append(all(spk_times == np.round(nest.GetStatus(self.gids[nn], 'spike_times')[0],
+			# 												  rounding_precision)))
+			#
+			# print(all(check_timing)) #debug
 		else:
+			# check for proper signal format
 			if isinstance(signal, InputSignal):
 				signal = signal.input_signal
 			elif isinstance(signal, InputNoise):
