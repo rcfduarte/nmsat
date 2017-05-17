@@ -98,6 +98,7 @@ def plot_single_neuron_response(parameter_set, activity_dict, input_times, t_axi
 		ax4.plot(t_axis, PSCurrs, '-.', c=colors[0], lw=2., alpha=0.8)
 		ax4.set_ylabel(r'$\mathrm{I}^{\mathrm{rec}} [\mathrm{nA}]$')
 		ax4.set_xlabel(r'Time [ms]')
+		# ax4.set_xticks(np.arange(min(t_axis), max(t_axis), 5))
 
 		ctr += 1
 	# pl.legend()
@@ -207,11 +208,11 @@ def spike_triggered_synaptic_responses(parameter_set, activity_dict, time_window
 		ctr2 = 1
 		for k in keys:
 			if plot:
-				plot_histogram(rec_psc_lat[k], nbins=10, norm=True, mark_mean=True, ax=ax31, color=colors[ctr2],
+				plot_histogram(rec_psc_lat[k], nbins=100, norm=True, mark_median=True, ax=ax31, color=colors[ctr2],
 				               display=False, save=False)
-				plot_histogram(rec_psc_amp[k], nbins=10, norm=True, mark_mean=True, ax=ax32, color=colors[ctr2],
+				plot_histogram(rec_psc_amp[k], nbins=100, norm=True, mark_median=True, ax=ax32, color=colors[ctr2],
 				               display=False, save=False)
-				plot_histogram(rec_charge[k], nbins=10, norm=True, mark_mean=True, ax=ax33, color=colors[ctr2],
+				plot_histogram(rec_charge[k], nbins=100, norm=True, mark_median=True, ax=ax33, color=colors[ctr2],
 				               display=False, save=False)
 
 			results[pop].update({'{0}_latencies'.format(labels[ctr2]): rec_psc_lat[k],
@@ -219,9 +220,9 @@ def spike_triggered_synaptic_responses(parameter_set, activity_dict, time_window
 			                '{0}_charges'.format(labels[ctr2]): rec_charge[k]})
 			ctr2 += 1
 		if plot:
-			plot_histogram(syn_psc_lat, nbins=10, norm=True, mark_mean=True, ax=ax31, color=colors[0],
+			plot_histogram(syn_psc_lat, nbins=100, norm=True, mark_median=True, ax=ax31, color=colors[0],
 				               display=False, save=False)
-			plot_histogram(syn_psc_amp, nbins=10, norm=True, mark_mean=True, ax=ax32, color=colors[0],
+			plot_histogram(syn_psc_amp, nbins=100, norm=True, mark_median=True, ax=ax32, color=colors[0],
 			               display=False, save=False)
 
 		results[pop].update({'psc_ratio': np.mean(rec_psc_amp[keys[1]]) / np.mean(rec_psc_amp[keys[0]])})
@@ -357,16 +358,16 @@ def PSC_kinetics(activity_dict, time_window, input_times, t_axis, response_type=
 			ax11.set_xlabel(r'$\mathrm{Time [ms]}$')
 			ax11.set_ylabel(r'$\mathrm{I_{syn} [nA]}$')
 
-			plot_histogram(syn_psc_amp, nbins=10, norm=True, mark_mean=True, ax=ax21, color=colors[0],
+			plot_histogram(syn_psc_amp, nbins=100, norm=True, mark_median=True, ax=ax21, color=colors[0],
 		                   display=False, save=False)
 			ax21.set_xlabel(r'Amplitude')
-			plot_histogram(syn_psc_lat, nbins=10, norm=True, mark_mean=True, ax=ax22, color=colors[0],
+			plot_histogram(syn_psc_lat, nbins=100, norm=True, mark_median=True, ax=ax22, color=colors[0],
 			               display=False, save=False)
 			ax22.set_xlabel(r'Latency')
-			plot_histogram(syn_psc_rise, nbins=10, norm=True, mark_mean=True, ax=ax23, color=colors[0],
+			plot_histogram(syn_psc_rise, nbins=100, norm=True, mark_median=True, ax=ax23, color=colors[0],
 			               display=False, save=False)
 			ax23.set_xlabel(r'$\tau_{\mathrm{rise}}$')
-			plot_histogram(syn_psc_decay, nbins=10, norm=True, mark_mean=True, ax=ax24, color=colors[0],
+			plot_histogram(syn_psc_decay, nbins=100, norm=True, mark_median=True, ax=ax24, color=colors[0],
 			               display=False, save=False)
 			ax24.set_xlabel(r'$\tau_{\mathrm{decay}}$')
 
@@ -495,16 +496,16 @@ def PSP_kinetics(activity_dict, time_window, input_times, t_axis, response_type=
 			ax11.set_xlabel(r'$\mathrm{Time [ms]}$')
 			ax11.set_ylabel(r'$\mathrm{V_{m} [mV]}$')
 
-			plot_histogram(syn_psp_amp, nbins=10, norm=True, mark_mean=True, ax=ax21, color=colors[0],
+			plot_histogram(syn_psp_amp, nbins=100, norm=True, mark_median=True, ax=ax21, color=colors[0],
 		                   display=False, save=False)
 			ax21.set_xlabel(r'Amplitude')
-			plot_histogram(syn_psp_lat, nbins=10, norm=True, mark_mean=True, ax=ax22, color=colors[0],
+			plot_histogram(syn_psp_lat, nbins=100, norm=True, mark_median=True, ax=ax22, color=colors[0],
 			               display=False, save=False)
 			ax22.set_xlabel(r'Latency')
-			plot_histogram(syn_psp_rise, nbins=10, norm=True, mark_mean=True, ax=ax23, color=colors[0],
+			plot_histogram(syn_psp_rise, nbins=100, norm=True, mark_median=True, ax=ax23, color=colors[0],
 			               display=False, save=False)
 			ax23.set_xlabel(r'$\tau_{\mathrm{rise}}$')
-			plot_histogram(syn_psp_decay, nbins=10, norm=True, mark_mean=True, ax=ax24, color=colors[0],
+			plot_histogram(syn_psp_decay, nbins=100, norm=True, mark_median=True, ax=ax24, color=colors[0],
 			               display=False, save=False)
 			ax24.set_xlabel(r'$\tau_{\mathrm{decay}}$')
 
@@ -747,3 +748,5 @@ def determine_lognormal_parameters(mean, var, median=None):
 	sigma = np.sqrt( np.log( (var / (mean ** 2.)) + 1) )
 
 	return mu, sigma
+
+

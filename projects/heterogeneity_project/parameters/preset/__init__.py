@@ -1,6 +1,8 @@
 __author__ = 'duarte'
 import numpy as np
 import sys
+sys.path.insert(0, "../..")
+from auxiliary_fcns import determine_lognormal_parameters
 from modules.parameters import ParameterSet, copy_dict
 from modules.signals import empty
 import scipy.stats as st
@@ -1121,3 +1123,41 @@ def randomize_neuron_parameters(heterogeneous=True):
 	else:
 		randomized_pars = {}
 	return randomized_pars
+
+
+def connection_parameters(heterogeneous=False):
+	"""
+	Store the weights and delays for each connection type, for easier retrieval
+	:return: 
+	"""
+	connection_density = {
+		'EE': 0.168, 'I1E': 0.575, 'I2E': 0.242,
+		'EI1': 0.6, 'EI2': 0.465, 'I1I1': 0.55,
+		'I2I1': 0.241, 'I1I2': 0.379, 'I2I2': 0.381,}
+	weight_median = {'EE': 0.45, 'I1E': 1.65, 'I2E': 0.638,
+	           'EI1': 5.148, 'EI2': 4.85, 'I1I1': 2.22,
+	           'I2I1': 1.4, 'I1I2': 1.47, 'I2I2': 0.83, }
+	delay_median = {'EE': 1.8, 'I1E': 1.2, 'I2E': 1.5,
+	          'EI1': 0.8, 'EI2': 1.5, 'I1I1': 1.,
+	          'I2I1': 1.2, 'I1I2': 1.5, 'I2I2': 1.5, }
+	delay_sigma = {'EE': 0.25, 'I1E': 0.2, 'I2E': 0.2,
+	          'EI1': 0.1, 'EI2': 0.2, 'I1I1': 0.1,
+	          'I2I1': 0.3, 'I1I2': 0.5, 'I2I2': 0.3, }
+
+	weights = {k: v for k, v in weight_median.items()}
+	delays = {k: v for k, v in delay_median.items()}
+	if heterogeneous:
+		for k, v in weight_median.items():
+			weight_parameters = determine_lognormal_parameters(v, 5.*v, median=v)
+			weights[k] = {'distribution': 'lognormal_clipped',
+			              'mu': weight_parameters[0],
+			              'sigma': weight_parameters[1],
+			              'low': 0.0001, 'high': 100.*v}
+		for k, v in delays.items():
+			delay_parameters = determine_lognormal_parameters(v, delay_sigma[k], median=v)
+			delays[k] = {'distribution': 'lognormal_clipped',
+			              'mu': delay_parameters[0],
+			              'sigma': delay_parameters[1],
+			              'low': 0.1, 'high': 100. * v}
+
+	return connection_density, weights, delays

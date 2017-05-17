@@ -165,7 +165,9 @@ def plot_mask(src_gid, mask=None, ax=None, color='r'):
 	pl.draw()
 
 
-def plot_histogram(tmpa, nbins, norm=True, mark_mean=True, ax=None, color='b', display=True, save=False, **kwargs):
+def plot_histogram(tmpa, nbins, norm=True, mark_mean=False, mark_median=False, ax=None, color='b', display=True, \
+                                                                                                       save=False,
+                   **kwargs):
 	"""
 
 	:return:
@@ -215,6 +217,8 @@ def plot_histogram(tmpa, nbins, norm=True, mark_mean=True, ax=None, color='b', d
 
 	if mark_mean:
 		ax.axvline(tmpa.mean(), color=color, linestyle='dashed')
+	if mark_median:
+		ax.axvline(np.median(tmpa), color=color, linestyle='dashed')
 
 	ax.set(**ax_props)
 

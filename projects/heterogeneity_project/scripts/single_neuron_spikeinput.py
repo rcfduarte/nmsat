@@ -125,6 +125,13 @@ for idd, nam in enumerate(net.population_names):
 			print nam, np.mean(vm), np.std(vm)
 			results[nam]['mean_V'] = (np.mean(vm), np.std(vm))
 
+			inh = np.mean(results[nam]['I_i'] / 1000.)
+			exc = np.mean(results[nam]['I_e'] / 1000.)
+			ei_ratio = np.abs(np.abs(inh) - np.abs(exc))
+			print "EI amplitude difference [nA]: {0}".format(str(ei_ratio))
+			results[nam]['IE_ratio'] = ei_ratio
+
+
 # ######################################################################################################################
 # Save data
 # ======================================================================================================================

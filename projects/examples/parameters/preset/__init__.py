@@ -238,8 +238,7 @@ def set_connection_defaults(syn_pars=None):
 	synapse_models = syn_pars.synapse_models
 	model_pars = syn_pars.synapse_model_parameters
 
-	assert (
-	np.mean([n in synapses for n in syn_pars.connected_populations]).astype(bool)), "Inconsistent Parameters"
+	assert (np.mean([n in synapses for n in syn_pars.connected_populations]).astype(bool)), "Inconsistent Parameters"
 	connection_pars = {
 		'n_synapse_types': len(synapses),
 		'synapse_types': synapses,

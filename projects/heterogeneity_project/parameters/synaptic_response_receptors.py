@@ -60,13 +60,13 @@ def build_parameters():
 		neuron_pars = set_neuron_defaults(default_set=1.1)
 		randomized_pars.update({neuron_type: {}})
 
-	# if neuron_type[0] == 'I':
-	# 	neuron_pars[neuron_type]['E_L'] = -55.
+	if neuron_type[0] == 'I':
+		neuron_pars[neuron_type]['E_L'] = -55.
 	# else:
 	# 	neuron_pars[neuron_type]['E_L'] = -70.
 	# 	neuron_pars[neuron_type]['V_m'] = -70.
 
-	# all correct parameters are in the presets now
+	# all correct parameters are in the presets now, but can also be set here (it was the purpose of this)
 	# neuron_pars[neuron_type]['rec_cond'][neuron_pars[neuron_type]['rec_names'].index('AMPA')] = ampa
 	# neuron_pars[neuron_type]['rec_cond'][neuron_pars[neuron_type]['rec_names'].index('NMDA')] = nmda
 	# neuron_pars[neuron_type]['rec_cond'][neuron_pars[neuron_type]['rec_names'].index('GABA_{A}')] = gabaa

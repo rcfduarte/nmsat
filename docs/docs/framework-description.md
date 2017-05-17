@@ -1,3 +1,20 @@
+## NMSAT architecture overview:
+
+###[!!!I think it'd be nice to have a global, yet quite general overview of what components there are, what they do and the flow through the layers / components!!! I tried (& failed) to start describing it. ]
+
+![alt-text](/images/global_illustration-01.png)
+The framework is built on a layered structure, which can be divided into three main elements (left to right):
+  
+  * **Input Architect:** handles all generation and preprocessing of the input stimuli and signals. Being quite flexible, it is difficult to describe a single workflow of Input Architect, but a general experiment looks like this: first, a set of input stimuli is generated. Afterwards, for each stimulus a corresponding signal is created, yielding a set of input signals [maybe add what types are possible? spike_input, ] to which various types of noise [e.g., GWN or OU processes] can be added if needed. The input signal set is then passed to the encoding layer, which has two types of components: generators and encoders. Generators can be of different types (...).
+    
+    However, you can design experiments without any stimuli ... [here I just wanted to highlight the versatility.. maybe a short description of an experiment without any stimuli / noise, just background noise?]
+  
+  * **Network Architect:** 
+  
+  * **Analysis:**
+
+## Code structure
+
 The code is organized as follows:
 
 
