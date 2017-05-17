@@ -1059,9 +1059,11 @@ class StimulusSet(object):
 		self.full_set = self.stimulus_sequence_to_binary(seq)
 		print("- Creating full stimulus sequence [{0}]".format(str(len(self.full_set_labels))))
 
-	def create_unique_set(self, n_discard=0):
+	def create_unique_set(self, full_set_position=0):
 		"""
-		Create a stimulus sequence where each element appears only once
+		Create a stimulus sequence where each element appears only once and append it
+		to the full_set(labels) at position `full_set_position`.
+		:param full_set_position: list index where the unique sequence should be inserted
 		:return:
 		"""
 		elements = self.elements
@@ -1071,13 +1073,12 @@ class StimulusSet(object):
 		if hasattr(self, "unique_set"):
 			self.unique_set_labels = seq
 			self.unique_set = self.stimulus_sequence_to_binary(seq)
-		else:
-			self.full_set_labels = seq
-			self.full_set = self.stimulus_sequence_to_binary(seq)
-		if n_discard:
-			self.transient_set_labels = elements[:n_discard]
-			self.transient_set = self.stimulus_sequence_to_binary(self.transient_set_labels)
-		print("- Creating unique stimulus sequence [{0}]".format(str(len(self.unique_set_labels))))
+			self.full_set_labels.insert(full_set_position, self.unique_set_labels)
+			self.full_set_labels = list(itertools.chain(*self.full_set_labels))
+			self.full_set = self.stimulus_sequence_to_binary(self.full_set_labels)
+			print("- Creating unique stimulus sequence [{0}]".format(str(len(self.unique_set_labels))))
+
+		print("- Skipping generation of unique stimulus sequence, not required.")
 
 	def divide_set(self, transient_set_length, train_set_length, test_set_length):
 		"""
@@ -1124,12 +1125,11 @@ class StimulusSet(object):
 		print("- Dividing set [train={0} / test={1}]".format(str(len(self.train_set_labels)),
 															 str(len(self.test_set_labels))))
 
-	def discard_from_set(self, n_discard=0):
+	def separate_transient_set(self, n_discard=0):
 		"""
-		Discard initial elements from the full_set (responses may be contaminated with initial transients)
-		These elements will be stored separately in the transient_set (because a signal still needs
-		to be generated from them)
-		:param set: data set from which to extract
+		Isolate initial elements from the full_set (responses may be contaminated with initial transients),
+		but do not remove them from full_set. These elements will be stored separately in the
+		transient_set (because a signal still needs to be generated from them).
 		:param n_discard: number of elements to discard
 		"""
 		if self.grammar is not None:
@@ -1141,12 +1141,7 @@ class StimulusSet(object):
 		self.transient_set_labels = self.full_set_labels[:n_discard]
 		self.transient_set = coo_matrix(transient_set)
 
-		if hasattr(self, "unique_set"):
-			self.create_unique_set()
-			self.full_set_labels.insert(n_discard, self.unique_set_labels)
-			self.full_set_labels = list(itertools.chain(*self.full_set_labels))
-			self.full_set = self.stimulus_sequence_to_binary(self.full_set_labels)
-		print(("- Creating transient set [{0}]".format(str(len(self.transient_set_labels)))))
+		print("- Creating transient set [{0}]".format(str(len(self.transient_set_labels))))
 
 	def save(self, path):
 		"""
@@ -1167,7 +1162,8 @@ class StimulusSet(object):
 			self.create_set(parameters.full_set_length)
 		else:
 			self.load_data(external_sequence, type='full_set_labels')
-		self.discard_from_set(parameters.transient_set_length)
+		self.separate_transient_set(parameters.transient_set_length)
+		self.create_unique_set(parameters.transient_set_length)
 		self.divide_set(parameters.transient_set_length, parameters.train_set_length,
 		                parameters.test_set_length)
 
