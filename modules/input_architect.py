@@ -5,7 +5,7 @@ Input Architect Module
 ========================================================================================================================
 
 Classes:
-------------
+--------
 Grammar             - wrapper for the generation of sequences of elements according to specific rules
 StimulusSet         - wrapper to hold and manipulate all the data pertaining to the input stimuli,
 					  labels, and corresponding time series
@@ -17,7 +17,7 @@ Encoder             - convert continuous signal into SpikeList objects, or creat
 					  from a given parameter set
 
 Functions:
-------------
+----------
 pad_array					- pads an array with zeros along the time dimension
 generate_template			- generates a spatio-temporal spike template
 load_preset_grammar 		- build a grammar object based on parameters stored in a file
@@ -3200,7 +3200,6 @@ class EncodingLayer:
 		else:
 			raise IOError("DecodingLayer requires the specification of state extractors")
 
-	# TODO we can actually remove syn_name entirely, it's not used, right?
 	def extract_synaptic_weights(self, src_gids=None, tget_gids=None, syn_name=None, progress=True):
 		"""
 		Determine the connection weights between src_gids and tget_gids for synapses syn_name
@@ -3230,7 +3229,6 @@ class EncodingLayer:
 		else:
 			print("Provide gids!!")
 
-	# TODO we can actually remove syn_name entirely, it's not used, right?
 	def extract_synaptic_delays(self, src_gids=None, tget_gids=None, syn_name=None, progress=True):
 		"""
 		Determine the synaptic delays between src_gids and tget_gids for synapses syn_name

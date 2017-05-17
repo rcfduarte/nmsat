@@ -1,4 +1,4 @@
-A numerical experiment in this framework consists of 2 or 3 main files (see examples):
+A numerical experiment in this framework consists of 2 or 3 main files (see Examples section):
 
 
 * **parameters_file** - specifying all the complex parameter sets and dictionaries required to set up
@@ -9,7 +9,7 @@ These scripts parse the parameters_file and run the complete experiment
 be copied to a computation_file, which can be used from the main... (*)
 
 
-These files should be stored within a `project` folder, and in the `parameters`, `scripts` and `computations` 
+These files should be stored within a `project/` folder, and in the `parameters/`, `scripts/` and `computations/` 
 folders, respectively.
 
 ## Running an experiment
@@ -18,7 +18,7 @@ The way in which an experiment is run depends on the system used:
 
 
 ### Local machine
-Just go to the main nmsat directory and execute the experiment as:
+Just go to the main `nmsat/` directory and execute the experiment as:
 
 ```python
 python main.py -f {parameters_file} -c {computation_function} --extra {extra_parameters}
@@ -26,7 +26,7 @@ python main.py -f {parameters_file} -c {computation_function} --extra {extra_par
 
 where `parameters_file` refers to the (full or relative) path to the parameters file for the experiment,
 `computation_function` is the name of the computation function to be executed on that parameter
-set (must match the name of a file in the project’s ’computations’ folder) and `extra_parameters` are
+set (must match the name of a file in the project’s `computations/` folder) and `extra_parameters` are
 parameter=value pairs for different, extra parameters (specific to each computation).
 
 ###Cluster 
