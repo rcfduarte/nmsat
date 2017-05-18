@@ -1649,7 +1649,7 @@ def set_encoding_defaults(default_set=1, input_dimensions=1, n_encoding_neurons=
 		}
 	elif default_set == 4:
 		# ###################################################################
-		# Encoding Type 3 - Precise Spatiotemporal spike encoding (Frozen noise)
+		# Encoding Type 4 - Precise Spatiotemporal spike encoding (Frozen noise)
 		# ###################################################################
 		gen_label = 'spike_pattern'
 		keys = ['target_population_names', 'conn_specs', 'syn_specs', 'models', 'model_pars',

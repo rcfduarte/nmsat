@@ -90,7 +90,7 @@ from preset import *
 __author__ = 'duarte'
 
 run 			= 'local'
-data_label 		= 'Legenstein_identity_TMP'
+data_label 		= 'Legenstein_identity'
 project_label 	= 'Alzheimer'
 
 
@@ -243,8 +243,8 @@ def build_parameters():
 	# ######################################################################################################################
 	# Input Parameters
 	# ######################################################################################################################
-	n_trials 	= 20 # 2500
-	n_discard 	= 5
+	n_trials 	= 60
+	n_discard 	= 10
 
 	n_stim = 4
 
@@ -286,7 +286,7 @@ def build_parameters():
 	# Encoding Parameters
 	# ######################################################################################################################
 	filter_tau 	= 30.                              # time constant of exponential filter (applied to spike trains)
-	n_afferents = 4		                           # number of stimulus-specific afferents (if necessary)
+	n_afferents = n_stim                           # number of stimulus-specific afferents (if necessary)
 	n_stim 		= stim_pars['n_stim']              # number of different input stimuli
 
 	w_in = 100. # [pA] In the case of input synapses the parameter A had a value of 0.1 nA.
@@ -349,29 +349,6 @@ def build_parameters():
 
 	encoding_pars = add_input_decoders(encoding_pars, input_decoder, kernel_pars)
 
-	# ##################################################################################################################
-	# Analysis Parameters
-	# ##################################################################################################################
-
-	analysis_pars = {
-		# analysis depth
-		'depth': 3,  # 1: save only summary of data, use only fastest measures
-		# 2: save all data, use only fastest measures
-		# 3: save only summary of data, use all available measures
-		# 4: save all data, use all available measures
-
-		'store_activity': False,  # [int] - store all population activity in the last n steps of the test
-		# phase; if set True the entire test phase will be stored;
-
-		'population_activity': {
-			'time_bin': 2.,  # bin width for spike counts, fano factors and correlation coefficients
-			'n_pairs': 500,  # number of spike train pairs to consider in correlation coefficient
-			'tau': 20.,  # time constant of exponential filter (van Rossum distance)
-			'window_len': 100,  # length of sliding time window (for time_resolved analysis)
-			'time_resolved': False,  # perform time-resolved analysis
-		},
-	}
-
 	####################################################################################################################
 	# RETURN dictionary of Parameters dictionaries
 	#===================================================================================================================
@@ -383,5 +360,3 @@ def build_parameters():
 				 ('decoding_pars', 	decoding_pars),
 				 ('stim_pars', 		stim_pars),
 				 ('connection_pars',connection_pars)])
-
-# build_parameters()

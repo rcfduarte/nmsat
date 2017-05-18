@@ -24,7 +24,7 @@ online 	= True
 ###################################################################################
 # Extract parameters from file and build global ParameterSet
 # =================================================================================
-params_file = '../parameters/identity.py'
+params_file = '../parameters/p_identity.py'
 set_global_rcParams('../../../defaults/matplotlib_rc')
 
 parameter_set = ParameterSpace(params_file)[0]

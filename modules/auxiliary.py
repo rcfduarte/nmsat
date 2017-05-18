@@ -699,29 +699,28 @@ def update_spike_template(enc_layer, idx, input_signal_set, stimulus_set, local_
 	:param stimulus_onset:
 	:return:
 	"""
-	assert (len(input_signal_set.spike_patterns) == stimulus_set.dims), "Incorrect number of spike " \
-	                                                                    "patterns"
+	assert (len(input_signal_set.spike_patterns) == stimulus_set.dims), \
+		"Incorrect number of spike patterns"
+
 	if input_signal_set.online and local_signal is not None:
-		stimulus_id = [nx for nx in range(stimulus_set.dims) if t_samp[-1] in local_signal.offset_times[
-			nx]]
+		stimulus_id = [nx for nx in range(stimulus_set.dims) if t_samp[-1] in local_signal.offset_times[nx]]
 	else:
-		stimulus_id = [nx for nx in range(stimulus_set.dims) if
-		               t_samp[idx] in input_signal.offset_times[nx]]
-	sk_pattern = input_signal_set.spike_patterns[stimulus_id[0]].copy()
+		stimulus_id = [nx for nx in range(stimulus_set.dims) if t_samp[idx] in input_signal.offset_times[nx]]
+	spike_pattern = input_signal_set.spike_patterns[stimulus_id[0]].copy()
 
 	if jitter is not None:
 		if jitter[1]:  # compensate for boundary effects
-			sk_pattern.jitter(jitter[0])
-			resize_window = sk_pattern.time_parameters()
-			spks = sk_pattern.time_slice(resize_window[0] + jitter[0], resize_window[1] - jitter[0])
-			spks.time_offset(-jitter[0])
+			spike_pattern.jitter(jitter[0])
+			resize_window = spike_pattern.time_parameters()
+			spikes = spike_pattern.time_slice(resize_window[0] + jitter[0], resize_window[1] - jitter[0])
+			spikes.time_offset(-jitter[0])
 		else:
-			spks = sk_pattern.jitter(jitter[0])
+			spikes = spike_pattern.jitter(jitter[0])
 	else:
-		spks = sk_pattern
+		spikes = spike_pattern
 
-	spks = spks.time_offset(stimulus_onset, True)
-	enc_layer.update_state(spks)
+	spikes = spikes.time_offset(stimulus_onset, True)
+	enc_layer.update_state(spikes)
 
 
 def update_input_signals(enc_layer, idx, stimulus_seq, local_signal, dt, noise=False, noise_parameters=None):
@@ -991,16 +990,6 @@ def process_input_sequence(parameter_set, net, enc_layer, stimulus_set, input_si
 				# simulate delays
 				net.simulate(encoder_delay + decoder_delay)
 
-				# TODO debug, remove
-				# spike_devices = nest.GetStatus([x[0][0] for x in net.device_gids])
-				# print spike_devices[0]['events']['times']
-				# print spike_devices[1]['events']['times']
-				# assert all([len(x['events']['times']) == 0 for x in spike_devices])
-				# # debug, make sure all filtering neuron V_m is 0
-				# assert all([nest.GetStatus([n])[0]['V_m'] == 0 for n in range(554, 1094)])
-				# for x in nest.GetStatus([1094])[0]['events']['V_m']:
-				# 	assert x == 0.
-
 				# reset
 				analysis.reset_decoders(net, enc_layer)
 
@@ -1038,7 +1027,8 @@ def process_input_sequence(parameter_set, net, enc_layer, stimulus_set, input_si
 
 	return epochs, timing
 
-
+# TODO this gives an error if nothing has been recorded: ex. running process_input_sequence
+# TODO only for transient set, with record=False.. should handle this case gracefully
 def gather_states(net, enc_layer, t0, set_labels, flush_devices=True):
 	"""
 	Set all the state matrices from recorded activity
@@ -1112,7 +1102,7 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 					for idx_var, var in enumerate(dec_layer.state_variables):
 						state_matrix = dec_layer.state_matrix[idx_var][:, set_start:set_end]
 						readouts = dec_layer.readouts[idx_var]
-						target = target_matrix[:, set_start:set_end]
+						target = target_matrix[:, set_start:set_end] if target_matrix is not None else None
 						if accepted_ids is not None:
 							assert (len(accepted_ids) == target.shape[1]), "Incorrect {0} set labels or accepted " \
 							                                               "ids".format(set_name)
@@ -1126,6 +1116,7 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 							results['rank'][n_pop.name].update({var + str(idx_var):
 																	analysis.get_state_rank(state_matrix)})
 						elif set_name == 'train':
+							assert target is not None
 							for readout in readouts:
 								if readout.name[-1].isdigit(): # memory
 									readout.set_index()
@@ -1143,6 +1134,7 @@ def process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, acce
 
 						elif set_name == 'test':
 							for readout in readouts:
+								assert target is not None
 								print readout.name, readout.index
 								output, tgt = readout.test(state_matrix, np.array(target), index=readout.index,
 														   accepted=accepted_ids, display=display)

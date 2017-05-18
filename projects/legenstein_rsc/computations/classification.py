@@ -1,15 +1,4 @@
 __author__ = 'duarte'
-# from modules.parameters import ParameterSet, extract_nestvalid_dict
-# from modules.input_architect import EncodingLayer
-# from modules.net_architect import Network
-# from modules.io import set_storage_locations
-# from modules.signals import iterate_obj_list
-# from modules.visualization import set_global_rcParams
-# from modules.analysis import characterize_population_activity
-# import cPickle as pickle
-# import numpy as np
-# import nest
-
 from modules.parameters import ParameterSet, ParameterSpace, extract_nestvalid_dict
 from modules.input_architect import EncodingLayer, StimulusSet, InputSignalSet
 from modules.net_architect import Network

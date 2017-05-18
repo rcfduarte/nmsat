@@ -30,8 +30,7 @@ Neuron parameters:
    tau_psc (tsodyks) == tau_syn_ex / tau_syn_in (iaf_psc_exp) ???
 
 ======================================================================
-[[GAVE IT A SHOT]]
-[[HALFWAY]]
+[[SOLVED]]
 	Ref. says: U (use), D (time constant for depression), F (time constant for facilitation):
 	all randomly chosen from Gaussian distributions
 
@@ -43,10 +42,10 @@ Neuron parameters:
             tau_rec   double - time constant for depression in ms       = D ?
 	===> values are actually in seconds, in NEST ms though.. adjust!!!!
 	Values from paper: U, D, F
-		.5, 	1.1, 	.05 (EE)
-		.05, 	.125, 	1.2 (EI)
-		.25, 	.7, 	.02 (IE)
-		.32, 	.144, 	.06 (II).
+		.5, 	1.1  = 1100, 	.05 = 50 	(EE)
+		.05, 	.125 = 125, 	1.2 = 1200 	(EI)
+		.25, 	.7   = 700, 	.02 = 20 	(IE)
+		.32, 	.144 = 144, 	.06 = 60	(II).
 
 	===> trunc_normal instead of normal distribution for tau_fac, tau_rec, etc.
 
@@ -80,9 +79,9 @@ the reference says:
 """
 
 
-from preset import *
 import numpy as np
 import random
+from preset import *
 
 """
 
@@ -90,7 +89,7 @@ import random
 __author__ = 'duarte'
 
 run 			= 'local'
-data_label 		= 'Legenstein_kernel_queality_lambda=6.W_scale=6'
+data_label 		= 'Legenstein_kernel_quality'
 project_label 	= 'Alzheimer'
 
 
@@ -140,8 +139,8 @@ def build_parameters():
 		transient_time = 1000.,
 		sim_time= 2000.)
 
-	kernel_pars = set_kernel_defaults(default_set=3, run_type=run, data_label=data_label, project_label=project_label,
-									  **system)
+	kernel_pars = set_kernel_defaults(default_set=3, run_type=run, data_label=data_label, 
+					  project_label=project_label, **system)
 	# ######################################################################################################################
 	# Neuron, Synapse and Network Parameters
 	# ######################################################################################################################
@@ -152,11 +151,11 @@ def build_parameters():
 	delayEE = 1.5  # delay for EE synapses
 	delay  	= 0.8  # delay for all other synapses
 
-	kernel_lambda = 6.  # definition corresponds exactly to the one in the paper
+	kernel_lambda = .5  # definition corresponds exactly to the one in the paper
 	W_scale 	 = 6.
 	connect_C_EE = 0.3 # connectivity parameter C controlling exp. distribution (Maass 2002)
-	connect_C_EI = 0.2 # connectivity parameter C controlling exp. distribution (Maass 2002)
-	connect_C_IE = 0.4 # connectivity parameter C controlling exp. distribution (Maass 2002)
+	connect_C_EI = 0.4 # connectivity parameter C controlling exp. distribution (Maass 2002)
+	connect_C_IE = 0.2 # connectivity parameter C controlling exp. distribution (Maass 2002)
 	connect_C_II = 0.1 # connectivity parameter C controlling exp. distribution (Maass 2002)
 	kernel_sigma = kernel_lambda / np.sqrt(2)  #required because we use a Gaussian for the exponential distance
 
@@ -177,39 +176,39 @@ def build_parameters():
 							   'kernel': {'gaussian': {'p_center': connect_C_EI, 'sigma': kernel_sigma, 'mean': 0., 'c': 0.}}},
 							  {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
 							   'kernel': {'gaussian': {'p_center': connect_C_IE, 'sigma': kernel_sigma, 'mean': 0., 'c': 0.}}},
-							  {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
+								  {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
 							   'kernel': {'gaussian': {'p_center': connect_C_II, 'sigma': kernel_sigma, 'mean': 0., 'c': 0.}}} ],
 		syn_specs		= [
 							# E<-E
 							{
 								'model': 	'EE_synapse',
 								'tau_psc': 	3., # excitatory synapses
-								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 0.05, 'sigma': 0.025},
-								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 1.1, 'sigma': 0.55},
+								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 50., 'sigma': 25.},
+								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 1100., 'sigma': 550.},
 								'U':		{'distribution': 'normal_clipped', 'mu': 0.5, 'sigma': 0.25}},
 
 							# E<-I
 							{
 								'model': 	'EI_synapse',
 								'tau_psc': 	6., # inhibitory synapses
-								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 0.02, 'sigma': 0.01},
-								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 0.7, 'sigma': 0.35},
+								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 20. , 'sigma': 10.},
+								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 700., 'sigma': 350.},
 								'U': 		{'distribution': 'normal_clipped', 'mu': 0.25, 'sigma': 0.125}},
 
 							# IE
 							{
 								'model': 	'IE_synapse',
 								'tau_psc': 	3.,  # excitatory synapses
-								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 1.2, 'sigma': 0.6},
-								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 0.125, 'sigma': 0.0625},
-								'U':  		{'distribution': 'normal_clipped', 'mu': 0.05, 'sigma': 0.}},
+								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 1200, 'sigma': 600.},
+								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 125., 'sigma': 62.5},
+								'U':  		{'distribution': 'normal_clipped', 'mu': 0.05, 'sigma': 0.025}},
 
 							# II
 							{
 								'model': 	'II_synapse',
 								'tau_psc': 	6., # inhibitory synapses
-								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 0.06, 'sigma': 0.03},
-								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 0.144, 'sigma': 0.072},
+								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 60., 'sigma': 30.},
+								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 144., 'sigma': 72.},
 								'U': 		{'distribution': 'normal_clipped', 'mu': 0.32, 'sigma': 0.16} } ]
 	)
 
@@ -243,7 +242,7 @@ def build_parameters():
 	# ######################################################################################################################
 	# Input Parameters
 	# ######################################################################################################################
-	n_trials 	= 100 # 2500
+	n_trials 	= 0 # 2500
 	n_discard 	= 10
 
 	n_stim = 500
@@ -254,12 +253,12 @@ def build_parameters():
 		grammar 	= None,
 		full_set_length 	 = int(n_trials + n_discard),
 		transient_set_length = int(n_discard),
-		train_set_length 	 = 50, #2000,
-		test_set_length 	 = 50 #500
+		train_set_length 	 = int(n_trials * 0.8),
+		test_set_length 	 = int(n_trials * 0.2),
 	)
 
 	inp_resolution 		= 1.
-	inp_amplitude 		= 20. # 20.
+	inp_amplitude 		= 20. # (four 20 Hz Poisson spike trains over 200 ms)
 	inp_duration 		= 200.
 	inter_stim_interval = 0.
 
@@ -273,21 +272,22 @@ def build_parameters():
 					'max_amplitude'	: [inp_amplitude],
 					'min_amplitude'	: 0.,
 					'resolution'	: inp_resolution},
-					'noise': {
-						'N'				: 0,
-						'noise_source'	: ['GWN'],
-						'noise_pars'	: {'amplitude': 5., 'mean': 1., 'std': 0.25},
-						'rectify'		: True,
-						'start_time'	: 0.,
-						'stop_time'		: sys.float_info.max,
-						'resolution'	: inp_resolution, } }
+					# 'noise': {
+					# 	'N'				: 0,
+					# 	'noise_source'	: ['GWN'],
+					# 	'noise_pars'	: {'amplitude': 5., 'mean': 1., 'std': 0.25},
+					# 	'rectify'		: True,
+					# 	'start_time'	: 0.,
+					# 	'stop_time'		: sys.float_info.max,
+					# 	'resolution'	: inp_resolution, }
+	}
 
 	# ######################################################################################################################
 	# Encoding Parameters
 	# ######################################################################################################################
-	filter_tau 	= 30.                              # time constant of exponential filter (applied to spike trains)
-	n_afferents = 4		                           # number of stimulus-specific afferents (if necessary)
-	n_stim 		= stim_pars['n_stim']              # number of different input stimuli
+	filter_tau 	= 30.                    # time constant of exponential filter (applied to spike trains)
+	n_afferents = 4		             	 # number of stimulus-specific afferents (if necessary)
+	n_stim 		= stim_pars['n_stim']    # number of different input stimuli
 
 	w_in = 100. # [pA] In the case of input synapses the parameter A had a value of 0.1 nA.
 
@@ -302,10 +302,11 @@ def build_parameters():
 		delay_dist	= [1.],
 		preset_W	= [None],
 		gen_to_enc_W= None,
-		jitter		= 10.) # Gaussian jitter with 10ms SD, 0 mean
+		jitter		= None) # Gaussian jitter with 10ms SD, 0 mean
 
 	encoding_pars = set_encoding_defaults(default_set=4, input_dimensions=n_stim,
 										  n_encoding_neurons=n_afferents, **input_synapses)
+	encoding_pars['encoder']['n_neurons'] = [n_afferents]
 	add_parrots(encoding_pars, n_afferents, decode=True, **{})
 
 	# ######################################################################################################################
@@ -313,28 +314,41 @@ def build_parameters():
 	# ######################################################################################################################
 	state_sampling 	= None #1.(cannot start at 0)
 	readout_labels 	= ['class0']
+	readout_algorithms 	= ['pinv']
+	out_resolution		= 1.
 
 	decoders = dict(
-		decoded_population		= [['E', 'I']],
-		state_variable			= ['spikes'],
-		filter_time				= filter_tau,
-		readouts				= readout_labels,
-		readout_algorithms		= ['pinv'],
-		global_sampling_times	= state_sampling)
+		decoded_population	= [['E', 'I']],
+		state_variable		= ['spikes'],
+		filter_time			= filter_tau,
+		readouts			= readout_labels,
+		readout_algorithms	= ['pinv'],
+		sampling_times		= state_sampling,
+		reset_states		= [False, False, False, False],
+		average_states		= [False, False, False, False],
+		standardize			= [False, False, False, False])
 
-	decoding_pars = set_decoding_defaults(default_set=1, output_resolution=1., to_memory=True, kernel_pars=kernel_pars,
-										  **decoders)
+	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)
 
 	## Set decoders for input population (if applicable)
 	input_decoder=dict(
+		# state_variable		= ['spikes'],
+		# filter_time			= filter_tau,
+		# readouts			= readout_labels,
+		# readout_algorithms	= ['pinv'],
+		# output_resolution	= inp_resolution,
+		# sampling_times		= state_sampling)
 		state_variable	= ['spikes'],
 		filter_time		= filter_tau,
 		readouts		= readout_labels,
-		readout_algorithms		= ['pinv'],
-		output_resolution		= inp_resolution,
-		global_sampling_times	= state_sampling)
+		readout_algorithms=readout_algorithms,
+		output_resolution=out_resolution,
+		sampling_times=state_sampling,
+		reset_states=[True],
+		average_states=[True],
+		standardize=[False])
 
-	encoding_pars = set_input_decoders(encoding_pars, input_decoder, kernel_pars)
+	encoding_pars = add_input_decoders(encoding_pars, input_decoder, kernel_pars)
 
 	####################################################################################################################
 	# RETURN dictionary of Parameters dictionaries
@@ -347,5 +361,3 @@ def build_parameters():
 				 ('decoding_pars', 	decoding_pars),
 				 ('stim_pars', 		stim_pars),
 				 ('connection_pars',connection_pars)])
-
-# build_parameters()
