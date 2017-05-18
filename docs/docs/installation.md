@@ -19,6 +19,7 @@ Optional (for additional functionality):
 * **PySpike** version 0.5.1
 * **h5py** version 2.2.1 or higher
 * **mayavi** 
+* **networkx**
 
 
 ## Getting Started

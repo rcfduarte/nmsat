@@ -4,7 +4,7 @@ from modules.input_architect import EncodingLayer, InputNoise
 from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty, narma
-from modules.analysis import characterize_population_activity, analyse_state_matrix
+from modules.analysis import characterize_population_activity, analyse_state_matrix, calculate_error
 from modules.visualization import set_global_rcParams, InputPlots, plot_target_out
 import cPickle as pickle
 import numpy as np
@@ -161,16 +161,16 @@ for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
 			readouts = n_pop.decoding_layer.readouts[idx_state]
 			state_matrix = n_pop.decoding_layer.state_matrix[idx_state]
 
-			# analyse responses
-			analyse_state_matrix(state_matrix, label=n_state + str(idx_state), plot=plot, display=display,
-			                          save=paths['figures'] + paths['label'])
+			# analyse responses (resource-consuming!)
+			# analyse_state_matrix(state_matrix, label=n_state + str(idx_state), plot=plot, display=display,
+			#                           save=paths['figures'] + paths['label'])
 
 			# time slice and normalize
 			input_signal = input_noise.noise_signal.time_slice(analysis_interval[0], analysis_interval[1]).as_array()\
 			               / parameter_set.input_pars.noise.noise_pars['amplitude']
 
 			# generate targets
-			target_signal = narma(input_signal, n=30)
+			target_signal = narma(input_signal, n=10)
 
 			for readout in readouts:
 				# train
@@ -181,12 +181,12 @@ for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations,
 				output, tgt = readout.test(state_matrix, target_signal, display=display)
 				# TODO - calculate_error(output, target) instead of measure_performance
 				results['performance'][n_pop.name][n_state + str(idx_state)].update(
-					{readout.name: readout.measure_performance(tgt, output, display=display)})
+					{readout.name: calculate_error(tgt, output.T, display=display)})
 				results['performance'][n_pop.name][n_state + str(idx_state)][readout.name].update(
 					{'norm_wOut': readout.norm_wout})
 
 				if plot:
-					readout.plot_weights(display=display, save=paths['figures'] + paths['label'])
+					# readout.plot_weights(display=display, save=paths['figures'] + paths['label'])
 
 					time_axis = np.arange(analysis_interval[0], analysis_interval[1], input_noise.dt)
 					plot_target_out(tgt, output, time_axis=np.arange(analysis_interval[0], analysis_interval[1],
