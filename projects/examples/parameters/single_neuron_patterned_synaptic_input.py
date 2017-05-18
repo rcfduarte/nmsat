@@ -89,7 +89,8 @@ def build_parameters():
 	# ##################################################################################################################
 	# Input Parameters
 	# ##################################################################################################################
-	inp_resolution = 0.1 # @Renato: QUESTION is this 1.0 or 0.1? we actually want the rates to change only every 1. ms, no?
+	inp_resolution = 0.1 # @Renato: QUESTION is this 1.0 or 0.1? we actually want the rates to change only every 1.
+	# ms, no? RD: yes
 
 	input_pars = {
 		'noise':
