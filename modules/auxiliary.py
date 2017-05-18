@@ -699,29 +699,28 @@ def update_spike_template(enc_layer, idx, input_signal_set, stimulus_set, local_
 	:param stimulus_onset:
 	:return:
 	"""
-	assert (len(input_signal_set.spike_patterns) == stimulus_set.dims), "Incorrect number of spike " \
-	                                                                    "patterns"
+	assert (len(input_signal_set.spike_patterns) == stimulus_set.dims), \
+		"Incorrect number of spike patterns"
+
 	if input_signal_set.online and local_signal is not None:
-		stimulus_id = [nx for nx in range(stimulus_set.dims) if t_samp[-1] in local_signal.offset_times[
-			nx]]
+		stimulus_id = [nx for nx in range(stimulus_set.dims) if t_samp[-1] in local_signal.offset_times[nx]]
 	else:
-		stimulus_id = [nx for nx in range(stimulus_set.dims) if
-		               t_samp[idx] in input_signal.offset_times[nx]]
-	sk_pattern = input_signal_set.spike_patterns[stimulus_id[0]].copy()
+		stimulus_id = [nx for nx in range(stimulus_set.dims) if t_samp[idx] in input_signal.offset_times[nx]]
+	spike_pattern = input_signal_set.spike_patterns[stimulus_id[0]].copy()
 
 	if jitter is not None:
 		if jitter[1]:  # compensate for boundary effects
-			sk_pattern.jitter(jitter[0])
-			resize_window = sk_pattern.time_parameters()
-			spks = sk_pattern.time_slice(resize_window[0] + jitter[0], resize_window[1] - jitter[0])
-			spks.time_offset(-jitter[0])
+			spike_pattern.jitter(jitter[0])
+			resize_window = spike_pattern.time_parameters()
+			spikes = spike_pattern.time_slice(resize_window[0] + jitter[0], resize_window[1] - jitter[0])
+			spikes.time_offset(-jitter[0])
 		else:
-			spks = sk_pattern.jitter(jitter[0])
+			spikes = spike_pattern.jitter(jitter[0])
 	else:
-		spks = sk_pattern
+		spikes = spike_pattern
 
-	spks = spks.time_offset(stimulus_onset, True)
-	enc_layer.update_state(spks)
+	spikes = spikes.time_offset(stimulus_onset, True)
+	enc_layer.update_state(spikes)
 
 
 def update_input_signals(enc_layer, idx, stimulus_seq, local_signal, dt, noise=False, noise_parameters=None):
@@ -1028,7 +1027,8 @@ def process_input_sequence(parameter_set, net, enc_layer, stimulus_set, input_si
 
 	return epochs, timing
 
-
+# TODO this gives an error if nothing has been recorded: ex. running process_input_sequence
+# TODO only for transient set, with record=False.. should handle this case gracefully
 def gather_states(net, enc_layer, t0, set_labels, flush_devices=True):
 	"""
 	Set all the state matrices from recorded activity

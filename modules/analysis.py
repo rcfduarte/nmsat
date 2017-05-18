@@ -1733,12 +1733,12 @@ def calculate_ranks(network):
 	"""
 	results = dict()
 	for ctr, n_pop in enumerate(list(itertools.chain(*[network.merged_populations, network.populations]))):
-		results[n_pop.name] = []
+		results[n_pop.name] = {}
 		states = []
 
 		if n_pop.decoding_layer is not None:
-			if not sg.empty(n_pop.decoding_layer.state_matrix) and isinstance(n_pop.decoding_layer.state_matrix[0],
-			                                                                  list):
+			if not sg.empty(n_pop.decoding_layer.state_matrix) and \
+					isinstance(n_pop.decoding_layer.state_matrix[0], list):
 				states = list(itertools.chain(*n_pop.decoding_layer.state_matrix))
 			elif not sg.empty(n_pop.decoding_layer.state_matrix):
 				states = n_pop.decoding_layer.state_matrix
@@ -2063,7 +2063,7 @@ class Readout(object):
 			performance['max']['MSE'] = met.mean_squared_error(binary_target, binary_output)
 			performance['max']['MAE'] = met.mean_absolute_error(binary_target, binary_output)
 			performance['max']['accuracy'] = 1 - np.mean(np.absolute(binary_target - binary_output))
-			
+
 			print("Readout {0} [max output]: \n  - MSE = {1}".format(str(self.name), str(performance['max']['MSE'])))
 			print("Readout {0} [max output]: \n  - MAE = {1}".format(str(self.name), str(performance['max']['MAE'])))
 			print("Readout {0} [max output]: \n  - accuracy = {1}".format(str(self.name),
