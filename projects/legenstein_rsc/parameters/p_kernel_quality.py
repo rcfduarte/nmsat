@@ -125,7 +125,12 @@ def topology_random_grid_3D(size_x, size_y, size_z, layers=None):
 		layer_positions.append(tmp_pos)
 	return layer_positions
 
+parameter_range = {
+	# 'kernel_lambda': [0.5, 1., 2., 3., 4., 6., 8.],
+	# 'W_scale': [0.1, 0.5, 1., 2., 4., 8.]
+}
 
+# def build_parameters(kernel_lambda, W_scale):
 def build_parameters():
 	# ######################################################################################################################
 	# System / Kernel Parameters
@@ -133,7 +138,7 @@ def build_parameters():
 	system = dict(
 		nodes	= 1,
 		ppn		= 16,
-		mem		= 32,
+		mem		= 8000,
 		walltime= '01-00:00:00',
 		queue	= 'batch',
 		transient_time = 1000.,

@@ -1733,12 +1733,12 @@ def calculate_ranks(network):
 	"""
 	results = dict()
 	for ctr, n_pop in enumerate(list(itertools.chain(*[network.merged_populations, network.populations]))):
-		results[n_pop.name] = []
+		results[n_pop.name] = {}
 		states = []
 
 		if n_pop.decoding_layer is not None:
-			if not sg.empty(n_pop.decoding_layer.state_matrix) and isinstance(n_pop.decoding_layer.state_matrix[0],
-			                                                                  list):
+			if not sg.empty(n_pop.decoding_layer.state_matrix) and \
+					isinstance(n_pop.decoding_layer.state_matrix[0], list):
 				states = list(itertools.chain(*n_pop.decoding_layer.state_matrix))
 			elif not sg.empty(n_pop.decoding_layer.state_matrix):
 				states = n_pop.decoding_layer.state_matrix
