@@ -768,6 +768,7 @@ class Network(object):
 						               nest.GetStatus([x['target']])[0]['model'] not in device_models]
 						target_gids = [x['target'] for x in st if
 						               nest.GetStatus([x['target']])[0]['model'] not in device_models]
+						# TODO some vars here are not used! remove?
 						weights = [x['weight'] for x in st if nest.GetStatus([x['target']])[0]['model'] not in device_models]
 						delays = [x['delay'] for x in st if nest.GetStatus([x['target']])[0]['model'] not in device_models]
 						models = [x['synapse_model'] for x in st if

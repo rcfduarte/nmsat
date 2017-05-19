@@ -10,7 +10,7 @@ import pprint
 # data parameters
 project = 'legenstein_rsc'
 data_type = 'SpikeNoise'  # 'SpikeNoise'
-trials = 2
+trials = 20
 population_of_interest = 'EI'  # results are provided for only one population (choose Global to get the totals)
 # data_path = "/home/barni/code/fzj/nst/data/"
 data_path = "/home/zajzon/code/nst/network_simulation_testbed/data/legenstein/"

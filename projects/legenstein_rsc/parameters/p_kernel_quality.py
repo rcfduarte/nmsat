@@ -1,8 +1,10 @@
 """
-[[SOLVED]] grid= 6*6*15
+======================================================================
+Topology and connectivity:
+[[SOLVED]] grid= 6*6*15, with edges of unit length!!!
 [[SOLVED]] eN = 0.8
 [[SOLVED]] iN = 0.2
-[[SOLVED]] ++> probability of synaptic connection= distrib. There's a C in Maass, but not our paper. C = p_center
+[[SOLVED]] ++> probability of synaptic connection = distrib. There's a C in Maass, but not our paper. C = p_center
 
 ======================================================================
 Neuron parameters:
@@ -69,13 +71,6 @@ Neuron parameters:
 ======================================================================
 [[MISSING]]
 I_background = "constant unspecific background current"
-
-the reference says:
-	The background current, I b , had a constant value for each neuron, randomly
-	distributed across the network. We chose a uniform distribution centered
-	at the threshold level with a range of 0.05 mV; this resulted in the basal
-	firing rates of the excitatory neurons being between 1 and 20 Hz, with an
-	average of 7 Hz.
 """
 
 
@@ -89,7 +84,7 @@ from preset import *
 __author__ = 'duarte'
 
 run 			= 'local'
-data_label 		= 'Legenstein_kernel_quality'
+data_label 		= 'Legenstein_kernel_quality_TMP'
 project_label 	= 'Alzheimer'
 
 
@@ -101,20 +96,24 @@ def topology_random_grid_3D(size_x, size_y, size_z, layers=None):
 	:param size_y:
 	:param size_z:
 	:param layers: a list specifying how many neurons should be placed on each layer
-	:return:
+	:return: a list where each element corresponds to a layer and is a list containing grid positions
 	"""
 	if layers is None:
 		layers = [size_x * size_y * size_z]
 
 	# compute possible grid positions
-	coord_x = np.arange(-size_x / 2., size_x / 2., 1)
-	coord_y = np.arange(-size_y / 2., size_y / 2., 1)
+	coord_x = np.arange(-size_x / 2., size_x / 2., 1) # [-3. -2. -1.  0.  1.  2.]
+	coord_y = np.arange(-size_y / 2., size_y / 2., 1) # [-3. -2. -1.  0.  1.  2.]
+	# [-7.5 -6.5 -5.5 -4.5 -3.5 -2.5 -1.5 -0.5  0.5  1.5  2.5  3.5  4.5  5.5  6.5]
 	coord_z = np.arange(-size_z / 2., size_z / 2., 1)
 
 	layer_positions	= []
 	used_positions  = []
+
+	# iterate through each layer and generate random positions within the boundaries
 	for n in layers:
 		tmp_pos = []
+		# generate a 3D position for each neuron within the layer
 		for i in range(n):
 			pos = [random.choice(coord_x), random.choice(coord_y), random.choice(coord_z)]
 			while pos in used_positions:
@@ -156,8 +155,8 @@ def build_parameters():
 	delayEE = 1.5  # delay for EE synapses
 	delay  	= 0.8  # delay for all other synapses
 
-	kernel_lambda = .5  # definition corresponds exactly to the one in the paper
-	W_scale 	 = 6.
+	kernel_lambda = 3.  # definition corresponds exactly to the one in the paper
+	W_scale 	 = 0.05
 	connect_C_EE = 0.3 # connectivity parameter C controlling exp. distribution (Maass 2002)
 	connect_C_EI = 0.4 # connectivity parameter C controlling exp. distribution (Maass 2002)
 	connect_C_IE = 0.2 # connectivity parameter C controlling exp. distribution (Maass 2002)
@@ -165,7 +164,69 @@ def build_parameters():
 	kernel_sigma = kernel_lambda / np.sqrt(2)  #required because we use a Gaussian for the exponential distance
 
 	recurrent_synapses = dict(
-		synapse_model_parameters = [{}, {}, {}, {}],
+		synapse_model_parameters = [
+							# # E<-E
+							# {
+							# 	# 'model': 	'EE_synapse',
+							# 	'tau_psc': 	3., # excitatory synapses
+							# 	'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 50., 'sigma': 25.},
+							# 	'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 1100., 'sigma': 550.},
+							# 	'U':		{'distribution': 'normal_clipped', 'mu': 0.5, 'sigma': 0.25}},
+							#
+							# # E<-I
+							# {
+							# 	# 'model': 	'EI_synapse',
+							# 	'tau_psc': 	6., # inhibitory synapses
+							# 	'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 20. , 'sigma': 10.},
+							# 	'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 700., 'sigma': 350.},
+							# 	'U': 		{'distribution': 'normal_clipped', 'mu': 0.25, 'sigma': 0.125}},
+							#
+							# # IE
+							# {
+							# 	# 'model': 	'IE_synapse',
+							# 	'tau_psc': 	3.,  # excitatory synapses
+							# 	'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 1200, 'sigma': 600.},
+							# 	'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 125., 'sigma': 62.5},
+							# 	'U':  		{'distribution': 'normal_clipped', 'mu': 0.05, 'sigma': 0.025}},
+							#
+							# # II
+							# {
+							# 	# 'model': 	'II_synapse',
+							# 	'tau_psc': 	6., # inhibitory synapses
+							# 	'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 60., 'sigma': 30.},
+							# 	'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 144., 'sigma': 72.},
+							# 	'U': 		{'distribution': 'normal_clipped', 'mu': 0.32, 'sigma': 0.16} }
+							{
+								# 'model': 	'EE_synapse',
+								'tau_psc': 	3., # excitatory synapses
+								'tau_fac': 	50.,
+								'tau_rec': 	1100.,
+								'U':		0.5, },
+
+							# E<-I
+							{
+								# 'model': 	'EI_synapse',
+								'tau_psc': 	6., # inhibitory synapses
+								'tau_fac': 	20. ,
+								'tau_rec': 	700.,
+								'U': 		0.25,},
+
+							# IE
+							{
+								# 'model': 	'IE_synapse',
+								'tau_psc': 	3.,  # excitatory synapses
+								'tau_fac': 	1200.,
+								'tau_rec': 	125.,
+								'U':  		0.05,},
+
+							# II
+							{
+								# 'model': 	'II_synapse',
+								'tau_psc': 	6., # inhibitory synapses
+								'tau_fac': 	60.,
+								'tau_rec': 	144.,
+								'U': 		0.32}
+		],
 		# T<-S
 		connected_populations	 = [('E', 'E'), ('E', 'I'), ('I', 'E'), ('I', 'I')],
 		synapse_names 	= ['EE_synapse', 'EI_synapse', 'IE_synapse', 'II_synapse'],
@@ -181,40 +242,9 @@ def build_parameters():
 							   'kernel': {'gaussian': {'p_center': connect_C_EI, 'sigma': kernel_sigma, 'mean': 0., 'c': 0.}}},
 							  {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
 							   'kernel': {'gaussian': {'p_center': connect_C_IE, 'sigma': kernel_sigma, 'mean': 0., 'c': 0.}}},
-								  {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
+							  {'connection_type': 'divergent', 'allow_autapses': False, 'allow_multapses': True,
 							   'kernel': {'gaussian': {'p_center': connect_C_II, 'sigma': kernel_sigma, 'mean': 0., 'c': 0.}}} ],
-		syn_specs		= [
-							# E<-E
-							{
-								'model': 	'EE_synapse',
-								'tau_psc': 	3., # excitatory synapses
-								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 50., 'sigma': 25.},
-								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 1100., 'sigma': 550.},
-								'U':		{'distribution': 'normal_clipped', 'mu': 0.5, 'sigma': 0.25}},
-
-							# E<-I
-							{
-								'model': 	'EI_synapse',
-								'tau_psc': 	6., # inhibitory synapses
-								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 20. , 'sigma': 10.},
-								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 700., 'sigma': 350.},
-								'U': 		{'distribution': 'normal_clipped', 'mu': 0.25, 'sigma': 0.125}},
-
-							# IE
-							{
-								'model': 	'IE_synapse',
-								'tau_psc': 	3.,  # excitatory synapses
-								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 1200, 'sigma': 600.},
-								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 125., 'sigma': 62.5},
-								'U':  		{'distribution': 'normal_clipped', 'mu': 0.05, 'sigma': 0.025}},
-
-							# II
-							{
-								'model': 	'II_synapse',
-								'tau_psc': 	6., # inhibitory synapses
-								'tau_fac': 	{'distribution': 'normal_clipped', 'mu': 60., 'sigma': 30.},
-								'tau_rec': 	{'distribution': 'normal_clipped', 'mu': 144., 'sigma': 72.},
-								'U': 		{'distribution': 'normal_clipped', 'mu': 0.32, 'sigma': 0.16} } ]
+		syn_specs		= [{}, {}, {}, {}]
 	)
 
 	neuron_pars, net_pars, connection_pars = set_network_defaults(default_set=4, neuron_set=6, connection_set=1.1, N=N,
@@ -227,7 +257,9 @@ def build_parameters():
 									   'tau_syn_in': 6.,  # tau for inhibitory synapses
 									   't_ref': 3.,
 									   'I_e': float(np.random.uniform(14975, 15025)),
-									   'C_m': 30. * 1000 }) # C_m is in pF as required by the neuron model
+									   'C_m': 30. * 1000, # C_m is in pF as required by the neuron model
+									   'E_L': 0.0,
+									   'V_th': 15.,})
 
 	net_pars['neuron_pars'][1].update({'V_reset': 13.5,
 									   'tau_m': 30.,
@@ -235,8 +267,11 @@ def build_parameters():
 									   'tau_syn_in': 6.,  # tau for inhibitory synapses
 									   't_ref': 2.,
 									   'I_e': float(np.random.uniform(14975, 15025)),
-									   'C_m': 30. * 1000})  # C_m is in pF as required by the neuron model
+									   'C_m': 30. * 1000, # C_m is in pF as required by the neuron model
+									   'E_L': 0.0,
+									   'V_th': 15.,})
 
+	connection_pars.synapse_names = ['EE_synapse', 'EI_synapse', 'IE_synapse', 'II_synapse']
 	connection_pars.topology_dependent = [True, True, True, True]
 	grid_positions = topology_random_grid_3D(6, 6, 15, [int(6*6*15*N_e), int(6*6*15*N_i)])
 
