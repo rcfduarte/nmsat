@@ -15,7 +15,7 @@ stimulus_processing
 
 # data parameters
 project = 'encoding_decoding'
-data_type = 'dcinput' # 'spikepatterninput'
+data_type = 'spikepatterninput' #'dcinput' #
 #population_of_interest = 'E'  # results are provided for only one population (choose Global to get the totals)
 #data_path = '/home/neuro/Desktop/MANUSCRIPTS/in_preparation/Encoding_Decoding/data/training_parameters/'
 data_path = '/media/neuro/Data/EncodingDecoding_NEW/jitterStudy/'

@@ -2888,6 +2888,8 @@ def plot_synchrony_measures(results, label='', time_resolved=False, epochs=None,
 		plot_2d_parscans(image_arrays=image_arrays, axis=[ax32, ax33, ax34],
 		                     fig_handle=fig3, labels=[r'$D_{ISI}$', r'$D_{SPIKE}$', r'$D_{SPIKE_{S}}$'],
 		                 display=display)
+		if save:
+			fig3.savefig(save + '{0}_distance_matrices.pdf'.format(str(label)))
 	if time_resolved:
 		# Time resolved synchrony
 		fig4 = pl.figure()
@@ -2916,12 +2918,11 @@ def plot_synchrony_measures(results, label='', time_resolved=False, epochs=None,
 		ax3.set_ylabel(r'$d_{\mathrm{SPIKE}}(t)$')
 		ax3.set_xlim([min(x5), max(x5)])
 
+		if save:
+			fig4.savefig(save + '{0}_time_resolved_sync.pdf'.format(str(label)))
+
 	if display:
 		pl.show(False)
-	if save:
-		fig3.savefig(save + '{0}_distance_matrices.pdf'.format(str(label)))
-		if time_resolved:
-			fig4.savefig(save + '{0}_time_resolved_sync.pdf'.format(str(label)))
 
 
 def plot_averaged_time_resolved(results, spike_list, label='', epochs=None, color_map='jet', display=True, save=False):
