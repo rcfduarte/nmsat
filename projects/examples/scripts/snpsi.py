@@ -80,11 +80,17 @@ for idx, n in enumerate(list(iterate_obj_list(net.populations))):
 # Build Input Signal Sets
 # ======================================================================================================================
 assert hasattr(parameter_set, "input_pars")
-# Current input (need to build noise signal)
+
+# Current input (need to build 2 separate noise signals for the 2 input channels)
 total_stimulation_time = parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t
-input_noise = InputNoise(parameter_set.input_pars.noise, stop_time=total_stimulation_time)
-input_noise.generate()
-input_noise.re_seed(parameter_set.kernel_pars.np_seed)
+input_noise_ch1 = InputNoise(parameter_set.input_pars.noise, stop_time=total_stimulation_time)
+input_noise_ch1.generate()
+input_noise_ch1.re_seed(parameter_set.kernel_pars.np_seed)
+
+input_noise_ch2 = InputNoise(parameter_set.input_pars.noise, stop_time=total_stimulation_time)
+input_noise_ch2.generate()
+input_noise_ch2.re_seed(parameter_set.kernel_pars.np_seed)
+
 
 # if plot:
 # 	inp_plot = InputPlots(stim_obj=None, input_obj=None, noise_obj=input_noise)

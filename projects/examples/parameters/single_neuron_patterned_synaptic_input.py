@@ -89,11 +89,11 @@ def build_parameters():
 	# ##################################################################################################################
 	# Input Parameters
 	# ##################################################################################################################
-	inp_resolution = 0.1 # @Renato: QUESTION is this 1.0 or 0.1? we actually want the rates to change only every 1. ms, no?
+	inp_resolution = 1.
 
 	input_pars = {
 		'noise':
-			{'N': 2,
+			{'N': 1,
 			 'label': 'OU_generator',
 			 'noise_source': ['OU'],
 			 'noise_pars': {'dt': inp_resolution, 'tau': 30., 'sigma': 20.,
@@ -112,7 +112,7 @@ def build_parameters():
 
 	encoding_pars = {
 		'encoder': {
-			'N': 2,
+			'N': 1,
 			'labels': ['parrot_exc', 'parrot_inh'],
 			'models': ['parrot_neuron', 'parrot_neuron'],
 			'model_pars': [None, None],
@@ -133,7 +133,7 @@ def build_parameters():
 			'topology_pars': [None]},
 		'connectivity': {
 			'synapse_name': ['static_synapse', 'static_synapse'],
-			'connections': [('parrot_exc', 'inh_poisson_gen0'), ('parrot_inh', 'inh_poisson_gen1')],
+			'connections': [('parrot_exc', 'inh_poisson_gen'), ('parrot_inh', 'inh_poisson_gen')],
 			'topology_dependent': [False, False],
 			'conn_specs': [{'rule': 'all_to_all'}, {'rule': 'all_to_all'}],
 			'syn_specs': [{}, {}],
