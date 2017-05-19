@@ -204,7 +204,7 @@ Copyright (C) 2017  Renato Duarte
 Copyright (C) 2008  Daniel Bruederle, Andrew Davison, Jens Kremkow
 Laurent Perrinet, Michael Schmuker, Eilif Muller, Eric Mueller, Pierre Yger
 
-Neural Mircocircuit Testbed is free software; you can redistribute it and/or modify
+Neural Mircocircuit Simulation and Analysis Toolkit is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation; either version 2 of the License, or
 (at your option) any later version.
