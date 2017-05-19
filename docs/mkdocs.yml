@@ -25,11 +25,11 @@ site_author: Renato Duarte
 site_url: https://zbarni.github.io/network_simulation_testbed/
 
 # Repository
-repo_name: zbarni/network_simulation_testbed
-repo_url: https://github.com/zbarni/network_simulation_testbed
+repo_name: rcfduarte/nmsat
+repo_url: https://github.com/zbarni/nmsat
 
 # Copyright
-copyright: ' Copyright &copy; 2017 Renato Duarte'
+copyright: ' Copyright &copy; 2017 Renato Duarte <br> Copyright &copy; 2016 Martin Donath for Material template'
 
 # Theme directory
 theme_dir: material
@@ -42,12 +42,10 @@ extra:
     primary: indigo
     accent: indigo
   social:
-    - type: globe
-      link: http://struct.cc
     - type: github-alt
       link: https://github.com/rcfduarte
     - type: twitter
-      link: https://twitter.com/rcfduarte
+      link: https://twitter.com/insert-your-account-name-here
     - type: linkedin
       link:
 

@@ -1,7 +1,6 @@
 #!/usr/bin/python
 import sys
 import copy
-import os
 
 cmdl_parse = copy.copy(sys.argv)
 
@@ -12,6 +11,7 @@ from os import path
 import importlib
 from modules.parameters import ParameterSpace
 
+version = "0.1"
 
 def run_experiment(params_file_full_path, computation_function="noise_driven_dynamics", cluster=None, **parameters):
 	"""
@@ -49,6 +49,22 @@ def run_experiment(params_file_full_path, computation_function="noise_driven_dyn
 		pars.run(experiment.run, project_dir, **parameters)
 
 
+def print_version():
+	print "NMSAT version {0}".format(version)
+	print "Copyright (C) Renato Duarte 2017"
+
+
+def print_welcome_message():
+	print("""
+   *** Neural Microcircuit Simulation and Analysis Toolkit ***
+
+                          Version {0}
+
+          This program is provided AS IS and comes with
+          NO WARRANTY. See the file LICENSE for details.
+""".format(version))
+
+
 def create_parser():
 	"""
 	Create command line parser with options.
@@ -56,6 +72,8 @@ def create_parser():
 	:return: ArgumentParser
 	"""
 	parser_ = ArgumentParser(prog="main.py")
+	parser_.add_argument("--version", action="version", version=print_version(),
+						 help="print current version")
 	parser_.add_argument("-f", dest="p_file", nargs=1, default=None, metavar="parameter_file",
 					  help="absolute path to parameter file", required=True)
 	parser_.add_argument("-c", dest="c_function", nargs=1, default=None, metavar="computation_function",
@@ -67,22 +85,10 @@ def create_parser():
 	return parser_
 
 
-def print_welcome_message():
-	print("""
-   *** Neural Microcircuit Testbed ***
-
-\t      Version 0.1
-
-This program is provided AS IS and comes with
-NO WARRANTY. See the file LICENSE for details.
-""")
-
-
 if __name__ == "__main__":
 	print_welcome_message()
 	args = create_parser().parse_args(cmdl_parse[1:])  # avoids pynest sys.argv pollution
 
-	# TODO do we allow random arguments or should we include all possible params as options, would be nice in the help
 	d = dict([arg.split('=', 1) for arg in args.extra])
 	for k, v in d.items():
 		if v == 'False':

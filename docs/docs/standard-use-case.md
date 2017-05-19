@@ -20,7 +20,7 @@ The way in which an experiment is run depends on the system used:
 ### Local machine
 Just go to the main `nmsat/` directory and execute the experiment as:
 
-```python
+```bash
 python main.py -f {parameters_file} -c {computation_function} --extra {extra_parameters}
 ```
 

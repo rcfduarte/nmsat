@@ -158,44 +158,44 @@ def set_storage_locations(parameter_set, save=True):
 		main_folder = parameter_set.kernel_pars.data_path + parameter_set.kernel_pars.data_prefix + '/'
 		if not os.path.exists(main_folder):
 			try:
-			os.mkdir(main_folder)
+				os.mkdir(main_folder)
 			except OSError:
 				pass
 		save_label = parameter_set.label
 		figures = main_folder + 'Figures/'
 		if not os.path.exists(figures):
 			try:
-			os.mkdir(figures)
+				os.mkdir(figures)
 			except OSError:
 				pass
 		inputs = main_folder + 'Inputs/'
 		if not os.path.exists(inputs):
 			try:
-			os.mkdir(inputs)
+				os.mkdir(inputs)
 			except OSError:
 				pass
 		parameters = main_folder + 'Parameters/'
 		if not os.path.exists(parameters):
 			try:
-			os.mkdir(parameters)
+				os.mkdir(parameters)
 			except OSError:
 				pass
 		results = main_folder + 'Results/'
 		if not os.path.exists(results):
 			try:
-			os.mkdir(results)
+				os.mkdir(results)
 			except OSError:
 				pass
 		activity = main_folder + 'Activity/'
 		if not os.path.exists(activity):
 			try:
-			os.mkdir(activity)
+				os.mkdir(activity)
 			except OSError:
 				pass
 		others = main_folder + 'Other/'
 		if not os.path.exists(others):
 			try:
-			os.mkdir(others)
+				os.mkdir(others)
 			except OSError:
 				pass
 		return {'main': main_folder, 'figures': figures, 'inputs': inputs, 'parameters': parameters, 'results':

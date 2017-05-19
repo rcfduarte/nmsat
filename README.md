@@ -18,7 +18,7 @@ an effortless migration across computing systems, i.e. the same simulations can 
 local machine, in a computer cluster or a supercomputer, with straightforward resource allocation
 (see kernel parameters). 
 
-The code is licensed under GPLv3 and available on [GitHub](https://github.com/zbarni/network_simulation_testbed).
+The code is licensed under GPLv3 and available on [GitHub](https://github.com/rcfduarte/nmsat/).
 
 
 ### Disclaimer
@@ -34,7 +34,7 @@ due to the strict specificities on the structure of the parameters dictionaries 
 ### Getting started
 
 For a detailed description of the framework and to make the most out of it, please read the 
-[documentation](https://zbarni.github.io/network_simulation_testbed/). 
+[documentation](https://zbarni.github.io/nmsat/). 
 
 #### Dependencies
 
@@ -49,6 +49,8 @@ Optional (for additional functionality):
 * **PySpike** version 0.5.1
 * **h5py** version 2.2.1 or higher
 * **mayavi** 
+* **networkx**
+
 
 #### Installing
 
