@@ -2275,6 +2275,7 @@ class Generator:
 		dimensionality of the input to the generator
 		:param dims: if the generator input is an encoder, dimensionality needs to be specified
 		"""
+		self.input_dimension = 1
 		if isinstance(initializer, dict):
 			initializer = parameters.ParameterSet(initializer)
 		if input_signal is not None:
@@ -2297,8 +2298,6 @@ class Generator:
 		# if dimensions are provided, overrides current value
 		if dims is not None:
 			self.input_dimension = dims
-		elif self.input_dimension is None:
-			self.input_dimension = 1
 
 		self.gids 		= []
 		self.layer_gid 	= None
