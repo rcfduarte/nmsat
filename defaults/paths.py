@@ -14,24 +14,10 @@ paths = {
 		'remote_directory': 	NETWORK_HOME + '/experiments/export/',
 		'queueing_system':      None},
 
-	'Blaustein': {
+	'Cluster': {
 		'data_path':            NETWORK_HOME + '/data/',
-		'jdf_template':         NETWORK_HOME + '/defaults/cluster_templates/Blaustein_jdf.sh',
+		'jdf_template':         NETWORK_HOME + '/defaults/cluster_templates/Cluster_jdf.sh',
 		'matplotlib_rc':        NETWORK_HOME + '/defaults/matplotlib_rc',
 		'remote_directory':     NETWORK_HOME + '/export/',
-		'queueing_system':      'slurm'},
-
-	'Jureca': {
-		'data_path':            '/work/jias61/jias6101/',
-		'jdf_template':         NETWORK_HOME + '/defaults/cluster_templates/Jureca_jdf.sh',
-		'matplotlib_rc':        NETWORK_HOME + '/defaults/matplotlib_rc',
-		'remote_directory':     NETWORK_HOME + '/export/',
-		'queueing_system':      'slurm'},
-
-	'MPI': {
-		'data_path':            NETWORK_HOME + '/data/',
-		'jdf_template':         NETWORK_HOME + '/defaults/cluster_templates/MPI_jdf.sh',
-		'matplotlib_rc':        NETWORK_HOME + '/defaults/matplotlib_rc',
-		'remote_directory':     NETWORK_HOME + '/export/',
-		'queueing_system':      'sge'},
+		'queueing_system':      'slurm'}, # slurm or sge
 }
