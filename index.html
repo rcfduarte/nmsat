@@ -7,7 +7,7 @@
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
       
-        <link rel="canonical" href="https://zbarni.github.io/network_simulation_testbed/">
+        <link rel="canonical" href="https://rcfduarte.github.io/network_simulation_testbed/">
       
       
         <meta name="author" content="Renato Duarte">
@@ -67,7 +67,7 @@
     <div class="md-flex">
       <div class="md-flex__cell md-flex__cell--shrink">
         
-          <a href="https://zbarni.github.io/network_simulation_testbed/" title="Neural Microcircuit Simulation and Analysis Toolkit (NMSAT)" class="md-icon md-icon--home md-header-nav__button">
+          <a href="https://rcfduarte.github.io/network_simulation_testbed/" title="Neural Microcircuit Simulation and Analysis Toolkit (NMSAT)" class="md-icon md-icon--home md-header-nav__button">
           </a>
         
       </div>
@@ -119,7 +119,7 @@
   
 
 
-  <a href="https://github.com/zbarni/nmsat" title="Go to repository" class="md-source" data-md-source="github">
+  <a href="https://github.com/rcfduarte/nmsat" title="Go to repository" class="md-source" data-md-source="github">
     
       <div class="md-source__icon">
         <svg viewBox="0 0 24 24" width="24" height="24">
@@ -164,7 +164,7 @@
   
 
 
-  <a href="https://github.com/zbarni/nmsat" title="Go to repository" class="md-source" data-md-source="github">
+  <a href="https://github.com/rcfduarte/nmsat" title="Go to repository" class="md-source" data-md-source="github">
     
       <div class="md-source__icon">
         <svg viewBox="0 0 24 24" width="24" height="24">
@@ -228,8 +228,28 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#about-the-authors" title="About the authors" class="md-nav__link">
-    About the authors
+  <a href="#authors-and-contributors" title="Authors and contributors" class="md-nav__link">
+    Authors and contributors
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#citing-us" title="Citing us" class="md-nav__link">
+    Citing us
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acknowledgements" title="Acknowledgements" class="md-nav__link">
+    Acknowledgements
   </a>
   
 </li>
@@ -518,8 +538,28 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#about-the-authors" title="About the authors" class="md-nav__link">
-    About the authors
+  <a href="#authors-and-contributors" title="Authors and contributors" class="md-nav__link">
+    Authors and contributors
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#citing-us" title="Citing us" class="md-nav__link">
+    Citing us
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acknowledgements" title="Acknowledgements" class="md-nav__link">
+    Acknowledgements
   </a>
   
 </li>
@@ -541,13 +581,8 @@
                 
                 <h1 id="neural-microcircuit-simulation-and-analysis-toolkit-nmsat">Neural Microcircuit Simulation and Analysis Toolkit (NMSAT)<a class="headerlink" href="#neural-microcircuit-simulation-and-analysis-toolkit-nmsat" title="Permanent link">&para;</a></h1>
 <h2 id="what-is-it">What is it?<a class="headerlink" href="#what-is-it" title="Permanent link">&para;</a></h2>
-<p>NMSAT is a Python package that provides a set of tools to build, simulate and analyse neuronal
-microcircuit models with any degree of complexity, as well as to probe the circuits with arbitrarily
-complex input stimuli / signals and to analyse the relevant functional aspects of single neuron,
-population and network dynamics. It provides a high-level wrapper for PyNEST (which is used as
-the core simulation engine). As such, the complexity of the microcircuits analysed and their building
-blocks (neuron and synapse models, circuit topology and connectivity, etc.), are determined by the
-models available in NEST. The use of NEST allows efficient and highly scalable simulations of very
+<p>NMSAT is a Python package that provides a set of tools to build, simulate and analyse neuronal microcircuit models with any degree of complexity, as well as to probe the circuits with arbitrarily complex input stimuli / signals and to analyse the relevant functional aspects of single neuron, population and network dynamics. It provides a high-level wrapper for PyNEST (which is used as
+the core simulation engine). As such, the complexity of the microcircuits analysed and their building blocks (neuron and synapse models, circuit topology and connectivity, etc.), are determined by the models available in NEST. The use of NEST allows efficient and highly scalable simulations of very
 large and complex circuits, constrained only by the computational resources available to the user.
 The modular design allows the user to specify numerical experiments with varying degrees of
 complexity depending on concrete research objectives. The generality of some of these experiments
@@ -556,17 +591,23 @@ be useful for benchmarking and comparison purposes. Additionally, the code was d
 an effortless migration across computing systems, i.e. the same simulations can be executed in a
 local machine, in a computer cluster or a supercomputer, with straightforward resource allocation
 (see <a href="./parameters/#kernel">kernel parameters</a>).</p>
-<p>The code is licensed under GPLv3 and available on <a href="https://github.com/zbarni/network_simulation_testbed">GitHub</a>.</p>
+<p>The code is licensed under GPLv3 and available on <a href="https://github.com/rcfduarte/network_simulation_testbed">GitHub</a>.</p>
 <h2 id="disclaimer">Disclaimer<a class="headerlink" href="#disclaimer" title="Permanent link">&para;</a></h2>
-<p>The code was developed primarily for personal use, as part of a PhD thesis due to the need to perform
-similar experiments and analyses on very diverse systems. The goal was to use the same code to
-run diverse numerical experiments, covering a broad range of complexity, in a fully transparent and
-reproducible manner, while making efficient use of computing resources. Due to the inherent time
-pressures of a PhD project and the very broad scope, the code is imperfect and under active use /
-development. Despite our best efforts, it is prone to errors and often difficult to understand, particularly
-due to the strict specificities on the structure of the parameters dictionaries and how they are used.</p>
-<h2 id="about-the-authors">About the authors<a class="headerlink" href="#about-the-authors" title="Permanent link">&para;</a></h2>
-<p>Renato Duarte ...</p>
+<p>The code was developed primarily for personal use, as part of a PhD project due to the need to perform similar experiments and analyses on very diverse systems. The goal was to use the same code to
+run different, but specialized, numerical experiments, in a fully transparent and reproducible manner, while making efficient use of computing resources. Due to the inherent time pressures of a PhD project and the broad scope, the code is imperfect and under active use / development. Despite our best efforts to improve usability, it can be difficult to understand, particularly
+due to the strict specificities imposed on the structure of the parameters dictionaries and how they are used.  </p>
+<h2 id="authors-and-contributors">Authors and contributors<a class="headerlink" href="#authors-and-contributors" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong><a href="https://github.com/rcfduarte">Renato Duarte</a></strong></li>
+<li><strong><a href="https://github.com/zbarni">Barna Zajzon</a></strong></li>
+</ul>
+<h3 id="citing-us">Citing us<a class="headerlink" href="#citing-us" title="Permanent link">&para;</a></h3>
+<p>If you find NMSAT helpful and use it in your research, please cite it as [zenodo]</p>
+<h2 id="acknowledgements">Acknowledgements<a class="headerlink" href="#acknowledgements" title="Permanent link">&para;</a></h2>
+<p>This work was done in the <strong><a href="http://www.fz-juelich.de/inm/inm-6/EN/Forschung/Morrison/artikel.html">Functional Neural Circuits</a></strong> group, at the Institute for Neuroscience and Medicine (INM-6) and Institute for Advanced Simulation (IAS-6), Jülich Research Centre, Jülich, Germany. 
+We would like to thank Professor Abigail Morrison for her continued patience, advice and support and the <strong><a href="http://www.mpi.nl/departments/neurobiology-of-language">Neurobiology of Language</a></strong> group, at the Max-Planck for Psycholinguistics, for valuable discussions and contributions.</p>
+<p>We acknowledge partial support by the Erasmus Mundus Joint Doctoral Program EuroSPIN, the German Ministry for Education and Research (Bundesministerium für Bildung und Forschung) BMBF Grant 01GQ0420 to BCCN Freiburg, the Helmholtz Alliance on Systems Biology (Germany), the Initiative and Networking Fund of the Helmholtz Association, the Helmholtz Portfolio theme ‘Supercomputing and Modeling for the Human Brain’.
+We additionally acknowledge the computing time granted by the JARA-HPC Vergabegremium on the supercomputer <strong><a href="https://jlsrf.org/index.php/lsf/article/view/121/pdf">JURECA</a></strong> at Forschungszentrum Jülich, used during development.</p>
                 
                   
                 
@@ -625,9 +666,9 @@ due to the strict specificities on the structure of the parameters dictionaries 
     
       <a href="https://github.com/rcfduarte" class="md-footer-social__link fa fa-github-alt"></a>
     
-      <a href="https://twitter.com/insert-your-account-name-here" class="md-footer-social__link fa fa-twitter"></a>
+      <a href="https://twitter.com/Renatocfduarte" class="md-footer-social__link fa fa-twitter"></a>
     
-      <a href="None" class="md-footer-social__link fa fa-linkedin"></a>
+      <a href="https://www.linkedin.com/in/renatocfduarte/" class="md-footer-social__link fa fa-linkedin"></a>
     
   </div>
 
