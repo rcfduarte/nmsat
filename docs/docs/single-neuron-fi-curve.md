@@ -10,3 +10,5 @@ To run this example execute:
 ```python
 python main.py -f projects/examples/parameters/single_neuron_fI.py -c single_neuron_fIcurve --extra plot=True display=True save=True
 ```
+
+(...)

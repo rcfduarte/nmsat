@@ -10,13 +10,13 @@ Handle all the inputs and outputs
 Classes:
 --------------
 FileHandler        - abstract class which should be overriden, managing how a file will load/write
-                     its data
+					 its data
 StandardTextFile   - object used to manipulate text representation of NeuroTools objects (spikes or
-                     analog signals)
+					 analog signals)
 StandardPickleFile - object used to manipulate pickle representation of NeuroTools objects (spikes or
-                     analog signals)
+					 analog signals)
 NestFile           - object used to manipulate raw NEST file that would not have been saved by pyNN
-                     (without headers)
+					 (without headers)
 DataHandler        - object to establish the interface between NeuroTools.signals and NeuroTools.io
 
 Functions:
@@ -223,20 +223,20 @@ def set_project_paths(project):
 # ########################################################################################
 class FileHandler(object):
 	"""
-    Class to handle all the file read/write methods for the key objects of the
-    signals class, i.e SpikeList and AnalogSignalList.
+	Class to handle all the file read/write methods for the key objects of the
+	signals class, i.e SpikeList and AnalogSignalList.
 
-    This is an abstract class that will be implemented for each format (txt, pickle, hdf5)
-    The key methods of the class are:
-        write(object)              - Write an object to a file
-        read_spikes(params)        - Read a SpikeList file with some params
-        read_analogs(type, params) - Read an AnalogSignalList of type `type` with some params
+	This is an abstract class that will be implemented for each format (txt, pickle, hdf5)
+	The key methods of the class are:
+		write(object)              - Write an object to a file
+		read_spikes(params)        - Read a SpikeList file with some params
+		read_analogs(type, params) - Read an AnalogSignalList of type `type` with some params
 
-    Inputs:
-        filename - the file name for reading/writing data
+	Inputs:
+		filename - the file name for reading/writing data
 
-    If you want to implement your own file format, you just have to create an object that will
-    inherit from this FileHandler class and implement the previous functions.
+	If you want to implement your own file format, you just have to create an object that will
+	inherit from this FileHandler class and implement the previous functions.
 	"""
 
 	def __init__(self, filename):
@@ -247,11 +247,11 @@ class FileHandler(object):
 
 	def write(self, object):
 		"""
-        Write the object to the file.
+		Write the object to the file.
 
-        Examples:
-            >> handler.write(SpikeListObject)
-            >> handler.write(VmListObject)
+		Examples:
+			>> handler.write(SpikeListObject)
+			>> handler.write(VmListObject)
 		"""
 		return _abstract_method(self)
 
@@ -466,7 +466,7 @@ class Standardh5File(object):
 
 		Outputs:
 		  dict - dictionary, one or several pairs of string and any type of variable,
-		         e.g dict = {'name1': var1,'name2': var2}
+				 e.g dict = {'name1': var1,'name2': var2}
 		"""
 		print("Loading %s" % self.filename)
 		with h5py.File(self.filename, 'r') as f:
@@ -481,7 +481,7 @@ class Standardh5File(object):
 		Inputs:
 		  filename - a string, name of file to store the dictionary
 		  dict     - a dictionary, one or several pairs of string and any type of variable,
-		             e.g. dict = {'name1': var1,'name2': var2}
+					 e.g. dict = {'name1': var1,'name2': var2}
 		"""
 		f = h5py.File(self.filename, 'w')
 		for k in dictionary:
