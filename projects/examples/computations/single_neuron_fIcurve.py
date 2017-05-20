@@ -5,6 +5,7 @@ from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list
 from modules.analysis import single_neuron_dcresponse
+from modules import visualization as vis
 import cPickle as pickle
 import numpy as np
 import scipy.stats as stats
@@ -31,7 +32,6 @@ def run(parameter_set, plot=False, display=False, save=True):
 	# Setup extra variables and parameters
 	# ======================================================================================================================
 	if plot:
-		import modules.visualization as vis
 		vis.set_global_rcParams(parameter_set.kernel_pars['mpl_path'])
 	paths = set_storage_locations(parameter_set, save)
 
