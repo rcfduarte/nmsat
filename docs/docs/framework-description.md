@@ -1,17 +1,17 @@
 ## NMSAT architecture overview:
 
-###[!!!I think it'd be nice to have a global, yet quite general overview of what components there are, what they do and the flow through the layers / components!!! I tried (& failed) to start describing it. ]
-
 ![alt-text](/images/global_illustration-01.png)
-The framework is built on a layered structure, which can be divided into three main elements (left to right):
+The framework is built on a modular structure, which can be divided into six main elements (the core modules):
   
-  * **Input Architect:** handles all generation and preprocessing of the input stimuli and signals. Being quite flexible, it is difficult to describe a single workflow of Input Architect, but a general experiment looks like this: first, a set of input stimuli is generated. Afterwards, for each stimulus a corresponding signal is created, yielding a set of input signals [maybe add what types are possible? spike_input, ] to which various types of noise [e.g., GWN or OU processes] can be added if needed. The input signal set is then passed to the encoding layer, which has two types of components: generators and encoders. Generators can be of different types (...).
-    
-    However, you can design experiments without any stimuli ... [here I just wanted to highlight the versatility.. maybe a short description of an experiment without any stimuli / noise, just background noise?]
+  * **Parameters:** complex nested dictionaries, specified as an independent file. Typically this is the most sensitive aspect of the whole framework as the structure and contents of these dictionaries determines all the specificities of the experiments. Different sub-dictionaries should be created for each type of parameters (see [parameters](/parameters))
+  
+  * **Input Architect:** handles all the generation and preprocessing of input stimuli and signals. Being quite flexible, it is difficult to describe a single workflow for Input Architect, but in the relatively complex scenario illustrated above, it would consist of a `StimulusSet` object, which wraps multiple stimulus sequences (as labelled, binary feature vectors, subdivided into train and test set, for example), an `InputSignalSet`, which contains all the input signals generated from the stimulus sequences, according to the chosen transduction strategy, as well as instances of input noise which can be added to the signal or provided as an independent input. Finally, the `EncodingLayer` consists of generators (NEST devices) and/or encoders (Population objects, typically spiking neurons). Note that, any of these components can be removed or manually specified, for example, it may be important to provide a very specific `InputSignal`, which can be loaded as a numpy array. In this alternative scenario, the `StimulusSet` would be unnecessary. Stimulus sets can also be manually generated and loaded onto the framework.
   
   * **Network Architect:** 
   
   * **Analysis:**
+
+Note that, depending on the experiment, not all of the components are necessary and it is frequently the case that only sub-sets of these modules are used in a given experiment (see [examples](/examples)), depending on the nature of the input stimuli (if any), the nature of the circuit and what is intended to be measured.
 
 ## Code structure
 
