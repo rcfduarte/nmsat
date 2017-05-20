@@ -14,7 +14,7 @@ local machine, in a computer cluster or a supercomputer, with straightforward re
 (see [kernel parameters](/parameters/#kernel)).
 
 
-The code is licensed under GPLv3 and available on [GitHub](https://github.com/rcfduarte/network_simulation_testbed).
+The code is licensed under GPLv3 and available on [GitHub](https://github.com/rcfduarte/nmsat).
 
 
 ## Disclaimer
