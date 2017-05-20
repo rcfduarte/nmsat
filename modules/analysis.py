@@ -1488,71 +1488,10 @@ def evaluate_encoding(enc_layer, parameter_set, analysis_interval, input_signal,
 	return results
 
 
-# def analyse_performance_results(net, enc_layer=None, plot=True, display=True, save=False):
-# 	"""
-# 	Re-organizes performance results
-# 	(may be too case-sensitive!!)
-# 	"""
-# 	# TODO - deprecated...
-# 	from modules.signals import empty
-# 	results = {}
-#
-# 	if enc_layer is not None:
-# 		all_populations = list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders]))
-# 	else:
-# 		all_populations = list(itertools.chain(*[net.merged_populations, net.populations]))
-#
-# 	for n_pop in all_populations:
-# 		if hasattr(n_pop, "decoding_pars"):
-# 			results[n_pop.name] = {}
-# 			readout_labels = list(np.sort(n_pop.decoding_pars['readout']['labels']))
-# 			readout_type = [n[:3] for n in readout_labels]
-# 			if 'mem' in readout_type and 'cla' in readout_type: # special case
-# 				last_mem = readout_type[::-1].index('mem')
-# 				readout_labels.insert(last_mem + 1, readout_labels[0])
-# 				readout_labels.pop(0)
-# 				readout_type = [n[:3] for n in readout_labels]
-# 				last_mem = readout_type[::-1].index('mem')
-# 				first_mem = readout_type.index('mem')
-# 				readout_labels[first_mem:last_mem - 1] = readout_labels[first_mem:last_mem - 1][::-1]
-#
-# 			pop_readouts = n_pop.readouts
-# 			pop_state_variables = n_pop.state_variables
-# 			print(pop_state_variables)
-# 			if empty(n_pop.state_sample_times):
-# 				for idx_state, n_state in enumerate(n_pop.state_extractors):
-# 					pop_readout_labels = [n.name for n in pop_readouts[idx_state]]
-# 					readout_idx = [np.where(n == np.array(readout_labels))[0][0] for n in pop_readout_labels]
-# 					readout_set = list(np.array(pop_readouts[idx_state])[readout_idx])
-# 					results[n_pop.name].update({'ReadoutSet{0}'.format(str(idx_state)): {}})
-# 					indices = [n.index for n in readout_set]
-# 					results[n_pop.name]['ReadoutSet{0}'.format(str(idx_state))] = compile_performance_results(
-# 						readout_set, state_variable=pop_state_variables[idx_state])
-# 			else:
-# 				assert (len(pop_readouts) == len(n_pop.state_sample_times)), "Inconsistent readout set"
-# 				n_states = len(pop_readouts[0])
-# 				for n_state in range(n_states):
-# 					results[n_pop.name].update({'ReadoutSet{0}'.format(str(n_state)): {}})
-# 					results[n_pop.name]['ReadoutSet{0}'.format(str(n_state))].update(
-# 						{'sample_times': n_pop.state_sample_times})
-#
-# 					for n_sample_time in range(len(n_pop.state_sample_times)):
-# 						readout_set = pop_readouts[n_sample_time][n_state]
-# 						results[n_pop.name]['ReadoutSet{0}'.format(str(n_state))].update({'sample_{0}'.format(
-# 							n_sample_time): {}})
-# 						results[n_pop.name]['ReadoutSet{0}'.format(str(n_state))]['sample_{0}'.format(
-# 							n_sample_time)] = compile_performance_results(readout_set,
-# 																		  state_variable=pop_state_variables[n_state])
-#
-# 	if plot:
-# 		vz.plot_readout_performance(results, display=display, save=save)
-# 	return results
-
-
 def compile_performance_results(readout_set, state_variable=''):
 	"""
+	When there are multiple readouts, gather the results for all as arrays
 	"""
-	# TODO - deprecated
 	results = {
 		'accuracy': np.array([n.performance['label']['performance'] for n in readout_set]),
 		'hamming_loss': np.array([n.performance['label']['hamm_loss'] for n in readout_set]),
