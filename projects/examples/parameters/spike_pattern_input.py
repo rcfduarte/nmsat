@@ -123,45 +123,51 @@ def build_parameters():
 	                                      n_encoding_neurons=n_afferents, **input_synapses)
 	encoding_pars['encoder']['n_neurons'] = [n_afferents]
 
-	add_parrots(encoding_pars, n_afferents, decode=True, **{})
+	add_parrots(encoding_pars, n_afferents, decode=False, **{})
 
 	# ##################################################################################################################
 	# Decoding / Readout Parameters
 	# ##################################################################################################################
-	out_resolution = 0.1 # advisable!
+	out_resolution = 0.1
 	filter_tau = 20.  # time constant of exponential filter (applied to spike trains)
-	state_sampling = None#np.arange(0., inp_duration + 200., 50.)#None  # 1.(cannot start at 0)
-	readout_labels = ['ridge_classifier', 'pinv_classifier']
-	readout_algorithms = ['ridge', 'pinv']
+	state_sampling = None
+
+	nSteps = 10
+	readout_labels = []
+	for nn in range(int(nSteps)):
+		readout_labels.append('mem{0}'.format(nn + 1))
+	readout_labels.append('class0')
+
+	readout_algorithms = ['ridge' for _ in range(len(readout_labels))]
 
 	decoders = dict(
-		decoded_population=[['E', 'I'], ['E', 'I']],
-		state_variable=['spikes', 'V_m'],
+		decoded_population=[['E', 'I']],
+		state_variable=['V_m'],
 		filter_time=filter_tau,
 		readouts=readout_labels,
 		readout_algorithms=readout_algorithms,
 		sampling_times=state_sampling,
-		reset_states=[False, False],
-		average_states=[False, False],
-		standardize=[False, False]
+		reset_states=[False],
+		average_states=[False],
+		standardize=[False]
 	)
 
 	decoding_pars = set_decoding_defaults(output_resolution=out_resolution, to_memory=True, **decoders)
 
 	## Set decoders for input population (if applicable)
-	input_decoder = dict(
-		state_variable=['spikes'],
-		filter_time=filter_tau,
-		readouts=readout_labels,
-		readout_algorithms=readout_algorithms,
-		output_resolution=out_resolution,
-		sampling_times=state_sampling,
-		reset_states=[True],
-		average_states=[True],
-		standardize=[False]
-	)
-
-	encoding_pars = add_input_decoders(encoding_pars, input_decoder, kernel_pars)
+	# input_decoder = dict(
+	# 	state_variable=['spikes'],
+	# 	filter_time=filter_tau,
+	# 	readouts=readout_labels,
+	# 	readout_algorithms=readout_algorithms,
+	# 	output_resolution=out_resolution,
+	# 	sampling_times=state_sampling,
+	# 	reset_states=[True],
+	# 	average_states=[True],
+	# 	standardize=[False]
+	# )
+	#
+	# encoding_pars = add_input_decoders(encoding_pars, input_decoder, kernel_pars)
 
 	# ##################################################################################################################
 	# RETURN dictionary of Parameters dictionaries
