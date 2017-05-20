@@ -145,7 +145,7 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 	# Process data
 	# ======================================================================================================================
 	target_matrix = np.array(target_set.full_set.todense())
-	results = process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, accepted_idx=None, plot=plot,
+	results = process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, accepted_idx=None, plot=False, #
 	                         display=display, save=save, save_paths=paths)
 	results.update({'timing_info': timing, 'epochs': epochs})
 	processed_results = dict()
@@ -168,7 +168,7 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 					fig, ax = pl.subplots()
 					ax.plot(all_indices[ordered_indices], ordered_accuracy, 'o-', lw=2)
 					ax.plot(all_indices[ordered_indices],
-					        1. / np.ones_like(ordered_accuracy) * parameter_set.stim_pars.n_stim, \
+					        np.ones_like(ordered_accuracy) * 1./parameter_set.stim_pars.n_stim, \
 					        '--r')
 					ax.set_xlabel(r'$lag [n]$')
 					ax.set_ylabel(r'Accuracy')
@@ -176,14 +176,12 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
 						pl.show(False)
 					if save:
 						fig.savefig(paths['figures'] + paths['label'])
-
+	results.update({'processed_results': processed_results})
 	# ######################################################################################################################
 	# Save data
 	# ======================================================================================================================
 	if save:
 		with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
 			pickle.dump(results, f)
-		with open(paths['results'] + 'ProcessedResults_' + parameter_set.label, 'w') as f:
-			pickle.dump(processed_results, f)
 		parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
 
