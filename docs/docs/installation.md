@@ -16,16 +16,15 @@ no explicit installation involved. Just fork and clone the Github repository fro
 
 Optional (for additional functionality):
 
-* **PySpike** version 0.5.1
+* [**PySpike**](https://github.com/mariomulansky/PySpike) version 0.5.1
 * **h5py** version 2.2.1 or higher
-* **mayavi** 
-* **networkx**
+* **mayavi** version 4.0 or higher
+* **networkx** version 1.1
 
 
 ## Getting Started
 
-After downloading the repository, the framework's configure file, which sets the correct paths, needs to be sourced. 
-The following line should be added to .bashrc (*):
+After downloading the repository, the framework's configure file, which sets the correct paths, needs to be sourced:
 
 ```bash
 source /{path}/nmsat/configure.sh
@@ -39,7 +38,7 @@ This last step requires the user to manually specify all the paths for his syste
 paths = {
 	'system_label': {
 		'data_path': 			NMSAT_HOME + '/data/',
-		'jdf_template': 		NMSAT_HOME + '/defaults/cluster_templates/Blaustein_jdf.sh',
+		'jdf_template': 		NMSAT_HOME + '/defaults/cluster_templates/Cluster_jdf.sh',
 		'matplotlib_rc': 		NMSAT_HOME + '/defaults/matplotlib_rc',
 		'remote_directory': 	NMSAT_HOME + '/export/',
 		'queueing_system':      'slurm'}
@@ -53,7 +52,7 @@ The `system_label` specifies the name of the system. If running simulations on a
 * `jdf_template` - path to a system-specific job description file (see example in /defaults/cluster_templates); if running locally set to None
 * `matplotlibrc` - in case the user wants to customize [matplotlib](http://matplotlib.org/users/customizing.html)
 * `remote_directory` - folder where the job submission files will be written (only applicable if not running locally, but must be specified anyway)
-* `queueing_system` - type of job schedulling system used (current options include 'slurm' and 'sge')..
+* `queueing_system` - type of job schedulling system used (current options include only 'slurm' and 'sge').
 
 
-And that should be it. After specifying all these, it should be possible to run the framework (see [standard use case](/standard-use-case/)). 
+And that should be it. After specifying all these for the systems where the code is intended to be executed, it should be possible to run the framework (see [standard use case](/standard-use-case/)). 

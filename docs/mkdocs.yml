@@ -22,11 +22,11 @@
 site_name: Neural Microcircuit Simulation and Analysis Toolkit (NMSAT)
 site_description:
 site_author: Renato Duarte
-site_url: https://zbarni.github.io/network_simulation_testbed/
+site_url: https://rcfduarte.github.io/network_simulation_testbed/
 
 # Repository
 repo_name: rcfduarte/nmsat
-repo_url: https://github.com/zbarni/nmsat
+repo_url: https://github.com/rcfduarte/nmsat
 
 # Copyright
 copyright: ' Copyright &copy; 2017 Renato Duarte <br> Copyright &copy; 2016 Martin Donath for Material template'
@@ -45,9 +45,11 @@ extra:
     - type: github-alt
       link: https://github.com/rcfduarte
     - type: twitter
-      link: https://twitter.com/insert-your-account-name-here
+      link: https://twitter.com/Renatocfduarte
     - type: linkedin
-      link:
+      link: https://www.linkedin.com/in/renatocfduarte/
+#      type:
+#      link:
 
 # Extensions
 markdown_extensions:
@@ -61,8 +63,8 @@ markdown_extensions:
   - pymdownx.betterem(smart_enable=all)
   - pymdownx.caret
   - pymdownx.critic
-  - pymdownx.emoji:
-      emoji_generator: !!python/name:pymdownx.emoji.to_svg
+#  - pymdownx.emoji:
+#      emoji_generator: !!python/name:pymdownx.emoji.to_svg
   - pymdownx.inlinehilite
   - pymdownx.magiclink
   - pymdownx.mark
