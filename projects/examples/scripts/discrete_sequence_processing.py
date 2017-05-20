@@ -6,9 +6,11 @@ from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list, empty
 from modules.visualization import set_global_rcParams, plot_input_example
 from modules.auxiliary import process_input_sequence, process_states, set_decoder_times, iterate_input_sequence
+from modules.analysis import compile_performance_results
 import cPickle as pickle
 import numpy as np
 import itertools
+import matplotlib.pyplot as pl
 import time
 import sys
 import nest
@@ -16,7 +18,7 @@ import nest
 # ######################################################################################################################
 # Experiment options
 # ======================================================================================================================
-plot = False
+plot = True
 display = True
 save = True
 debug = False
@@ -150,6 +152,32 @@ target_matrix = np.array(target_set.full_set.todense())
 results = process_states(net, enc_layer, target_matrix, stim_set, data_sets=None, accepted_idx=None, plot=plot,
                    display=display, save=save, save_paths=paths)
 results.update({'timing_info': timing, 'epochs': epochs})
+processed_results = dict()
+for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders]))):
+	if n_pop.decoding_layer is not None:
+		processed_results.update({n_pop.name: {}})
+		dec_layer = n_pop.decoding_layer
+		for idx_var, var in enumerate(dec_layer.state_variables):
+			processed_results[n_pop.name].update({var: compile_performance_results(dec_layer.readouts[idx_var], var)})
+
+			# The labels are often not properly ordered
+			readout_labels = processed_results[n_pop.name][var]['labels']
+			all_indices = np.array([int(''.join(c for c in x if c.isdigit())) for x in readout_labels])
+			ordered_indices = np.argsort(all_indices)
+
+			# Extract and plot example results
+			if plot:
+				ordered_accuracy = processed_results[n_pop.name][var]['accuracy'][ordered_indices]
+				fig, ax = pl.subplots()
+				ax.plot(all_indices[ordered_indices], ordered_accuracy, 'o-', lw=2)
+				ax.plot(all_indices[ordered_indices], 1./np.ones_like(ordered_accuracy)*parameter_set.stim_pars.n_stim, \
+				                                        '--r')
+				ax.set_xlabel(r'$lag [n]$')
+				ax.set_ylabel(r'Accuracy')
+				if display:
+					pl.show(False)
+				if save:
+					fig.savefig(paths['figures']+paths['label'])
 
 # ######################################################################################################################
 # Save data
@@ -157,5 +185,7 @@ results.update({'timing_info': timing, 'epochs': epochs})
 if save:
 	with open(paths['results'] + 'Results_' + parameter_set.label, 'w') as f:
 		pickle.dump(results, f)
+	with open(paths['results'] + 'ProcessedResults_' + parameter_set.label, 'w') as f:
+		pickle.dump(processed_results, f)
 	parameter_set.save(paths['parameters'] + 'Parameters_' + parameter_set.label)
 
