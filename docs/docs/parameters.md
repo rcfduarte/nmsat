@@ -153,7 +153,7 @@ will result in 2 separate runs, one for each parameter combination:
 * `max_current = 1200., total_time = 1000.`
 
 The `build_parameters(...)` function is required in every parameter file. If the `parameter_range` dictionary is not 
-empty, its keys (more precisely equivalent variable names) are passed as arguments to the function.
+empty, its keys (more precisely equivalent variable names) must be passed as arguments to the `build_parameters` function.
 
 ### Parameter types
 The returned value of the `build_parameters(...)` function is a dictionary of `ParameterSets`, containing all the
@@ -263,14 +263,7 @@ net_pars = {
 	'analog_device_pars': [None, None]} # parameters for analog devices
 ```
 
-Note that the dimensionality of all the list parameters has to be equal to `n_populations`. If
-these parameters are all correctly set, generating a network is as simple as:
-
-
-```python
-net = Network(net_pars)
-net.connect_devices()
-```
+Note that the dimensionality of all the list parameters has to be equal to `n_populations`. 
 
 
 #### **Connection** 
@@ -281,10 +274,15 @@ the multiple populations:
 connection_pars = {
     # [int] - total number of connections to establish
 	'n_synapse_types': 4,
-	 
+ 
 	 # [list of tuples] - each tuple corresponds to 1 connection and 
 	 # has the form (tget_pop_label, src_pop_label)
 	'synapse_types': [('E', 'E'), ('E', 'I'), ('I', 'E'), ('I', 'I')],
+	
+    # [list of str] - optional, additional names of the synapse models,
+    # useful is multiple synapses with different properties are derived 
+    # from the same NEST model 
+    'synapse_names': ['EE', 'EI', 'IE', 'II'],
 	
 	# [list of bool] - whether synaptic connections are 
 	# established relying on nest.topology module
@@ -320,14 +318,17 @@ connection_pars = {
 	'syn_specs': []
 ```
 
-To connect the network, just provide this parameter set to the connect method of the `Network`
-object (for complex connectivity schemes, it is worth setting the `progress=True` to accompany the
-connection progress):
+You can create new synapses with unique names by deriving from the existing NEST models, e.g., for defining two 
+ connections with different time constants of STDP window  
 
 ```python
-net.connect_populations(parameter_set.connection_pars, progress=True)
+connection_pars = {
+    (...)
+    'synapse_types': [('E_1', 'I_1'), ('E_2', 'I_2')],
+    'synapse_names': ['MySTDP_window_10', 'MySTDP_window_30'],
+    'models':        ['stdp_synapse', 'stdp_synapse'] # any NEST model to derive from 
+    'model_pars':    [{'tau_plus': 10.}, {'tau_plus': 30.}]}  
 ```
-
 
 #### **Stimulus** 
 Stimulus or task parameters:
@@ -358,7 +359,8 @@ Specifies the stimulus transduction and/or the input signal properties:
 ```python
 input_pars = {
 	'signal': {
-		'N': 3,		# Dimensionality of the signal
+		# Dimensionality of the signal
+		'N': 3,	
 		 
         # Duration of each stimulus presentation. 
         # Various settings are allowed:
@@ -389,8 +391,9 @@ input_pars = {
 		},
 
 	'noise': {
-		'N': 3,	# Dimensionality of the noise component (common or 
-			# multiple independent noise sources)
+	    # Dimensionality of the noise component (common or 
+	    # multiple independent noise sources)
+		'N': 3,	
 			
         # [list] - Type of noise:
         #  - Either a string for 'OU', 'GWN'
@@ -413,7 +416,8 @@ input_pars = {
 		# times, if multiple instances are required
 		'stop_time': sys.float_info.max,	
 		
-		'resolution': 1.,	                # signal resolution (dt)}}
+		# signal resolution (dt)
+		'resolution': 1. }}          
 ```
 
 **Note:** the chosen specifications of `durations`, `i_stim_i` and `max_amplitude`
@@ -426,15 +430,71 @@ inputs.generate_datasets(stim_set)
 ```
 
 #### **Encoding** 
--
+```python
+encoding_pars = {
+    'encoder': {
+        'N': 1,                         # number of encoder objects
+        'labels': ['parrot_exc'],       # unique names for each encoder
+        'models': ['parrot_neuron'],    # encoder model
+        'model_pars': [None],           # if override default model parameters
+        'n_neurons': [200],             # dimensionality of the encoder
+                                        # (here 200 parrot neurons will be created)
+        'neuron_pars': [{'model': 'parrot_neuron'}],
+        'topology': [False],            # use topology?
+        'topology_dict': [None],        # topology parameters?
+        'record_spikes': [False],       # whether to record spikes for the encoder
+        'spike_device_pars': [{}],      # spike recorder parameters
+        'record_analogs': [False],      # whether to record analog variables
+        'analog_device_pars': [{}]},    # analog recorder parameters
+
+    'generator': {
+        'N': 1,                         # number of generator objects
+        'labels': ['inh_generator'],    # unique name for each generator
+        
+        # NEST generator model, the following are possible
+        #   (spike_generator, inh_poisson_generator, poisson_generator, 
+        #    step_current_generator...)
+        'models': ['inh_poisson_generator'],
+         
+        # override default generator model parameters  
+        'model_pars': [{'start': 0., 'stop': sys.float_info.max, 'origin': 0.},],
+        
+        'topology': [False],            # use topology?
+        'topology_pars': [None]},       # topology parameters?
+
+    'connectivity': {
+        'synapse_name': ['static_synapse', 'static_synapse'],
+        'connections': [('parrot_exc', 'inh_generator'), # name of generator must match
+                        ('population_1', 'parrot_exc')],
+        'topology_dependent': [False, False],
+        'conn_specs': [{'rule': 'all_to_all'}, {'rule': 'all_to_all'}],
+        'syn_specs': [{}, {}],
+        'models': ['static_synapse', 'static_synapse'],
+        'model_pars': [{}, {}],
+        'weight_dist': [1., 20.],
+        'delay_dist': [encoder_delay, encoder_delay],
+        'preset_W': [None, None]}}
+```
+
+When creating the encoding layer, you can pass a signal as input for the generators, and you can choose to 
+ precompute the output of the encoders (`online=False`) or generate it on-the-fly during simulation (`online=True`):  
 
 ```python
-enc_layer = EncodingLayer(parameter_set.encoding_pars, signal=inputs.full_set_signal, online=on
+enc_layer = EncodingLayer(parameter_set.encoding_pars, signal=inputs.full_set_signal, online=True)
 enc_layer.connect(parameter_set.encoding_pars, net)
 ```
 
 #### **Decoding** 
--
+```python
+decoders = dict(
+	decoded_population=['E', 'E', ['E', 'I'], ['E', 'I'], 'I', 'I'],
+	state_variable=['V_m', 'spikes', 'V_m', 'spikes', 'V_m', 'spikes'],
+	filter_time=filter_tau,
+	readouts=readout_labels,
+	readout_algorithms=['ridge', 'ridge', 'ridge', 'ridge', 'ridge', 'ridge'],
+	global_sampling_times=state_sampling,
+)
+```
 
 ```python
 net.connect_decoders(parameter_set.decoding_pars)
@@ -444,9 +504,6 @@ enc_layer.connect_decoders(parameter_set.encoding_pars.input_decoder)
 #### **Analysis** 
 -
 
-```python
-
-```
 
 ### Parameter presets 
 For convenience, to reduce the length and complexity of the parameter files and the likelihood of
