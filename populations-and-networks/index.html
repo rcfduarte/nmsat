@@ -302,9 +302,48 @@
     <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="toc">
     
     
+      <label class="md-nav__link md-nav__link--active" for="toc">
+        Populations and networks
+      </label>
+    
     <a href="./" title="Populations and networks" class="md-nav__link md-nav__link--active">
       Populations and networks
     </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#populations" title="Populations" class="md-nav__link">
+    Populations
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#network" title="Network" class="md-nav__link">
+    Network
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#creating-populations-and-networks" title="Creating populations and networks" class="md-nav__link">
+    Creating populations and networks
+  </a>
+  
+</li>
+      
+      
+      
+    </ul>
+  
+</nav>
     
   </li>
 
@@ -461,6 +500,34 @@
   
   
   
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#populations" title="Populations" class="md-nav__link">
+    Populations
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#network" title="Network" class="md-nav__link">
+    Network
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#creating-populations-and-networks" title="Creating populations and networks" class="md-nav__link">
+    Creating populations and networks
+  </a>
+  
+</li>
+      
+      
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -474,7 +541,47 @@
                 
                   <h1>Populations and networks</h1>
                 
-                <p>(...)</p>
+                <p>One of the core tasks in each experiment is to set up a network of neuronal populations to be simulated. In NMSAT, 
+  individual neurons are grouped into homogeneous populations and stored in <code>Population</code> objects. These, in turn, are
+  organized into a single <code>Network</code> object that acts as a wrapper for all populations to allow their efficient handling. </p>
+<p>Both classes are defined in the <code>net_architect.py</code> module.  </p>
+<h3 id="populations">Populations<a class="headerlink" href="#populations" title="Permanent link">&para;</a></h3>
+<p><code>Population</code> objects are used to handle each of the simulated neuronal populations and contain
+  their parameters, such as name (unique among all populations), size, topology, etc. They also define what recording devices 
+  (<code>spike_detector, multimeter</code>) should be connected to the populations, store the spiking and analog activities 
+  in <code>SpikeLists</code> and <code>AnalogSignalLists</code>, and keep track of the attached <a href="../decoding/">decoding layer</a>.   </p>
+<h3 id="network">Network<a class="headerlink" href="#network" title="Permanent link">&para;</a></h3>
+<p>Generally there is only one <code>Network</code> object in each experiment, which keeps a list with all the populations building the 
+  network, along with their connectivity properties. It provides routines for creating and connecting the populations, 
+  attaching the recording devices and decoders, and extracting the activity from the simulator after termination. It is 
+  also possible to merge different populations to create larger, heterogeneous clusters within the network. </p>
+<h3 id="creating-populations-and-networks">Creating populations and networks<a class="headerlink" href="#creating-populations-and-networks" title="Permanent link">&para;</a></h3>
+<p>Three parameter dictionaries are used to define populations and networks (for detailed description follow the links):</p>
+<ul>
+<li><a href="../parameters/#neuron"><code>neuron_pars</code></a> - neuron models and their parameters </li>
+<li><a href="../parameters/#network"><code>net_pars</code></a> - specifies the composition, topology and which variables to record
+from the multiple populations. Note that there is no separate dictionary for the individual populations, they are all
+defined in the lists of this dictionary.</li>
+<li><a href="../parameters/#connection"><code>connection_pars</code></a> - parameter set defining connections among populations and their synaptic
+properties (synapse model, weight distributions, delays, etc.). </li>
+</ul>
+<p>If these parameters are all correctly set, generating a network and initializing all connections is as simple as:</p>
+<div class="codehilite"><pre><span></span><span class="c1"># create Network object</span>
+<span class="n">net</span> <span class="o">=</span> <span class="n">Network</span><span class="p">(</span><span class="n">parameter_set</span><span class="o">.</span><span class="n">net_pars</span><span class="p">)</span> 
+
+<span class="c1"># optional, example for merging two populations</span>
+<span class="c1"># net.merge_subpopulations([net.populations[0], net.populations[1]], name=&#39;EI&#39;) </span>
+
+<span class="c1"># connect populations, for complex connectivity schemes it is worth setting </span>
+<span class="c1"># `progress=True` to accompany the connection progress</span>
+<span class="n">net</span><span class="o">.</span><span class="n">connect_populations</span><span class="p">(</span><span class="n">parameter_set</span><span class="o">.</span><span class="n">connection_pars</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+
+<span class="c1"># attach devices</span>
+<span class="n">net</span><span class="o">.</span><span class="n">connect_devices</span><span class="p">()</span>
+
+<span class="c1"># connect the decoders</span>
+<span class="n">net</span><span class="o">.</span><span class="n">connect_decoders</span><span class="p">(</span><span class="n">parameter_set</span><span class="o">.</span><span class="n">decoding_pars</span><span class="p">)</span>
+</pre></div>
                 
                   
                 

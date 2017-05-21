@@ -823,7 +823,7 @@ In this case, only one simulation will be executed where <code>max_current = 800
 <li><code>max_current = 1200., total_time = 1000.</code></li>
 </ul>
 <p>The <code>build_parameters(...)</code> function is required in every parameter file. If the <code>parameter_range</code> dictionary is not 
-empty, its keys (more precisely equivalent variable names) are passed as arguments to the function.</p>
+empty, its keys (more precisely equivalent variable names) must be passed as arguments to the <code>build_parameters</code> function.</p>
 <h3 id="parameter-types">Parameter types<a class="headerlink" href="#parameter-types" title="Permanent link">&para;</a></h3>
 <p>The returned value of the <code>build_parameters(...)</code> function is a dictionary of <code>ParameterSets</code>, containing all the
 necessary types of parameters to be used by the main experiment. These parameters defined in the function are themselves
@@ -925,13 +925,7 @@ from the multiple populations:</p>
 </pre></div>
 
 
-<p>Note that the dimensionality of all the list parameters has to be equal to <code>n_populations</code>. If
-these parameters are all correctly set, generating a network is as simple as:</p>
-<div class="codehilite"><pre><span></span><span class="n">net</span> <span class="o">=</span> <span class="n">Network</span><span class="p">(</span><span class="n">net_pars</span><span class="p">)</span>
-<span class="n">net</span><span class="o">.</span><span class="n">connect_devices</span><span class="p">()</span>
-</pre></div>
-
-
+<p>Note that the dimensionality of all the list parameters has to be equal to <code>n_populations</code>. </p>
 <h4 id="connection"><strong>Connection</strong><a class="headerlink" href="#connection" title="Permanent link">&para;</a></h4>
 <p>Connectivity parameters, specifying the composition, topology and connectivity of
 the multiple populations:</p>
@@ -942,6 +936,11 @@ the multiple populations:</p>
      <span class="c1"># [list of tuples] - each tuple corresponds to 1 connection and </span>
      <span class="c1"># has the form (tget_pop_label, src_pop_label)</span>
     <span class="s1">&#39;synapse_types&#39;</span><span class="p">:</span> <span class="p">[(</span><span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="s1">&#39;E&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="s1">&#39;E&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">)],</span>
+
+    <span class="c1"># [list of str] - optional, additional names of the synapse models,</span>
+    <span class="c1"># useful is multiple synapses with different properties are derived </span>
+    <span class="c1"># from the same NEST model </span>
+    <span class="s1">&#39;synapse_names&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;EE&#39;</span><span class="p">,</span> <span class="s1">&#39;EI&#39;</span><span class="p">,</span> <span class="s1">&#39;IE&#39;</span><span class="p">,</span> <span class="s1">&#39;II&#39;</span><span class="p">],</span>
 
     <span class="c1"># [list of bool] - whether synaptic connections are </span>
     <span class="c1"># established relying on nest.topology module</span>
@@ -978,10 +977,14 @@ the multiple populations:</p>
 </pre></div>
 
 
-<p>To connect the network, just provide this parameter set to the connect method of the <code>Network</code>
-object (for complex connectivity schemes, it is worth setting the <code>progress=True</code> to accompany the
-connection progress):</p>
-<div class="codehilite"><pre><span></span><span class="n">net</span><span class="o">.</span><span class="n">connect_populations</span><span class="p">(</span><span class="n">parameter_set</span><span class="o">.</span><span class="n">connection_pars</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<p>You can create new synapses with unique names by deriving from the existing NEST models, e.g., for defining two 
+ connections with different time constants of STDP window  </p>
+<div class="codehilite"><pre><span></span><span class="n">connection_pars</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="p">(</span><span class="o">...</span><span class="p">)</span>
+    <span class="s1">&#39;synapse_types&#39;</span><span class="p">:</span> <span class="p">[(</span><span class="s1">&#39;E_1&#39;</span><span class="p">,</span> <span class="s1">&#39;I_1&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;E_2&#39;</span><span class="p">,</span> <span class="s1">&#39;I_2&#39;</span><span class="p">)],</span>
+    <span class="s1">&#39;synapse_names&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;MySTDP_window_10&#39;</span><span class="p">,</span> <span class="s1">&#39;MySTDP_window_30&#39;</span><span class="p">],</span>
+    <span class="s1">&#39;models&#39;</span><span class="p">:</span>        <span class="p">[</span><span class="s1">&#39;stdp_synapse&#39;</span><span class="p">,</span> <span class="s1">&#39;stdp_synapse&#39;</span><span class="p">]</span> <span class="c1"># any NEST model to derive from </span>
+    <span class="s1">&#39;model_pars&#39;</span><span class="p">:</span>    <span class="p">[{</span><span class="s1">&#39;tau_plus&#39;</span><span class="p">:</span> <span class="mf">10.</span><span class="p">},</span> <span class="p">{</span><span class="s1">&#39;tau_plus&#39;</span><span class="p">:</span> <span class="mf">30.</span><span class="p">}]}</span>  
 </pre></div>
 
 
@@ -1009,7 +1012,8 @@ connection progress):</p>
 <p>Specifies the stimulus transduction and/or the input signal properties:</p>
 <div class="codehilite"><pre><span></span><span class="n">input_pars</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s1">&#39;signal&#39;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>     <span class="c1"># Dimensionality of the signal</span>
+        <span class="c1"># Dimensionality of the signal</span>
+        <span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> 
 
         <span class="c1"># Duration of each stimulus presentation. </span>
         <span class="c1"># Various settings are allowed:</span>
@@ -1040,8 +1044,9 @@ connection progress):</p>
         <span class="p">},</span>
 
     <span class="s1">&#39;noise&#39;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="c1"># Dimensionality of the noise component (common or </span>
-            <span class="c1"># multiple independent noise sources)</span>
+        <span class="c1"># Dimensionality of the noise component (common or </span>
+        <span class="c1"># multiple independent noise sources)</span>
+        <span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> 
 
         <span class="c1"># [list] - Type of noise:</span>
         <span class="c1">#  - Either a string for &#39;OU&#39;, &#39;GWN&#39;</span>
@@ -1064,7 +1069,8 @@ connection progress):</p>
         <span class="c1"># times, if multiple instances are required</span>
         <span class="s1">&#39;stop_time&#39;</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">float_info</span><span class="o">.</span><span class="n">max</span><span class="p">,</span>    
 
-        <span class="s1">&#39;resolution&#39;</span><span class="p">:</span> <span class="mf">1.</span><span class="p">,</span>                   <span class="c1"># signal resolution (dt)}}</span>
+        <span class="c1"># signal resolution (dt)</span>
+        <span class="s1">&#39;resolution&#39;</span><span class="p">:</span> <span class="mf">1.</span> <span class="p">}}</span>          
 </pre></div>
 
 
@@ -1077,14 +1083,71 @@ be applied to <code>i_stim_i</code> and <code>max_amplitude</code>. (test)</p>
 
 
 <h4 id="encoding"><strong>Encoding</strong><a class="headerlink" href="#encoding" title="Permanent link">&para;</a></h4>
-<p>-</p>
-<div class="codehilite"><pre><span></span><span class="n">enc_layer</span> <span class="o">=</span> <span class="n">EncodingLayer</span><span class="p">(</span><span class="n">parameter_set</span><span class="o">.</span><span class="n">encoding_pars</span><span class="p">,</span> <span class="n">signal</span><span class="o">=</span><span class="n">inputs</span><span class="o">.</span><span class="n">full_set_signal</span><span class="p">,</span> <span class="n">online</span><span class="o">=</span><span class="n">on</span>
+<div class="codehilite"><pre><span></span><span class="n">encoding_pars</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;encoder&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>                         <span class="c1"># number of encoder objects</span>
+        <span class="s1">&#39;labels&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;parrot_exc&#39;</span><span class="p">],</span>       <span class="c1"># unique names for each encoder</span>
+        <span class="s1">&#39;models&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;parrot_neuron&#39;</span><span class="p">],</span>    <span class="c1"># encoder model</span>
+        <span class="s1">&#39;model_pars&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">None</span><span class="p">],</span>           <span class="c1"># if override default model parameters</span>
+        <span class="s1">&#39;n_neurons&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">200</span><span class="p">],</span>             <span class="c1"># dimensionality of the encoder</span>
+                                        <span class="c1"># (here 200 parrot neurons will be created)</span>
+        <span class="s1">&#39;neuron_pars&#39;</span><span class="p">:</span> <span class="p">[{</span><span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="s1">&#39;parrot_neuron&#39;</span><span class="p">}],</span>
+        <span class="s1">&#39;topology&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">False</span><span class="p">],</span>            <span class="c1"># use topology?</span>
+        <span class="s1">&#39;topology_dict&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">None</span><span class="p">],</span>        <span class="c1"># topology parameters?</span>
+        <span class="s1">&#39;record_spikes&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">False</span><span class="p">],</span>       <span class="c1"># whether to record spikes for the encoder</span>
+        <span class="s1">&#39;spike_device_pars&#39;</span><span class="p">:</span> <span class="p">[{}],</span>      <span class="c1"># spike recorder parameters</span>
+        <span class="s1">&#39;record_analogs&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">False</span><span class="p">],</span>      <span class="c1"># whether to record analog variables</span>
+        <span class="s1">&#39;analog_device_pars&#39;</span><span class="p">:</span> <span class="p">[{}]},</span>    <span class="c1"># analog recorder parameters</span>
+
+    <span class="s1">&#39;generator&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>                         <span class="c1"># number of generator objects</span>
+        <span class="s1">&#39;labels&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;inh_generator&#39;</span><span class="p">],</span>    <span class="c1"># unique name for each generator</span>
+
+        <span class="c1"># NEST generator model, the following are possible</span>
+        <span class="c1">#   (spike_generator, inh_poisson_generator, poisson_generator, </span>
+        <span class="c1">#    step_current_generator...)</span>
+        <span class="s1">&#39;models&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;inh_poisson_generator&#39;</span><span class="p">],</span>
+
+        <span class="c1"># override default generator model parameters  </span>
+        <span class="s1">&#39;model_pars&#39;</span><span class="p">:</span> <span class="p">[{</span><span class="s1">&#39;start&#39;</span><span class="p">:</span> <span class="mf">0.</span><span class="p">,</span> <span class="s1">&#39;stop&#39;</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">float_info</span><span class="o">.</span><span class="n">max</span><span class="p">,</span> <span class="s1">&#39;origin&#39;</span><span class="p">:</span> <span class="mf">0.</span><span class="p">},],</span>
+
+        <span class="s1">&#39;topology&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">False</span><span class="p">],</span>            <span class="c1"># use topology?</span>
+        <span class="s1">&#39;topology_pars&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">None</span><span class="p">]},</span>       <span class="c1"># topology parameters?</span>
+
+    <span class="s1">&#39;connectivity&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;synapse_name&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;static_synapse&#39;</span><span class="p">,</span> <span class="s1">&#39;static_synapse&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;connections&#39;</span><span class="p">:</span> <span class="p">[(</span><span class="s1">&#39;parrot_exc&#39;</span><span class="p">,</span> <span class="s1">&#39;inh_generator&#39;</span><span class="p">),</span> <span class="c1"># name of generator must match</span>
+                        <span class="p">(</span><span class="s1">&#39;population_1&#39;</span><span class="p">,</span> <span class="s1">&#39;parrot_exc&#39;</span><span class="p">)],</span>
+        <span class="s1">&#39;topology_dependent&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">False</span><span class="p">,</span> <span class="bp">False</span><span class="p">],</span>
+        <span class="s1">&#39;conn_specs&#39;</span><span class="p">:</span> <span class="p">[{</span><span class="s1">&#39;rule&#39;</span><span class="p">:</span> <span class="s1">&#39;all_to_all&#39;</span><span class="p">},</span> <span class="p">{</span><span class="s1">&#39;rule&#39;</span><span class="p">:</span> <span class="s1">&#39;all_to_all&#39;</span><span class="p">}],</span>
+        <span class="s1">&#39;syn_specs&#39;</span><span class="p">:</span> <span class="p">[{},</span> <span class="p">{}],</span>
+        <span class="s1">&#39;models&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;static_synapse&#39;</span><span class="p">,</span> <span class="s1">&#39;static_synapse&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;model_pars&#39;</span><span class="p">:</span> <span class="p">[{},</span> <span class="p">{}],</span>
+        <span class="s1">&#39;weight_dist&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">20.</span><span class="p">],</span>
+        <span class="s1">&#39;delay_dist&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">encoder_delay</span><span class="p">,</span> <span class="n">encoder_delay</span><span class="p">],</span>
+        <span class="s1">&#39;preset_W&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">]}}</span>
+</pre></div>
+
+
+<p>When creating the encoding layer, you can pass a signal as input for the generators, and you can choose to 
+ precompute the output of the encoders (<code>online=False</code>) or generate it on-the-fly during simulation (<code>online=True</code>):  </p>
+<div class="codehilite"><pre><span></span><span class="n">enc_layer</span> <span class="o">=</span> <span class="n">EncodingLayer</span><span class="p">(</span><span class="n">parameter_set</span><span class="o">.</span><span class="n">encoding_pars</span><span class="p">,</span> <span class="n">signal</span><span class="o">=</span><span class="n">inputs</span><span class="o">.</span><span class="n">full_set_signal</span><span class="p">,</span> <span class="n">online</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 <span class="n">enc_layer</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">parameter_set</span><span class="o">.</span><span class="n">encoding_pars</span><span class="p">,</span> <span class="n">net</span><span class="p">)</span>
 </pre></div>
 
 
 <h4 id="decoding"><strong>Decoding</strong><a class="headerlink" href="#decoding" title="Permanent link">&para;</a></h4>
-<p>-</p>
+<div class="codehilite"><pre><span></span><span class="n">decoders</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+    <span class="n">decoded_population</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">],</span> <span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">],</span>
+    <span class="n">state_variable</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;V_m&#39;</span><span class="p">,</span> <span class="s1">&#39;spikes&#39;</span><span class="p">,</span> <span class="s1">&#39;V_m&#39;</span><span class="p">,</span> <span class="s1">&#39;spikes&#39;</span><span class="p">,</span> <span class="s1">&#39;V_m&#39;</span><span class="p">,</span> <span class="s1">&#39;spikes&#39;</span><span class="p">],</span>
+    <span class="n">filter_time</span><span class="o">=</span><span class="n">filter_tau</span><span class="p">,</span>
+    <span class="n">readouts</span><span class="o">=</span><span class="n">readout_labels</span><span class="p">,</span>
+    <span class="n">readout_algorithms</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;ridge&#39;</span><span class="p">,</span> <span class="s1">&#39;ridge&#39;</span><span class="p">,</span> <span class="s1">&#39;ridge&#39;</span><span class="p">,</span> <span class="s1">&#39;ridge&#39;</span><span class="p">,</span> <span class="s1">&#39;ridge&#39;</span><span class="p">,</span> <span class="s1">&#39;ridge&#39;</span><span class="p">],</span>
+    <span class="n">global_sampling_times</span><span class="o">=</span><span class="n">state_sampling</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+
+
 <div class="codehilite"><pre><span></span><span class="n">net</span><span class="o">.</span><span class="n">connect_decoders</span><span class="p">(</span><span class="n">parameter_set</span><span class="o">.</span><span class="n">decoding_pars</span><span class="p">)</span>
 <span class="n">enc_layer</span><span class="o">.</span><span class="n">connect_decoders</span><span class="p">(</span><span class="n">parameter_set</span><span class="o">.</span><span class="n">encoding_pars</span><span class="o">.</span><span class="n">input_decoder</span><span class="p">)</span>
 </pre></div>
@@ -1092,10 +1155,6 @@ be applied to <code>i_stim_i</code> and <code>max_amplitude</code>. (test)</p>
 
 <h4 id="analysis"><strong>Analysis</strong><a class="headerlink" href="#analysis" title="Permanent link">&para;</a></h4>
 <p>-</p>
-<div class="codehilite"><pre><span></span>
-</pre></div>
-
-
 <h3 id="parameter-presets">Parameter presets<a class="headerlink" href="#parameter-presets" title="Permanent link">&para;</a></h3>
 <p>For convenience, to reduce the length and complexity of the parameter files and the likelihood of
 accidentally changing the values of fixed, commonly used parameter sets, we typically include a set of
