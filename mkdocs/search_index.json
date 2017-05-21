@@ -217,7 +217,7 @@
         }, 
         {
             "location": "/single-neuron-with-patterned-synaptic-input/", 
-            "text": "", 
+            "text": "NOTE:\n to run this example, you need the NEST version containing the inhomogeneous Poisson generator (currently \navailable as a \nPull Request here\n)\n\n\nThis example illustrates one way how input signals can be transformed into spike patterns in the Encoding Layer to \nsimulate synaptic bombardment of neuronal populations (here only a single neuron).  \n\n\n\n\nThe set of input signals is composed of two independent noise channels that will later act as excitatory (blue) and \ninhibitory (red) input, modeled as independent Ornstein-Uhlenbeck \nprocesses. Each of the signals drives one inhomogeneous Poisson generator in the Encoding Layer: at given intervals, \nthese input signals are sampled and the values are used to set / update the firing rate of the generators. This way, \nthe generators transform the input signals into Poisson spike trains that are passed to the encoders. There are two encoders \nin this, consisting of a number of parrot neurons, which means they only forward the incoming spikes to the population they are connected to.\n\n\nNote that, behind the scenes, there are as many NEST spike generators created as the dimensionality the Encoders, so \neach parrot neuron will receive and independent Poisson spike train as input.\n\n\nTo run this example execute:\n\n\npython\n \nmain\n.\npy\n \n-\nf\n \n./\nprojects\n/\nexamples\n/\nparameters\n/\nsingle_neuron_patterned_synaptic_input\n.\npy\n \n-\nc\n \nsingle_neuron_pattern_input\n \n--\nextra\n \nplot\n=\nTrue\n \ndisplay\n=\nFalse\n \nsave\n=\nTrue\n\n\n\n\n\n\nAfter running the example you should see 3 figures: the input signal of the two channels and the main output reporting some statistics for the single neuron:\nhistogram of the inter-spike intervals (ISI), firing rate, coefficient of variation (CV_ISI), Fano Factor, and the time \ncourse of the synaptic current (I_syn) and membrane potential (V_m).", 
             "title": "Single neuron with patterned synaptic input"
         }, 
         {
@@ -232,7 +232,7 @@
         }, 
         {
             "location": "/release-notes/", 
-            "text": "Release notes\n\n\nUpgrading\n\n\nTo upgrade Material to the latest version, use pip:\n\n\npip install --upgrade mkdocs-material\n\n\n\n\n\nTo determine the currently installed version, use the following command:\n\n\npython main.py --version\n\n\n\n```\n\n\nChangelog\n\n\n0.1 \n _ May 19, 2017\n\n\n\n\nInitial release", 
+            "text": "Release notes\n\n\nUpgrading\n\n\nTo determine the currently installed version, use the following command:\n\n\npython main.py --version\n\n\n\n\n\nSince the repository currently only lives on Github, just pull from the master branch to get the latest version. \n\n\nChangelog\n\n\n0.1 \n _ May 21, 2017\n\n\n\n\nInitial release", 
             "title": "Release notes"
         }, 
         {
@@ -242,7 +242,7 @@
         }, 
         {
             "location": "/release-notes/#upgrading", 
-            "text": "To upgrade Material to the latest version, use pip:  pip install --upgrade mkdocs-material  To determine the currently installed version, use the following command:  python main.py --version \n\n```", 
+            "text": "To determine the currently installed version, use the following command:  python main.py --version  Since the repository currently only lives on Github, just pull from the master branch to get the latest version.", 
             "title": "Upgrading"
         }, 
         {
@@ -251,9 +251,9 @@
             "title": "Changelog"
         }, 
         {
-            "location": "/release-notes/#01-_-may-19-2017", 
+            "location": "/release-notes/#01-_-may-21-2017", 
             "text": "Initial release", 
-            "title": "0.1  _ May 19, 2017"
+            "title": "0.1  _ May 21, 2017"
         }, 
         {
             "location": "/contributing/", 

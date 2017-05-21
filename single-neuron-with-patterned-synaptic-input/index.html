@@ -474,7 +474,28 @@
                 
                   <h1>Single neuron with patterned synaptic input</h1>
                 
-                
+                <p><strong>NOTE:</strong> to run this example, you need the NEST version containing the inhomogeneous Poisson generator (currently 
+available as a <a href="https://github.com/nest/nest-simulator/pull/671">Pull Request here</a>)</p>
+<p>This example illustrates one way how input signals can be transformed into spike patterns in the Encoding Layer to 
+simulate synaptic bombardment of neuronal populations (here only a single neuron).  </p>
+<p><img alt="alt-text" src="../images/example2-01.png" /></p>
+<p>The set of input signals is composed of two independent noise channels that will later act as excitatory (blue) and 
+inhibitory (red) input, modeled as independent Ornstein-Uhlenbeck 
+processes. Each of the signals drives one inhomogeneous Poisson generator in the Encoding Layer: at given intervals, 
+these input signals are sampled and the values are used to set / update the firing rate of the generators. This way, 
+the generators transform the input signals into Poisson spike trains that are passed to the encoders. There are two encoders 
+in this, consisting of a number of parrot neurons, which means they only forward the incoming spikes to the population they are connected to.</p>
+<p>Note that, behind the scenes, there are as many NEST spike generators created as the dimensionality the Encoders, so 
+each parrot neuron will receive and independent Poisson spike train as input.</p>
+<p>To run this example execute:</p>
+<div class="codehilite"><pre><span></span><span class="n">python</span> <span class="n">main</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">f</span> <span class="o">./</span><span class="n">projects</span><span class="o">/</span><span class="n">examples</span><span class="o">/</span><span class="n">parameters</span><span class="o">/</span><span class="n">single_neuron_patterned_synaptic_input</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">c</span> <span class="n">single_neuron_pattern_input</span> <span class="o">--</span><span class="n">extra</span> <span class="n">plot</span><span class="o">=</span><span class="bp">True</span> <span class="n">display</span><span class="o">=</span><span class="bp">False</span> <span class="n">save</span><span class="o">=</span><span class="bp">True</span>
+</pre></div>
+
+
+<p>After running the example you should see 3 figures: the input signal of the two channels and the main output reporting some statistics for the single neuron:
+histogram of the inter-spike intervals (ISI), firing rate, coefficient of variation (CV_ISI), Fano Factor, and the time 
+course of the synaptic current (I_syn) and membrane potential (V_m).  </p>
+<p><img alt="alt-text" src="../images/example2-02.png" /></p>
                 
                   
                 
