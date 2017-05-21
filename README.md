@@ -34,7 +34,7 @@ due to the strict specificities on the structure of the parameters dictionaries 
 ### Getting started
 
 For a detailed description of the framework and to make the most out of it, please read the 
-[documentation](https://zbarni.github.io/nmsat/). 
+[documentation](https://rcfduarte.github.io/nmsat/). 
 
 #### Dependencies
 
@@ -111,7 +111,7 @@ where `parameters_file` refers to the (full or relative) path to the parameters 
 set (must match the name of a file in the project’s ’computations’ folder) and `extra_parameters` are
 parameter=value pairs for different, extra parameters (specific to each computation).
 
-To run experiments on a cluster, please check out the [documentation](https://zbarni.github.io/network_simulation_testbed/standard-use-case/#cluster).
+To run experiments on a cluster, please check out the [documentation](https://rcfduarte.github.io/nmsat/standard-use-case/#cluster).
 
 <!--A numerical simulation/experiment is specified as a global parameter file, a complete script parsing the parameters and executing the experiment (primarily usefull for development/debugging) and a similar function that executes the same series of commands but can be executed directly from main as:-->
 <!--```-->
