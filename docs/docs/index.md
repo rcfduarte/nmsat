@@ -19,7 +19,7 @@ local machine, in a computer cluster or a supercomputer, with straightforward re
 (see [kernel parameters](/parameters/#kernel)).
 
 
-The code is licensed under GPLv3 and available on [GitHub](https://github.com/rcfduarte/nmsat).
+The code is licensed under GPLv2 and available on [GitHub](https://github.com/rcfduarte/nmsat).
 
 
 ## Disclaimer

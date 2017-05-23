@@ -18,7 +18,7 @@ an effortless migration across computing systems, i.e. the same simulations can 
 local machine, in a computer cluster or a supercomputer, with straightforward resource allocation
 (see kernel parameters). 
 
-The code is licensed under GPLv3 and available on [GitHub](https://github.com/rcfduarte/nmsat/).
+The code is licensed under GPLv2 and available on [GitHub](https://github.com/rcfduarte/nmsat/).
 
 
 ### Disclaimer
