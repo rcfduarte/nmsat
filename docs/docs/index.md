@@ -35,7 +35,10 @@ run different, but specialized, numerical experiments, in a fully transparent an
 
 
 ### Citing us
-If you find NMSAT helpful and use it in your research, please cite it as [zenodo]
+If you find NMSAT helpful and use it in your research, please cite it as:
+
+Renato Duarte, Barna Zajzon & Abigail Morrison. (2017). Neural Microcircuit Simulation and Analysis Toolkit [Data set]. Zenodo.
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.582645.svg)](https://doi.org/10.5281/zenodo.582645)
 
 ## Acknowledgements
 This work was done in the **[Functional Neural Circuits](http://www.fz-juelich.de/inm/inm-6/EN/Forschung/Morrison/artikel.html)** group, at the Institute for Neuroscience and Medicine (INM-6) and Institute for Advanced Simulation (IAS-6), Jülich Research Centre, Jülich, Germany. 
