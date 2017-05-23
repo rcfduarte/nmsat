@@ -1,4 +1,9 @@
-# Neural Microcircuit Simulation and Analysis Toolkit (NMSAT)
+# 
+
+<!--# Neural Microcircuit Simulation and Analysis Toolkit (NMSAT)-->
+
+![alt-text](/images/NMSAT.png)
+
 
 ## What is it?
 
