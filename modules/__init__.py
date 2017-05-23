@@ -10,7 +10,7 @@ properties as well as develop complex, analysis, data processing
 and plotting of the resulting data.
 
 """
-__all__ = ['analysis', 'io', 'parameters', 'input_architect', 'signals', 'net_architect', 'visualization']
+__all__ = ['analysis', 'io', 'parameters', 'input_architect', 'signals', 'net_architect', 'visualization', 'auxiliary']
 
 
 def get_import_warning(name):

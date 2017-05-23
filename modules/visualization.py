@@ -3,6 +3,7 @@ __author__ = 'duarte'
 ============================================================================================
 Visualization Module
 ============================================================================================
+(incomplete documentation)
 
 Provides all the relevant classes, methods and functions for plotting routines
 
@@ -108,6 +109,7 @@ def plot_kernel(src_gid, kernel=None, ax=None, color='r'):
 			raise ValueError('Kernel type cannot be plotted with this version of PyTopology')
 
 
+# TODO - this is currently not used (needs to be tested)
 def plot_mask(src_gid, mask=None, ax=None, color='r'):
 	"""
 	*** adapted from nest.topology.PlotKernel
@@ -311,6 +313,7 @@ def isi_analysis_histogram_axes(label=''):
 	return fig1, [ax11, ax12, ax13, ax14, ax15, ax16, ax17, ax18, ax19]
 
 
+# TODO - remove
 def connectivity_axes(synapse_types, equal=True):
 	"""
 	Returns the axes handles for connectivity plots (one axis per synapse type)
@@ -377,8 +380,6 @@ def plot_state_analysis(parameter_set, results, summary_only=False, start=None, 
 		ax1 = pl.subplot2grid((25, 1), loc=(0, 0), rowspan=20, colspan=1)
 		ax2 = pl.subplot2grid((25, 1), loc=(20, 0), rowspan=5, colspan=1, sharex=ax1)
 
-	# TODO @barni QUESTION how many different populations do we want to support?
-	# there's ax.set_color_cycle() option, but it's cyclic..
 	colors = ['b', 'r', 'Orange', 'gray', 'g'] # color sequence for the different populations (TODO automate)
 
 	if bool(results['spiking_activity']):
@@ -629,7 +630,7 @@ def test_offline_filtering(spike_list, N, dt, tau):
 
 def plot_single_raster(times, ax, t_start=0, t_stop=1000):
 	"""
-	Plot the spike times of a single SpikeTrain
+	Plot the spike times of a single SpikeTrain as a vertical line
 	:param times:
 	:param ax:
 	:param t_start:
@@ -649,7 +650,8 @@ def plot_single_raster(times, ax, t_start=0, t_stop=1000):
 
 def plot_acc(t, accs, fit_params, acc_function, title='', ax=None, display=True, save=False):
 	"""
-
+	Plot autocorrelation decay and exponential fit (can be used for other purposes where an exponential fit to the 
+	data is suitable
 	:param t:
 	:param accs:
 	:param fit_params:
@@ -768,7 +770,7 @@ def plot_3d_parscans(image_arrays=[], axis=[], dimensions=[10, 10, 10], fig_hand
                      boundaries=[],
                      **kwargs):
 	"""
-
+	Plot results when 3 different parameter axes are used.. (needs further testing)
 	:return:
 	"""
 	assert(has_mayavi), "mayavi required"
@@ -1130,7 +1132,6 @@ class SpikePlots(object):
 				if start-500 < on < stop+500:
 					ax.fill_betweenx(y_range, on, offsets[idx], facecolor=color_map(k), alpha=0.3)
 
-	# TODO we should provide this function also when only summary is used / not all measures.. check for existing keys
 	def print_activity_report(self, results=None, label='', n_pairs=500):
 		"""
 		Displays on screen a summary of the network settings and main statistics
@@ -1317,7 +1318,6 @@ class AnalogSignalPlots(object):
 
 
 ############################################################################################
-# TODO has this been tested? Does it work? @barni
 class TopologyPlots(object):
 	"""
 	Class of plotting routines for network topologies
@@ -1441,7 +1441,7 @@ class TopologyPlots(object):
 
 	def plot_spectral_radius(self):
 		"""
-
+		plot the spectral radius of the full connectivity matrix (modify/test)
 		:return:
 		"""
 		eigs = linalg.eigvals(self.full_weights)
@@ -1565,9 +1565,6 @@ class TopologyPlots(object):
 				else:
 					print("Sources [%s] in population %s have no target in population %s" % (str(src_ids), str(n[1]),
 					                                                                         str(n[0])))
-
-				# TODO: make source marker dependent on the other values
-				#  mark sender position
 				src_pos = tp.GetPosition([src_ids])[0]
 				ax.plot(src_pos[0], src_pos[1], 'D', ms=30, c=self.colors[src_idx], label='Source [%s/%s]' % (
 				str(src_ids), str(n[1])))
@@ -2172,25 +2169,6 @@ class ActivityAnimator(object):
 
 	def __plot_trajectory(self, ax=None, start=None, stop=None, colors=['b'], shift_only=False, dt=1., ax_props={}):
 		pass
-	# def animate_trajectory(response_matrix, pca_fit_obj, interval=100, label='', ax=None, fig=None, display=True,
-	# 					   save=False):
-	#
-		# if ax is None:
-		# 	fig = pl.figure()
-		# 	ax = fig.add_subplot(111, projection='3d')
-		# 	ax.grid(False)
-		#
-		# def animate(i):
-		# 	X = pca_fit_obj.transform(response_matrix.as_array()[:, :i + 1].transpose())
-		#
-		# 	ax.clear()
-		# 	ax.plot(X[:, 0], X[:, 1], X[:, 2], color='r', lw=2)
-		# 	ax.set_title(label + r'$ - t = {0}$ / (3PCs) $= {1}$'.format(str(i),
-		# 																 str(round(np.sum(
-		# 																	 pca_fit_obj.explained_variance_ratio_[:3]),
-		# 																		   1))))
-		#
-		# ani = animation.FuncAnimation(fig, animate, interval=10)
 
 	def __has_activity(self, activities, key):
 		return bool(activities is not None and key in activities)
@@ -2272,27 +2250,6 @@ class ActivityAnimator(object):
 			pl.show(False)
 
 
-# def plot_vm(vm, times, ax, color, lw=1, v_reset=-70., v_th=-50.):
-# 	"""
-#
-# 	:param vm:
-# 	:param times:
-# 	:param ax:
-# 	:param color:
-# 	:param lw:
-# 	:param v_reset:
-# 	:param v_th:
-# 	:return:
-# 	"""
-# 	ax.plot(times, vm, c=color)
-# 	#ax.set_xlabel('Time [ms]')
-# 	ax.set_ylabel(r'$V_{m}$')
-# 	idxs = vm.argsort()
-# 	possible_spike_times = [t for t in idxs if (t < len(vm) - 1) and (vm[t + 1] == v_reset) and (vm[t] != v_reset)]
-# 	ax.vlines(times[possible_spike_times], v_th, 50., color='k')
-# 	ax.set_ylim(min(vm) - 5., 10.)
-
-
 def plot_trajectory(response_matrix, pca_fit_obj=None, label='', color='r', ax=None, display=True, save=False):
 	"""
 
@@ -2324,29 +2281,6 @@ def plot_trajectory(response_matrix, pca_fit_obj=None, label='', color='r', ax=N
 	if save:
 		pl.savefig('{0}_trajectory.pdf'.format(save))
 
-
-# def animate_trajectory(response_matrix, pca_fit_obj, interval=100, label='', ax=None, fig=None, display=True,
-#                        save=False):
-#
-# 	if ax is None and fig is None:
-# 		fig = pl.figure()
-# 		ax = fig.add_subplot(111, projection='3d')
-# 		ax.grid(False)
-#
-# 	def animate(i):
-# 		X = pca_fit_obj.transform(response_matrix.as_array()[:, :i+1].transpose())
-#
-# 		ax.clear()
-# 		ax.plot(X[:, 0], X[:, 1], X[:, 2], color='r', lw=2)
-# 		ax.set_title(label + r'$ - t = {0}$ / (3PCs) $= {1}$'.format(str(i),
-#                     str(round(np.sum(pca_fit_obj.explained_variance_ratio_[:3]), 1))))
-#
-# 	ani = animation.FuncAnimation(fig, animate, interval=10)
-#
-# 	if display:
-# 		pl.show(False)
-# 	if save:
-# 		ani.save('{0}_animation.gif'.format(save), fps=1000)
 
 def plot_response(population, ids=None, spiking_activity=None, display=True, save=False):
 	"""
