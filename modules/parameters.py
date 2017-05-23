@@ -1,8 +1,7 @@
-__author__ = 'duarte'
 """
-====================================================================================
+========================================================================================================================
 Parameters Module
-====================================================================================
+========================================================================================================================
 (incomplete documentation)
 
 Module for dealing with model parameters
@@ -30,6 +29,29 @@ nesteddict_flatten - flatten a nested dictionary
 load_parameters - easiest way to create a ParameterSet from a dictionary file
 string_table - convert a table written as multi-line string into a nested dictionary
 copy_dict - copies a dictionary and updates it with extra key-value pairs
+
+========================================================================================================================
+Copyright (C) 2017  Renato Duarte, Barna Zajzon
+
+Uses parts from NeuroTools for which Copyright (C) 2008  Daniel Bruederle, Andrew Davison, Jens Kremkow
+Laurent Perrinet, Michael Schmuker, Eilif Muller, Eric Mueller, Pierre Yger
+
+Neural Mircocircuit Simulation and Analysis Toolkit is free software;
+you can redistribute it and/or modify it under the terms of the
+GNU General Public License as published by the Free Software Foundation;
+either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along
+with this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+The GNU General Public License does not permit this software to be
+redistributed in proprietary programs.
 """
 
 import numpy as np

@@ -1,4 +1,3 @@
-__author__ = 'duarte'
 """
 ========================================================================================================================
 Network Architect Module
@@ -15,6 +14,27 @@ Functions
 verify_pars_consistency   - verify if all the relevant lists in a parameter set have the same dimensionality
 iterate_obj_list          - build an iterator to go through the elements of a list or nested list
 extract_weights_matrix    - extract synaptic weights matrix
+
+========================================================================================================================
+Copyright (C) 2017  Renato Duarte, Barna Zajzon
+
+Neural Mircocircuit Simulation and Analysis Toolkit is free software;
+you can redistribute it and/or modify it under the terms of the
+GNU General Public License as published by the Free Software Foundation;
+either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along
+with this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+The GNU General Public License does not permit this software to be
+redistributed in proprietary programs.
+
 """
 # other imports
 import itertools
