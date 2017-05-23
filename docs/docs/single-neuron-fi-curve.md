@@ -11,4 +11,4 @@ To run this example execute:
 python main.py -f projects/examples/parameters/single_neuron_fI.py -c single_neuron_fIcurve --extra plot=True display=True save=True
 ```
 
-(...)
+The output should display the neuron's fI curve, as well as a sample of its response (to the first current amplitude that drives the neuron to fire). There are two additional plots that refer to an adaptation index, to determine the degree of irregularity in the inter-spike intervals (primarily for neurons that display an adaptive firing pattern). 

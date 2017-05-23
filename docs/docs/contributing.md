@@ -20,7 +20,7 @@ to the [issue tracker][2] in our GitHub repository. Even better, you can submit
 a Pull Request with a fix. However, before doing so, please read the
 [submission guidelines][3].
 
-  [2]: https://github.com/zbarni/nmsat/issues
+  [2]: https://github.com/rcfduarte/nmsat/issues
   [3]: #submission-guidelines
 
 ### Missing a feature?

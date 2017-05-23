@@ -2,7 +2,7 @@
 
 We currently don’t provide the code as a standard library that can be easily installed. In future
 versions, we will try to work on this and improve usability. For the moment, to use the code there is
-no explicit installation involved. Just fork and clone the Github repository from [here.](https://github.com/zbarni/nmsat/)
+no explicit installation involved. Just fork and clone the Github repository from [here.](https://github.com/rcfduarte/nmsat/)
 
 
 ## Dependencies

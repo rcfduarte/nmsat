@@ -1,4 +1,4 @@
-The input_architect module handles everything related to input stimuli and signals. It is
+The `input_architect.py` module handles everything related to input stimuli and signals. It is
 designed to encompass a large variety of input stimuli / signals, patterned according to complex
 specifications. However, at the moment, due to recent changes, not all variants have been tested.
 None of the following components of the input construction process is strictly necessary. For example,
@@ -12,4 +12,3 @@ and test sets)
 * `InputSignal` – Generate and store AnalogSignal object referring to the structured input
 signal u(t)
 * `InputNoise` – Generate and store AnalogSignal object referring to the noise signal
-(...)
