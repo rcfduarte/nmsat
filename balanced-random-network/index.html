@@ -474,13 +474,16 @@
                 
                   <h1>Balanced random network</h1>
                 
-                <p>In this simple example, we perform a very simple and common experiment: determining the responses
-of a single neuron to injected current at different amplitudes. The specific setup is illustrated below</p>
+                <p>This example consists of a balanced random network, driven by Poissonian external input, and is a commonly used setup to characterize population dynamics. The specific setup for this example is illustrated below:</p>
 <p><img alt="alt-text" src="../images/example3-01.png" /></p>
-<p>In this simple setup, one single generator, a <code>’step_current_generator’</code> is used and a single neuron composes the whole network.</p>
+<p>In this simple setup, one single generator, a <code>’poisson_generator’</code> is used and connects to all the neurons in the network (note that the generator draws independent realizations of Poisson spike trains at the specified rate for each target neuron). </p>
 <p>To run this example execute:</p>
 <div class="codehilite"><pre><span></span><span class="n">python</span> <span class="n">main</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">f</span> <span class="n">projects</span><span class="o">/</span><span class="n">examples</span><span class="o">/</span><span class="n">parameters</span><span class="o">/</span><span class="n">noise_driven_dynamics</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">c</span> <span class="n">population_noisedriven</span> <span class="o">--</span><span class="n">extra</span> <span class="n">plot</span><span class="o">=</span><span class="bp">True</span> <span class="n">display</span><span class="o">=</span><span class="bp">True</span> <span class="n">save</span><span class="o">=</span><span class="bp">True</span>
 </pre></div>
+
+
+<p>The output of this analysis, in the simplest case, consists of a raster plot displaying the population spiking activity, mean rates and (if an analog activity recorder is connected) an example of the input synaptic currents and membrane potential of a randomly chosen neuron. In addition, a summarized activity report is displayed.
+The analysis parameters for this experiment allow the specification of which metrics are applied, as these vary in complexity and required computing time. This is accomplished with the parameter <code>’depth’</code>, as described in the comments. Note that the most complete characterization can be quite resource- and time-consuming.</p>
                 
                   
                 

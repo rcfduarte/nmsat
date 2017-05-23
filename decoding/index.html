@@ -544,41 +544,34 @@
                 <h3 id="specifying-state-variables">Specifying state variables<a class="headerlink" href="#specifying-state-variables" title="Permanent link">&para;</a></h3>
 <p>In the current implementation, one can simultaneously record and readout all relevant variables, for
 comparison purposes (as long as they are recordable). To do so, we just specify which populations
-to read, and which variable to read from. This is done in the dictionary that is passed as argu-
-ment to the decoding defaults (see below), namely the key variables <code>decoded_population</code> and
+to read, and which variable to read from. This is done in the dictionary that is passed as argument to the decoding defaults (see below), namely the key variables <code>decoded_population</code> and
 <code>state_variable</code>.</p>
 <p>These two variables need to be lists of equal length. A given decoded_population can be
 specified as a sub-list, which means that we want to extract 1 state matrix from the combination of
-the two referred populations (which are merged for this purpose). See example below..</p>
+the two referred populations (which are merged for this purpose). See example below.</p>
 <h3 id="state-sampling-methods">State sampling methods<a class="headerlink" href="#state-sampling-methods" title="Permanent link">&para;</a></h3>
 <p>The population responses to the stimuli can also be extracted in various different ways, by taking
-samples of the state variable under consideration. In the current implementation this is simply done
-with the decoder variable global_sampling_times:</p>
+samples of the state variable under consideration. In the current implementation this is simply done with the decoder variable global_sampling_times:</p>
 <ul>
-<li>One-sample at the end of each stimulus (default, t* ):<ul>
+<li>One-sample at the stimulus offset (default, t* ):<ul>
 <li><code>global_sampling_times = None</code></li>
 <li>one population state vector per stimulus</li>
 </ul>
 </li>
-<li>Multiple samples taken at specific times (all stimuli must have the same duration, or at least
-the sample times cannot fall outside the stimulus duration):<ul>
-<li>global_sampling_times is a list of np.array of times (from stimulus onset) - length
-N*</li>
+<li>Multiple samples taken at specific times (all stimuli must have the same duration):<ul>
+<li>global_sampling_times is given as a list of np.array of times (from stimulus onset) - length N*</li>
 <li>one population state vector per sampling time</li>
-<li>constructs N * state matrices that will be independently readout</li>
+<li>constructs N* state matrices that will be independently readout</li>
 </ul>
 </li>
 <li>Sub-sampling responses at a fixed rate:<ul>
-<li>global_sampling_times = 1/10 is a fraction (one sample every 10 steps, step
-size being the input resolution)</li>
-<li>constructs one long state matrix corresponding to the full response (in the limit, if
-global_sampling_times = 1/10, this corresponds to the entire activity history)</li>
-<li>the target is also downsampled at the same rate, implementing a kind of continuous
-readout..</li>
+<li>global_sampling_times = 1/10 is given as a fraction (one sample every 10 steps, step size being the input resolution)</li>
+<li>constructs one long state matrix corresponding to the full response (in the limit, if global_sampling_times = 1, this corresponds to the entire activity history, sampled at the input resolution)</li>
+<li>the target is also downsampled to the same rate, implementing an approximation to a continuous readout.</li>
 </ul>
 </li>
 </ul>
-<p>These different methods are used for different purposes, to assess different features of the responses. See Examples.</p>
+<p>These different methods are used for different purposes, to assess different features of the responses. See Examples. Note that in the current version only the first sampling method is fully implemented and tested.</p>
 <h3 id="readouts">Readouts<a class="headerlink" href="#readouts" title="Permanent link">&para;</a></h3>
 <p>Currently available algorithms are:</p>
 <ul>
@@ -588,7 +581,10 @@ readout..</li>
 <li>Perceptron - <strong>'perceptron'</strong></li>
 <li>Linear SVM - <strong>'svm-linear'</strong></li>
 <li>Non-linear SVM (radial basis function) - <strong>'svm-rbf'</strong></li>
+<li>Elastic Net - <strong>'elastic'</strong></li>
+<li>Bayesian Ridge - <strong>'bayesian_ridge'</strong></li>
 </ul>
+<p>The decoding parameters should abide to the following structure:</p>
 <div class="codehilite"><pre><span></span><span class="n">decoders</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
     <span class="n">decoded_population</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">],</span> <span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">],</span>
     <span class="n">state_variable</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;V_m&#39;</span><span class="p">,</span> <span class="s1">&#39;spikes&#39;</span><span class="p">,</span> <span class="s1">&#39;V_m&#39;</span><span class="p">,</span> <span class="s1">&#39;spikes&#39;</span><span class="p">,</span> <span class="s1">&#39;V_m&#39;</span><span class="p">,</span> <span class="s1">&#39;spikes&#39;</span><span class="p">],</span>

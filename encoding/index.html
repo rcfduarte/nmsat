@@ -474,15 +474,11 @@
                 
                   <h1>Encoding layer</h1>
                 
-                <p>The EncodingLayer class wraps all the encoding process. It’s main constituents are:</p>
+                <p>The EncodingLayer class wraps all the encoding process, involving the conversion of the continuous input signals. It’s main constituents are:</p>
 <ul>
 <li><code>Generator</code> – consists of a NEST generator device (e.g. spike_generator, step_current_generator,
-inh_poisson_generator). Note that in the parameter specifications, N refers to the num-
-ber of unique devices in the setup not the number of devices of a certain type (this is later
-acquired by the dimensionality of the input signal to be encoded - 1 unique generator device
-per input dimension)</li>
-<li><code>Encoder</code> – consists of a Population object containing a layer of spiking neurons or some other
-mechanism that converts the continuous input into spike trains to be fed to the network</li>
+inh_poisson_generator). Note that in the parameter specifications, N refers to the number of unique devices in the setup not the number of devices of a certain type (this is later acquired by the dimensionality of the input signal to be encoded - 1 unique generator device per input dimension)</li>
+<li><code>Encoder</code> – consists of a Population object containing a layer of spiking neurons or some other mechanism that converts the continuous input into spike trains to be fed to the network</li>
 </ul>
                 
                   
