@@ -199,9 +199,9 @@ If you find NMSAT useful and use it in your research, please cite it as [zenodo]
 
 ### License 
 
-Copyright (C) 2017  Renato Duarte  
+Copyright (C) 2017  Renato Duarte, Barna Zajzon  
 
-Copyright (C) 2008  Daniel Bruederle, Andrew Davison, Jens Kremkow
+Uses parts from NeuroTools for which Copyright (C) 2008  Daniel Bruederle, Andrew Davison, Jens Kremkow
 Laurent Perrinet, Michael Schmuker, Eilif Muller, Eric Mueller, Pierre Yger
 
 Neural Mircocircuit Simulation and Analysis Toolkit is free software; you can redistribute it and/or modify
@@ -226,4 +226,8 @@ See the [LICENSE](LICENSE) file for details.
 
 ### Acknowledgments
 
-* funding...
+This work was done in the **[Functional Neural Circuits](http://www.fz-juelich.de/inm/inm-6/EN/Forschung/Morrison/artikel.html)** group, at the Institute for Neuroscience and Medicine (INM-6) and Institute for Advanced Simulation (IAS-6), Jülich Research Centre, Jülich, Germany. 
+We would like to thank Professor Abigail Morrison for her continued patience, advice and support and the **[Neurobiology of Language](http://www.mpi.nl/departments/neurobiology-of-language)** group, at the Max-Planck for Psycholinguistics, for valuable discussions and contributions.
+
+We acknowledge partial support by the Erasmus Mundus Joint Doctoral Program EuroSPIN, the German Ministry for Education and Research (Bundesministerium für Bildung und Forschung) BMBF Grant 01GQ0420 to BCCN Freiburg, the Helmholtz Alliance on Systems Biology (Germany), the Initiative and Networking Fund of the Helmholtz Association, the Helmholtz Portfolio theme ‘Supercomputing and Modeling for the Human Brain’.
+We additionally acknowledge the computing time granted by the JARA-HPC Vergabegremium on the supercomputer **[JURECA](https://jlsrf.org/index.php/lsf/article/view/121/pdf)** at Forschungszentrum Jülich, used during development.
