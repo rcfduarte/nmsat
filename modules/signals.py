@@ -3,10 +3,9 @@ __author__ = 'duarte'
 ====================================================================================
 Signals Module
 ====================================================================================
-(adapted and modified from NeuroTools.signals and stgen)
-
 Collection of utilities and functions to create, use and manipulate signals (spike
 data or analog data)
+(incomplete documentation)
 
 Classes:
 ---------------------
@@ -20,13 +19,6 @@ AnalogSignalList      - list of AnalogSignal objects, with all relevant methods 
 VmList                - AnalogSignalList object specific for Vm traces
 ConductanceList       - AnalogSignalList object used for conductance traces
 CurrentList           - AnalogSignalList object used for current traces
-
-Interval              - object to handle time intervals
-
-PairsGenerator        -
-RandomPairs           -
-
-DistantDependentPairs -
 StochasticGenerator   - object used to generate and handle stochastic input data
 ----------------------
 """
@@ -48,6 +40,7 @@ has_pyspike = check_dependency('pyspike')
 if has_pyspike:
 	import pyspike as spk
 import nest
+
 
 # TODO this should go into auxiliary, too generic..
 def empty(seq):
@@ -174,13 +167,7 @@ def shotnoise_fromspikes(spike_train, q, tau, dt=0.1, t_start=None, t_stop=None,
 	:param t_stop: stop time of the resulting AnalogSignal. If unspecified, t_stop of spike_train is used
 	:param array: if True, returns (shotnoise,t) as numpy arrays, otherwise an AnalogSignal.
 	:param eps: - a numerical parameter indicating at what value of the shot kernel the tail is cut.  The
-	default is
-	usually fine.
-	Examples:
-	---------
-		>> stg = stgen.StGen()
-		>> st = stg.poisson_generator(10.0,0.0,1000.0)
-		>> g_e = shotnoise_fromspikes(st,2.0,10.0,dt=0.1)
+	default is usually fine.
 	"""
 	def spike_index_search(t_steps, spike_times):
 		"""
@@ -236,7 +223,7 @@ def shotnoise_fromspikes(spike_train, q, tau, dt=0.1, t_start=None, t_stop=None,
 	if array:
 		signal_t_size = int(np.round((t_stop - window_start) / dt))
 		signal_t = np.linspace(window_start, t_stop, num=signal_t_size, endpoint=False) #np.arange(window_start, t_stop, dt)
-		signal_y = y[-len(signal_t):]  # was y[-len(t):] !!! leads to an error, len(signal_t) == len(signal_y) should hold!
+		signal_y = y[-len(signal_t):]
 		return signal_y, signal_t
 	else:
 		result = AnalogSignal(y, dt, t_start=0.0, t_stop=t_stop - t_start)
@@ -262,13 +249,12 @@ def rescale_list(OldList, NewMin, NewMax):
 
 #################################################################################
 def hammingDistance(s1, s2):
-    """
+	"""
     Return the Hamming distance between equal-length sequences
-    (from wikipedia)
     """
-    if len(s1) != len(s2):
-        raise ValueError("Undefined for sequences of unequal length")
-    return sum(bool(ord(ch1) - ord(ch2)) for ch1, ch2 in zip(s1, s2))
+	if len(s1) != len(s2):
+		raise ValueError("Undefined for sequences of unequal length")
+	return sum(bool(ord(ch1) - ord(ch2)) for ch1, ch2 in zip(s1, s2))
 
 
 #################################################################################
@@ -382,9 +368,6 @@ def gather_analog_activity(parameter_set, net, t_start=None, t_stop=None):
 
 			results[pop.name]['{0}'.format(nn)] = locals()[nn].as_array()
 
-			# if len(results['analog_activity'][pop.name]['recorded_neurons']) > 1:
-			# 	results[pop.name]['{0}'.format(nn)] = locals()[nn].mean(axis=1)
-				#esults[pop.name]['std_{0}'.format(nn)] = locals()[nn].std(axis=1)
 	return results
 
 
@@ -411,9 +394,6 @@ class SpikeTrain(object):
 			0.565685424949
 	"""
 
-	#######################################################################
-	## Constructor and key methods to manipulate the SpikeTrain objects  ##
-	#######################################################################
 	def __init__(self, spike_times, t_start=None, t_stop=None):
 		"""
 		Constructor of the SpikeTrain object
@@ -568,7 +548,6 @@ class SpikeTrain(object):
 
 		if quantized:
 			assert quantized > 0, "quantized must either be False or a positive number"
-			#spike_times =  numpy.array([time/self.quantized for time in spike_times],int)
 			spike_times = (spike_times/quantized).round().astype('int')
 
 		return spike_times
@@ -656,7 +635,6 @@ class SpikeTrain(object):
 		if len(isi) > 1:
 			return np.std(isi)/np.mean(isi)
 		else:
-			#print("Warning, a CV can't be computed because there are not enough spikes")
 			return np.nan
 
 	def cv_kl(self, bins=100):
@@ -683,7 +661,6 @@ class SpikeTrain(object):
 		"""
 		isi = self.isi() / 1000.
 		if len(isi) < 2:
-			#print("Warning, a CV can't be computed because there are not enough spikes")
 			return np.nan
 		else:
 			proba_isi, xaxis = np.histogram(isi, bins=bins, normed=True)
@@ -1262,9 +1239,6 @@ class SpikeList(object):
 	See also
 		load_spikelist
 	"""
-	#######################################################################
-	## Constructor and key methods to manipulate the SpikeList objects   ##
-	#######################################################################
 	def __init__(self, spikes, id_list, t_start=None, t_stop=None, dims=None):
 		"""
 		Constructor of the SpikeList object
@@ -1343,7 +1317,6 @@ class SpikeList(object):
 			elif self.t_start is None:
 				start_times = np.array([self.spiketrains[idx].t_start for idx in self.id_list], np.float32)
 				self.t_start = np.min(start_times)
-				#print("Warning, t_start is infered from the data : %f" %self.t_start)
 				for id in self.spiketrains.keys():
 					self.spiketrains[id].t_start = self.t_start
 			if t_stop is not None:
@@ -1353,7 +1326,6 @@ class SpikeList(object):
 			elif self.t_stop is None:
 				stop_times = np.array([self.spiketrains[idx].t_stop for idx in self.id_list], np.float32)
 				self.t_stop = np.max(stop_times)
-				#print("Warning, t_stop  is infered from the data : %f" %self.t_stop)
 				for id in self.spiketrains.keys():
 					self.spiketrains[id].t_stop = self.t_stop
 		else:
@@ -1729,32 +1701,6 @@ class SpikeList(object):
 			if eval(criteria):
 				selected_ids.append(id)
 		return selected_ids
-
-	def sort_by(self, criteria, descending=False):
-		"""
-        Return an array with all the ids of the cells in the SpikeList,
-        sorted according to a particular criteria.
-
-        Inputs:
-            criteria   - the criteria used to sort the cells. It should be a string
-                         that can be evaluated on a SpikeTrain object, where the
-                         SpikeTrain should be named ``cell''.
-            descending - if True, then the cells are sorted from max to min.
-
-        Examples:
-            >> spk.sort_by('cell.mean_rate()')
-            >> spk.sort_by('cell.cv_isi()', descending=True)
-            >> spk.sort_by('cell.distance_victorpurpura(target, 0.05)')
-        """
-		criteria = np.zeros(len(self), float)
-		for count, id_ in enumerate(self.id_list):
-			cell = self.spiketrains[id_]
-			criteria[count] = eval(criteria)
-		result = self.id_list[np.argsort(criteria)]
-		if descending:
-			return result[np.arange(len(result) - 1, -1, -1)]
-		else:
-			return result
 
 	def save(self, full_path_to_file):
 		"""
@@ -2163,9 +2109,7 @@ class SpikeList(object):
 		# The algorithm underlying this implementation is described in
 		# Houghton, C., & Kreuz, T. (2012). On the efficient calculation of van
 		# Rossum distances. Network: Computation in Neural Systems, 23(1-2),
-		# 48-58. We would like to remark that in this paper in formula (9) the
-		# left side of the equation should be divided by two.
-		#
+		# 48-58.
 		# Given N spiketrains with n entries on average the run-time complexity is
 		# O(N^2 * n). O(N^2 + N * n) memory will be needed.
 
@@ -2208,7 +2152,7 @@ class SpikeList(object):
 
 		return D
 
-	def distance_van_rossum(self, tau=1.0, sort=True):
+	def distance_van_rossum(self, tau=1.0):
 		"""
 		Calculates the van Rossum distance.
 
@@ -2751,7 +2695,8 @@ class SpikeList(object):
 
 	def extract_state_vector(self, dt=0.1, tau=20., time_point=200., lag=100., N=None):
 		"""
-		Extract the population state at the specified time_point from the SpikeList object
+		Extract the population state at the specified time_point from the SpikeList object 
+		(by low-pass filtering the spike trains)
 		:param time_point: time to sample activity
 		:param lag: time before the sampling time to consider the responses
 		:return: N-dimensional state vector
@@ -2787,25 +2732,20 @@ class SpikeList(object):
 
 		for idx, nn in enumerate(id_list):
 			sk_train = self.spiketrains[int(self.id_list[idx])]
-			# TODO why are we saving the whole matrix and not just the last column? real life case only requires
-			# TODO last column...
 			state_mat[int(nn), :] = sk_train.exponential_filter(dt, tau, start, stop)
 			if display:
 				visualization.progress_bar(float(idx)/float(len(id_list)))
 
 		return state_mat
 
-	# TODO why does the name include binary? ;-)
-	# QUESTION how is this the "filtered spiking activity"? we're converting the spikes directly..
 	def compile_binary_response_matrix(self, dt, start=None, stop=None, N=None, display=False):
 		"""
-		Returns an NxT matrix where each row represents the filtered spiking activity of
+		Returns an NxT matrix where each row represents the binary spiking activity of
 		one neuron and the columns represent time
-
 		:param dt: time step
 		:param start: start of time window
 		:param stop: end of time window
-		# :param N:
+		:param N:
 		:param display:
 		:return:
 		"""
@@ -2872,17 +2812,6 @@ class AnalogSignal(object):
 				raise Exception("Inconsistent arguments: t_start=%g, t_stop=%g, dt=%g implies %d elements, actually %d" % (
 					self.t_start, self.t_stop, self.dt, int(round((self.t_stop - self.t_start) / float(self.dt))),
 					len(self.signal)))
-
-			# if len(self.signal) != int(round((self.t_stop + self.dt - self.t_start) / float(self.dt))):
-			# 	raise Exception("Inconsistent arguments: t_start=%g, t_stop=%g, dt=%g implies %d elements, actually %d" % (
-			# 		self.t_start, self.t_stop, self.dt, int(round((self.t_stop - self.t_start) / float(self.dt))),
-			# 		len(self.signal)))
-			#
-			#
-			# if self.t_stop is not None:
-			# 	if abs(self.t_stop - self.t_start - self.dt * len(self.signal)) > 0.1 * self.dt:
-			# 		raise Exception("Inconsistent arguments: t_start=%g, t_stop=%g, dt=%g implies %d elements, actually %d" % (
-			# 			t_start, t_stop, dt, int(round((t_stop-t_start) / float(dt))), len(signal)))
 		else:
 			self.t_stop = round(self.t_start + len(self.signal) * self.dt, 2)
 
@@ -3007,48 +2936,6 @@ class AnalogSignal(object):
 		for itv in interval.interval_data:
 			result.append(self.signal[itv[0] / self.dt:itv[1] / self.dt])
 		return result
-
-	def threshold_detection(self, threshold=None, format=None, sign='above'):
-		"""
-        Returns the times when the analog signal crosses a threshold.
-        The times can be returned as a numpy.array or a SpikeTrain object
-        (default)
-
-        Inputs:
-             threshold - Threshold
-             format    - when 'raw' the raw events array is returned,
-                         otherwise this is a SpikeTrain object by default
-             sign      - 'above' detects when the signal gets above the threshodl, 'below when it gets below the threshold'
-
-		Returns:
-			- events   - spike times as np.array
-			- SpikeTrain object
-
-        Examples:
-            >> aslist.threshold_detection(-55, 'raw')
-                [54.3, 197.4, 206]
-		"""
-
-		assert threshold is not None, "threshold must be provided"
-
-		if sign is 'above':
-			cutout = np.where(self.signal > threshold)[0]
-		elif sign in 'below':
-			cutout = np.where(self.signal < threshold)[0]
-
-		if len(cutout) <= 0:
-			events = np.zeros(0)
-		else:
-			take = np.where(np.diff(cutout) > 1)[0] + 1
-			take = np.append(0, take)
-
-			time = self.time_axis()
-			events = time[cutout][take]
-
-		if format is 'raw':
-			return events
-		else:
-			return SpikeTrain(events, t_start=self.t_start, t_stop=self.t_stop)
 
 	def event_triggered_average(self, events, average=True, t_min=0, t_max=100, with_time=False):
 		"""
@@ -3250,8 +3137,6 @@ class AnalogSignalList(object):
 		if dt is None:
 			assert times is not None, "dt or times must be specified"
 			dt = np.mean(np.diff(np.unique(times)))
-		# print "min time: ", min(times)
-		# print "max time: ", max(times)
 		self.dt = np.round(float(dt), determine_decimal_digits(dt))
 
 		if t_start is None and times is None:
@@ -3281,24 +3166,8 @@ class AnalogSignalList(object):
 		signal_ids = [np.transpose(signals[signals[:, 0] == id, :])[1] for id in id_list]
 		lens = np.array(map(len, signal_ids))
 
-		# lens = []
-		# for id in id_list:
-		# 	signal = np.transpose(signals[signals[:, 0] == id, :])[1]
-		# 	lens.append(len(signal))
-		# lens = np.array(lens)
-
 		for id, signal in zip(id_list, signal_ids):
-			# signal = np.transpose(signals[signals[:, 0] == id, :])[1]
 			self.organize_analogs(signal, id, lens) # trying to speed up...
-			# if len(signal) > 0 and len(signal) == max(lens):
-			# 	self.analog_signals[id] = AnalogSignal(signal, self.dt, self.t_start, self.t_stop)
-			# elif len(signal) > 0 and len(signal) != max(lens):
-			# 	sig = np.zeros(max(lens))
-			# 	sig[:len(signal)] = signal.copy()
-			# 	steps_left = max(lens) - len(signal)
-			# 	sig[len(signal):] = np.ones(steps_left) * signal[-1]
-			# 	self.analog_signals[id] = AnalogSignal(sig, self.dt, self.t_start, self.t_stop)
-
 		signals = self.analog_signals.values()
 		if signals:
 			self.signal_length = len(signals[0])
@@ -3330,7 +3199,7 @@ class AnalogSignalList(object):
 		"""
         Return a copy of the AnalogSignalList object
         """
-		# Maybe not optimal, should be optimized
+		# TODO: should be optimized
 		aslist = AnalogSignalList([], [], self.dt, self.t_start, self.t_stop, self.dimensions)
 		for id in self.id_list():
 			aslist.append(id, self.analog_signals[id])

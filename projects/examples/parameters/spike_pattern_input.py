@@ -9,7 +9,7 @@ spike_pattern_input
 """
 
 run = 'local'
-data_label = 'example1'
+data_label = 'example4'
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations

@@ -1,4 +1,3 @@
-
 The implementation of the simulator relies entirely on the structure of the parameters dictionaries,
 which makes the correct specification of the parameters files the most sensitive (and error-prone)
 aspect. The main modules simply extract the specifications described in these dictionaries and set-up
@@ -14,8 +13,7 @@ errors will follow.
 Furthermore, modifications of the parameter values are accepted with some restrictions, depending
 on what is currently implemented.
 
-We start with a trimmed version of the parameter file in the [fI curve example](single-neuron-fi-curve/), to explain the 
- its basic components and structure:
+We start with a trimmed version of the parameter file in the [fI curve example](single-neuron-fi-curve/), to explain the its basic components and structure:
 
 ```python
 from defaults.paths import paths

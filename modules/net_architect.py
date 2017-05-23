@@ -3,6 +3,7 @@ __author__ = 'duarte'
 ========================================================================================================================
 Network Architect Module
 ========================================================================================================================
+(incomplete documentation)
 
 Classes
 -------------
@@ -487,14 +488,9 @@ class Network(object):
 			spk_activity_list 	= [x.spiking_activity for x in sub_populations]
 			analog_activity 	= [x.analog_activity for x in sub_populations]
 
-			# TODO @Renato there's a weird case here when t_start = t_stop = 0 for each population, although there are
-			# TODO some spikes, e.g., at 0.1. There will be an error when creating an AnalogSignal because we're
-			# TODO rounding the times 2 lines below..
 			if not any([sl.empty() for sl in spk_activity_list]):
 				t_start = round(np.min([x.t_start for x in spk_activity_list]))
 				t_stop 	= round(np.max([x.t_stop for x in spk_activity_list]))
-
-				# TODO TEMPORARY FIX only continue when t_stop > t_start
 				if t_stop > t_start:
 					new_spike_list = signals.SpikeList([], [], t_start=t_start, t_stop=t_stop, dims=n_neurons)
 
@@ -508,7 +504,6 @@ class Network(object):
 					new_population.spiking_activity = new_spike_list
 
 			if not signals.empty(analog_activity):
-				# TODO - extend AnalogSignalList[0] with [1] ...
 				for n in analog_activity:
 					new_population.analog_activity.append(n)
 		if store:
@@ -864,7 +859,6 @@ class Network(object):
 		"""
 		return copy.deepcopy(self)
 
-	# TODO @comment more, maybe 1 example why this would be needed? also, what stays the same?
 	def clone(self, original_parameter_set, devices=True, decoders=True):
 		"""
 		Creates a new network object
@@ -1270,12 +1264,6 @@ class Network(object):
 			sources = []
 			source_populations = []
 			for ext_idx, n_src in enumerate(pars_st.source_population):
-				# TODO FIXME @Renato @barni if I first merge E1, I1 to P1 manually and later use P1,
-				# TODO then the following code causes an error because it automatically tries to merge
-				# TODO E1 and I1 to E1I1 (sometimes before), and then tries again, but it will fail in the
-				# TODO merge_subpopulations() function because we call it with activity=True <<--- why assume we always and
-				# TODO want to merge them? also, is the assertion that the simulation has been running (in merge subpop())
-				# TODO really necessary?
 				if isinstance(n_src, list):
 					pop_label = ''.join(n_src)
 					if pop_label not in merged_population_names:

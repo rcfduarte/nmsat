@@ -3,9 +3,8 @@ __author__ = 'duarte'
 =====================================================================================
 Analysis Module
 =====================================================================================
-(partially modified from NeuroTools.analysis)
-
 Collection of analysis and utility functions that are used by other modules
+(Note: this documentation is incomplete)
 
 Functions:
 ------------
@@ -21,15 +20,7 @@ DecodingLayer 	- reads population activity in response to patterned inputs, extr
 				  (according to specifications) and trains readout weights
 Readout 		- Readout object, trained to produce an estimation y(t) of output by reading out
 				  population state variables.
-
-Full Analysis interfaces:
--------------------------
-noise_driven_dynamics
-...
-
 """
-#TODO remove and replace all locals()...
-# other imports
 import sys
 import numpy as np
 import itertools
@@ -216,6 +207,13 @@ def euclidean_distance(pos_1, pos_2, N=None):
 
 
 def rescale_signal(val, out_min, out_max):
+	"""
+	Rescale a signal to a new range
+	:param val: original signal (as a numpy array)
+	:param out_min: new minimum
+	:param out_max: new maximum
+	:return: 
+	"""
 	in_min = np.min(val)
 	in_max = np.max(val)
 	return out_min + (val - in_min) * ((out_max - out_min) / (in_max - in_min))
@@ -246,7 +244,6 @@ def autocorrelation_function(x):
 def get_total_counts(spike_list, time_bin=50.):
 	"""
 	Determines the total spike counts for neurons with consecutive nonzero counts in bins of the specified size
-
 	:param spike_list: SpikeList object
 	:param time_bin: bin width
 	:return ctr: number of neurons complying
@@ -308,7 +305,7 @@ def acc_function(x, a, b, tau):
 
 def err_func(params, x, y, func):
 	"""
-	Error function for fitting a function
+	Error function for model fitting
 
 	Parameters
 	----------
@@ -408,7 +405,7 @@ def compute_isi_stats(spike_list, summary_only=True, display=True):
 
 
 # TODO when classes are finished, integrate this function and update arguments
-def compute_spike_stats(spike_list, time_bin=1., summary_only=False, display=False):
+def compute_spike_stats(spike_list, time_bin=50., summary_only=False, display=False):
 	"""
 	Compute relevant statistics on population firing activity (f. rates, spike counts)
 	:param spike_list: SpikeList object
@@ -417,8 +414,6 @@ def compute_spike_stats(spike_list, time_bin=1., summary_only=False, display=Fal
 	:param display: bool - display progress / time
 	:return: dictionary with all the relevant data
 	"""
-	# TODO computing FANO FACTOR with a bin width of 1. doesn't make sense, no?
-	time_bin = 50.
 	if display:
 		print("\nAnalysing spiking activity...")
 		t_start = time.time()
@@ -503,14 +498,15 @@ def compute_synchrony(spike_list, n_pairs=500, time_bin=1., tau=20., time_resolv
 	return results
 
 
-# TODO add more comment, what stats exactly are computed? !!!!
 def compute_analog_stats(population, parameter_set, variable_names, analysis_interval=None, plot=False):
 	"""
-	Extract, analyse and store analog data, such as the mean membrane potential or ...
-	If a single neuron is being recorded, ... Otherwise, ...
+	Extract, analyse and store analog data, such as the mean membrane potential and amplitudes of E/I synaptic currents
+	If a single neuron is being recorded, only this neuron's activity will be stored, otherwise, this function 
+	computes the distributions of the relevant variables over the recorded neurons 
 	:param population: Population object
 	:param parameter_set: full ParameterSet object
-	:param variable_names: names of the variables of interest.  [V_m, g_ex, g_in... OTHERS?]
+	:param variable_names: names of the variables of interest.  [V_m, g_ex, g_in, I_in, I_ex] (depend on the 
+	recordable variables of the specific neuron model used)
 	:param analysis_interval: time interval to analyse
 	:param plot: bool
 	:return results: dict
@@ -639,7 +635,7 @@ def compute_timescale(activity_matrix, time_axis, max_lag=1000, method=0):
 	:param activity_matrix: np.array with size NxT
 	:param time_axis:
 	:param max_lag:
-	?? :param method: based on autocorrelation (0) or on power spectra (1)
+	:param method: based on autocorrelation (0) or on power spectra (1) - not implemented yet
 	:return:
 	"""
 	# TODO modify / review / extend / correct / update
@@ -649,7 +645,6 @@ def compute_timescale(activity_matrix, time_axis, max_lag=1000, method=0):
 	acc 		= cross_trial_cc(activity_matrix)
 	initial_guess = 1., 0., 10.
 	for n_signal in range(acc.shape[0]):
-		# TODO err_func not defined here..
 		fit, _ = opt.leastsq(err_func, initial_guess, args=(time_axis, acc[n_signal, :max_lag], acc_function))
 
 		if fit[2] > 0:
@@ -1269,11 +1264,10 @@ def single_neuron_responses(population_object, parameter_set, pop_idx=0, start=N
 
 def ssa_lifetime(pop_obj, parameter_set, input_off=1000., display=True):
 	"""
-
-
+	Determine the lifetime of self-sustaining activity (specific)
 	:param pop_obj:
 	:param parameter_set:
-	:param input_off:
+	:param input_off: time when the input is turned off
 	:param display:
 	:return:
 	"""
@@ -1419,7 +1413,7 @@ def evaluate_encoding(enc_layer, parameter_set, analysis_interval, input_signal,
 					  plot=True, display=True, save=False):
 	"""
 	Determine the quality of the encoding method (if there are encoders), by reading out the state of the encoders
-	and training it to reconstruct the input signal.
+	and training it to reconstruct the input signal. *needs testing
 
 	:param enc_layer:
 	:param parameter_set:
@@ -1488,71 +1482,10 @@ def evaluate_encoding(enc_layer, parameter_set, analysis_interval, input_signal,
 	return results
 
 
-# def analyse_performance_results(net, enc_layer=None, plot=True, display=True, save=False):
-# 	"""
-# 	Re-organizes performance results
-# 	(may be too case-sensitive!!)
-# 	"""
-# 	# TODO - deprecated...
-# 	from modules.signals import empty
-# 	results = {}
-#
-# 	if enc_layer is not None:
-# 		all_populations = list(itertools.chain(*[net.merged_populations, net.populations, enc_layer.encoders]))
-# 	else:
-# 		all_populations = list(itertools.chain(*[net.merged_populations, net.populations]))
-#
-# 	for n_pop in all_populations:
-# 		if hasattr(n_pop, "decoding_pars"):
-# 			results[n_pop.name] = {}
-# 			readout_labels = list(np.sort(n_pop.decoding_pars['readout']['labels']))
-# 			readout_type = [n[:3] for n in readout_labels]
-# 			if 'mem' in readout_type and 'cla' in readout_type: # special case
-# 				last_mem = readout_type[::-1].index('mem')
-# 				readout_labels.insert(last_mem + 1, readout_labels[0])
-# 				readout_labels.pop(0)
-# 				readout_type = [n[:3] for n in readout_labels]
-# 				last_mem = readout_type[::-1].index('mem')
-# 				first_mem = readout_type.index('mem')
-# 				readout_labels[first_mem:last_mem - 1] = readout_labels[first_mem:last_mem - 1][::-1]
-#
-# 			pop_readouts = n_pop.readouts
-# 			pop_state_variables = n_pop.state_variables
-# 			print(pop_state_variables)
-# 			if empty(n_pop.state_sample_times):
-# 				for idx_state, n_state in enumerate(n_pop.state_extractors):
-# 					pop_readout_labels = [n.name for n in pop_readouts[idx_state]]
-# 					readout_idx = [np.where(n == np.array(readout_labels))[0][0] for n in pop_readout_labels]
-# 					readout_set = list(np.array(pop_readouts[idx_state])[readout_idx])
-# 					results[n_pop.name].update({'ReadoutSet{0}'.format(str(idx_state)): {}})
-# 					indices = [n.index for n in readout_set]
-# 					results[n_pop.name]['ReadoutSet{0}'.format(str(idx_state))] = compile_performance_results(
-# 						readout_set, state_variable=pop_state_variables[idx_state])
-# 			else:
-# 				assert (len(pop_readouts) == len(n_pop.state_sample_times)), "Inconsistent readout set"
-# 				n_states = len(pop_readouts[0])
-# 				for n_state in range(n_states):
-# 					results[n_pop.name].update({'ReadoutSet{0}'.format(str(n_state)): {}})
-# 					results[n_pop.name]['ReadoutSet{0}'.format(str(n_state))].update(
-# 						{'sample_times': n_pop.state_sample_times})
-#
-# 					for n_sample_time in range(len(n_pop.state_sample_times)):
-# 						readout_set = pop_readouts[n_sample_time][n_state]
-# 						results[n_pop.name]['ReadoutSet{0}'.format(str(n_state))].update({'sample_{0}'.format(
-# 							n_sample_time): {}})
-# 						results[n_pop.name]['ReadoutSet{0}'.format(str(n_state))]['sample_{0}'.format(
-# 							n_sample_time)] = compile_performance_results(readout_set,
-# 																		  state_variable=pop_state_variables[n_state])
-#
-# 	if plot:
-# 		vz.plot_readout_performance(results, display=display, save=save)
-# 	return results
-
-
 def compile_performance_results(readout_set, state_variable=''):
 	"""
+	When there are multiple readouts, gather the results for all as arrays
 	"""
-	# TODO - deprecated
 	results = {
 		'accuracy': np.array([n.performance['label']['performance'] for n in readout_set]),
 		'hamming_loss': np.array([n.performance['label']['hamm_loss'] for n in readout_set]),
@@ -2053,11 +1986,6 @@ class Readout(object):
 			performance['raw']['MSE'] = met.mean_squared_error(target, output)
 			performance['raw']['MAE'] = met.mean_absolute_error(target, output)
 			print("Readout {0} [raw output]: \n  - MSE = {1}".format(str(self.name), str(performance['raw']['MSE'])))
-			# if is_binary_target and not is_binary_output and len(output.shape) > 1:
-			# 	pb_cc = []
-			# 	for n in range(target.shape[0]):
-			# 		pb_cc.append(mst.pointbiserialr(np.array(target)[n, :], np.array(output)[n, :])[0])
-			# 	performance['raw']['point_bisserial'] = pb_cc
 
 			# Max performance measures
 			performance['max']['MSE'] = met.mean_squared_error(binary_target, binary_output)
@@ -2318,27 +2246,6 @@ class DecodingLayer(object):
 				tmp = [(status_dict['senders'][n], status_dict['V_m'][n]) for n in range(len(status_dict['senders']))]
 				responses = sg.AnalogSignalList(tmp, np.unique(status_dict['senders']).tolist(), times=times,
 				                                dt=self.extractor_resolution[idx], t_start=start, t_stop=stop)
-
-				# ############# DEBUG ##################################################################################
-				# dbg_status_dict = nest.GetStatus(initializer)[0]['events']
-				# print "\n\n ----  DEBUGGING  ----- \n"
-				# n_id, n_as = responses.analog_signals.iteritems().next()
-				# assert n_id == 154 # iaf_psc_delta neuron attached to neuron 0
-				#
-				# print "\n@spikelist.spiketrains[0]: {0}".format(self.source_population.spiking_activity.spiketrains[1])
-				#
-				# dbg_vms = [t for idx, t in enumerate(dbg_status_dict['V_m']) if dbg_status_dict['senders'][idx] == 154]
-				# print "\n\narray idx -- time point -- vm\n"
-				# for idx, vm in enumerate(dbg_vms):
-				# 	if idx > 0 and vm > dbg_vms[idx - 1]:
-				# 		print "{0}, {1}, {2}".format(idx, idx - 1, vm)
-				#
-				# sml = self.source_population.spiking_activity.filter_spiketrains(dt=0.1, tau=20., start=0.1, stop=200.1)[0].tolist()
-				# print "\n\n@filtered spikes [(arr index, aligned time, V_m)]"
-				# for idx, val in enumerate(sml):
-				# 	if idx > 0 and val > sml[idx - 1]:
-				# 		print idx, idx + 1, val
-				# exit(0)
 			else:
 				raise TypeError("Incorrect Decoder ID")
 
@@ -2454,7 +2361,6 @@ class DecodingLayer(object):
 		"""
 		for idx_state, n_state in enumerate(self.state_variables):
 			if self.reset_state_variables[idx_state]:
-				# print("\nReseting {0} state in Population {1}".format(n_state, self.source_population.name))
 				if n_state == 'V_m':
 					print("Resetting V_m can lead to incorrect results!")
 					for idx, neuron_id in enumerate(self.source_population.gids):
@@ -2490,49 +2396,13 @@ class DecodingLayer(object):
 				                                                        tgets_gids=tget_gids, progress=False)
 				net_to_decneurons_delay = np.unique(np.array(net_to_decneurons[net_to_decneurons.nonzero()].todense()))
 				assert (len(net_to_decneurons_delay) == 1), "Heterogeneous delays in decoding layer are not supported.."
-
-				# decneurons_to_mm = na.extract_delays_matrix(src_gids=extractor_id, tgets_gids=tget_gids, progress=False)
-				# decneurons_to_mm_delay = np.unique(np.array(decneurons_to_mm[decneurons_to_mm.nonzero()].todense()))
-				# assert (len(decneurons_to_mm_delay) == 1), "Heterogeneous delays in decoding layer are not " \
-				#                                             "supported.."
-
 				self.total_delays[idx] = float(net_to_decneurons_delay)# + decneurons_to_mm_delay)
 			else:
-				# delays = na.extract_delays_matrix(src_gids=extractor_id, tgets_gids=tget_gids, progress=False)
-				# delay = np.unique(np.array(delays[delays.nonzero()].todense()))
-				# assert (len(delay) == 1), "Heterogeneous delays in decoding layer are not supported.."
 				self.total_delays[idx] = 0.#0.float(delay)
 		print("\n- total delays in Population {0} DecodingLayer {1}: {2} ms".format(str(self.source_population.name),
 		                                                                          str(self.state_variables),
 		                                                                          str(self.total_delays)))
 
-
-'''
-
-	def copy_readout_set(self, n=1):
-		"""
-		Returns n copies of all the readouts attached to the population
-		:param n: number of copies
-		:return: list of Readout objects
-		"""
-		assert self.readouts, "Population {0} doesn't have any readouts attached!".format(self.name)
-
-		all_copies = []
-		for n_copy in range(n):
-			if isinstance(self.readouts[0], list):
-				# nested readouts (multiple state variables for current population)
-				copy_readouts = [[] for _ in range(len(self.readouts))]
-				for set_index in range(len(self.readouts)):
-					for n_readout, readout in enumerate(self.readouts[set_index]):
-						copy_readouts[set_index].append(readout.copy())
-			else:
-				copy_readouts = []
-				for n_readout, readout in enumerate(self.readouts):
-					copy_readouts.append(readout.copy())
-			all_copies.append(copy_readouts)
-		return all_copies
-
-'''
 
 def reset_decoders(net, enc_layer):
 	"""

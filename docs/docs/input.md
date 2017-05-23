@@ -12,4 +12,3 @@ and test sets)
 * `InputSignal` – Generate and store AnalogSignal object referring to the structured input
 signal u(t)
 * `InputNoise` – Generate and store AnalogSignal object referring to the noise signal
-(...)
