@@ -20,8 +20,7 @@ The code is licensed under GPLv3 and available on [GitHub](https://github.com/rc
 ## Disclaimer
 
 The code was developed primarily for personal use, as part of a PhD project due to the need to perform similar experiments and analyses on very diverse systems. The goal was to use the same code to
-run different, but specialized, numerical experiments, in a fully transparent and reproducible manner, while making efficient use of computing resources. Due to the inherent time pressures of a PhD project and the broad scope, the code is imperfect and under active use / development. Despite our best efforts to improve usability, it can be difficult to understand, particularly
-due to the strict specificities imposed on the structure of the parameters dictionaries and how they are used.  
+run different, but specialized, numerical experiments, in a fully transparent and reproducible manner, while making efficient use of computing resources. Due to the inherent time pressures of a PhD project and the broad scope, the code and documentation are under active use / development. 
 
 
 ## Authors and contributors
