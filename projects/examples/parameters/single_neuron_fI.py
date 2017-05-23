@@ -11,7 +11,7 @@ single_neuron_fI
 """
 
 system_name = 'local'
-data_label = 'example1_singleneuron_fI'
+data_label = 'example1'
 
 # ######################################################################################################################
 # PARAMETER RANGE declarations

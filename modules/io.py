@@ -288,10 +288,6 @@ class DataHandler(object):
 
 		Note that you can add your own format for I/O of such NeuroTools objects
 		"""
-		### Here, you could add your own format if you have created the appropriate
-		### manager.
-		### The methods of the manager are quite simple: should just inherits from the FileHandler
-		### class and have read() / write() methods
 		if self.object is None:
 			raise Exception("No object has been defined to be saved !")
 		else:

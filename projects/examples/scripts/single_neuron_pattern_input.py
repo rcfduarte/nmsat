@@ -5,7 +5,7 @@ from modules.net_architect import Network
 from modules.io import set_storage_locations
 from modules.signals import iterate_obj_list
 from modules.analysis import single_neuron_responses
-from modules.visualization import  InputPlots
+from modules.visualization import  InputPlots, set_global_rcParams
 import cPickle as pickle
 import numpy as np
 import scipy.stats as stats
@@ -22,12 +22,11 @@ import nest
 # ######################################################################################################################
 # Experiment options
 # ======================================================================================================================
-plot = True
-display = True
-save = True
-debug = False
-online = True
-
+plot 	= True
+display = False
+save 	= True
+debug 	= False
+online 	= True
 
 # ######################################################################################################################
 # Extract parameters from file and build global ParameterSet
@@ -47,8 +46,7 @@ if not isinstance(parameter_set, ParameterSet):
 # Setup extra variables and parameters
 # ======================================================================================================================
 if plot:
-	import modules.visualization as vis
-	vis.set_global_rcParams(parameter_set.kernel_pars['mpl_path'])
+	set_global_rcParams(parameter_set.kernel_pars['mpl_path'])
 paths = set_storage_locations(parameter_set, save)
 
 np.random.seed(parameter_set.kernel_pars['np_seed'])
@@ -80,27 +78,37 @@ for idx, n in enumerate(list(iterate_obj_list(net.populations))):
 # Build Input Signal Sets
 # ======================================================================================================================
 assert hasattr(parameter_set, "input_pars")
-# Current input (need to build noise signal)
-total_stimulation_time = parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t
-input_noise = InputNoise(parameter_set.input_pars.noise, stop_time=total_stimulation_time)
-input_noise.generate()
-input_noise.re_seed(parameter_set.kernel_pars.np_seed)
 
-# if plot:
-# 	inp_plot = InputPlots(stim_obj=None, input_obj=None, noise_obj=input_noise)
-# 	inp_plot.plot_noise_component(display=display, save=False)
+# Current input (need to build 2 separate noise signals for the 2 input channels)
+total_stimulation_time = parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t
+input_noise_ch1 = InputNoise(parameter_set.input_pars.noise, stop_time=total_stimulation_time)
+input_noise_ch1.generate()
+input_noise_ch1.re_seed(parameter_set.kernel_pars.np_seed)
+
+input_noise_ch2 = InputNoise(parameter_set.input_pars.noise, stop_time=total_stimulation_time)
+input_noise_ch2.generate()
+input_noise_ch2.re_seed(parameter_set.kernel_pars.np_seed)
+
+if plot:
+	inp_plot = InputPlots(stim_obj=None, input_obj=None, noise_obj=input_noise_ch1)
+	inp_plot.plot_noise_component(display=display, save=paths['figures']+"/InputNoise_CH1")
+
+	inp_plot = InputPlots(stim_obj=None, input_obj=None, noise_obj=input_noise_ch2)
+	inp_plot.plot_noise_component(display=display, save=paths['figures']+"/InputNoise_CH2")
 
 # ######################################################################################################################
 # Build and connect input
 # ======================================================================================================================
-enc_layer = EncodingLayer(parameter_set.encoding_pars, signal=input_noise)
-enc_layer.connect(parameter_set.encoding_pars, net)
+enc_layer_ch1 = EncodingLayer(parameter_set.encoding_ch1_pars, signal=input_noise_ch1)
+enc_layer_ch1.connect(parameter_set.encoding_ch1_pars, net)
+
+enc_layer_ch2 = EncodingLayer(parameter_set.encoding_ch2_pars, signal=input_noise_ch2)
+enc_layer_ch2.connect(parameter_set.encoding_ch2_pars, net)
 
 # ######################################################################################################################
-# Connect Network
+# Connect Devices
 # ======================================================================================================================
 net.connect_devices()
-net.connect_populations(parameter_set.connection_pars)
 
 # ######################################################################################################################
 # Simulate
@@ -115,20 +123,18 @@ net.simulate(parameter_set.kernel_pars.sim_time + nest.GetKernelStatus()['resolu
 # Extract and store data
 # ======================================================================================================================
 net.extract_population_activity(
-	t_start=parameter_set.kernel_pars.transient_t + nest.GetKernelStatus()['resolution'],
+	t_start=parameter_set.kernel_pars.transient_t, # + nest.GetKernelStatus()['resolution'],
 	t_stop=parameter_set.kernel_pars.sim_time + parameter_set.kernel_pars.transient_t)
 net.extract_network_activity()
-net.flush_records()
 
 # ######################################################################################################################
 # Analyse / plot data
 # ======================================================================================================================
 results = dict()
-input_pops = ['E_inputs', 'I_inputs']
+
 analysis_interval = [parameter_set.kernel_pars.transient_t,
                      parameter_set.kernel_pars.transient_t+parameter_set.kernel_pars.sim_time]
 for idd, nam in enumerate(net.population_names):
-	if nam not in input_pops:
 		results.update({nam: {}})
 		results[nam] = single_neuron_responses(net.populations[idd],
 		                                       parameter_set, pop_idx=idd,

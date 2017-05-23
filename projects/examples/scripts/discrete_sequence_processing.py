@@ -10,6 +10,7 @@ from modules.analysis import compile_performance_results
 import cPickle as pickle
 import numpy as np
 import itertools
+import matplotlib.pyplot as pl
 import time
 import sys
 import nest
@@ -17,7 +18,7 @@ import nest
 # ######################################################################################################################
 # Experiment options
 # ======================================================================================================================
-plot = False
+plot = True
 display = True
 save = True
 debug = False
@@ -158,6 +159,26 @@ for ctr, n_pop in enumerate(list(itertools.chain(*[net.merged_populations, net.p
 		dec_layer = n_pop.decoding_layer
 		for idx_var, var in enumerate(dec_layer.state_variables):
 			processed_results[n_pop.name].update({var: compile_performance_results(dec_layer.readouts[idx_var], var)})
+
+			# The labels are often not properly ordered
+			readout_labels = processed_results[n_pop.name][var]['labels']
+			all_indices = np.array([int(''.join(c for c in x if c.isdigit())) for x in readout_labels])
+			ordered_indices = np.argsort(all_indices)
+
+			# Extract and plot example results
+			if plot:
+				ordered_accuracy = processed_results[n_pop.name][var]['accuracy'][ordered_indices]
+				fig, ax = pl.subplots()
+				ax.plot(all_indices[ordered_indices], ordered_accuracy, 'o-', lw=2)
+				ax.plot(all_indices[ordered_indices], 1./np.ones_like(ordered_accuracy)*parameter_set.stim_pars.n_stim, \
+				                                        '--r')
+				ax.set_xlabel(r'$lag [n]$')
+				ax.set_ylabel(r'Accuracy')
+				if display:
+					pl.show(False)
+				if save:
+					fig.savefig(paths['figures']+paths['label'])
+
 # ######################################################################################################################
 # Save data
 # ======================================================================================================================

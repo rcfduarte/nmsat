@@ -3,7 +3,7 @@ __author__ = 'duarte'
 ====================================================================================
 Parameters Module
 ====================================================================================
-(adapted and modified from NeuroTools.parameters)
+(incomplete documentation)
 
 Module for dealing with model parameters
 
@@ -390,7 +390,6 @@ class ParameterSet(dict):
 			                "or a parameters dictionary")
 
 		# set label
-		# TODO do we really need to add a label to each ParameterSet??
 		if isinstance(initializer, dict):
 			if 'label' in initializer:
 				self.label = initializer['label']
@@ -412,7 +411,6 @@ class ParameterSet(dict):
 	def flatten(self):
 		__doc__ = nesteddict_flatten.__doc__
 		return nesteddict_flatten(self)
-
 
 	def __eq__(self, other):
 		"""
@@ -772,7 +770,6 @@ class ParameterSpace:
 					raise ValueError('ParameterRange variable `%s` is not iterable! Should be list!' % arg)
 
 		def validate_parameter_sets(param_sets):
-			# TODO Question how / what should we handle and check here?
 			"""
 
 			:param param_sets:
@@ -867,7 +864,7 @@ class ParameterSpace:
 		else:
 			self.parameter_sets, self.parameter_axes, self.label, self.dimensions = parse_parameters_dict(initializer)
 
-	# TODO this is temporary only
+	# TODO this is temporary only - remove
 	def compile_parameters_table(self):
 		"""
 		Use the first parameter set to generate the standard table...
@@ -906,7 +903,6 @@ class ParameterSpace:
 		for val in self.parameter_sets:
 			yield val
 
-	# TODO remove at the end if not used in testing? @barni
 	def __eq__(self, other):
 		"""
 		For testing purposes
@@ -1167,7 +1163,7 @@ class ParameterSpace:
 
 		return parameters_array, results_array
 
-	# TODO needed?
+	# TODO not needed anymore - remove
 	@staticmethod
 	def extract_result_from_array(results_array, field, operation=None):
 		"""

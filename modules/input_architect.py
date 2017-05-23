@@ -3,6 +3,7 @@ __author__ = 'duarte'
 ========================================================================================================================
 Input Architect Module
 ========================================================================================================================
+(this documentation is incomplete)
 
 Classes:
 --------
@@ -62,21 +63,6 @@ def pad_array(input_array, add=10):
 	zero_array 	= np.zeros(new_size).reshape(new_shape)
 	zero_array[:input_array.shape[0], :input_array.shape[1]] = input_array
 	return zero_array
-
-#	TODO is it used or can it go?
-# def load_preset_grammar(pars_filename, grammar_name):
-# 	"""
-# 	Load all the relevant parameters corresponding to preset grammars
-# 	:param pars_filename [str]: Name of python file containing the parameter dictionaries, named
-# 	as the corresponding grammar
-# 	:param grammar_name [str]: Name of the grammar (must correspond to name of stored dictionary)
-# 	:return:
-# 	"""
-#
-# 	d = set_params_dict(pars_filename)
-# 	assert grammar_name in d.keys(), "Parameters for %s not found on %s" % (str(grammar_name), str(pars_filename))
-#
-# 	return d[grammar_name].copy()
 
 
 def stimulus_sequence_to_binary(seq):
@@ -905,7 +891,6 @@ class Grammar:
 
 		else:
 			n = 0
-		# TODO: execute external scripts (I have some in matlab... write in Python)
 
 
 ########################################################################################################################
@@ -1404,7 +1389,6 @@ class InputSignal(object):
 		self.global_stop += self.dt
 		self.time_data = np.arange(self.global_start, self.global_stop, self.dt)
 
-	# TODO @comment more
 	def apply_input_mask(self):
 		"""
 		Expand the stimulus sequence in time by applying a mask
@@ -1540,7 +1524,6 @@ class InputSignal(object):
 
 		return signal_array
 
-	# TODO @comment does it include both start and stop?
 	def time_slice(self, start, stop):
 		"""
 		Return a new input signal, which is a temporal slice of the original signal
@@ -1665,7 +1648,6 @@ class InputSignal(object):
 					input_signal.append(signals.AnalogSignal(s[k, :], self.dt, t_start=on, t_stop=off))
 			return self.compress_signals(input_signal)
 
-	# TODO @comment more
 	def generate_iterative(self, stim_seq):
 		"""
 		work-around for very large input signals
@@ -2145,109 +2127,6 @@ class InputSignalSet(object):
 
 
 ########################################################################################################################
-class SyntheticTimeSeries(InputSignalSet):
-	"""
-	Handle the generation of synthetic inputs
-
-	"""
-	def __init__(self, parameters):
-		"""
-
-		:return:
-		"""
-		InputSignalSet.__init__(self, parameters)
-
-	@staticmethod
-	def mackey_glass(sample_len, tau=17, dt=1., seed=None, n_samples=1, amplitudes=[]):
-		"""
-		Generate the Mackey Glass time-series. Parameters are:
-		(adapted from Oger toolbox)
-		:param sample_len: length of the time-series in timesteps.
-		:param tau: delay of the MG - system. Commonly used values are tau=17 (mild
-	          chaos) and tau=30 (moderate chaos). Default is 17.
-		:param seed: to seed the random generator, can be used to generate the same
-	          timeseries at each invocation.
-		:param n_samples: number of samples to generate
-		:return: time_series
-		"""
-		history_len = tau * dt
-
-		# Initial conditions for the history of the system
-		timeseries = 1.2
-
-		if seed is not None:
-			np.random.seed(seed)
-
-		samples = []
-
-		for _ in range(n_samples):
-			history = collections.deque(1.2 * np.ones(history_len) + 0.2 * (np.random.rand(history_len) - 0.5))
-
-			# Preallocate the array for the time-series
-			inp = np.zeros((sample_len, 1))
-
-			for timestep in range(sample_len):
-				for _ in range(int(dt)):
-					xtau = history.popleft()
-					history.append(timeseries)
-					timeseries = history[-1] + (0.2 * xtau / (1.0 + xtau ** 10) - 0.1 * history[-1]) / dt
-				inp[timestep] = timeseries
-
-			# squash time series...
-			samples.append(inp.T)
-
-		if not signals.empty(amplitudes):
-			assert(len(amplitudes) == 2), "Please provide min and max amplitude values"
-			rescaled_signal = []
-			for n_sample in samples:
-				rescaled_signal.append(np.array(signals.rescale_list(list(n_sample[0, :]), amplitudes[0], amplitudes[
-					1])))
-			samples = rescaled_signal
-		return samples
-
-	def generate_timeseries(self, parameter_set, stimulation_time):
-		"""
-
-		:param stimulation_time:
-		:return:
-		"""
-		amplitudes = []
-		self.full_stimulation_time = stimulation_time
-		if self.parameters.signal.min_amplitude is not None and self.parameters.signal.max_amplitude is not None:
-			if self.parameters.signal.N > 1:
-				for n in range(self.parameters.signal.N):
-					amplitudes.append([self.parameters.signal.min_amplitude[n], self.parameters.signal.max_amplitude[
-						n]])
-			else:
-				amplitudes = [self.parameters.signal.min_amplitude, self.parameters.max_amplitude]
-
-		for n_signal in range(self.parameters.signal.N):
-			assert(hasattr(self, self.parameters.signal.function[n_signal])), "No function {0} in " \
-			                                                                  "SyntheticTimeSeries".format(
-					str(self.parameters.signal.function[n_signal]))
-
-			function = getattr(self, self.parameters.signal.functions[n_signal])
-			transient_array = function(sample_len=int(parameter_set.kernel_pars.transient_t),
-			                                    n_samples=1, amplitudes=amplitudes,
-			                           **self.parameters.signal.function_parameters[n_signal])
-			# FIXME TODO load_signal doesn't return anything... solve this, might be critical?
-			self.transient_set_signal = InputSignal().load_signal(transient_array, dt=self.parameters.resolution,
-			                                                      onset=0.)
-
-			full_signal_array = function(sample_len=int(parameter_set.kernel_pars.train_time +
-			                                                     parameter_set.kernel_pars.test_time), n_samples=2,
-			                                      amplitudes=amplitudes, **self.parameters.signal.function_parameters[
-												  n_signal])
-			self.full_set_signal = InputSignal().load_signal(full_signal_array, dt=self.parameters.resolution,
-			                                 onset=parameter_set.kernel_pars.transient_t)
-
-			train_signal_array = function(sample_len=int(parameter_set.kernel_pars.train_time), n_samples=1,
-			                              amplitudes=amplitudes, **self.parameters.signal.function_parameters[n_signal])
-			self.train_set_signal = InputSignal().load_signal(train_signal_array, dt=self.parameters.resolution,
-			                                                  onset=parameter_set.kernel_pars.transient_t)
-
-
-########################################################################################################################
 class Encoder(net_architect.Population):
 	"""
 	Convert Continuous signal into SpikeList objects, or create a population of spiking neurons
@@ -2339,17 +2218,10 @@ class Generator:
 		"""
 		# for a SpikeList object, update the corresponding NEST spike generators
 		if isinstance(signal, signals.SpikeList):
-			# TODO - check spike_generator properties; if allow_offgrid_spikes, there's no need to round..
 			rounding_precision = signals.determine_decimal_digits(signal.raw_data()[:, 0][0])
-			# check_timing = []
 			for nn in signal.id_list:
 				spk_times = [round(n, rounding_precision) for n in signal[nn].spike_times]  # to be sure
 				nest.SetStatus(self.gids[nn], {'spike_times': spk_times})
-				# TODO check this, seems a bit off...
-			# 	check_timing.append(all(spk_times == np.round(nest.GetStatus(self.gids[nn], 'spike_times')[0],
-			# 												  rounding_precision)))
-			#
-			# print(all(check_timing)) #debug
 		else:
 			# check for proper signal format
 			if isinstance(signal, InputSignal):
@@ -2708,8 +2580,6 @@ class EncodingLayer:
 		for idx, nn in enumerate(conn_pars.connections):
 			src_name = nn[1]
 			tget_name = nn[0]
-			# print "    - %s [%s]" % (nn, conn_pars.models[idx])
-
 			# determine the type of the connecting populations and their parameters
 			try:
 				src_gids, src_id, src_dims, src_tp, tget_gids, tget_id, tget_dims, tget_tp = \
@@ -2748,19 +2618,8 @@ class EncodingLayer:
 						               nest.GetStatus([x['target']])[0]['model'] not in device_models]
 						target_gids = [x['target'] for x in st if
 						               nest.GetStatus([x['target']])[0]['model'] not in device_models]
-						# TODO some values here are not used... is this on purpose?
-						# weights = [x['weight'] for x in st
-						# 		   if nest.GetStatus([x['target']])[0]['model'] not in device_models]
-						# delays = [x['delay'] for x in st
-						# 		  if nest.GetStatus([x['target']])[0]['model'] not in device_models]
-						# models = [x['synapse_model'] for x in st if
-						#           nest.GetStatus([x['target']])[0]['model'] not in device_models]
-						# receptors = [x['receptor'] for x in st if
-						#              nest.GetStatus([x['target']])[0]['model'] not in device_models]
-
 						syn_dict = parameters.copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
 							conn_pars.weight_dist[idx], 'delay': conn_pars.delay_dist[idx]})
-						# conn_dict = conn_pars.conn_specs[idx]
 
 						syn_dicts = [{'synapsemodel': list(np.repeat(synapse_name, len(source_gids)))[iddx],
 						              'source': source_gids[iddx],
@@ -2852,56 +2711,6 @@ class EncodingLayer:
 							src_gids = tuple(x[0] for x in src_gids)
 						nest.Connect(src_gids, tget_gids, conn_spec=conn_dict, syn_spec=syn_dict)
 						print("- Connecting {0} to population {1} [{2}]".format(src_name, tget_name, synapse_name))
-
-					# TODO I moved all the ifs above, because the code they covered is redundant...
-					# TODO @Renato was this just not finished yet or can the commented code below be removed
-					# elif (src_name in nest.Models()) and (tget_name in nest.Models()):
-					# 	# need to use synapse with the same model for all connections from a device
-					# 	if "synapse_name" in conn_pars and conn_pars.synapse_name[idx] is not None:
-					# 		synapse_name = conn_pars.synapse_name[idx]
-					# 	else:
-					# 		synapse_name = src_name + '_' + tget_name
-					# 	nest.SetDefaults(conn_pars.models[idx], conn_pars.model_pars[idx])
-					# 	syn_dict = parameters.copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
-					# 		conn_pars.weight_dist[idx], 'delay': conn_pars.delay_dist[idx]})
-					# 	conn_dict = conn_pars.conn_specs[idx]
-					# 	if isinstance(src_gids, list):
-					# 		src_gids = tuple(x[0] for x in src_gids)
-					# 	nest.Connect(src_gids, tget_gids, conn_spec=conn_dict, syn_spec=syn_dict)
-					# 	print("- Connecting {0} to population {1} [{2}]".format(src_name, tget_name, synapse_name))
-					#3
-					# elif (src_name + '0' in nest.Models()) and (nest.GetStatus([tget_gids[0]])[0]['element_type'] ==
-					# 	                                      'neuron'):
-					# 	# Specific case when target population is merged populations..
-					# 	# need to use synapse with the same model for all connections from a device
-					# 	if "synapse_name" in conn_pars and conn_pars.synapse_name[idx] is not None:
-					# 		synapse_name = conn_pars.synapse_name[idx]
-					# 	else:
-					# 		synapse_name = src_name + '_' + tget_name
-					# 	nest.SetDefaults(conn_pars.models[idx], conn_pars.model_pars[idx])
-					# 	syn_dict = parameters.copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
-					# 		conn_pars.weight_dist[idx], 'delay': conn_pars.delay_dist[idx]})
-					# 	conn_dict = conn_pars.conn_specs[idx]
-					# 	if isinstance(src_gids, list):
-					# 		src_gids = tuple(x[0] for x in src_gids)
-					# 	nest.Connect(src_gids, tget_gids, conn_spec=conn_dict, syn_spec=syn_dict)
-					# 	print("- Connecting {0} to population {1} [{2}]".format(src_name, tget_name, synapse_name))
-					# elif (src_name in nest.Models()) and (nest.GetStatus([tget_gids[0]])[0]['element_type'] ==
-					# 	                                      'neuron'):
-					# 	# Specific case when target population is merged populations..
-					# 	# need to use synapse with the same model for all connections from a device
-					# 	if "synapse_name" in conn_pars and conn_pars.synapse_name[idx] is not None:
-					# 		synapse_name = conn_pars.synapse_name[idx]
-					# 	else:
-					# 		synapse_name = src_name + '_' + tget_name
-					# 	nest.SetDefaults(conn_pars.models[idx], conn_pars.model_pars[idx])
-					# 	syn_dict = parameters.copy_dict(conn_pars.syn_specs[idx], {'model': synapse_name, 'weight':
-					# 		conn_pars.weight_dist[idx], 'delay': conn_pars.delay_dist[idx]})
-					# 	conn_dict = conn_pars.conn_specs[idx]
-					# 	if isinstance(src_gids, list):
-					# 		src_gids = tuple(x[0] for x in src_gids)
-					# 	nest.Connect(src_gids, tget_gids, conn_spec=conn_dict, syn_spec=syn_dict)
-					# 	print("- Connecting {0} to population {1} [{2}]".format(src_name, tget_name, synapse_name))
 					else:
 						x = StochasticGenerator(self.prng)
 						if hasattr(x, encoding_pars.encoder.models[src_id]):
@@ -3084,7 +2893,6 @@ class EncodingLayer:
 		self.connect(native_encoding_pars, network)
 		self.connect(clone_encoding_pars, clone)
 
-	# TODO is this used or can it go? - it is (see spike_triggered_average in heterogeneity project)
 	def replicate_connections(self, net, clone, progress=True):
 		"""
 		Replicate the connectivity from the encoding layer to the clone network
@@ -3203,7 +3011,7 @@ class EncodingLayer:
 		:param progress:
 		:return:
 		"""
-		# TODO what's the deal here, con[-4:] != 'copy' ? :-)
+		# TODO remove the use of 'copy' keyword (this is now done with the multiport synapse in NEST)
 		if src_gids is None and tget_gids is None:
 			for con in list(np.unique(self.connection_types)):
 				if con[-4:] != 'copy':
