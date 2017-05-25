@@ -189,7 +189,7 @@ def iterate_input_sequence(net, enc_layer, parameter_set, stimulus_set, input_si
 
 					print "\n\n\n ANALYSIS START TIME: {0}".format(t0)
 				if record:
-					extract_state_vectors(net, enc_layer, state_sample_time, store)
+					extract_state_vectors(net, enc_layer, state_sample_time)
 				if not store:
 					flush(net, enc_layer)
 
