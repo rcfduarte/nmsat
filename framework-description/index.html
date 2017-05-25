@@ -573,7 +573,7 @@ The framework is built on a modular structure, which can be divided into six mai
 </pre></div>
 
 
-<p>The core functionality lies in the modules packages, which contain all the relevant classes and
+<p>The core functionality lies in the <code>modules</code> package, which contain all the relevant classes and
 functions used. The specifics will be explained in greater detail below, but in general the modules
 are responsible for:</p>
 <ul>
@@ -589,6 +589,18 @@ analog variables, etc)</li>
 <li><code>visualization</code> - plotting routines</li>
 <li><code>io</code> - loading and saving data</li>
 </ul>
+<p>The <code>defaults</code> package contains a module, <code>paths.py</code>, for setting paths to various directories and files 
+(output, cluster templates, etc.), a custom matplotlib configuration and a default template for running NMSAT on clusters.
+ All these can be modified according to each user's particular needs.</p>
+<p>Created only during the first run, the <code>data</code> folder contains the project-specific output of the experiments if the 
+user chooses to save the output. Note that the <code>data</code> directory is, by default, shared by all projects and is located at 
+the root <code>nmsat</code> level and not within individual projects. However, this can be easily modified by setting the proper 
+ paths in <code>/defaults/paths.py</code>. For more on the output structure, see 
+ <a href="../standard-use-case/#simulation-output">Simulation output</a>.</p>
+<p>The <code>/projects</code> folder contains individual experiments and the corresponding files. For more, check out the 
+<a href="../standard-use-case/">next section</a>.</p>
+<p>When running an experiment on a cluster, the scripts required to submit jobs will be created in the <code>/export</code> folder. 
+ Read more on how to run experiments on clusters <a href="../standard-use-case/#cluster">here</a>.</p>
                 
                   
                 

@@ -600,7 +600,7 @@
 <li><strong>parameters_file</strong> - specifying all the complex parameter sets and dictionaries required to set up
 the experiment.</li>
 <li><strong>experiment_script</strong> - mostly used during development, for testing and debugging purposes.
-These scripts parse the parameters_file and run the complete experiment</li>
+These scripts parse the <code>parameters_file</code> and run the complete experiment</li>
 <li><strong>computation_file</strong> - after the development and testing phase is completed, the experiment can
 be copied to a computation_file, which can be used from the main... (*)</li>
 </ul>
@@ -623,10 +623,10 @@ parameter=value pairs for different, extra parameters (specific to each computat
 Instead of executing the code, it generates a series of files that can be used to submit the jobs to the system’s scheduler.</p>
 <p>To do this:</p>
 <ol>
-<li>add an entry to <code>nmsat/defaults/paths.py</code> for your template (here ’Blaustein’)</li>
-<li>adapt the default cluster template in <code>nmsat/defaults/cluster_templates/Blaustein_jdf.sh</code>
+<li>add an entry to <code>nmsat/defaults/paths.py</code> for your template (here ’Cluster’)</li>
+<li>adapt the default cluster template in <code>nmsat/defaults/cluster_templates/Cluster_jdf.sh</code>
 to match your cluster requirements</li>
-<li>change <code>run=’local’</code> to <code>run=’Blaustein’</code> in your parameter script</li>
+<li>change <code>run=’local’</code> to <code>run=’Cluster’</code> in your parameter script</li>
 <li>execute the following command from <code>nmsat/</code></li>
 </ol>
 <div class="codehilite"><pre><span></span><span class="n">python</span> <span class="n">main</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">f</span> <span class="p">{</span><span class="n">parameters_file</span><span class="p">}</span> <span class="o">-</span><span class="n">c</span> <span class="p">{</span><span class="n">computation_function</span><span class="p">}</span> <span class="o">--</span><span class="n">extra</span> <span class="p">{</span><span class="n">extra_parameters</span><span class="p">}</span> <span class="o">--</span><span class="n">cluster</span><span class="o">=</span><span class="n">Blaustein</span>
@@ -641,19 +641,30 @@ to match your cluster requirements</li>
 
 
 <h3 id="simulation-output">Simulation output<a class="headerlink" href="#simulation-output" title="Permanent link">&para;</a></h3>
-<p>After a simulation is completed, all the relevant output data is stored in the pre-specified data_path,
-within a folder named after the project label. The output data structure is organized as follows:</p>
-<div class="codehilite"><pre><span></span>data
-├── experiment_label
-│   ├── Figures
-│   ├── Results
-│   ├── Parameters
-│   ├── Activity
-│   ├── Input
-│   ├── Output
+<p>After a simulation is completed, all the relevant output data is stored in the pre-defined data path,
+within a folder named after the <code>data_label</code> specified in the parameters file of the experiment. The output data 
+structure is organized as follows:</p>
+<div class="codehilite"><pre><span></span>── nmsat
+│   ├── data
+│   │   ├── data_label
+│   │   │   ├── Figures
+│   │   │   ├── Results
+│   │   │   ├── Parameters
+│   │   │   ├── Activity
+│   │   │   ├── Input
+│   │   │   ├── Output
+│   │   ├── data_label_ParameterSpace.py # only created if running parameter scans
 </pre></div>
 
 
+<p>To illustrate this, consider the case of the first <a href="../single-neuron-fi-curve">example</a>: the data path set in <code>defaults/paths.py</code>
+is <code>nmsat/data</code>. In the parameter file <code>nmsat/projects/examples/single-neuron-fi-curve.py</code> we define 
+<div class="codehilite"><pre><span></span><span class="n">data_label</span> <span class="o">=</span> <span class="s1">&#39;example1&#39;</span>
+</pre></div>
+
+so after running the experiment the output will be in <code>nmsat/data/example1/</code>. If we also ran a parameter scan, then 
+a copy of the original parameter file would be created in nmsat/data/example1_ParameterScan.py`, which is not meant 
+to be edited manually but is used when harvesting the results for post-processing (<a href="../standard-use-case/#harvesting-stored-results">see below</a>). </p>
 <h3 id="analysing-and-plotting">Analysing and plotting<a class="headerlink" href="#analysing-and-plotting" title="Permanent link">&para;</a></h3>
 <p>Analysis and plotting can be (and usually is) done within the main computation, so as to extract and
 store only the information that is relevant for the specific experiment. Multiple, standard analysis and
