@@ -45,7 +45,7 @@ The code is organized as follows:
 ```
 
 
-The core functionality lies in the modules packages, which contain all the relevant classes and
+The core functionality lies in the `modules` package, which contain all the relevant classes and
 functions used. The specifics will be explained in greater detail below, but in general the modules
 are responsible for:
 
@@ -60,3 +60,19 @@ analog variables, etc)
 * `analysis` - post-processing and analysing population activity in various ways
 * `visualization` - plotting routines
 * `io` - loading and saving data
+
+The `defaults` package contains a module, `paths.py`, for setting paths to various directories and files 
+(output, cluster templates, etc.), a custom matplotlib configuration and a default template for running NMSAT on clusters.
+ All these can be modified according to each user's particular needs.
+  
+Created only during the first run, the `data` folder contains the project-specific output of the experiments if the 
+user chooses to save the output. Note that the `data` directory is, by default, shared by all projects and is located at 
+the root `nmsat` level and not within individual projects. However, this can be easily modified by setting the proper 
+ paths in `/defaults/paths.py`. For more on the output structure, see 
+ [Simulation output](/standard-use-case/#simulation-output).
+ 
+The `/projects` folder contains individual experiments and the corresponding files. For more, check out the 
+[next section](/standard-use-case/).
+ 
+When running an experiment on a cluster, the scripts required to submit jobs will be created in the `/export` folder. 
+ Read more on how to run experiments on clusters [here](/standard-use-case/#cluster).

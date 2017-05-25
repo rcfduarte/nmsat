@@ -23,7 +23,7 @@ import nest
 # Experiment options
 # ======================================================================================================================
 plot 	= True
-display = False
+display = True
 save 	= True
 debug 	= False
 online 	= True

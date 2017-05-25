@@ -176,11 +176,11 @@ def set_storage_locations(parameter_set, save=True):
 	:return save_paths: dictionary containing all relevant storage locations
 	"""
 	if save:
-		print "\nSetting storage paths..."
+		print("\nSetting storage paths...")
 		main_folder = parameter_set.kernel_pars.data_path + parameter_set.kernel_pars.data_prefix + '/'
 		if not os.path.exists(main_folder):
 			try:
-				os.mkdir(main_folder)
+				os.makedirs(main_folder)
 			except OSError:
 				pass
 		save_label = parameter_set.label
@@ -223,7 +223,7 @@ def set_storage_locations(parameter_set, save=True):
 		return {'main': main_folder, 'figures': figures, 'inputs': inputs, 'parameters': parameters, 'results':
 			results, 'activity': activity, 'other': others, 'label': save_label}
 	else:
-		print "No data will be saved!"
+		print("No data will be saved!")
 		return {'label': False, 'figures': False, 'activity': False}
 
 
@@ -233,11 +233,11 @@ def set_project_paths(project):
 	:param project: name given to the main project folder
 	:return:
 	"""
-	NETWORK_HOME = os.environ.get("NETWORK_SIMULATION_HOME")
-	if NETWORK_HOME is None:
+	NMSAT_HOME = os.environ.get("NMSAT_HOME")
+	if NMSAT_HOME is None:
 		print("Please set the project root directory environment variable! (source configure.sh)\nExiting.")
 		exit(0)
-	project_home = NETWORK_HOME + "/projects/%s/" % project
+	project_home = NMSAT_HOME + "/projects/%s/" % project
 	for add_path in os.walk(project_home):
 		sys.path.append(add_path[0])
 

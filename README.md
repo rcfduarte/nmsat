@@ -183,7 +183,8 @@ can try out:
 * Balanced random network 
 * Stimulus processing
 
-For more details about each example read the **Examples** section in the [documentation](/).
+For more details about each example read the **Examples** section in the 
+[documentation](https://rcfduarte.github.io/nmsat/single-neuron-fi-curve/).
 
 ### Authors and contributors
 
@@ -198,8 +199,8 @@ For more details about each example read the **Examples** section in the [docume
 
 If you find NMSAT useful and use it in your research, please cite it as:
 
-Renato Duarte, Barna Zajzon, & Abigail Morrison. (2017). Neural Microcircuit Simulation and Analysis Toolkit [Data set]. Zenodo. 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.582645.svg)](https://doi.org/10.5281/zenodo.582645)
+Renato Duarte, Barna Zajzon, & Abigail Morrison. (2017). Neural Microcircuit Simulation and Analysis Toolkit [Data set]. 
+Zenodo. [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.582645.svg)](https://doi.org/10.5281/zenodo.582645)
 
 ### License 
 

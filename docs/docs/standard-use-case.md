@@ -4,7 +4,7 @@ A numerical experiment in this framework consists of 2 or 3 main files (see Exam
 * **parameters_file** - specifying all the complex parameter sets and dictionaries required to set up
 the experiment.
 * **experiment_script** - mostly used during development, for testing and debugging purposes.
-These scripts parse the parameters_file and run the complete experiment
+These scripts parse the `parameters_file` and run the complete experiment
 * **computation_file** - after the development and testing phase is completed, the experiment can
 be copied to a computation_file, which can be used from the main... (*)
 
@@ -36,10 +36,10 @@ Instead of executing the code, it generates a series of files that can be used t
 
 To do this:
 
-1. add an entry to `nmsat/defaults/paths.py` for your template (here ’Blaustein’)
-2. adapt the default cluster template in `nmsat/defaults/cluster_templates/Blaustein_jdf.sh`
+1. add an entry to `nmsat/defaults/paths.py` for your template (here ’Cluster’)
+2. adapt the default cluster template in `nmsat/defaults/cluster_templates/Cluster_jdf.sh`
 to match your cluster requirements
-3. change `run=’local’` to `run=’Blaustein’` in your parameter script
+3. change `run=’local’` to `run=’Cluster’` in your parameter script
 4. execute the following command from `nmsat/`
 
 ```python
@@ -54,19 +54,33 @@ python submit_jobs.py 0 1
 
 ###Simulation output
 
-After a simulation is completed, all the relevant output data is stored in the pre-specified data_path,
-within a folder named after the project label. The output data structure is organized as follows:
+After a simulation is completed, all the relevant output data is stored in the pre-defined data path,
+within a folder named after the `data_label` specified in the parameters file of the experiment. The output data 
+structure is organized as follows:
 
 ```
-data
-├── experiment_label
-│   ├── Figures
-│   ├── Results
-│   ├── Parameters
-│   ├── Activity
-│   ├── Input
-│   ├── Output
+── nmsat
+│   ├── data
+│   │   ├── data_label
+│   │   │   ├── Figures
+│   │   │   ├── Results
+│   │   │   ├── Parameters
+│   │   │   ├── Activity
+│   │   │   ├── Input
+│   │   │   ├── Output
+│   │   ├── data_label_ParameterSpace.py # only created if running parameter scans
 ```
+
+To illustrate this, consider the case of the first [example](/single-neuron-fi-curve): the data path set in `defaults/paths.py`
+is `nmsat/data`. In the parameter file `nmsat/projects/examples/single-neuron-fi-curve.py` we define 
+```python
+data_label = 'example1'
+```
+so after running the experiment the output will be in `nmsat/data/example1/`. If we also ran a parameter scan, then 
+a copy of the original parameter file would be created in nmsat/data/example1_ParameterScan.py`, which is not meant 
+to be edited manually but is used when harvesting the results for post-processing ([see below](/standard-use-case/#harvesting-stored-results)). 
+
+
 
 ###Analysing and plotting
 Analysis and plotting can be (and usually is) done within the main computation, so as to extract and

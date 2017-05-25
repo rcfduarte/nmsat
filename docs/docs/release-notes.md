@@ -8,11 +8,12 @@ To determine the currently installed version, use the following command:
 python main.py --version
 ```
 
-Since the repository currently only lives on Github, just pull from the master branch to get the latest version. 
+The repository currently only lives on Github where it is actively maintained and extended, so make 
+sure to pull from the master branch to get the latest version with bug fixes and new features. 
 
 
 ## Changelog
 
-### 0.1 <small> _ May 21, 2017</small>
+### 0.1 <small> _ May 22, 2017</small>
 
 * Initial release

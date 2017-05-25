@@ -1,6 +1,6 @@
 #!/bin/bash
 # Example script to generate scripts to be run on a cluster. This script should not called directly as it only serves
-# as a template; some values will be replaced by NMT during export. For more details see the NMT User Manual.
+# as a template; some values will be replaced by NMSAT during export. For more details see the NMSAT documentation.
 
 # NOTE: this example is specific for a SLURM queueing system.
 
