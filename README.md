@@ -1,4 +1,4 @@
-# Neural Microcircuit Simulation and Analysis Toolkit (NMSAT) 
+![alt-text](docs/docs/images/NMSAT.png)
 
 NMSAT is a python package that provides a set of tools to build, simulate and analyse neuronal
 microcircuit models with any degree of complexity, as well as to probe the circuits with arbitrarily
