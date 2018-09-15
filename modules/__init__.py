@@ -14,18 +14,18 @@ __all__ = ['analysis', 'io', 'parameters', 'input_architect', 'signals', 'net_ar
 
 
 def get_import_warning(name):
-	return """** %s ** package is not installed. To have functions using %s please install the package.""" % (name,
-																											  name)
+    return """** %s ** package is not installed. To have functions using %s please install the package.""" % (name,
+                                                                                                              name)
 
 
 def check_dependency(name):
-	"""
-	verify if package is installed
-	:param name: string with the name of the package to import
-	:return:
-	"""
-	try:
-		exec ("import %s" % name)
-		return True
-	except ImportError:
-		print get_import_warning(name)
+    """
+    verify if package is installed
+    :param name: string with the name of the package to import
+    :return:
+    """
+    try:
+        exec ("import %s" % name)
+        return True
+    except ImportError:
+        print(get_import_warning(name))

@@ -37,7 +37,7 @@ pars.print_stored_keys(results_path)
 
 # Extract an example result,
 with open(results_path + 'Results_' + data_label, 'r') as fp:
-	single_result = pickle.load(fp)
+    single_result = pickle.load(fp)
 
 # If you ran a parameter scan, you can extract all the values for the corresponding parameter combination,
 # providing the sequence of nested keys needed to reach the result of interest
