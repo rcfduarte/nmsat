@@ -23,7 +23,7 @@ except ImportError as e:
     raise ImportError("Import dependency not met: {}. ".format(e))
 
 
-version = "0.1.1"
+version = "0.2"
 
 
 def run_experiment(params_file_full_path, computation_function="noise_driven_dynamics", cluster=None, **parameters):
