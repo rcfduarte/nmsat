@@ -20,7 +20,7 @@ CurrentList           - AnalogSignalList object used for current traces
 StochasticGenerator   - object used to generate and handle stochastic input data
 
 ========================================================================================================================
-Copyright (C) 2017  Renato Duarte, Barna Zajzon
+Copyright (C) 2018  Renato Duarte, Barna Zajzon
 
 Uses parts from NeuroTools for which Copyright (C) 2008  Daniel Bruederle, Andrew Davison, Jens Kremkow
 Laurent Perrinet, Michael Schmuker, Eilif Muller, Eric Mueller, Pierre Yger
@@ -1273,6 +1273,10 @@ class SpikeList(object):
 		self.spiketrains = {}
 		id_list = np.sort(id_list)
 
+		# set dimension explicitly if needed
+		if self.dimensions is None:
+			self.dimensions = len(id_list)
+
 		##### Implementation based on pure Numpy arrays, that seems to be faster for
 		## large spike files. Still not very efficient in memory, because we are not
 		## using a generator to build the SpikeList...
@@ -1500,7 +1504,7 @@ class SpikeList(object):
 		# We check that Spike Lists have similar time_axis
 		for sl in spklists:
 			if not sl.time_parameters() == self.time_parameters():
-				raise Exception("Spike Lists should have similar time_axis")
+				raise Exception("Spike Lists should have similar time_axis (t_start and t_stop)!")
 		for sl in spklists:
 			for id in sl.id_list:
 				self.append(id, sl.spiketrains[id])
@@ -1573,6 +1577,8 @@ class SpikeList(object):
         """
 		new_SpkList = SpikeList([], [], self.t_start, self.t_stop, self.dimensions)
 		id_list = self.__sub_id_list(id_list)
+		new_SpkList.dimensions = len(id_list)  # update dimension of new spike list
+
 		for id_ in id_list:
 			try:
 				new_SpkList.append(id_, self.spiketrains[id_])
@@ -2830,14 +2836,15 @@ class AnalogSignal(object):
 			elif len(self.signal) == len(t_axis[:-1]):
 				self.closed_time_interval = False
 			else:
-				raise Exception("Inconsistent arguments: t_start=%g, t_stop=%g, dt=%g implies %d elements, actually %d" % (
-					self.t_start, self.t_stop, self.dt, int(round((self.t_stop - self.t_start) / float(self.dt))),
-					len(self.signal)))
+				raise Exception("Inconsistent arguments: t_start=%g, t_stop=%g, dt=%g implies %d elements, actually %d"
+								% (self.t_start, self.t_stop, self.dt,
+								   int(round((self.t_stop - self.t_start) / float(self.dt))), len(self.signal)))
 		else:
 			self.t_stop = round(self.t_start + len(self.signal) * self.dt, 2)
 
 		if self.t_start >= self.t_stop:
-			raise Exception("Incompatible time interval for the creation of the AnalogSignal. t_start=%s, t_stop=%s" % (self.t_start, self.t_stop))
+			raise Exception("Incompatible time interval for the creation of the AnalogSignal. t_start=%s, t_stop=%s" %
+							(self.t_start, self.t_stop))
 
 	def __getslice__(self, i, j):
 		"""
@@ -3199,6 +3206,7 @@ class AnalogSignalList(object):
 		if t_stop is None:
 			self.t_stop = self.t_start + self.signal_length * self.dt
 
+    # TODO comment
 	def organize_analogs(self, signal, id, lens):
 		if len(signal) > 0 and len(signal) == max(lens):
 			self.analog_signals[id] = AnalogSignal(signal, self.dt, self.t_start, self.t_stop)
