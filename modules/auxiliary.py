@@ -519,8 +519,6 @@ def process_input_sequence(parameter_set, net, enc_layers, stimulus_sets, input_
         else:
             signal_noise.append(False)
             signal_noise_params.append(None)
-        # signal_noise.append(False)
-        # signal_noise_params.append(None)
 
     # init some lists here
     t_samp          = []
@@ -635,7 +633,8 @@ def process_input_sequence(parameter_set, net, enc_layers, stimulus_sets, input_
             # simulate the last delay step if we're at the end (last stimulus)
             if stim_seq_id == set_size[0]:
                 net.simulate(encoder_delay + decoder_delay)
-                net.simulate(decoder_delay)
+                # we also need to go one step (= simulation resolution) further to get the very last sample!
+                net.simulate(sim_res)
 
             timing['step_time'].append(time_keep(start_time, stim_seq_id, set_size[0], stim_start))
 
@@ -678,7 +677,7 @@ def process_states(net, target_matrix_map, stim_set, data_sets=None, accepted_id
     """
     results = dict(rank={}, performance={}, dimensionality={})
 
-    #TODO add more checks for data_set and state matrix consistency!!!
+    # TODO add more checks for data_set and state matrix consistency!!!
     if data_sets is None:
         data_sets = ["transient", "unique", "train", "test"]
 

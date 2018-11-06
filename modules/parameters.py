@@ -125,7 +125,7 @@ def extract_nestvalid_dict(d, param_type='neuron'):
         nest_dict = {k: v for k, v in d.iteritems() if k in accepted_keys}
     else:
         # TODO
-        print(("{!s} not implemented yet".format(param_type)))
+        print("{!s} not implemented yet".format(param_type))
         assert False
 
     return nest_dict
@@ -384,10 +384,6 @@ class ParameterSet(dict):
         # self._url = None
         if isinstance(initializer, basestring):  # url or str
             if os.path.exists(initializer):
-                # TODO can't this be removed? seens unused
-                with open(initializer, 'r') as f:
-                    pstr = f.read()
-
                 pth = os.path.dirname(initializer)
                 if pth == '':
                     pth = os.path.abspath('.')
@@ -398,7 +394,6 @@ class ParameterSet(dict):
         # ParameterSets
         if isinstance(initializer, dict):
             for k, v in initializer.items():
-                #print k
                 if isinstance(v, ParameterSet):
                     self[k] = v
 
@@ -422,10 +417,6 @@ class ParameterSet(dict):
             self.label = label or initializer.label
         else:
             self.label = label
-
-    # Define some aliases, allowing, e.g. for name, value in P.parameters() or for name in P.names()...
-    # self.names = self.keys
-    # self.parameters = self.items
 
     def flat(self):
         __doc__ = nesteddict_walk.__doc__
@@ -596,10 +587,6 @@ class ParameterSet(dict):
                                         elif nnn is not None and isinstance(nnn[0], types.BuiltinFunctionType):
                                             tmp = np.array(nnn)
                                             string += '(%s, %s), ' % ('np.random.{0}'.format(tmp.any().__name__), str(tmp.all()))
-                                        # elif nnn is not None and isinstance(nnn[0], types.MethodType):
-                                        # 	tmp = np.array(nnn)
-                                        # 	string += '(%s, %s), ' % ('st.{0}.rvs'.format(str(tmp.any(
-                                        # 													).im_self.name)), str(tmp.all()))
                                         else:
                                             string += '%s, ' % (str(nnn))
                                     string += '], '
@@ -613,14 +600,6 @@ class ParameterSet(dict):
                                         'np.random.{0}'.format(tmp.any().__name__), str(tmp.all()))
                                 string += '], '
                                 s.append(string)
-                        # elif v and isinstance(v_arr.any(), types.MethodType) and isinstance(v_arr.all(), dict):
-                        # 	string = '%s"%s": [' % (indent, k)
-                        # 	for idx, nnn in enumerate(v):
-                        # 		tmp = np.array(nnn)
-                        # 		string += '(%s, %s), ' % (
-                        # 		'st.{0}.rvs'.format(tmp.any().im_self.name), str(tmp.all()))
-                        # 	string += '], '
-                        # 	s.append(string)
                     else:
                         if np.mean([isinstance(x, np.ndarray) for x in v]):
                             string = '%s"%s": [' % (indent, k)
@@ -632,27 +611,21 @@ class ParameterSet(dict):
                             string += '], '
                             s.append(string)
                         elif hasattr(v, 'items'):
-                            # if hasattr(v, '_url') and v._url:
-                            # s.append('%s"%s": url("%s"),' % (indent, k, v._url))
-                            # else:
                             s.append('%s"%s": {' % (indent, k))
                             s.append(walk(v, indent + ind_incr, ind_incr))
                             s.append('%s},' % indent)
                         elif isinstance(v, basestring):
                             s.append('%s"%s": "%s",' % (indent, k, v))
-                        else:  # what if we have a dict or ParameterSet inside a list? currently they are not expanded. Should they be?
+                        else:
+                            # what if we have a dict or ParameterSet inside a list? currently they are not expanded.
+                            # Should they be?
                             s.append('%s"%s": %s,' % (indent, k, v))
 
                 elif isinstance(v, types.BuiltinFunctionType):
                     if v.__name__ in np.random.__all__:
                         s.append('%s"%s"' % (indent, 'np.random.{0}'.format(v.__name__)))
-                # else:
-                # 	continue
                 else:
                     if hasattr(v, 'items'):
-                        # if hasattr(v, '_url') and v._url:
-                        # 	s.append('%s"%s": url("%s"),' % (indent, k, v._url))
-                        # else:
                         s.append('%s"%s": {' % (indent, k))
                         s.append(walk(v, indent + ind_incr, ind_incr))
                         s.append('%s},' % indent)
@@ -660,15 +633,18 @@ class ParameterSet(dict):
                         s.append('%s"%s": "%s",' % (indent, k, v))
                     elif isinstance(v, np.ndarray):
                         s.append('%s"%s": %s,' % (indent, k, repr(v)[6:-1]))
-                    elif isinstance(v, tuple) and (isinstance(v[0], types.MethodType) or isinstance(v[0], types.BuiltinFunctionType)):
+                    elif isinstance(v, tuple) and (isinstance(v[0], types.MethodType)
+                                                   or isinstance(v[0], types.BuiltinFunctionType)):
                         v_arr = np.array(v)
                         if isinstance(v[0], types.MethodType):
-                            s.append('%s"%s": (%s, %s),' % (indent, k, 'st.{0}.rvs'.format(str(v_arr.any().im_self.name)),
-                                                            str(v_arr.all())))
+                            s.append('%s"%s": (%s, %s),' % (indent, k, 'st.{0}.rvs'.format(
+                                str(v_arr.any().im_self.name)), str(v_arr.all())))
                         elif isinstance(v[0], types.BuiltinFunctionType):
-                            s.append('%s"%s": (%s, %s),' % (indent, k, 'np.random.{0}'.format(v_arr.any(
-                            ).__name__), str(v_arr.all())))
-                    else:  # what if we have a dict or ParameterSet inside a list? currently they are not expanded. Should they be?
+                            s.append('%s"%s": (%s, %s),' % (indent, k, 'np.random.{0}'.format(v_arr.any().__name__),
+                                                            str(v_arr.all())))
+                    else:
+                        # what if we have a dict or ParameterSet inside a list? currently they are not expanded.
+                        #  Should they be?
                         s.append('%s"%s": %s,' % (indent, k, v))
             return '\n'.join(s)
 
@@ -685,12 +661,8 @@ class ParameterSet(dict):
             value = self[key]
             if isinstance(value, ParameterSet):
                 tmp[key] = value.tree_copy()
-            # elif isinstance(value, ParameterReference):
-            # 	tmp[key] = value.copy()
             else:
                 tmp[key] = value
-        # if tmp._is_space():
-        # 	tmp = ParameterSpace(tmp)
         return tmp
 
     def as_dict(self):
@@ -778,21 +750,22 @@ class ParameterSpace:
                 if not isiterable(module.parameter_range[arg]):
                     raise ValueError('ParameterRange variable `%s` is not iterable! Should be list!' % arg)
 
-        def validate_parameter_sets(param_sets):
-            """
-
-            :param param_sets:
-            :return:
-            """
-            required_dicts = ["kernel_pars", "encoding_pars", "net_pars"]
-            for p_set in param_sets:
-                for d in required_dicts:
-                    if d not in p_set:
-                        raise ValueError("Required parameter (dictionary) `%s` not found!" % d)
-
-                # `data_prefix` required
-                if "data_prefix" not in p_set["kernel_pars"]:
-                    raise ValueError("`data_prefix` missing from `kernel_pars`!")
+        # TODO this needs some rethinking, possibly unnecessary
+        # def validate_parameter_sets(param_sets):
+        #     """
+        #
+        #     :param param_sets:
+        #     :return:
+        #     """
+        #     required_dicts = ["kernel_pars", "encoding_pars", "net_pars"]
+        #     for p_set in param_sets:
+        #         for d in required_dicts:
+        #             if d not in p_set:
+        #                 raise ValueError("Required parameter (dictionary) `%s` not found!" % d)
+        #
+        #         # `data_prefix` required
+        #         if "data_prefix" not in p_set["kernel_pars"]:
+        #             raise ValueError("`data_prefix` missing from `kernel_pars`!")
 
         def parse_parameters_file(url):
             """
@@ -823,11 +796,11 @@ class ParameterSpace:
             global_label = param_ranges[0]['kernel_pars']['data_prefix']
 
             if n_ranges <= 3:# and not emoo:
-                # verify parameter integrity / completeness
-                try:
-                    validate_parameter_sets(param_ranges)
-                except ValueError as error:
-                    print("Invalid parameter file! Error: %s" % error)
+                # # verify parameter integrity / completeness
+                # try:
+                #     validate_parameter_sets(param_ranges)
+                # except ValueError as error:
+                #     print("Invalid parameter file! Error: %s" % error)
 
                 # build parameter axes
                 axe_prefixes = ['x', 'y', 'z']
@@ -858,10 +831,10 @@ class ParameterSpace:
             """
             # TODO is set label always global?
             param_set 	= ParameterSet(url, label='global')
-            try:
-                validate_parameter_sets([param_set])
-            except ValueError as error:
-                print("Invalid parameter file! Error: %s" % error)
+            # try:
+            #     validate_parameter_sets([param_set])
+            # except ValueError as error:
+            #     print("Invalid parameter file! Error: %s" % error)
 
             param_axes	= {}
             label 		= param_set.kernel_pars["data_prefix"]
@@ -872,19 +845,6 @@ class ParameterSpace:
             self.parameter_sets, self.parameter_axes, self.label, self.dimensions = parse_parameters_file(initializer)
         else:
             self.parameter_sets, self.parameter_axes, self.label, self.dimensions = parse_parameters_dict(initializer)
-
-    # TODO this is temporary only - remove
-    def compile_parameters_table(self):
-        """
-        Use the first parameter set to generate the standard table...
-        :return:
-        """
-        template_file = self[0].report_pars.report_templates_path + 'StandardTable.tex'
-        out_file = self[0].report_pars.report_path + self[0].report_pars.report_filename
-        fields = self[0].report_pars.table_fields.as_dict()
-        tmp = io.process_template(template_file, fields, save_to=out_file)
-
-        return tmp, out_file
 
     def update_run_parameters(self, cluster=None):
         """
@@ -1177,27 +1137,6 @@ class ParameterSpace:
                 print("Dataset {0} Not Found, skipping".format(self.label))
 
         return parameters_array, results_array
-
-    # TODO not needed anymore - remove
-    @staticmethod
-    def extract_result_from_array(results_array, field, operation=None):
-        """
-        returns an array with a single numerical result...
-        :param results_array:
-        :param field:
-        :param operation:
-        :return:s
-        """
-        result = np.zeros_like(results_array)
-        for index, d in np.ndenumerate(results_array):
-            if d is None:
-                result[index] = np.nan
-            else:
-                if operation is None:
-                    result[index] = d[field]
-                else:
-                    result[index] = operation(d[field])
-        return result
 
 
 def clean_array(x):
