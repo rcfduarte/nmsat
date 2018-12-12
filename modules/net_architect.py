@@ -186,15 +186,21 @@ class Population(object):
         print("\n- Randomizing {0} state in Population {1}".format(str(var_name), str(self.name)))
         try:
             nest.SetStatus(self.gids, var_name, randomization_function(size=len(self.gids), **function_parameters))
-        except:
+        except Exception as e:
+            print('WARNING - Chosen randomization function might contain an error: {}'.format(str(e)))
             for n_neuron in self.gids:
                 success = False
-                while not success:
+                iter = 0
+                # depending on the randomization function, we might need to try this multiple times
+                while not success and iter < 500:
                     try:
                         nest.SetStatus([n_neuron], var_name, randomization_function(size=1, **function_parameters))
                         success = True
                     except:
-                        pass
+                        iter += 1
+                if not success:
+                    raise ValueError('Randomization function failed to generate correct values for NEST after '
+                                     '500 attempts. If you are certain it is correct, just raise the threshold.')
 
     def record_spikes(self, rec_pars_dict, ids=None, label=None):
         """
