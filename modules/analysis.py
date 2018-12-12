@@ -633,10 +633,14 @@ def compute_dimensionality(response_matrix, pca_obj=None, label='', plot=False, 
         print("Determining effective dimensionality...")
         t_start = time.time()
     if pca_obj is None:
-        pca_obj = sk.PCA(n_components=np.shape(response_matrix)[0])
+        n_features, n_samples = np.shape(response_matrix)  # features = neurons
+        if n_features > n_samples:
+            print('WARNING - PCA n_features ({}) > n_samples ({}). Effective dimensionality will be computed using'
+                  '{} components!'.format(n_features, n_samples, min(n_samples, n_features)))
+        pca_obj = sk.PCA(n_components=min(n_features, n_samples))
     if not hasattr(pca_obj, "explained_variance_ratio_"):
-        pca_obj.fit(response_matrix.T)
-    # Dimensionality
+        pca_obj.fit(response_matrix.T)  # we need to transpose here as scipy requires n_samples X n_features
+    # compute dimensionality
     dimensionality = 1. / np.sum((pca_obj.explained_variance_ratio_ ** 2))
     if display:
         print("Effective dimensionality = {0}".format(str(round(dimensionality, 2))))
