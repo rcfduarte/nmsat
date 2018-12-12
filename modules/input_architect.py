@@ -346,66 +346,6 @@ class StochasticGenerator:
         else:
             return spikes
 
-    # TODO this can be removed as soon as NEST pull request is accepted
-    def inh_poisson_generator(self, rate, t, t_stop, array=False):
-        """
-        Returns a SpikeTrain whose spikes are a realization of an inhomogeneous
-        poisson process (dynamic rate). The implementation uses the thinning
-        method, as presented in the references.
-
-        :param rate: an array of the rates (Hz) where rate[i] is active on interval [t[i],t[i+1]]
-        :param t: an array specifying the time bins (in milliseconds) at which to specify the rate
-        :param t_stop: length of time to simulate process (in ms)
-        :param array: if True, a numpy array of sorted spikes is returned, rather than a SpikeList object.
-
-        Note:
-        -----
-            t_start=t[0]
-
-        References:
-        -----------
-
-        Eilif Muller, Lars Buesing, Johannes Schemmel, and Karlheinz Meier
-        Spike-Frequency Adapting Neural Ensembles: Beyond Mean Adaptation and Renewal Theories
-        Neural Comput. 2007 19: 2958-3010.
-
-        Devroye, L. (1986). Non-uniform random variate generation. New York: Springer-Verlag.
-
-        Examples:
-        --------
-            >> time = arange(0,1000)
-            >> stgen.inh_poisson_generator(time, sin(time), 1000)
-        """
-
-        if np.shape(t) != np.shape(rate):
-            raise ValueError('Shape mismatch: t, rate must be of the same shape')
-
-        # get max rate and generate poisson process to be thinned
-        rmax = np.max(rate)
-        ps = self.poisson_generator(rmax, t_start=t[0], t_stop=t_stop, array=True)
-
-        # return empty if no spikes
-        if len(ps) == 0:
-            if array:
-                return np.array([])
-            else:
-                return signals.SpikeTrain(np.array([]), t_start=t[0], t_stop=t_stop)
-
-        # gen uniform rand on 0,1 for each spike
-        rn = np.array(self.rng.uniform(0, 1, len(ps)))
-
-        # instantaneous rate for each spike
-        idx = np.searchsorted(t, ps) - 1
-        spike_rate = rate[idx]
-
-        # thin and return spikes
-        spike_train = ps[rn < spike_rate / rmax]
-
-        if array:
-            return spike_train
-
-        return signals.SpikeTrain(spike_train, t_start=t[0], t_stop=t_stop)
-
     def gamma_generator(self, a, b, t_start=0.0, t_stop=1000.0, array=False, debug=False):
         """
         Returns a SpikeTrain whose spikes are a realization of a gamma process
