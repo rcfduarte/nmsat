@@ -33,7 +33,6 @@ redistributed in proprietary programs.
 """
 import signals
 import input_architect
-import parameters
 import analysis
 import numpy as np
 import itertools

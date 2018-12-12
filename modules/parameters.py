@@ -70,7 +70,7 @@ import types
 import itertools
 import cPickle as pickle
 
-import io
+from modules import io
 import inspect
 import errno
 import signals as sg
@@ -795,6 +795,7 @@ class ParameterSpace:
             param_ranges = [module_obj.build_parameters( *elem ) for elem in range_combinations]
             global_label = param_ranges[0]['kernel_pars']['data_prefix']
 
+            # currently only support parameter spaces of dimensions <=3
             if n_ranges <= 3:# and not emoo:
                 # # verify parameter integrity / completeness
                 # try:

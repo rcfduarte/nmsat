@@ -50,7 +50,6 @@ import scipy.optimize as opt
 import matplotlib.pyplot as pl
 import matplotlib as mpl
 from scipy.spatial import distance
-import scipy.integrate as integ
 import sklearn.decomposition as sk
 import sklearn.linear_model as lm
 import sklearn.svm as svm
@@ -61,7 +60,7 @@ import sklearn.manifold as man
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 
-# NMT imports
+# NMSAT imports
 import parameters as pa
 import input_architect as ia
 import signals as sg
@@ -616,12 +615,12 @@ def compute_analog_stats(population, parameter_set, variable_names, analysis_int
         return results
 
 
-def compute_dimensionality(activity_matrix, pca_obj=None, label='', plot=False, display=True, save=False):
+def compute_dimensionality(response_matrix, pca_obj=None, label='', plot=False, display=True, save=False):
     """
     Measure the effective dimensionality of population responses. Based on Abbott et al. (). Interactions between
     intrinsic and stimulus-evoked activity in recurrent neural networks.
 
-    :param activity_matrix: matrix to analyze (NxT)
+    :param response_matrix: matrix of continuous responses to analyze (NxT)
     :param pca_obj: if pre-computed, otherwise None
     :param label:
     :param plot:
@@ -634,35 +633,38 @@ def compute_dimensionality(activity_matrix, pca_obj=None, label='', plot=False, 
         print("Determining effective dimensionality...")
         t_start = time.time()
     if pca_obj is None:
-        pca_obj = sk.PCA(n_components=np.shape(activity_matrix)[0])
+        pca_obj = sk.PCA(n_components=np.shape(response_matrix)[0])
     if not hasattr(pca_obj, "explained_variance_ratio_"):
-        pca_obj.fit(activity_matrix.T)
+        pca_obj.fit(response_matrix.T)
     # Dimensionality
     dimensionality = 1. / np.sum((pca_obj.explained_variance_ratio_ ** 2))
     if display:
         print("Effective dimensionality = {0}".format(str(round(dimensionality, 2))))
         print("Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3))))
     if plot:
-        X = pca_obj.fit_transform(activity_matrix.T).T
+        X = pca_obj.fit_transform(response_matrix.T).T
         vz.plot_dimensionality(dimensionality, pca_obj, X, data_label=label, display=display, save=save)
     return dimensionality
 
 
-def compute_timescale(activity_matrix, time_axis, max_lag=1000, method=0, plot=True, display=True, save=False):
+def compute_timescale(response_matrix, time_axis, max_lag=1000, method=0, plot=True, display=True, save=False):
     """
-    Determines the time scale of fluctuations in the population activity
+    Determines the time scale of fluctuations in the population activity.
 
-    :param activity_matrix: np.array with size NxT
+    :param response_matrix: [np.array] with size NxT, continuous time
     :param time_axis:
     :param max_lag:
     :param method: based on autocorrelation (0) or on power spectra (1) - not implemented yet
+    :param plot:
+    :param display:
+    :param save:
     :return:
     """
     # TODO modify / review / extend / correct / update
     time_scales = []
     final_acc 	= []
     errors 		= []
-    acc 		= cross_trial_cc(activity_matrix)
+    acc 		= cross_trial_cc(response_matrix)
     initial_guess = 1., 0., 10.
     for n_signal in range(acc.shape[0]):
         fit, _ = opt.leastsq(err_func, initial_guess, args=(time_axis[:max_lag], acc[n_signal, :max_lag], acc_function))
@@ -1371,33 +1373,38 @@ def calculate_error(output, target, display=True):
     return {'MAE': MAE, 'MSE': MSE, 'fmf': fmf}
 
 
-def analyse_state_matrix(state, stim_labels=None, epochs=None, label='', plot=True, display=True, save=False):
+def analyse_state_matrix(state_matrix, stim_labels=None, epochs=None, label='', plot=True, display=True, save=False):
     """
-    Use PCA to peer into the population responses
-    :param state: state matrix X
+    Use PCA to peer into the population responses.
+
+    :param state_matrix: state matrix X
     :param stim_labels: stimulus labels (if each sample corresponds to a unique label)
+    :param epochs:
     :param label: data label
+    :param plot:
+    :param display:
+    :param save:
     :return results: dimensionality results
     """
-    if isinstance(state, sg.AnalogSignalList):
-        state = state.as_array()
-    assert(isinstance(state, np.ndarray)), "Activity matrix must be numpy array or AnalogSignalList"
+    if isinstance(state_matrix, sg.AnalogSignalList):
+        state_matrix = state_matrix.as_array()
+    assert(isinstance(state_matrix, np.ndarray)), "Activity matrix must be numpy array or AnalogSignalList"
     results = {}
 
     pca_obj = sk.PCA(n_components=3)
-    X_r = pca_obj.fit(state.T).transform(state.T)
+    X_r = pca_obj.fit(state_matrix.T).transform(state_matrix.T)
     print("Explained Variance (first 3 components): %s" % str(pca_obj.explained_variance_ratio_))
 
     if stim_labels is None:
-        pca_obj = sk.PCA(n_components=state.shape[0])
-        X = pca_obj.fit_transform(state.T)
+        pca_obj = sk.PCA(n_components=state_matrix.shape[0])
+        X = pca_obj.fit_transform(state_matrix.T)
         print("Explained Variance (first 3 components): %s" % str(pca_obj.explained_variance_ratio_[:3]))
-        results.update({'dimensionality': compute_dimensionality(state, pca_obj=pca_obj, display=True)})
+        results.update({'dimensionality': compute_dimensionality(state_matrix, pca_obj=pca_obj, display=True)})
         if plot:
             vz.plot_dimensionality(results['dimensionality'], pca_obj, X, data_label=label, display=display, save=save)
         if epochs is not None:
             for epoch_label, epoch_time in epochs.items():
-                resp = state[:, int(epoch_time[0]):int(epoch_time[1])]
+                resp = state_matrix[:, int(epoch_time[0]):int(epoch_time[1])]
                 results.update({epoch_label: {}})
                 results[epoch_label].update(analyse_state_matrix(resp, epochs=None, label=epoch_label, plot=False,
                                                                  display=False, save=False))
@@ -1408,7 +1415,7 @@ def analyse_state_matrix(state, stim_labels=None, epochs=None, label='', plot=Tr
             if plot:
                 fig1 = pl.figure()
                 ax1 = fig1.add_subplot(111)
-                vz.plot_state_matrix(state, stim_labels, ax=ax1, label=label, display=False, save=False)
+                vz.plot_state_matrix(state_matrix, stim_labels, ax=ax1, label=label, display=False, save=False)
 
                 fig2 = pl.figure()
                 fig2.clf()
@@ -1442,8 +1449,8 @@ def analyse_state_matrix(state, stim_labels=None, epochs=None, label='', plot=Tr
                 fig1 = pl.figure()
                 ax = fig1.add_subplot(111, projection='3d')
                 ax.plot(X_r[:, 0], X_r[:, 1], X_r[:, 2], color='r', lw=2)
-                ax.set_title(label + r'$ - (3PCs) $= {0}$'.format(str(round(np.sum(pca_obj.explained_variance_ratio_[:3]),
-                                                                            1))))
+                ax.set_title(label + r'$ - (3PCs) $= {0}$'.format(
+                    str(round(np.sum(pca_obj.explained_variance_ratio_[:3]), 1))))
                 ax.grid()
                 if display:
                     pl.show(False)
@@ -1526,7 +1533,11 @@ def evaluate_encoding(enc_layer, parameter_set, analysis_interval, input_signal,
 
 def compile_performance_results(readout_set, state_variable=''):
     """
-    When there are multiple readouts, gather the results for all as arrays
+    When there are multiple readouts, gather the results for all as arrays.
+
+    :param readout_set:
+    :param state_variable:
+    :return:
     """
     results = {
         'accuracy': np.array([n.performance['label']['performance'] for n in readout_set]),
@@ -1715,27 +1726,27 @@ def calculate_ranks(network):
     results = dict()
     for ctr, n_pop in enumerate(list(itertools.chain(*[network.merged_populations, network.populations]))):
         results[n_pop.name] = {}
-        states = []
+        state_matrices = []
 
         if n_pop.decoding_layer is not None:
             if not sg.empty(n_pop.decoding_layer.state_matrix) and \
                     isinstance(n_pop.decoding_layer.state_matrix[0], list):
-                states = list(itertools.chain(*n_pop.decoding_layer.state_matrix))
+                state_matrices = list(itertools.chain(*n_pop.decoding_layer.state_matrix))
             elif not sg.empty(n_pop.decoding_layer.state_matrix):
-                states = n_pop.decoding_layer.state_matrix
+                state_matrices = n_pop.decoding_layer.state_matrix
 
-        for idx_state, n_state in enumerate(states):
+        for idx_state, n_state in enumerate(state_matrices):
             results[n_pop.name].update({n_pop.decoding_layer.state_variables[idx_state]: get_state_rank(n_state)})
 
     return results
 
 
-def get_state_rank(matrix):
+def get_state_rank(state_matrix):
     """
     Calculates the rank of all state matrices.
     :return:
     """
-    return np.linalg.matrix_rank(matrix)
+    return np.linalg.matrix_rank(state_matrix)
 
 
 ########################################################################################################################
@@ -1771,37 +1782,37 @@ class Readout(object):
         else:
             self.index = index
 
-    def train(self, state_train, target_train, index=None, accepted=None, display=True):
+    def train(self, state_matrix_train, target_train, index=None, accepted=None, display=True):
         """
         Train readout.
 
-        :param state_train: np.ndarray state matrix
-        :param target_train: np.ndarray()
+        :param state_matrix_train: [np.ndarray] state matrix
+        :param target_train: [np.ndarray]
         :param index:
         :param accepted:
         :param display:
         :return:
         """
-        assert (isinstance(state_train, np.ndarray)), "Provide state matrix as array"
+        assert (isinstance(state_matrix_train, np.ndarray)), "Provide state matrix as array"
         assert (isinstance(target_train, np.ndarray)), "Provide target matrix as array"
         if accepted is not None:
-            state_train = state_train[:, accepted]
+            state_matrix_train = state_matrix_train[:, accepted]
             target_train = target_train[:, accepted]
 
         if index is not None and index < 0:
             index = -index
-            state_train = state_train[:, index:]
+            state_matrix_train = state_matrix_train[:, index:]
             target_train = target_train[:, :-index]
         elif index is not None and index > 0:
-            state_train = state_train[:, :-index]
+            state_matrix_train = state_matrix_train[:, :-index]
             target_train = target_train[:, index:]
 
         if display:
             print("\nTraining Readout {0} [{1}]".format(str(self.name), str(self.rule)))
         if self.rule == 'pinv':
             reg = lm.LinearRegression(fit_intercept=False, n_jobs=-1)
-            reg.fit(state_train.T, target_train.T)
-            self.weights = reg.coef_#np.dot(np.linalg.pinv(np.transpose(state_train)), np.transpose(target_train))
+            reg.fit(state_matrix_train.T, target_train.T)
+            self.weights = reg.coef_#np.dot(np.linalg.pinv(np.transpose(state_matrix_train)), np.transpose(target_train))
             self.fit_obj = reg #[]
 
         elif self.rule == 'ridge':
@@ -1810,7 +1821,7 @@ class Readout(object):
             alphas = 10.0 ** np.arange(-5, 4)
             reg = lm.RidgeCV(alphas, fit_intercept=False)
             # b) fit using the best alpha...
-            reg.fit(state_train.T, target_train.T)
+            reg.fit(state_matrix_train.T, target_train.T)
             # c) get the regression coefficients
             self.weights = reg.coef_
             self.fit_obj = reg
@@ -1819,19 +1830,19 @@ class Readout(object):
             C = 10.0 ** np.arange(-5, 5)
             reg = lm.LogisticRegressionCV(C, cv=5, penalty='l2', dual=False,
                                           fit_intercept=False, n_jobs=-1)
-            reg.fit(state_train.T, np.argmax(np.array(target_train), 0))
+            reg.fit(state_matrix_train.T, np.argmax(np.array(target_train), 0))
             self.weights = reg.coef_
             self.fit_obj = reg
 
         elif self.rule == 'perceptron':
             reg = lm.Perceptron(fit_intercept=False)
-            reg.fit(state_train.T, np.argmax(np.array(target_train), 0))
+            reg.fit(state_matrix_train.T, np.argmax(np.array(target_train), 0))
             self.weights = reg.coef_
             self.fit_obj = reg
 
         elif self.rule == 'svm-linear':
             reg = svm.SVC(kernel='linear')
-            reg.fit(state_train.T, np.argmax(np.array(target_train), 0))
+            reg.fit(state_matrix_train.T, np.argmax(np.array(target_train), 0))
             self.weights = reg.coef_
             self.fit_obj = reg
 
@@ -1845,7 +1856,7 @@ class Readout(object):
             param_grid = dict(gamma=gamma_range, C=C_range)
             # pick only a subset of train dataset...
             target_test = target_train[:, :target_train.shape[1] / 2]
-            state_test = state_train[:, :target_train.shape[1] / 2]
+            state_test = state_matrix_train[:, :target_train.shape[1] / 2]
             cv = StratifiedKFold(y=np.argmax(np.array(target_test), 0), n_folds=5)
             grid = GridSearchCV(reg, param_grid=param_grid, cv=cv, n_jobs=-1)
             # use the test dataset (it's much smaller...)
@@ -1854,7 +1865,7 @@ class Readout(object):
 
             # use best parameters:
             reg = grid.best_estimator_
-            reg.fit(state_train.T, np.argmax(np.array(target_train), 0))
+            reg.fit(state_matrix_train.T, np.argmax(np.array(target_train), 0))
             self.weights = reg.coef0
             self.fit_obj = reg
 
@@ -1862,54 +1873,54 @@ class Readout(object):
             # l1_ratio_range = np.logspace(-5, 1, 60)
             print("Performing 5-fold CV for ElasticNet hyperparameters...")
             enet = lm.ElasticNetCV(n_jobs=-1)
-            enet.fit(state_train.T, np.argmax(np.array(target_train), 0))
+            enet.fit(state_matrix_train.T, np.argmax(np.array(target_train), 0))
 
             self.fit_obj = enet
             self.weights = enet.coef_
 
         elif self.rule == 'bayesian_ridge':
             model = lm.BayesianRidge()
-            model.fit(state_train.T, np.argmax(np.array(target_train), 0))
+            model.fit(state_matrix_train.T, np.argmax(np.array(target_train), 0))
 
             self.fit_obj = model
             self.weights = model.coef_
 
         return self.weights, self.fit_obj
 
-    def test(self, state_test, target_test=None, index=None, accepted=None, display=True):
+    def test(self, state_matrix_test, target_test=None, index=None, accepted=None, display=True):
         """
         Acquire readout output in test phase.
 
-        :param state_test:
-        :param target_test:
+        :param state_matrix_test: [np.ndarray] state matrix
+        :param target_test: [np.ndarray]
         :param index:
         :param accepted:
         :param display:
         :return:
         """
-        assert (isinstance(state_test, np.ndarray)), "Provide state matrix as array"
+        assert (isinstance(state_matrix_test, np.ndarray)), "Provide state matrix as array"
         if target_test is not None:
             assert (isinstance(target_test, np.ndarray)), "Provide target matrix as array"
 
         if accepted is not None:
-            state_test = state_test[:, accepted]
+            state_matrix_test = state_matrix_test[:, accepted]
             if target_test is not None:
                 target_test = target_test[:, accepted]
 
         if index is not None and index < 0:
             index = -index
-            state_test = state_test[:, index:]
+            state_matrix_test = state_matrix_test[:, index:]
             if target_test is not None:
                 target_test = target_test[:, :-index]
         elif index is not None and index > 0:
-            state_test = state_test[:, :-index]
+            state_matrix_test = state_matrix_test[:, :-index]
             if target_test is not None:
                 target_test = target_test[:, index:]
 
         if display:
             print("\nTesting Readout {0}".format(str(self.name)))
         self.output = None
-        self.output = self.fit_obj.predict(state_test.T)
+        self.output = self.fit_obj.predict(state_matrix_test.T)
 
         if target_test is not None:
             return self.output, target_test
@@ -2231,17 +2242,17 @@ class DecodingLayer(object):
 
     def flush_states(self):
         """
-        Clear all data
+        Clear all data.
         :return:
         """
-        print(("\n- Deleting state and activity data from all decoders attached to {0}".format(str(
-            self.source_population.name))))
+        print("\n- Deleting state and activity data from all decoders attached to {0}".format(
+            self.source_population.name))
         self.activity = [None for _ in range(len(self.state_variables))]
         self.state_matrix = [[] for _ in range(len(self.state_variables))]
 
     def extract_activity(self, start=None, stop=None, save=True):
         """
-        Read recorded activity from devices and store it
+        Read recorded activity from devices and store it.
         :param start:
         :param stop:
         :param save:
@@ -2323,7 +2334,6 @@ class DecodingLayer(object):
         Read population responses within a local time window and extract a single state vector at the specified time.
 
         :param time_point: in ms
-        :param lag: length of local time window = [time_point-lag, time_point]
         :param save: bool - store state vectors in the decoding layer or return them
         :param reset:
         :return:
@@ -2356,46 +2366,46 @@ class DecodingLayer(object):
 
     def compile_state_matrix(self, sampling_times=None):
         """
-        After gathering all state vectors, compile a standard state matrix
+        After gathering all state vectors, compile a standard state matrix.
 
         :param sampling_times:
         :return:
         """
         assert self.state_matrix, "State matrix elements need to be stored before calling this function"
-        states = []
+        state_vectors = []
         if len(self.state_matrix) > 1 and sampling_times is None:
-            states = []
+            state_vectors = []
             for n_idx, n_state in enumerate(self.state_matrix):
                 st = np.array(n_state).T
                 if self.standardize_states[n_idx]:
                     st = StandardScaler().fit_transform(st.T).T
-                states.append(st)
-            self.state_matrix = states
+                state_vectors.append(st)
+            self.state_matrix = state_vectors
         elif len(self.state_matrix) > 1 and sampling_times is not None:
             for n_idx, n_state in enumerate(self.state_matrix):
-                states = []
+                state_vectors = []
                 for idx_state, n_state_mat in enumerate(n_state):
                     st = np.array(n_state_mat).T
                     if self.standardize_states[n_idx]:
                         st = StandardScaler().fit_transform(st.T).T
-                    states.append(st)
+                    state_vectors.append(st)
                 # states.append(np.array(n_state_mat).T)
-                self.state_matrix[n_idx] = states
+                self.state_matrix[n_idx] = state_vectors
         elif len(self.state_matrix) == 1 and sampling_times is not None:
-            states = []
+            state_vectors = []
             for idx_state, n_state_mat in enumerate(self.state_matrix[0]):
                 st = np.array(n_state_mat).T
                 if self.standardize_states[idx_state]:
                     st = StandardScaler().fit_transform(st.T).T
-                states.append(st)
+                state_vectors.append(st)
             # states.append(np.array(n_state_mat).T)
-            self.state_matrix[0] = states
+            self.state_matrix[0] = state_vectors
         else:
             st = np.array(self.state_matrix[0]).T
             if self.standardize_states[0]:
                 st = StandardScaler().fit_transform(st.T).T
-            states.append(st)
-            self.state_matrix = states
+            state_vectors.append(st)
+            self.state_matrix = state_vectors
 
     def evaluate_decoding(self, n_neurons=10, display=False, save=False):
         """

@@ -1682,7 +1682,7 @@ class InputSignal(object):
             s = fftconvolve(signal_, kern, mode='same')
 
             # create currently active analog signals and store them in a list
-            for id_ in active_stim_ids:
+            for _ in active_stim_ids:
                 active_signals.append(signals.AnalogSignal(np.copy(s), self.dt, t_start=on, t_stop=off))
 
             # generate empty AnalogSignalList
@@ -2248,7 +2248,10 @@ class Generator:
         and the state of the NEST generator objects needs to be updated.
         :param signal: (SpikeList, InputSignal, InputNoise, AnalogSignalList) object containing
                        the values (e.g., spike times) to update the generators with
-        :return
+        :param prev_signal_ids: [list] ids of signals that were active in the previous timestep and need to be reset now
+        :param ids_to_update: [list] ids of signals that will be active in the current (next)
+                              timestep and must be updated
+        :return:
         """
         # for a SpikeList object, update the corresponding NEST spike generators
         if isinstance(signal, signals.SpikeList):

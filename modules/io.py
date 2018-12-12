@@ -54,7 +54,7 @@ from collections import MutableMapping
 import sys
 import cPickle as pickle
 
-# NMT imports
+# NMSAT imports
 import parameters
 from modules import check_dependency
 

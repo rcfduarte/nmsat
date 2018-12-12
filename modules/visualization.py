@@ -58,7 +58,7 @@ import math
 import sys
 import os
 
-# NMT imports
+# NMSAT imports
 import signals
 import net_architect
 import analysis
@@ -640,7 +640,7 @@ def test_offline_filtering(spike_list, N, dt, tau):
 
     idx = np.random.permutation(spike_list.id_list)[0]
     mat_idx = idx - min(spike_list.id_list)
-    activity_matrix = spike_list.filter_spiketrains(dt, tau, start=start, stop=stop, N=N, display=True)
+    response_matrix = spike_list.filter_spiketrains(dt, tau, start=start, stop=stop, N=N, display=True)
     spk_train = spike_list.spiketrains[idx]
     t = np.arange(spike_list.t_start, spike_list.t_stop, dt)
     resp = spk_train.exponential_filter(dt, tau, start, stop)
@@ -648,7 +648,7 @@ def test_offline_filtering(spike_list, N, dt, tau):
     fig, ax = pl.subplots()
     ax.plot(spk_train.spike_times, 20*np.ones_like(spk_train.spike_times), 'ro')
     ax.plot(t, resp, 'b')
-    ax.plot(t, activity_matrix[mat_idx, :], 'g')
+    ax.plot(t, response_matrix[mat_idx, :], 'g')
 
     pl.show()
 
@@ -2281,7 +2281,7 @@ class ActivityAnimator(object):
 def plot_trajectory(response_matrix, pca_fit_obj=None, label='', color='r', ax=None, display=True, save=False):
     """
 
-    :param response_matrix:
+    :param response_matrix: [np.array] matrix of continuous responses
     :param pca_fit_obj:
     :param label:
     :param color:

@@ -2780,13 +2780,13 @@ class SpikeList(object):
 			start = self.t_start
 		if stop is None:
 			stop = self.t_stop
-		# if N is None: # TODO remove; needed?
-		# 	N = len(self.id_list)
+		if N is None:
+			N = len(self.id_list)
 		t = np.arange(start, stop, dt)
 
 		if display:
 			print("\nCompiling binary activity from SpikeList")
-		state_mat = np.zeros((N, len(t)))
+		response_matrix = np.zeros((N, len(t)))
 		if N is not None:
 			id_list = np.sort(self.id_list - min(self.id_list))
 		else:
@@ -2794,11 +2794,11 @@ class SpikeList(object):
 
 		for idx, nn in enumerate(id_list):
 			sk_train = self.spiketrains[int(self.id_list[idx])]
-			state_mat[int(nn), :] = sk_train.spikes_to_states_binary(dt, start, stop)
+			response_matrix[int(nn), :] = sk_train.spikes_to_states_binary(dt, start, stop)
 			if display:
 				visualization.progress_bar(float(idx)/float(len(id_list)))
 
-		return state_mat
+		return response_matrix
 
 
 ########################################################################################################################
