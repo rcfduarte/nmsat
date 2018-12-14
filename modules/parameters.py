@@ -71,6 +71,11 @@ import itertools
 import cPickle as pickle
 
 from modules import io
+from modules import signals
+from modules import analysis
+from modules import auxiliary
+from modules import net_architect
+from modules import input_architect
 import inspect
 import errno
 import signals as sg
@@ -78,6 +83,7 @@ import signals as sg
 from defaults.paths import paths
 
 np.set_printoptions(threshold=np.nan, suppress=True)
+logger = io.get_logger(__name__)
 
 
 ##########################################################################################
@@ -125,8 +131,8 @@ def extract_nestvalid_dict(d, param_type='neuron'):
         nest_dict = {k: v for k, v in d.iteritems() if k in accepted_keys}
     else:
         # TODO
-        print("{!s} not implemented yet".format(param_type))
-        assert False
+        logger.error("{!s} not implemented yet".format(param_type))
+        exit(-1)
 
     return nest_dict
 
@@ -530,7 +536,7 @@ class ParameterSet(dict):
         """
 
         if not url:
-            print("Please provide url")
+            ("Please provide url")
         # url = self._url
         assert url != ''
         # if not self._url:
@@ -778,7 +784,7 @@ class ParameterSpace:
             try:
                 validate_parameters_file(module_obj)
             except ValueError as error:
-                print("Invalid parameter file! Error: %s" % error)
+                logger.error("Invalid parameter file! Error: %s" % error)
                 exit(-1)
 
             range_args	= inspect.getargspec(module_obj.build_parameters)[0]  # arg names in build_parameters function
@@ -931,23 +937,25 @@ class ParameterSpace:
 
     def run(self, computation_function, project_dir=None, **parameters):
         """
-        Run a computation on all the parameters
+        Run a computation on all the parameters.
 
         :param computation_function: function to execute
+        :param project_dir: project directory
         :param parameters: kwarg arguments for the function
         """
         system = self.parameter_sets[0].kernel_pars.system
 
         if system['local']:
-            print("\nRunning {0} serially on {1} Parameter Sets".format(str(computation_function.__module__.split('.')[1]), str(len(self))))
+            logger.info("\nRunning {0} serially on {1} Parameter Sets".format(
+                str(computation_function.__module__.split('.')[1]), str(len(self))))
 
             results = None
             for par_set in self.parameter_sets:
-                print("\n- Parameters: {0}".format(str(par_set.label)))
+                logger.info("\n- Parameters: {0}".format(str(par_set.label)))
                 results = computation_function(par_set, **parameters)
             return results
         else:
-            print("\nPreparing job description files...")
+            logger.info("\nPreparing job description files...")
             export_folder 			= system['remote_directory']
             main_experiment_folder 	= export_folder + '{0}/'.format(self.label)
 
@@ -955,7 +963,7 @@ class ParameterSpace:
                 os.makedirs(main_experiment_folder)
             except OSError as err:
                 if err.errno == errno.EEXIST and os.path.isdir(main_experiment_folder):
-                    print("Path `{0}` already exists, will be overwritten!".format(main_experiment_folder))
+                    logger.info("Path `{0}` already exists, will be overwritten!".format(main_experiment_folder))
                 else:
                     raise OSError(err.errno, "Could not create exported experiment folder.", main_experiment_folder)
 
@@ -1037,7 +1045,7 @@ class ParameterSpace:
         def pretty(d, indent=0):
             if isinstance(d, dict):
                 for key, value in d.iteritems():
-                    print('  ' * indent + str(key))
+                    logger.info('  ' * indent + str(key))
                     if isinstance(value, dict):
                         pretty(value, indent + 1)
 
@@ -1049,13 +1057,13 @@ class ParameterSpace:
             try:
                 with open(data_path + 'Results_' + pars_labels[ctr], 'r') as fp:
                     results = pickle.load(fp)
-                # print("Loading ParameterSet {0}".format(self.label))
+                # logger.info("Loading ParameterSet {0}".format(self.label))
                 found_ = True
             except:
-                print("Dataset {0} Not Found, skipping".format(pars_labels[ctr]))
+                logger.warning("Dataset {0} Not Found, skipping".format(pars_labels[ctr]))
                 ctr += 1
                 continue
-        print("\n\nResults dictionary structure:")
+        logger.info("\n\nResults dictionary structure:")
         pretty(results)
 
     def harvest(self, data_path, key_set=None, operation=None):
@@ -1100,9 +1108,9 @@ class ParameterSpace:
                 try:
                     with open(data_path+'Results_'+params_label, 'r') as fp:
                         results = pickle.load(fp)
-                    print("Loading ParameterSet {0}".format(params_label))
+                    logger.info("Loading ParameterSet {0}".format(params_label))
                 except:
-                    print("Dataset {0} Not Found, skipping".format(params_label))
+                    logger.warning("Dataset {0} not found, skipping".format(params_label))
                     continue
                 if key_set is not None:
                     # print results
@@ -1124,7 +1132,7 @@ class ParameterSpace:
             try:
                 with open(data_path+'Results_'+self.label, 'r') as fp:
                     results = pickle.load(fp)
-                print("Loading Dataset {0}".format(self.label))
+                logger.info("Loading Dataset {0}".format(self.label))
                 if key_set is not None:
                     nested_result = io.NestedDict(results)
                     assert isinstance(results, dict), "Results must be dictionary"
@@ -1135,7 +1143,7 @@ class ParameterSpace:
                 else:
                     results_array = results
             except IOError:
-                print("Dataset {0} Not Found, skipping".format(self.label))
+                logger.warning("Dataset {0} not found, skipping".format(self.label))
 
         return parameters_array, results_array
 

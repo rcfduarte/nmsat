@@ -68,6 +68,8 @@ import visualization
 import nest
 import nest.topology as tp
 
+logger = io.get_logger(__name__)
+
 
 def pad_array(input_array, add=10):
     """
@@ -234,7 +236,7 @@ def make_simple_kernel(shape, width=3, height=1., resolution=1., normalize=False
         k = np.sin(2 * np.pi * x / width * kwargs['frequency'] + kwargs['phase_shift']) * height
         k += kwargs['mean_amplitude']
     else:
-        print("Kernel not implemented, please choose {'box', 'exp', 'alpha', 'double_exp', 'gauss', 'tri'}")
+        logger.warning("Kernel not implemented, please choose {'box', 'exp', 'alpha', 'double_exp', 'gauss', 'tri'}")
         k = 0
     if normalize:
         k /= k.sum()
@@ -333,7 +335,8 @@ class StochasticGenerator:
             spikes = np.concatenate((spikes, extra_spikes))
 
             if debug:
-                print("ISI buf overrun handled. len(spikes)=%d, len(extra_spikes)=%d" % (len(spikes), len(extra_spikes)))
+                logger.debug("ISI buf overrun handled. len(spikes)=%d, len(extra_spikes)=%d" % (len(spikes),
+                                                                                                len(extra_spikes)))
 
         else:
             spikes = np.resize(spikes, (i,))
@@ -394,7 +397,8 @@ class StochasticGenerator:
             spikes = np.concatenate((spikes, extra_spikes))
 
             if debug:
-                print("ISI buf overrun handled. len(spikes)=%d, len(extra_spikes)=%d" % (len(spikes), len(extra_spikes)))
+                logger.debug("ISI buf overrun handled. len(spikes)=%d, len(extra_spikes)=%d" % (len(spikes),
+                                                                                                len(extra_spikes)))
         else:
             spikes = np.resize(spikes, (i,))
 
@@ -439,7 +443,7 @@ class StochasticGenerator:
             y[i] = y[idx] * mfac + gauss[idx]
 
         if time_it:
-            print(time.time() - t1)
+            logger.info(time.time() - t1)
         if rectify:
             y[y < 0] = 0.
 
@@ -545,12 +549,12 @@ class Grammar:
         """
         Displays all the relevant information.
         """
-        print('***************************************************************************')
+        logger.info('***************************************************************************')
         if self.name is not None:
-            print(('Generative mechanism abides to %s rules' % self.name))
-        print('Unique states: {0}'.format(self.states))
-        print('Alphabet: {0}'.format(self.aplhabet))
-        print('Transition table: ')
+            logger.info(('Generative mechanism abides to %s rules' % self.name))
+        logger.info('Unique states: {0}'.format(self.states))
+        logger.info('Alphabet: {0}'.format(self.aplhabet))
+        logger.info('Transition table: ')
         self.print_transitiontable(self.generate_transitiontable(), self.states)
     # print '\nGrammar complexity (n, TE): {0}{1}'.format(self.n_gram, self.topological_entropy)
 
@@ -579,17 +583,17 @@ class Grammar:
         :param un_symb: list of unique symbols
         """
 
-        print("----------------------------------------------------------")
+        logger.info("----------------------------------------------------------")
         header = "|    "
         for x in un_symb:
             header += "| %s " % x
         header += "|"
-        print(header)
+        logger.info(header)
         for i in range(tr_table.shape[0]):
             new_line = "| %s |" % un_symb[i]
             for j in range(tr_table.shape[1]):
                 new_line += " %s " % str(np.round(tr_table[i, j], 1))
-            print(new_line)
+            logger.info(new_line)
 
     def validate(self, debug=False):
         """
@@ -602,7 +606,7 @@ class Grammar:
         if not set(self.alphabet).issubset(set(self.states)):
             TestVar = set(self.alphabet).difference(set(self.states))
             if debug:
-                print(TestVar)
+                logger.debug(TestVar)
             return TestVar
         else:
             return True
@@ -642,7 +646,7 @@ class Grammar:
         """
 
         if self.name is not None and debug:
-            print('Generating {0} strings, according to {1} rules...'.format(n_strings, self.name))
+            logger.debug('Generating {0} strings, according to {1} rules...'.format(n_strings, self.name))
 
         string_set = []
 
@@ -656,8 +660,8 @@ class Grammar:
                 string_set.append(str)
 
         if debug:
-            print('Example String: {0}'.format(''.join(string_set[np.random.random_integers(0,
-                                                                                            len(self.start_symbols) - 1)])))
+            logger.debug('Example String: {0}'.format(''.join(
+                string_set[np.random.random_integers(0, len(self.start_symbols) - 1)])))
 
         return string_set
 
@@ -687,7 +691,7 @@ class Grammar:
         """
         # assert len(symbol_seq[0]) <= 1, 'Sequence argument should be concatenated prior to calling this function...'
         if self.validate() is not True:
-            print('No corrections necessary...')
+            logger.info('No corrections necessary...')
 
         symbol_seq = list(symbol_seq)
 
@@ -771,7 +775,7 @@ class Grammar:
         :return: TE - topological entropy (at final lift)
         """
         # Determine the lift:
-        print("Computing %s TE" % str(self.name))
+        logger.info("Computing %s TE" % str(self.name))
         TE = []
 
         for nn in [1, 2, 3, 4, 5]:
@@ -868,7 +872,7 @@ class StimulusSet(object):
         :param initializer: global ParameterSet, dictionary or Grammar object
         :param unique_set:
         """
-        print("\nGenerating StimulusSet: ")
+        logger.info("\nGenerating StimulusSet: ")
         self.grammar = None
         self.full_stim_set = None
         self.transient_stim_set = None
@@ -921,7 +925,7 @@ class StimulusSet(object):
         :param data_mat: data matrix (np.ndarray or list), [N x T]!!
         :param type: data type, has to be consistent with StimulusSet attributes
         """
-        print("\t- Loading external data [{0}]".format(str(type)))
+        logger.info("\t- Loading external data [{0}]".format(str(type)))
         assert isinstance(data_mat, list) or isinstance(data_mat, np.ndarray), "Provided signal must be a list or " \
                                                                                "numpy array"
         if isinstance(data_mat, list):
@@ -1004,7 +1008,7 @@ class StimulusSet(object):
         else:
             seq = self.full_set_labels
         self.full_set = self.stimulus_sequence_to_binary(seq)
-        print("- Creating full stimulus sequence [{0}]".format(str(len(self.full_set_labels))))
+        logger.info("- Creating full stimulus sequence [{0}]".format(str(len(self.full_set_labels))))
 
     def create_unique_set(self, full_set_position=0):
         """
@@ -1023,9 +1027,9 @@ class StimulusSet(object):
             self.full_set_labels.insert(full_set_position, self.unique_set_labels)
             self.full_set_labels = list(itertools.chain(*self.full_set_labels))
             self.full_set = self.stimulus_sequence_to_binary(self.full_set_labels)
-            print("- Creating unique stimulus sequence [{0}]".format(str(len(self.unique_set_labels))))
+            logger.info("- Creating unique stimulus sequence [{0}]".format(str(len(self.unique_set_labels))))
         else:
-            print("- Skipping generation of unique stimulus sequence, not required.")
+            logger.info("- Skipping generation of unique stimulus sequence, not required.")
 
     def divide_set(self, transient_set_length, train_set_length, test_set_length):
         """
@@ -1069,7 +1073,7 @@ class StimulusSet(object):
 
         self.train_set = coo_matrix(train_set)
         self.test_set = coo_matrix(test_set)
-        print("- Dividing set [train={0} / test={1}]".format(str(len(self.train_set_labels)),
+        logger.info("- Dividing set [train={0} / test={1}]".format(str(len(self.train_set_labels)),
                                                              str(len(self.test_set_labels))))
 
     def separate_transient_set(self, n_discard=0):
@@ -1088,7 +1092,7 @@ class StimulusSet(object):
         self.transient_set_labels = self.full_set_labels[:n_discard]
         self.transient_set = coo_matrix(transient_set)
 
-        print("- Creating transient set [{0}]".format(str(len(self.transient_set_labels))))
+        logger.info("- Creating transient set [{0}]".format(str(len(self.transient_set_labels))))
 
     def save(self, path, label=''):
         """
@@ -1258,7 +1262,7 @@ class InputSignal(object):
                 kwargs['size'] = np.shape(seq)[1]
             amp = self.peak[0][0](**kwargs)
         else:
-            print("max_amplitude parameter must be a list with a single value, multiple values or a tuple of (" \
+            logger.info("max_amplitude parameter must be a list with a single value, multiple values or a tuple of (" \
                   "function, parameters)")
             amp = 0
         self.amplitudes = [[] for _ in range(self.dimensions)]
@@ -1754,7 +1758,7 @@ class InputNoise(StochasticGenerator):
                                                            t_start=self.global_start, t_stop=self.global_stop,
                                                            rectify=self.rectify, array=False))
             else:
-                print("{0} Not currently implemented".format(self.source[ii]))
+                logger.warning("{0} Not currently implemented".format(self.source[ii]))
 
         channel_ids = []
         sigs = []
@@ -1796,7 +1800,7 @@ class InputSignalSet(object):
         :param rng: pseudo random number generator
         :param online: (bool) generate input signals online (memory efficient) or not
         """
-        print("\nGenerating Input Signals: ")
+        logger.info("\nGenerating Input Signals: ")
         self.online = online
         # self.parameters = parameter_set.input_pars
         self.parameters = parameter_set.input_pars
@@ -1912,10 +1916,10 @@ class InputSignalSet(object):
         assert stimulus_subset is not None, "No {0} in the provided StimulusSet object, skipping...".format(set_label)
         self_set_signal = InputSignal(self.parameters.signal, self.online, hasattr(self.parameters, "noise"))
 
-        print("- Generating {0}-dimensional input signal [{1}]".format(str(self.parameters.signal.N), set_label))
+        logger.info("- Generating {0}-dimensional input signal [{1}]".format(str(self.parameters.signal.N), set_label))
         # stimulus is generated online
         if self.online:
-            print("- InputSignal will be generated online. {0} is now a generator.. (no noise is added...)".format(
+            logger.info("- InputSignal will be generated online. {0} is now a generator.. (no noise is added...)".format(
                 set_label))
             # TODO: Noise is not added here
             self_set_signal_iterator = self_set_signal.set_signal_online(stimulus_subset)
@@ -1958,7 +1962,7 @@ class InputSignalSet(object):
                     # for full set it's still okay, because start_time at that point is still 0.
                     self_set.load_signal(merged_signal.as_array(), onset=self.parameters.noise.start_time,
                                          inherit_from=self_set_signal)
-                    print("- Generating and adding {0}-dimensional input noise (t={1})".format(
+                    logger.info("- Generating and adding {0}-dimensional input noise (t={1})".format(
                         str(self.parameters.signal.N), str(set_stimulation_time)))
 
         return self_set, self_set_signal, self_set_signal_iterator, self_set_noise, set_stimulation_time
@@ -2058,7 +2062,7 @@ class InputSignalSet(object):
         Offset the global set time (shifts all signals by offset_time)
         :return:
         """
-        print("Offsetting input signal set by {0}".format(str(offset_time)))
+        logger.info("Offsetting input signal set by {0}".format(str(offset_time)))
         attrs = ['full', 'transient', 'unique', 'train', 'test']
 
         for att in attrs:
@@ -2081,7 +2085,7 @@ class InputSignalSet(object):
             if self.test_set is not None:
                 np.save(path+'TestInputSignal.npy', self.test_set.as_array())
         else:
-            print("InputSignals are generated online..")
+            logger.info("InputSignals are generated online..")
 
 
 ########################################################################################################################
@@ -2093,7 +2097,7 @@ class Encoder(net_architect.Population):
 
     def __init__(self, par_set):
         net_architect.Population.__init__(self, pop_set=par_set)
-        print("\nCreating Input Encoder {0}".format(str(par_set.pop_names)))
+        logger.info("\nCreating Input Encoder {0}".format(str(par_set.pop_names)))
 
 
 ########################################################################################################################
@@ -2273,7 +2277,7 @@ class EncodingLayer:
             if isinstance(initializer, dict):
                 initializer = parameters.ParameterSet(initializer)
             if not isinstance(initializer, parameters.ParameterSet):
-                print("Please provide the encoding parameters as dict or ParameterSet")
+                logger.info("Please provide the encoding parameters as dict or ParameterSet")
             if hasattr(initializer, 'encoder'):
                 # if encoder exists, it is a population object
                 self.n_encoders = initializer.encoder.N
@@ -2342,7 +2346,7 @@ class EncodingLayer:
                 if hasattr(st_gen, encoder_pars.models[nn]):
                     enc_dict = parameters.copy_dict(enc_pop_dict, {})
                     encoders.append(Encoder(parameters.ParameterSet(enc_dict)))
-                    print("- {0} []".format(encoder_pars.models[nn]))
+                    logger.info("- {0} []".format(encoder_pars.models[nn]))
 
                 elif encoder_pars.models[nn] == 'NEF':
                     neuron_dict = encoder_pars.neuron_pars[nn]
@@ -2362,7 +2366,7 @@ class EncodingLayer:
                         enc_dict = parameters.copy_dict(enc_pop_dict, {'gids': gids})
                         encoders.append(Encoder(parameters.ParameterSet(enc_dict)))
 
-                    print("- {0} Population of {1} neurons [{2}-{3}]".format(encoder_pars.models[nn],
+                    logger.info("- {0} Population of {1} neurons [{2}-{3}]".format(encoder_pars.models[nn],
                                                                              str(encoder_pars.n_neurons), str(min(gids)),
                                                                              str(max(gids))))
                     if encoder_pars.record_spikes[nn]:
@@ -2372,7 +2376,7 @@ class EncodingLayer:
                             label = 'encoder_spikes'
                         dev_gid = encoders[-1].record_spikes(parameters.extract_nestvalid_dict(
                             encoder_pars.spike_device_pars[nn], param_type='device'), label=label)
-                        print("- Connecting %s to %s, with label %s and id %s" % (
+                        logger.info("- Connecting %s to %s, with label %s and id %s" % (
                             encoder_pars.spike_device_pars[nn]['model'],
                             encoders[-1].name, label, str(dev_gid)))
 
@@ -2383,7 +2387,7 @@ class EncodingLayer:
                             label = 'encoder_analogs'
                         dev_gid = encoders[-1].record_analog(parameters.extract_nestvalid_dict(
                             encoder_pars.analogue_device_pars[nn], param_type='device'), label=label)
-                        print("- Connecting %s to %s, with label %s and id %s" % (
+                        logger.info("- Connecting %s to %s, with label %s and id %s" % (
                             encoder_pars.analogue_device_pars[nn]['model'],
                             encoders[-1].name, label, str(dev_gid)))
                 # TODO randomize initial variables...
@@ -2404,7 +2408,7 @@ class EncodingLayer:
                         enc_dict = parameters.copy_dict(enc_pop_dict, {'gids': gids})
                         encoders.append(Encoder(parameters.ParameterSet(enc_dict)))
 
-                    print("- {0} Population of {1} neurons [{2}-{3}]".format(encoder_pars.models[nn],
+                    logger.info("- {0} Population of {1} neurons [{2}-{3}]".format(encoder_pars.models[nn],
                                                                              str(encoder_pars.n_neurons[nn]),
                                                                              str(min(gids)),
                                                                              str(max(gids))))
@@ -2415,14 +2419,14 @@ class EncodingLayer:
                             label = 'encoder_spikes'
                         dev_gid = encoders[-1].record_spikes(parameters.extract_nestvalid_dict(
                             encoder_pars.spike_device_pars[nn], param_type='device'), label=label)
-                        print("- Connecting %s to %s, with label %s and id %s" % (
+                        logger.info("- Connecting %s to %s, with label %s and id %s" % (
                             encoder_pars.spike_device_pars[nn]['model'],
                             encoders[-1].name, label, str(dev_gid)))
 
                     if encoder_pars.record_analogs[nn]:
                         raise TypeError("Cannot record analogs from parrot neuron")
                 else:
-                    print("Not Implemented yet!")
+                    logger.warning("Not implemented yet!")
 
             return encoders, encoder_labels
 
@@ -2434,7 +2438,7 @@ class EncodingLayer:
             :param input_dim:
             :return:
             """
-            print("\nCreating Generators: ")
+            logger.info("\nCreating Generators: ")
             pars 			 = encoding_pars.generator
             generators 		 = []
             generator_labels = []
@@ -2471,7 +2475,7 @@ class EncodingLayer:
                 gen = Generator(gen_pars_dict, signal_, dims=tmp_input_dims)
                 generators.append(gen)
                 generator_labels.append(gen.name)
-                print("- {0} [{1}-{2}]".format(pars.labels[n], str(min(gen.gids)), str(max(gen.gids))))
+                logger.info("- {0} [{1}-{2}]".format(pars.labels[n], str(min(gen.gids)), str(max(gen.gids))))
 
             return generators, generator_labels
 
@@ -2561,7 +2565,7 @@ class EncodingLayer:
         :param encoding_pars: ParameterSet or dictionary
         :param net_obj: Network object containing the populations to connect to
         """
-        print("\nConnecting Encoding Layer: ")
+        logger.info("\nConnecting Encoding Layer: ")
 
         if isinstance(encoding_pars, dict):
             encoding_pars = parameters.ParameterSet(encoding_pars)
@@ -2569,7 +2573,7 @@ class EncodingLayer:
         if net_obj is not None:
             assert isinstance(net_obj, net_architect.Network), "Please provide the network object to connect to"
         else:
-            print("No network object provided, cannot connect input to network")
+            logger.info("No network object provided, cannot connect input to network")
 
         conn_pars 	= encoding_pars.connectivity
         populations = list(signals.iterate_obj_list(net_obj.population_names))
@@ -2606,7 +2610,7 @@ class EncodingLayer:
 
             if synapse_name.find('copy') > 0:  # re-connect the same neurons...
                 start = time.time()
-                print("    - Connecting {0} (*)".format(synapse_name))
+                logger.info("    - Connecting {0} (*)".format(synapse_name))
 
                 device_models = ['spike_detector', 'spike_generator', 'multimeter']
                 target_synapse_name = synapse_name[:synapse_name.find('copy')-1]
@@ -2635,7 +2639,7 @@ class EncodingLayer:
                         nest.DataConnect(syn_dicts)
                     if progress:
                         visualization.progress_bar(float(nnn) / float(len(its)))
-                print("\tElapsed time: {0} s".format(str(time.time()-start)))
+                logger.info("\tElapsed time: {0} s".format(str(time.time()-start)))
             else:
                 ## Set up connections
                 # 1) pre-computed weight matrix, or function to specify w
@@ -2650,7 +2654,7 @@ class EncodingLayer:
                     else:
                         raise ValueError("Incorrect W specifications")
 
-                    print("- Connecting {0} to population {1}".format(src_name, tget_name))
+                    logger.info("- Connecting {0} to population {1}".format(src_name, tget_name))
 
                     for pre_syn_matidx, pre_syn_gid in enumerate(src_gids):
                         post_syn_matidx = w[pre_syn_matidx, :].nonzero()[0]
@@ -2683,7 +2687,7 @@ class EncodingLayer:
                                 nest.Connect(pre_syn_gid, [tget], conn_spec=conn_dict, syn_spec=syn_dict)
                             else:
                                 nest.Connect(pre_syn_gid, [tget], 'all_to_all', syn_dict)
-                    print("- Connecting {0} to population {1}".format(src_name, tget_name))
+                    logger.info("- Connecting {0} to population {1}".format(src_name, tget_name))
 
                 # topology connections only allowed between generator (with specified topology) and population
                 elif conn_pars.topology_dependent[idx]:
@@ -2693,7 +2697,7 @@ class EncodingLayer:
                     tp_dict = parameters.copy_dict(conn_pars.conn_specs[idx], {'synapse_model': synapse_name})
                     tp.ConnectLayers(src_gids, tget_gids, tp_dict)
 
-                    print("- Connecting Layer {0} to Layer {1}".format(src_name, tget_name))
+                    logger.info("- Connecting Layer {0} to Layer {1}".format(src_name, tget_name))
 
                 else:
                     # add extra numerical index to the src_name
@@ -2716,7 +2720,7 @@ class EncodingLayer:
                         if isinstance(src_gids, list):
                             src_gids = tuple(x[0] for x in src_gids)
                         nest.Connect(src_gids, tget_gids, conn_spec=conn_dict, syn_spec=syn_dict)
-                        print("- Connecting {0} to population {1} [{2}]".format(src_name, tget_name, synapse_name))
+                        logger.info("- Connecting {0} to population {1} [{2}]".format(src_name, tget_name, synapse_name))
                     else:
                         x = StochasticGenerator(self.prng)
                         if hasattr(x, encoding_pars.encoder.models[src_id]):
@@ -2733,7 +2737,7 @@ class EncodingLayer:
                                 spk_t = [round(tt, d) for tt in spk_times]
                                 nest.SetStatus([tget_gids[idxx]], {'spike_times': spk_t})
 
-                            print("- Connecting {0} to generator {1}".format(src_name, tget_name))
+                            logger.info("- Connecting {0} to generator {1}".format(src_name, tget_name))
 
                         elif (src_name in nest.Models()) and (tget_name in nest.Models()):
                             if "synapse_name" in conn_pars and conn_pars.synapse_name[idx] is not None:
@@ -2747,7 +2751,7 @@ class EncodingLayer:
                             if isinstance(src_gids, list):
                                 src_gids = tuple(x[0] for x in src_gids)
                             nest.Connect(src_gids, tget_gids, conn_spec=conn_dict, syn_spec=syn_dict)
-                            print("- Connecting {0} to population {1} [{2}]".format(src_name, tget_name, synapse_name))
+                            logger.info("- Connecting {0} to population {1} [{2}]".format(src_name, tget_name, synapse_name))
         self.signal = None
 
     # def connect_clone(self, encoding_pars, network=None, clone=None): TODO safely remove!
@@ -2915,7 +2919,7 @@ class EncodingLayer:
         device_models = ['spike_detector', 'multimeter'] # 'spike_generator',
 
         for idx, n_pop in enumerate(source_population_gids):
-            print("\n Replicating Encoding Layer connections to {0}".format(clone.population_names[idx]))
+            logger.info("\n Replicating Encoding Layer connections to {0}".format(clone.population_names[idx]))
             conns 			= nest.GetConnections(target=n_pop)
             iterate_steps 	= 100
             its 			= np.arange(0, len(conns) + 1, iterate_steps).astype(int)
@@ -2945,10 +2949,10 @@ class EncodingLayer:
                     if progress:
                         visualization.progress_bar(float(nnn) / float(len(its)))
 
-                print("\tElapsed time: {0} s".format(str(time.time() - start)))
+                logger.info("\tElapsed time: {0} s".format(str(time.time() - start)))
             else:
                 st = nest.GetStatus(conns)
-                print([nest.GetStatus([x['source']])[0]['model'] for x in st])
+                logger.info([nest.GetStatus([x['source']])[0]['model'] for x in st])
 
                 source_gids = [x['source'] for x in st if nest.GetStatus([x['source']])[0]['model'] not in
                                device_models]
@@ -2968,7 +2972,7 @@ class EncodingLayer:
                               'delay': delays[iddx],
                               'receptor_type': receptors[iddx]} for iddx in range(len(target_gids))]
                 nest.DataConnect(syn_dicts)
-                print("\tElapsed time: {0} s".format(str(time.time() - start)))
+                logger.info("\tElapsed time: {0} s".format(str(time.time() - start)))
 
     def connect_decoders(self, decoding_pars):
         """
@@ -2984,7 +2988,7 @@ class EncodingLayer:
         # initialize state extractors:
         if hasattr(decoding_pars, "state_extractor"):
             pars_st = decoding_pars.state_extractor
-            print("\nConnecting Decoders: ")
+            logger.info("\nConnecting Decoders: ")
             for ext_idx, n_src in enumerate(pars_st.source_population):
                 assert(n_src in self.encoder_names), "State extractor must connect to encoder population"
                 if n_src in self.encoder_names:
@@ -3035,7 +3039,7 @@ class EncodingLayer:
                                                                                          list(np.unique(tget_gids)),
                                                                                          progress=progress)})
         else:
-            print("Provide gids!!")
+            logger.warning("Provide gids!!")
 
     def extract_synaptic_delays(self, src_gids=None, tget_gids=None, syn_name=None, progress=True):
         """
@@ -3061,7 +3065,7 @@ class EncodingLayer:
                                                                                          list(np.unique(tget_gids)),
                                                                                          progress=progress)})
         else:
-            print("Provide gids!!")
+            logger.warning("Provide gids!!")
 
     def extract_encoder_activity(self, t_start=None, t_stop=None):
         """
@@ -3069,10 +3073,10 @@ class EncodingLayer:
         :return:
         """
         if not signals.empty(self.encoders):
-            print("\nExtracting and storing recorded activity from encoders: ")
+            logger.info("\nExtracting and storing recorded activity from encoders: ")
         for n_enc in self.encoders:
             if n_enc.attached_devices:
-                print("- Encoder {0}".format(n_enc.name))
+                logger.info("- Encoder {0}".format(n_enc.name))
                 for n_dev in n_enc.attached_devices:
                     if nest.GetStatus(n_dev)[0]['to_memory']:
                         # status = nest.GetStatus(n_dev)[0]['events']
@@ -3087,12 +3091,12 @@ class EncodingLayer:
         :return:
         """
         if not signals.empty(self.encoders):
-            print("\nClearing device data: ")
+            logger.info("\nClearing device data: ")
         for n_enc in self.encoders:
             if n_enc.attached_devices:
                 devices = n_enc.attached_device_names
                 for idx, n_dev in enumerate(n_enc.attached_devices):
-                    print(" - {0} {1}".format(devices[idx], str(n_dev)))
+                    logger.info(" - {0} {1}".format(devices[idx], str(n_dev)))
                     nest.SetStatus(n_dev, {'n_events': 0})
                     if nest.GetStatus(n_dev)[0]['to_file']:
                         io.remove_files(nest.GetStatus(n_dev)[0]['filenames'])
@@ -3182,4 +3186,4 @@ class EncodingLayer:
             assert (len(delay) == 1), "Heterogeneous delays in encoding layer are not supported.."
 
         self.total_delay = float(delay)
-        print("\n- total delays in EncodingLayer: {0} ms".format(str(self.total_delay)))
+        logger.info("\n- total delays in EncodingLayer: {0} ms".format(str(self.total_delay)))

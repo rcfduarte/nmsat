@@ -72,12 +72,13 @@ from modules import check_dependency
 # nest
 import nest
 
-
 np.seterr(all='ignore')
 
 has_pyspike = check_dependency('pyspike')
 if has_pyspike:
     import pyspike as spk
+
+logger = io.get_logger(__name__)
 
 
 def ccf(x, y, axis=None):
@@ -278,7 +279,7 @@ def get_total_counts(spike_list, time_bin=50.):
         if np.mean(tmp) == 1:
             neuron_ids.append(n_train)
             ctr += 1
-    print("{0} neurons have nonzero spike counts in bins of size {1}".format(str(ctr), str(time_bin)))
+    logger.info("{0} neurons have nonzero spike counts in bins of size {1}".format(str(ctr), str(time_bin)))
     total_counts1 = []
     for n_id in neuron_ids:
         counts = spike_list.spiketrains[n_id].time_histogram(time_bin=time_bin, normalized=False, binary=False)
@@ -296,7 +297,7 @@ def cross_trial_cc(total_counts, display=True):
     :return:
     """
     if display:
-        print("Computing autocorrelations..")
+        logger.info("Computing autocorrelations..")
     units = total_counts.shape[0]
 
     r = []
@@ -382,7 +383,7 @@ def compute_isi_stats(spike_list, summary_only=True, display=True):
     :return: dictionary with all the relevant data
     """
     if display:
-        print("\nAnalysing inter-spike intervals...")
+        logger.info("\nAnalysing inter-spike intervals...")
         t_start = time.time()
     results = dict()
 
@@ -418,7 +419,7 @@ def compute_isi_stats(spike_list, summary_only=True, display=True):
         results['ai'] 		= (np.mean(ai), np.var(ai))
 
     if display:
-        print("Elapsed Time: {0} s".format(str(round(time.time()-t_start, 3))))
+        logger.info("Elapsed Time: {0} s".format(str(round(time.time()-t_start, 3))))
 
     return results
 
@@ -434,7 +435,7 @@ def compute_spike_stats(spike_list, time_bin=50., summary_only=False, display=Fa
     :return: dictionary with all the relevant data
     """
     if display:
-        print("\nAnalysing spiking activity...")
+        logger.info("\nAnalysing spiking activity...")
         t_start = time.time()
     results = {}
     rates = np.array(spike_list.mean_rates())
@@ -453,7 +454,7 @@ def compute_spike_stats(spike_list, time_bin=50., summary_only=False, display=Fa
         results['ffs'] 				= ffs[~np.isnan(ffs)]
         results['spiking_neurons'] 	= spike_list.id_list
     if display:
-        print("Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3))))
+        logger.info("Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3))))
     return results
 
 
@@ -473,7 +474,7 @@ def compute_synchrony(spike_list, n_pairs=500, time_bin=1., tau=20., time_resolv
     :return results: dict
     """
     if display:
-        print("\nAnalysing spike synchrony...")
+        logger.info("\nAnalysing spike synchrony...")
         t_start = time.time()
 
     if has_pyspike:
@@ -513,7 +514,7 @@ def compute_synchrony(spike_list, n_pairs=500, time_bin=1., tau=20., time_resolv
                 results['SPIKE_sync_distance']		= spk.spike_sync(spike_trains)
 
     if display:
-        print("Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3))))
+        logger.info("Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3))))
     return results
 
 
@@ -534,7 +535,7 @@ def compute_analog_stats(population, parameter_set, variable_names, analysis_int
     pop_idx = parameter_set.net_pars.pop_names.index(population.name)
     if not population.analog_activity:
         results['recorded_neurons'] = []
-        print("No analog variables recorded from {0}".format(str(population.name)))
+        logger.info("No analog variables recorded from {0}".format(str(population.name)))
         return results
     else:
         analog_vars = dict()
@@ -630,21 +631,21 @@ def compute_dimensionality(response_matrix, pca_obj=None, label='', plot=False, 
     """
     assert(check_dependency('sklearn')), "PCA analysis requires scikit learn"
     if display:
-        print("Determining effective dimensionality...")
+        logger.info("Determining effective dimensionality...")
         t_start = time.time()
     if pca_obj is None:
         n_features, n_samples = np.shape(response_matrix)  # features = neurons
         if n_features > n_samples:
-            print('WARNING - PCA n_features ({}) > n_samples ({}). Effective dimensionality will be computed using'
-                  '{} components!'.format(n_features, n_samples, min(n_samples, n_features)))
+            logger.warning('WARNING - PCA n_features ({}) > n_samples ({}). Effective dimensionality will be computed '
+                           'using {} components!'.format(n_features, n_samples, min(n_samples, n_features)))
         pca_obj = sk.PCA(n_components=min(n_features, n_samples))
     if not hasattr(pca_obj, "explained_variance_ratio_"):
         pca_obj.fit(response_matrix.T)  # we need to transpose here as scipy requires n_samples X n_features
     # compute dimensionality
     dimensionality = 1. / np.sum((pca_obj.explained_variance_ratio_ ** 2))
     if display:
-        print("Effective dimensionality = {0}".format(str(round(dimensionality, 2))))
-        print("Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3))))
+        logger.info("Effective dimensionality = {0}".format(str(round(dimensionality, 2))))
+        logger.info("Elapsed Time: {0} s".format(str(round(time.time() - t_start, 3))))
     if plot:
         X = pca_obj.fit_transform(response_matrix.T).T
         vz.plot_dimensionality(dimensionality, pca_obj, X, data_label=label, display=display, save=save)
@@ -675,7 +676,7 @@ def compute_timescale(response_matrix, time_axis, max_lag=1000, method=0, plot=T
 
         if fit[2] > 0.1:
             error_rates = np.sum((acc[n_signal, :max_lag] - acc_function(time_axis[:max_lag], *fit)) ** 2)
-            print("Timescale [ACC] = {0} ms / error = {1}".format(str(fit[2]), str(error_rates)))
+            logger.info("Timescale [ACC] = {0} ms / error = {1}".format(str(fit[2]), str(error_rates)))
             time_scales.append(fit[2])
             errors.append(error_rates)
             final_acc.append(acc[n_signal, :max_lag])
@@ -683,7 +684,7 @@ def compute_timescale(response_matrix, time_axis, max_lag=1000, method=0, plot=T
             fit, _ = opt.leastsq(err_func, initial_guess,
                                  args=(time_axis[1:max_lag], acc[n_signal, 1:max_lag], acc_function))
             error_rates = np.sum((acc[n_signal, :max_lag] - acc_function(time_axis[:max_lag], *fit)) ** 2)
-            print("Timescale [ACC] = {0} ms / error = {1}".format(str(fit[2]), str(error_rates)))
+            logger.info("Timescale [ACC] = {0} ms / error = {1}".format(str(fit[2]), str(error_rates)))
             time_scales.append(fit[2])
             errors.append(error_rates)
             final_acc.append(acc[n_signal, :max_lag])
@@ -696,9 +697,9 @@ def compute_timescale(response_matrix, time_axis, max_lag=1000, method=0, plot=T
                                   args=(time_axis[1:max_lag], np.mean(final_acc, 0)[1:max_lag], acc_function))
 
     error_rates = np.sum((np.mean(final_acc, 0) - acc_function(time_axis[:max_lag], *mean_fit)) ** 2)
-    print("*******************************************")
-    print("Timescale = {0} ms / error = {1}".format(str(mean_fit[2]), str(error_rates)))
-    print("Accepted dimensions = {0}".format(str(float(final_acc.shape[0]) / float(acc.shape[0]))))
+    logger.info("*******************************************")
+    logger.info("Timescale = {0} ms / error = {1}".format(str(mean_fit[2]), str(error_rates)))
+    logger.info("Accepted dimensions = {0}".format(str(float(final_acc.shape[0]) / float(acc.shape[0]))))
 
     if plot:
         vz.plot_acc(time_axis[:max_lag], acc[:, :max_lag], mean_fit, acc_function, ax=None, display=display, save=save)
@@ -735,13 +736,13 @@ def dimensionality_reduction(state_matrix, data_label='', labels=None, metric=No
 
     for met in metrics:
         if met == 'PCA':
-            print("\nPrincipal Component Analysis")
+            logger.info("\nPrincipal Component Analysis")
             t_start = time.time()
             pca_obj = sk.PCA(n_components=3)
             X_r = pca_obj.fit(state_matrix.T).transform(state_matrix.T)
             if display:
-                print("Elapsed time: {0} s".format(str(time.time() - t_start)))
-                print("Explained Variance (first 3 components): %s" % str(pca_obj.explained_variance_ratio_))
+                logger.info("Elapsed time: {0} s".format(str(time.time() - t_start)))
+                logger.info("Explained Variance (first 3 components): %s" % str(pca_obj.explained_variance_ratio_))
             exp_var = [round(n, 2) for n in pca_obj.explained_variance_ratio_]
 
             if plot:
@@ -757,13 +758,13 @@ def dimensionality_reduction(state_matrix, data_label='', labels=None, metric=No
                 if display:
                     pl.show(False)
         elif met == 'FA':
-            print("\nFactor Analysis")
+            logger.info("\nFactor Analysis")
             t_start = time.time()
             fa2 = sk.FactorAnalysis(n_components=len(n_elements))
             state_fa = fa2.fit_transform(state_matrix.T)
             score = fa2.score(state_matrix.T)
             if display:
-                print("Elapsed time: {0} s / Score (NLL): {1}".format(str(time.time() - t_start), str(score)))
+                logger.info("Elapsed time: {0} s / Score (NLL): {1}".format(str(time.time() - t_start), str(score)))
             if plot:
                 fig2 = pl.figure()
                 fig2.suptitle(r'Factor Analysis')
@@ -774,7 +775,7 @@ def dimensionality_reduction(state_matrix, data_label='', labels=None, metric=No
                 if display:
                     pl.show(False)
         elif met == 'LLE':
-            print("\nLocally Linear Embedding")
+            logger.info("\nLocally Linear Embedding")
             if plot:
                 fig3 = pl.figure()
                 fig3.suptitle(r'Locally Linear Embedding')
@@ -788,7 +789,7 @@ def dimensionality_reduction(state_matrix, data_label='', labels=None, metric=No
                                                      method=method, n_jobs=-1)
                 Y = fit_obj.fit_transform(state_matrix.T)
                 if display:
-                    print("\t{0} - {1} s / Reconstruction error = {2}".format(method, str(time.time() - t_start), str(
+                    logger.info("\t{0} - {1} s / Reconstruction error = {2}".format(method, str(time.time() - t_start), str(
                         fit_obj.reconstruction_error_)))
                 if plot:
                     ax = fig3.add_subplot(2, 2, i + 1, projection='3d')
@@ -799,13 +800,13 @@ def dimensionality_reduction(state_matrix, data_label='', labels=None, metric=No
             if plot and display:
                 pl.show(False)
         elif met == 'IsoMap':
-            print("\nIsoMap Embedding")
+            logger.info("\nIsoMap Embedding")
             t_start = time.time()
             iso_fit = man.Isomap(n_neighbors=199, n_components=3, eigen_solver='auto', path_method='auto',
                                  neighbors_algorithm='auto', n_jobs=-1)
             iso = iso_fit.fit_transform(state_matrix.T)
             if display:
-                print("Elapsed time: {0} s / Reconstruction error = ".format(str(time.time() - t_start)))
+                logger.info("Elapsed time: {0} s / Reconstruction error = ".format(str(time.time() - t_start)))
             if plot:
                 fig4 = pl.figure()
                 fig4.suptitle(r'IsoMap Embedding')
@@ -816,7 +817,7 @@ def dimensionality_reduction(state_matrix, data_label='', labels=None, metric=No
                 if display:
                     pl.show(False)
         elif met == 'Spectral':
-            print("\nSpectral Embedding")
+            logger.info("\nSpectral Embedding")
             fig5 = pl.figure()
             fig5.suptitle(r'Spectral Embedding')
 
@@ -826,7 +827,7 @@ def dimensionality_reduction(state_matrix, data_label='', labels=None, metric=No
                 spec_fit = man.SpectralEmbedding(n_components=3, affinity=n, n_jobs=-1)
                 spec = spec_fit.fit_transform(state_matrix.T)
                 if display:
-                    print("Elapsed time: {0} s / Reconstruction error = ".format(str(time.time() - t_start)))
+                    logger.info("Elapsed time: {0} s / Reconstruction error = ".format(str(time.time() - t_start)))
                 if plot:
                     ax = fig5.add_subplot(1, 2, i + 1, projection='3d')
                     # ax.set_title(n)
@@ -837,12 +838,12 @@ def dimensionality_reduction(state_matrix, data_label='', labels=None, metric=No
                 if plot and display:
                     pl.show(False)
         elif met == 'MDS':
-            print("\nMultiDimensional Scaling")
+            logger.info("\nMultiDimensional Scaling")
             t_start = time.time()
             mds = man.MDS(n_components=3, n_jobs=-1)
             mds_fit = mds.fit_transform(state_matrix.T)
             if display:
-                print("Elapsed time: {0} s / Reconstruction error = ".format(str(time.time() - t_start)))
+                logger.info("Elapsed time: {0} s / Reconstruction error = ".format(str(time.time() - t_start)))
             if plot:
                 fig6 = pl.figure()
                 fig6.suptitle(r'MultiDimensional Scaling')
@@ -851,12 +852,12 @@ def dimensionality_reduction(state_matrix, data_label='', labels=None, metric=No
                 if save:
                     fig6.savefig(save + data_label + '_MDS.pdf')
         elif met == 't-SNE':
-            print("\nt-SNE")
+            logger.info("\nt-SNE")
             t_start = time.time()
             tsne = man.TSNE(n_components=3, init='pca')
             tsne_emb = tsne.fit_transform(state_matrix.T)
             if display:
-                print("Elapsed time: {0} s / Reconstruction error = ".format(str(time.time() - t_start)))
+                logger.info("Elapsed time: {0} s / Reconstruction error = ".format(str(time.time() - t_start)))
             if plot:
                 fig7 = pl.figure()
                 fig7.suptitle(r't-SNE')
@@ -978,7 +979,7 @@ def characterize_population_activity(population_object, parameter_set, analysis_
                                                                                               epochs=epochs, color_map=color_map, display=display,
                                                                                               plot=plot, save=save, window_len=pars_activity.window_len))
     else:
-        print("Warning, the network is not spiking or no spike recording devices were attached.")
+        logger.warning("Warning, the network is not spiking or no spike recording devices were attached.")
 
     # Analog activity analysis
     if population_object.analog_activity and base_population_object is not None:
@@ -1019,7 +1020,7 @@ def compute_time_resolved_statistics(spike_list, label='', time_bin=1., window_l
     steps = len(list(sg.moving_window(time_axis, window_len)))
     mw = sg.moving_window(time_axis, window_len)
     results = dict()
-    print("\nAnalysing activity in moving window..")
+    logger.info("\nAnalysing activity in moving window..")
 
     for n in range(steps):
         if display:
@@ -1210,9 +1211,9 @@ def single_neuron_responses(population_object, parameter_set, pop_idx=0, start=N
             if results['rate']:
                 results['ff'] = spike_list.fano_factor(1.)
         else:
-            print("No spikes recorded")
+            logger.info("No spikes recorded")
     else:
-        print("No spike recorder attached to {0}".format(population_object.name))
+        logger.info("No spike recorder attached to {0}".format(population_object.name))
 
     if parameter_set.net_pars.record_analogs[pop_idx]:
         for idx, nn in enumerate(population_object.analog_activity_names): #parameter_set.net_pars.analog_device_pars[pop_idx]['record_from']):
@@ -1245,9 +1246,9 @@ def single_neuron_responses(population_object, parameter_set, pop_idx=0, start=N
                     results[nn] = globals()[nn].analog_signals[int(min(iddds))].signal
             # TODO: add case when record g_ex/g_in
             else:
-                print("No recorded analog {0}".format(str(nn)))
+                logger.info("No recorded analog {0}".format(str(nn)))
     else:
-        print("No recorded analogs from {0}".format(population_object.name))
+        logger.info("No recorded analogs from {0}".format(population_object.name))
     if plot:
         fig = pl.figure()
         ax1 = pl.subplot2grid((10, 10), (0, 0), rowspan=4, colspan=4)
@@ -1322,7 +1323,7 @@ def ssa_lifetime(pop_obj, parameter_set, input_off=1000., display=True):
     """
     results = dict(ssa={})
     if display:
-        print("\nSelf-sustaining Activity Lifetime: ")
+        logger.info("\nSelf-sustaining Activity Lifetime: ")
     if isinstance(pop_obj, na.Network):
         gids = []
         new_SpkList = sg.SpikeList([], [], parameter_set.kernel_pars.transient_t,
@@ -1338,13 +1339,13 @@ def ssa_lifetime(pop_obj, parameter_set, input_off=1000., display=True):
                                                                               'tau': n.last_spike_time() -
                                                                                      input_off}})
             if display:
-                print("- {0} Survival = {1} ms".format(str(pop_obj.population_names[ii]), str(results['ssa'][str(
+                logger.info("- {0} Survival = {1} ms".format(str(pop_obj.population_names[ii]), str(results['ssa'][str(
                     pop_obj.population_names[ii]+'_ssa')]['tau'])))
 
         results['ssa'].update({'Global_ssa': {'last_spike': new_SpkList.last_spike_time(),
                                               'tau': new_SpkList.last_spike_time() - input_off}})
         if display:
-            print("- {0} Survival = {1} ms".format('Global', str(results['ssa']['Global_ssa']['tau'])))
+            logger.info("- {0} Survival = {1} ms".format('Global', str(results['ssa']['Global_ssa']['tau'])))
 
     elif isinstance(pop_obj, na.Population):
         name = pop_obj.name
@@ -1352,7 +1353,7 @@ def ssa_lifetime(pop_obj, parameter_set, input_off=1000., display=True):
         results['ssa'].update({name+'_ssa': {'last_spike': spike_list.last_spike_time(),
                                              'tau': spike_list.last_spike_time() - input_off}})
         if display:
-            print("- {0} Survival = {1} ms".format(str(name), str(results['ssa'][name+'_ssa']['tau'])))
+            logger.info("- {0} Survival = {1} ms".format(str(name), str(results['ssa'][name+'_ssa']['tau'])))
     else:
         raise ValueError("Input must be Network or Population object")
 
@@ -1371,9 +1372,9 @@ def calculate_error(output, target, display=True):
     FMF = COV / VARS
     fmf = FMF[0, 1]
     if display:
-        print("- MAE = {0}".format(str(MAE)))
-        print("- MSE = {0}".format(str(MSE)))
-        print("M[k] = {0}".format(str(FMF[0, 1])))
+        logger.info("- MAE = {0}".format(str(MAE)))
+        logger.info("- MSE = {0}".format(str(MSE)))
+        logger.info("M[k] = {0}".format(str(FMF[0, 1])))
     return {'MAE': MAE, 'MSE': MSE, 'fmf': fmf}
 
 
@@ -1397,12 +1398,12 @@ def analyse_state_matrix(state_matrix, stim_labels=None, epochs=None, label='', 
 
     pca_obj = sk.PCA(n_components=3)
     X_r = pca_obj.fit(state_matrix.T).transform(state_matrix.T)
-    print("Explained Variance (first 3 components): %s" % str(pca_obj.explained_variance_ratio_))
+    logger.info("Explained Variance (first 3 components): %s" % str(pca_obj.explained_variance_ratio_))
 
     if stim_labels is None:
         pca_obj = sk.PCA(n_components=state_matrix.shape[0])
         X = pca_obj.fit_transform(state_matrix.T)
-        print("Explained Variance (first 3 components): %s" % str(pca_obj.explained_variance_ratio_[:3]))
+        logger.info("Explained Variance (first 3 components): %s" % str(pca_obj.explained_variance_ratio_[:3]))
         results.update({'dimensionality': compute_dimensionality(state_matrix, pca_obj=pca_obj, display=True)})
         if plot:
             vz.plot_dimensionality(results['dimensionality'], pca_obj, X, data_label=label, display=display, save=save)
@@ -1621,10 +1622,10 @@ def analyse_state_divergence(parameter_set, net, clone, plot=True, display=True,
         responses_native = net.populations[pop_idx].decoding_layer.activity
         responses_clone = clone.populations[pop_idx].decoding_layer.activity
         response_vars = parameter_set.decoding_pars.state_extractor.state_variable
-        print("\n Computing state divergence: ")
+        logger.info("\n Computing state divergence: ")
         labels = []
         for resp_idx, n_response in enumerate(responses_native):
-            print("\t- State variable {0}".format(str(response_vars[resp_idx])))
+            logger.info("\t- State variable {0}".format(str(response_vars[resp_idx])))
             response_length = len(n_response.time_axis())
             distan = []
             for t in range(response_length):
@@ -1641,7 +1642,7 @@ def analyse_state_divergence(parameter_set, net, clone, plot=True, display=True,
                 initial_distance = 0.
             final_distance = distan[-1]
             lyapunov = (np.log(final_distance) / observation_time) - np.log(initial_distance) / observation_time
-            print("Lyapunov Exponent = {0}".format(lyapunov))
+            logger.info("Lyapunov Exponent = {0}".format(lyapunov))
             results['lyapunov_exponent'].update({response_vars[resp_idx]: lyapunov})
 
     if plot:
@@ -1774,7 +1775,7 @@ class Readout(object):
         self.norm_wout = None
         self.performance = {}
         if display:
-            print("\t- Readout {0} [trained with {1}]".format(self.name, self.rule))
+            logger.info("\t- Readout {0} [trained with {1}]".format(self.name, self.rule))
 
     def set_index(self):
         """
@@ -1812,7 +1813,7 @@ class Readout(object):
             target_train = target_train[:, index:]
 
         if display:
-            print("\nTraining Readout {0} [{1}]".format(str(self.name), str(self.rule)))
+            logger.info("\nTraining Readout {0} [{1}]".format(str(self.name), str(self.rule)))
         if self.rule == 'pinv':
             reg = lm.LinearRegression(fit_intercept=False, n_jobs=-1)
             reg.fit(state_matrix_train.T, target_train.T)
@@ -1852,7 +1853,7 @@ class Readout(object):
 
         elif self.rule == 'svm-rbf':
             reg = svm.SVC(kernel='rbf')
-            print("Performing 5-fold CV for svm-rbf hyperparameters...")
+            logger.info("Performing 5-fold CV for svm-rbf hyperparameters...")
             # use exponentially spaces C...
             C_range = 10.0 ** np.arange(-2, 9)
             # ... and gamma
@@ -1865,7 +1866,7 @@ class Readout(object):
             grid = GridSearchCV(reg, param_grid=param_grid, cv=cv, n_jobs=-1)
             # use the test dataset (it's much smaller...)
             grid.fit(state_test.T, np.argmax(np.array(target_test), 0))
-            print("The best classifier is: ", grid.best_estimator_)
+            logger.info("The best classifier is: ", grid.best_estimator_)
 
             # use best parameters:
             reg = grid.best_estimator_
@@ -1875,7 +1876,7 @@ class Readout(object):
 
         elif self.rule == 'elastic':
             # l1_ratio_range = np.logspace(-5, 1, 60)
-            print("Performing 5-fold CV for ElasticNet hyperparameters...")
+            logger.info("Performing 5-fold CV for ElasticNet hyperparameters...")
             enet = lm.ElasticNetCV(n_jobs=-1)
             enet.fit(state_matrix_train.T, np.argmax(np.array(target_train), 0))
 
@@ -1922,7 +1923,7 @@ class Readout(object):
                 target_test = target_test[:, index:]
 
         if display:
-            print("\nTesting Readout {0}".format(str(self.name)))
+            logger.info("\nTesting Readout {0}".format(str(self.name)))
         self.output = None
         self.output = self.fit_obj.predict(state_matrix_test.T)
 
@@ -1974,7 +1975,7 @@ class Readout(object):
                     args = np.argsort(output[:, kk])[-k:]
                     binary_output[args, kk] = 1.
             elif method == 'threshold':
-                print("Measuring performance with thresholded output")
+                logger.info("Measuring performance with thresholded output")
                 for kk in range(output.shape[1]):
                     binary_output[np.where(output[:, kk] >= k), kk] = 1.
             else:
@@ -2060,16 +2061,16 @@ class Readout(object):
             # Raw performance measures
             performance['raw']['MSE'] = met.mean_squared_error(target, output)
             performance['raw']['MAE'] = met.mean_absolute_error(target, output)
-            print("Readout {0} [raw output]: \n  - MSE = {1}".format(str(self.name), str(performance['raw']['MSE'])))
+            logger.info("Readout {0} [raw output]: \n  - MSE = {1}".format(str(self.name), str(performance['raw']['MSE'])))
 
             # Max performance measures
             performance['max']['MSE'] = met.mean_squared_error(binary_target, binary_output)
             performance['max']['MAE'] = met.mean_absolute_error(binary_target, binary_output)
             performance['max']['accuracy'] = 1 - np.mean(np.absolute(binary_target - binary_output))
 
-            print("Readout {0} [max output]: \n  - MSE = {1}".format(str(self.name), str(performance['max']['MSE'])))
-            print("Readout {0} [max output]: \n  - MAE = {1}".format(str(self.name), str(performance['max']['MAE'])))
-            print("Readout {0} [max output]: \n  - accuracy = {1}".format(str(self.name),
+            logger.info("Readout {0} [max output]: \n  - MSE = {1}".format(str(self.name), str(performance['max']['MSE'])))
+            logger.info("Readout {0} [max output]: \n  - MAE = {1}".format(str(self.name), str(performance['max']['MAE'])))
+            logger.info("Readout {0} [max output]: \n  - accuracy = {1}".format(str(self.name),
 																		  str(performance['max']['accuracy'])))
 
             performance['label']['performance'] = met.accuracy_score(target_labels, output_labels)
@@ -2082,10 +2083,10 @@ class Readout(object):
             performance['label']['jaccard'] 	= met.jaccard_similarity_score(target_labels, output_labels)
             performance['label']['class_support'] = met.precision_recall_fscore_support(target_labels, output_labels)
 
-            print("Readout {0} Performance: \n  - Labels = {1}".format(str(self.name),
+            logger.info("Readout {0} Performance: \n  - Labels = {1}".format(str(self.name),
                                                                        str(performance['label']['performance'])))
             if display:
-                print(met.classification_report(target_labels, output_labels))
+                logger.info(met.classification_report(target_labels, output_labels))
 
         self.performance = performance
         return performance
@@ -2096,7 +2097,7 @@ class Readout(object):
         """
         self.norm_wout = np.linalg.norm(self.weights)
         if display:
-            print("|W_out| [{0}] = {1}".format(self.name, str(self.norm_wout)))
+            logger.info("|W_out| [{0}] = {1}".format(self.name, str(self.norm_wout)))
         return self.norm_wout
 
     def copy(self):
@@ -2207,7 +2208,7 @@ class DecodingLayer(object):
                 else:
                     raise NotImplementedError("Acquisition from state variable {0} not implemented yet".format(
                         state_variable))
-            print("- State acquisition from Population {0} [{1}] - id {2}".format(population.name, state_variable,
+            logger.info("- State acquisition from Population {0} [{1}] - id {2}".format(population.name, state_variable,
                                                                                   self.extractors[-1]))
             if hasattr(initializer, "readout"):
                 pars_readout = pa.ParameterSet(initializer.readout[state_idx])
@@ -2240,7 +2241,7 @@ class DecodingLayer(object):
             nest.SetStatus(n_device, {'n_events': 0})
             if nest.GetStatus(n_device)[0]['to_file']:
                 io.remove_files(nest.GetStatus(n_device)[0]['filenames'])
-            print((" - State extractor {0} [{1}] from Population {2}".format(str(self.state_variables[idx]),
+            logger.info((" - State extractor {0} [{1}] from Population {2}".format(str(self.state_variables[idx]),
                                                                              str(n_device[0]),
                                                                              str(self.source_population.name))))
 
@@ -2249,7 +2250,7 @@ class DecodingLayer(object):
         Clear all data.
         :return:
         """
-        print("\n- Deleting state and activity data from all decoders attached to {0}".format(
+        logger.info("\n- Deleting state and activity data from all decoders attached to {0}".format(
             self.source_population.name))
         self.activity = [None for _ in range(len(self.state_variables))]
         self.state_matrix = [[] for _ in range(len(self.state_variables))]
@@ -2263,10 +2264,10 @@ class DecodingLayer(object):
         :return:
         """
         all_responses = []
-        print("\nExtracting and storing recorded activity from state extractors [Population {0}]:".format(str(
+        logger.info("\nExtracting and storing recorded activity from state extractors [Population {0}]:".format(str(
             self.source_population.name)))
         for idx, n_state in enumerate(self.extractors):
-            print("  - Reading extractor {0} [{1}]".format(n_state, str(self.state_variables[idx])))
+            logger.info("  - Reading extractor {0} [{1}]".format(n_state, str(self.state_variables[idx])))
             start_time1 = time.time()
             if nest.GetStatus(n_state)[0]['to_memory']:
                 initializer = n_state
@@ -2326,7 +2327,7 @@ class DecodingLayer(object):
                 raise TypeError("Incorrect Decoder ID")
 
             all_responses.append(responses)
-            print("Elapsed time: {0} s".format(str(time.time()-start_time1)))
+            logger.info("Elapsed time: {0} s".format(str(time.time()-start_time1)))
         if save:
             for idx, n_response in enumerate(all_responses):
                 self.activity[idx] = n_response
@@ -2437,7 +2438,7 @@ class DecodingLayer(object):
         for idx_state, n_state in enumerate(self.state_variables):
             if self.reset_state_variables[idx_state]:
                 if n_state == 'V_m':
-                    print("Resetting V_m can lead to incorrect results!")
+                    logger.info("Resetting V_m can lead to incorrect results!")
                     for idx, neuron_id in enumerate(self.source_population.gids):
                         nest.SetStatus([neuron_id], {'V_m': self.initial_states[idx_state][idx]})
                 elif n_state == 'spikes':
@@ -2449,7 +2450,7 @@ class DecodingLayer(object):
                         for idx, neuron_id in enumerate(self.source_population.gids):
                             nest.SetStatus([neuron_id], {n_state: self.initial_states[idx_state][idx]})
                     except ValueError:
-                        print("State variable {0} cannot be reset".format(n_state))
+                        logger.info("State variable {0} cannot be reset".format(n_state))
 
     def determine_total_delay(self):
         """
@@ -2474,7 +2475,7 @@ class DecodingLayer(object):
                 self.total_delays[idx] = float(net_to_decneurons_delay)# + decneurons_to_mm_delay)
             else:
                 self.total_delays[idx] = 0.#0.float(delay)
-        print("\n- total delays in Population {0} DecodingLayer {1}: {2} ms".format(str(self.source_population.name),
+        logger.info("\n- total delays in Population {0} DecodingLayer {1}: {2} ms".format(str(self.source_population.name),
                                                                                     str(self.state_variables),
                                                                                     str(self.total_delays)))
 

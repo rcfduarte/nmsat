@@ -34,6 +34,7 @@ redistributed in proprietary programs.
 import signals
 import input_architect
 import analysis
+import io
 import numpy as np
 import itertools
 import time
@@ -41,6 +42,7 @@ import nest
 
 from multiprocessing.dummy import Pool as ThreadPool
 
+logger = io.get_logger(__name__)
 
 ########################################################################################################################
 # Auxiliary Functions
@@ -122,7 +124,7 @@ def set_decoder_times(enc_layer, input_pars, encoding_pars, decoding_pars,
             offset += 0.1
 
         extractor_pars.update({'offset': offset, 'interval': duration})
-        print("Extractor {0}: \n- offset = {1} ms\n- interval = {2}".format(state_variable, str(offset), str(duration)))
+        logger.info("Extractor {0}: \n- offset = {1} ms\n- interval = {2}".format(state_variable, str(offset), str(duration)))
 
     if not signals.empty(enc_layer.encoders) and hasattr(encoding_pars, "input_decoder") and \
                     encoding_pars.input_decoder is not None:
@@ -134,7 +136,7 @@ def set_decoder_times(enc_layer, input_pars, encoding_pars, decoding_pars,
                 offset += 0.1
 
             extractor_pars.update({'offset': offset, 'interval': duration})
-            print("Encoder Extractor {0}: \n- offset = {1} ms\n- interval = {2}".format(state_variable, str(offset),
+            logger.info("Encoder Extractor {0}: \n- offset = {1} ms\n- interval = {2}".format(state_variable, str(offset),
                                                                                         str(duration)))
 
 
@@ -342,7 +344,7 @@ def compile_results_multithreaded(net, enc_layers, store_start, time_correction_
     extraction_time = time.time()
 
     def _extract_multithreaded(_pop):
-        print('Extracting population {}'.format(_pop.name))
+        logger.info('Extracting population {}'.format(_pop.name))
         _pop.decoding_layer.extract_activity(start=0., stop=nest.GetKernelStatus()['time'], save=True)
         for idx_state, n_state in enumerate(_pop.decoding_layer.state_variables):
             _pop.decoding_layer.state_matrix[idx_state] = _pop.decoding_layer.activity[idx_state].as_array()
@@ -350,14 +352,14 @@ def compile_results_multithreaded(net, enc_layers, store_start, time_correction_
             if skip_first_sample:
                 _pop.decoding_layer.state_matrix[idx_state] = \
                     _pop.decoding_layer.state_matrix[idx_state][:, 1:]
-        print('Finished extracting population {}'.format(_pop.name))
+        logger.info('Finished extracting population {}'.format(_pop.name))
 
     if record:
         # compile state matrices
         all_populations = list(itertools.chain(*[net.merged_populations, net.populations,
                                                  list(itertools.chain(*[e.encoders for e in enc_layers]))]))
         thread_args = [pop for pop in all_populations if pop.decoding_layer]
-        print('\n\n###################\n\nMULTITHREADED EXTRACTION\n\n')
+        logger.info('\n\n###################\n\nMULTITHREADED EXTRACTION\n\n')
 
         pool = ThreadPool(len(thread_args))
         pool.map(_extract_multithreaded, thread_args)
@@ -382,7 +384,7 @@ def compile_results_multithreaded(net, enc_layers, store_start, time_correction_
                     n_pop.decoding_layer.extract_activity(start=store_start, save=True,
                                                           stop=nest.GetKernelStatus()['time'] - time_correction_factor)
 
-    print('Extraction time (multithreaded): {}'.format(time.time() - extraction_time))
+    logger.info('Extraction time (multithreaded): {}'.format(time.time() - extraction_time))
 
 
 def compile_results(net, enc_layers, store_start, time_correction_factor, record, store_activity,
@@ -437,7 +439,7 @@ def compile_results(net, enc_layers, store_start, time_correction_factor, record
                 if n_pop.decoding_layer is not None:
                     n_pop.decoding_layer.extract_activity(start=store_start, save=True,
                                                           stop=nest.GetKernelStatus()['time'] - time_correction_factor)
-    print('Extraction time (single-threaded): {}'.format(time.time() - extraction_time))
+    logger.info('Extraction time (single-threaded): {}'.format(time.time() - extraction_time))
 
 
 def time_keep(start_time, idx, set_size, t1):
@@ -451,10 +453,10 @@ def time_keep(start_time, idx, set_size, t1):
     avg_cycle_time = total_time_elapsed / cycle_count
     cycles_remaining = set_size - cycle_count
     time_remaining = avg_cycle_time * cycles_remaining
-    print("\nTime information: ")
-    print("- Current step time: %.2f mins." % ((t2 - t1) / 60.))
-    print("- Total elapsed time: %.2f mins." % (total_time_elapsed / 60.))
-    print("- Estimated time remaining: %.2f mins." % (time_remaining / 60.))
+    logger.info("\nTime information: ")
+    logger.info("- Current step time: %.2f mins." % ((t2 - t1) / 60.))
+    logger.info("- Total elapsed time: %.2f mins." % (total_time_elapsed / 60.))
+    logger.info("- Estimated time remaining: %.2f mins." % (time_remaining / 60.))
 
     return (t2 - t1) / 60.
 
@@ -476,7 +478,7 @@ def process_input_sequence(parameter_set, net, enc_layers, stimulus_sets, input_
     :param sampling_offset:
     :return:
     """
-    print("\n\n***** Preparing to simulate {0} set *****".format(set_name))
+    logger.info("\n\n***** Preparing to simulate {0} set *****".format(set_name))
 
     # check if sampling times have been set (set_decoder_times(...))
     assert parameter_set.decoding_pars.has_key('decoder_times_set'), "Setting sampling parameters (offset) is required!"
@@ -558,17 +560,17 @@ def process_input_sequence(parameter_set, net, enc_layers, stimulus_sets, input_
     store = False  # flag controlling actual activity recording, will be updated accordingly during simulation
 
     if record:
-        print("\n!!! State matrices will be extracted and stored !!!")
+        logger.info("\n!!! State matrices will be extracted and stored !!!")
     else:
-        print("\n!!! No state matrices will be stored !!!")
+        logger.info("\n!!! No state matrices will be stored !!!")
 
     if store_activity:
-        print("\n!!! The activity from the last {0} epochs will be stored !!!".format(record))
+        logger.info("\n!!! The activity from the last {0} epochs will be stored !!!".format(record))
 
     ####################################################################################################################
     # one sample for each stimulus (acquired at the last time point of each stimulus)
     if sampling_times is None:
-        print("\n\nSimulating {0} steps".format(str(set_size)))
+        logger.info("\n\nSimulating {0} steps".format(str(set_size)))
         stim_seq_id = 0
         sim_time = 0.0
 
@@ -577,9 +579,9 @@ def process_input_sequence(parameter_set, net, enc_layers, stimulus_sets, input_
             state_sample_time = t_samp[0][stim_seq_id]
             stim_start = time.time()
 
-            print("\n\nSimulating step {0} /".format(str(stim_seq_id + 1)))
+            logger.info("\n\nSimulating step {0} /".format(str(stim_seq_id + 1)))
             for i in range(len(set_labels)):
-                print ("\t- {0} - stimulus {1} [{2} ms]".format(set_size[i], set_labels[i][stim_seq_id], sim_time))
+                logger.info("\t- {0} - stimulus {1} [{2} ms]".format(set_size[i], set_labels[i][stim_seq_id], sim_time))
 
             # generate input for each of the input signal sets / stimulus sets
             for idx in range(len(input_signal_sets)):
@@ -600,8 +602,10 @@ def process_input_sequence(parameter_set, net, enc_layers, stimulus_sets, input_
 
             state_sample_time += encoder_delay  # correct sampling time
 
-                # simulate main step
+            # simulate main step
+            io.log_timer.start('simulation')
             net.simulate(sim_time)
+            io.log_timer.accumulate('simulation')
 
             # move on to next input
             stim_seq_id += 1
@@ -631,9 +635,12 @@ def process_input_sequence(parameter_set, net, enc_layers, stimulus_sets, input_
 
             # simulate the last delay step if we're at the end (last stimulus)
             if stim_seq_id == set_size[0]:
+                io.log_timer.start('simulation')
                 net.simulate(encoder_delay + decoder_delay)
+
                 # we also need to go one step (= simulation resolution) further to get the very last sample!
                 net.simulate(sim_res)
+                io.log_timer.accumulate('simulation')
 
             timing['step_time'].append(time_keep(start_time, stim_seq_id, set_size[0], stim_start))
 
@@ -711,7 +718,7 @@ def process_states(net, target_matrix_map, stim_set, data_sets=None, accepted_id
                 results['performance'].update({n_pop.name: {}})
                 results['dimensionality'].update({n_pop.name: {}})
 
-                print("\nProcessing states from {0} set of population {1}".format(set_name, pop_name))
+                logger.info("\nProcessing states from {0} set of population {1}".format(set_name, pop_name))
 
                 # parse state variables
                 for idx_var, var in enumerate(n_pop.decoding_layer.state_variables):
@@ -730,7 +737,7 @@ def process_states(net, target_matrix_map, stim_set, data_sets=None, accepted_id
                     results['performance'][n_pop.name].update({var + str(idx_var): {}})
                     results['dimensionality'][n_pop.name].update({var + str(idx_var): {}})
 
-                    print("\nPopulation {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
+                    logger.info("\nPopulation {0}, variable {1}, set {2}: {3}".format(n_pop.name, var, set_name,
                                                                                 str(state_matrix.shape)))
                     if set_name == 'unique':
                         results['rank'][n_pop.name].update({var + str(idx_var): analysis.get_state_rank(state_matrix)})
@@ -741,7 +748,7 @@ def process_states(net, target_matrix_map, stim_set, data_sets=None, accepted_id
                         for readout in readouts:
                             if readout.name[-1].isdigit(): # memory
                                 readout.set_index()
-                                print("{0}, {1}".format(readout.name, readout.index))
+                                logger.info("{0}, {1}".format(readout.name, readout.index))
 
                             readout.train(state_matrix, np.array(target), index=readout.index,
                                           accepted=accepted_ids, display=display)
@@ -756,7 +763,7 @@ def process_states(net, target_matrix_map, stim_set, data_sets=None, accepted_id
                     elif set_name == 'test':
                         for readout in readouts:
                             assert target is not None
-                            print("{0}, {1}".format(readout.name, readout.index))
+                            logger.info("{0}, {1}".format(readout.name, readout.index))
                             output, tgt = readout.test(state_matrix, np.array(target), index=readout.index,
                                                        accepted=accepted_ids, display=display)
                             result_perf = results['performance'][n_pop.name][var + str(idx_var)]

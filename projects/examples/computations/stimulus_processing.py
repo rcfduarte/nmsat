@@ -2,7 +2,7 @@ __author__ = 'duarte'
 from modules.parameters import ParameterSet, ParameterSpace, extract_nestvalid_dict
 from modules.input_architect import EncodingLayer, StimulusSet, InputSignalSet
 from modules.net_architect import Network
-from modules.io import set_storage_locations
+from modules import io
 from modules.signals import iterate_obj_list, empty
 from modules.visualization import set_global_rcParams, plot_input_example
 from modules.auxiliary import process_input_sequence, process_states, set_decoder_times
@@ -11,7 +11,6 @@ import cPickle as pickle
 import numpy as np
 import itertools
 import matplotlib.pyplot as pl
-import time
 import nest
 
 
@@ -22,6 +21,8 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
     :param plot:
     :param display:
     :param save:
+    :param debug:
+    :param online:
     :return:
     """
     if not isinstance(parameter_set, ParameterSet):
@@ -36,7 +37,7 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
     # ==================================================================================================================
     if plot:
         set_global_rcParams(parameter_set.kernel_pars['mpl_path'])
-    paths = set_storage_locations(parameter_set, save)
+    paths = io.set_storage_locations(parameter_set, save)
 
     np.random.seed(parameter_set.kernel_pars['np_seed'])
 
@@ -66,7 +67,7 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
     # ##################################################################################################################
     # Build Stimulus/Target datasets
     # ==================================================================================================================
-    stim_set_startbuild = time.time()
+    io.log_timer.start('stimulus_sets')
 
     stim_set = StimulusSet(parameter_set, unique_set=False)
     stim_set.generate_datasets(parameter_set.stim_pars)
@@ -76,21 +77,18 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
     target_set.generate_datasets(parameter_set.stim_pars, external_sequence=output_sequence)
 
     # correct N for small sequences
-    parameter_set.input_pars.signal.N = len(np.unique(stim_set.full_set_labels))
+    # parameter_set.input_pars.signal.N = len(np.unique(stim_set.full_set_labels))
 
-    stim_set_buildtime = time.time() - stim_set_startbuild
-    print("- Elapsed Time: {0}".format(str(stim_set_buildtime)))
-
+    io.log_timer.stop('stimulus_sets')
     # ##################################################################################################################
     # Build Input Signal Sets
     # ==================================================================================================================
-    input_set_time = time.time()
+    io.log_timer.start('input_sets')
 
     inputs = InputSignalSet(parameter_set, stim_set, online=online)
     inputs.generate_datasets(stim_set)
 
-    input_set_buildtime = time.time() - input_set_time
-    print("- Elapsed Time: {0}".format(str(input_set_buildtime)))
+    io.log_timer.stop('input_sets')
 
     parameter_set.kernel_pars.sim_time = inputs.train_stimulation_time + inputs.test_stimulation_time
 
@@ -106,13 +104,18 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
     # ##################################################################################################################
     # Encode Input
     # ==================================================================================================================
+    io.log_timer.start('encoding_layer')
+
     enc_layer = EncodingLayer(parameter_set.encoding_pars, signal=inputs.full_set_signal, online=online)
     enc_layer.connect(parameter_set.encoding_pars, net)
     enc_layer.extract_connectivity(net, sub_set=True, progress=False)
 
+    io.log_timer.stop('encoding_layer')
     # ##################################################################################################################
     # Connect Network
     # ==================================================================================================================
+    io.log_timer.start('connection_setup')
+
     net.connect_populations(parameter_set.connection_pars)
 
     # ##################################################################################################################
@@ -129,16 +132,22 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
             parameter_set.encoding_pars.input_decoder is not None:
         enc_layer.connect_decoders(parameter_set.encoding_pars.input_decoder)
 
+    io.log_timer.stop('connection_setup')
     # ##################################################################################################################
     # Run Simulation (full sequence)
     # ==================================================================================================================
     # fast state sampling
+    io.log_timer.start('process_sequence')
+
     epochs, timing = process_input_sequence(parameter_set, net, [enc_layer], [stim_set], [inputs],
                                             set_name='full', record=True)
 
+    io.log_timer.stop('process_sequence')
     # ##################################################################################################################
     # Process data
     # ==================================================================================================================
+    io.log_timer.start('process_data')
+
     target_matrix = dict(EI=np.array(target_set.full_set.todense()))
 
     results = process_states(net, target_matrix, stim_set, data_sets=None, save=save,
@@ -174,6 +183,7 @@ def run(parameter_set, plot=False, display=False, save=True, debug=False, online
                         fig.savefig(paths['figures'] + paths['label'])
     results.update({'processed_results': processed_results})
 
+    io.log_timer.stop('process_data')
     # ##################################################################################################################
     # Save data
     # ==================================================================================================================
