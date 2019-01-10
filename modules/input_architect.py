@@ -1445,44 +1445,46 @@ class InputSignal(object):
                                                               t_stop=self.global_stop))
 
 
-    def compress_signals_fast(self, signal=None):
+    def compress_signals(self, input_signal=None):
         """
-        Convert the input signal from a list of AnalogSignal objects to a single AnalogSignalList. This is a
-        faster!! version of compress_signals() because the already existing AnalogSignal objects are simply appended
+        Converts the input signal from a list of AnalogSignal objects to a single AnalogSignalList. This is a more
+        efficient way because the already existing AnalogSignal objects are simply appended
         to an empty AnalogSignalList object, instead of recreating them twice.
 
-        :param: signal:
-        :return signal: AnalogSignalList
+        This function is called only through the InputSignal.load_signal() function, which does a few necessary
+        initializations.
+
+        :param: input_signal: list of AnalogSignal objects
+        :return analog_signal: AnalogSignalList created from the given list (or from self.input_signal)
         """
-        if signal is not None:
-            s = signal
-            t = signal[0].time_axis()
+        if input_signal is not None:
+            s = input_signal
+            t = input_signal[0].time_axis()
         else:
             s = self.input_signal
             t = self.time_data
 
         # generate empty AnalogSignalList
-        sig = signals.AnalogSignalList([], [], times=t, dt=self.dt, t_start=min(t), t_stop=max(t) + self.dt)
+        compressed_signal = signals.AnalogSignalList([], [], times=t, dt=self.dt, t_start=min(t),
+                                                     t_stop=max(t) + self.dt, dims=len(s))
 
         # append individual signals to empty AnalogSignalList
         for idx in range(len(s)):
-            sig.append(idx, signal[idx])
+            compressed_signal.append(idx, s[idx])
 
-        return sig
+        return compressed_signal
 
     def generate(self):
         """
         Generate the final signal
         """
         if not signals.empty(self.input_signal):
-            # self.input_signal = self.compress_signals()
-            self.input_signal = self.compress_signals_fast()
+            self.input_signal = self.compress_signals()
         elif self.online:
             self.input_signal = None
         else:
             self.apply_input_mask()
-            # self.input_signal = self.compress_signals()
-            self.input_signal = self.compress_signals_fast()
+            self.input_signal = self.compress_signals()
 
     def as_array(self):
         """
