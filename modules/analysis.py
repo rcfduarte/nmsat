@@ -906,7 +906,7 @@ def characterize_population_activity(population_object, parameter_set, analysis_
     elif isinstance(population_object, na.Network):
         # TODO following 3-4 lines should be checked again
         new_population = population_object.merge_subpopulations(sub_populations=population_object.populations,
-                                                                name='Global', merge_activity=True, store=True)
+                                                                merge_activity=True, store=True)
         population_object.merge_population_activity(start=analysis_interval[0], stop=analysis_interval[1])
 
         gids = [n.id_list for n in list(sg.iterate_obj_list(population_object.spiking_activity))]
