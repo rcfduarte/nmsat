@@ -24,7 +24,7 @@ extract_data_fromfile     - extract raw_data from a text file (typically written
 is_not_empty_file         - simple function to verify if the file is empty (sub-optimal)
 
 ========================================================================================================================
-Copyright (C) 2018  Renato Duarte, Barna Zajzon
+Copyright (C) 2019  Renato Duarte, Barna Zajzon
 
 Uses parts from NeuroTools for which Copyright (C) 2008  Daniel Bruederle, Andrew Davison, Jens Kremkow
 Laurent Perrinet, Michael Schmuker, Eilif Muller, Eric Mueller, Pierre Yger

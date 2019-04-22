@@ -72,7 +72,7 @@ def run_experiment(params_file_full_path, computation_function="noise_driven_dyn
 
 def print_version():
     print("NMSAT version {0}".format(version))
-    print("Copyright (C) Renato Duarte and Barna Zajzon, 2018")
+    print("Copyright (C) Renato Duarte and Barna Zajzon, 2019")
 
 
 def print_welcome_message():

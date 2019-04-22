@@ -26,7 +26,7 @@ merge_signals       		- sums 2 AnalogSignals
 make_simple_kernel			- simple way to create a smoothing kernel for 1D convolution
 
 ========================================================================================================================
-Copyright (C) 2018  Renato Duarte, Barna Zajzon
+Copyright (C) 2019  Renato Duarte, Barna Zajzon
 
 Neural Mircocircuit Simulation and Analysis Toolkit is free software;
 you can redistribute it and/or modify it under the terms of the

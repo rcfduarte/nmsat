@@ -21,7 +21,7 @@ Readout 		- Readout object, trained to produce an estimation y(t) of output by r
 				  population state variables.
 
 ========================================================================================================================
-Copyright (C) 2018  Renato Duarte, Barna Zajzon
+Copyright (C) 2019  Renato Duarte, Barna Zajzon
 
 Neural Mircocircuit Simulation and Analysis Toolkit is free software;
 you can redistribute it and/or modify it under the terms of the
