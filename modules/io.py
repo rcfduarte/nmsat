@@ -9,13 +9,13 @@ Handle all the inputs and outputs
 Classes:
 --------------
 FileHandler        - abstract class which should be overriden, managing how a file will load/write
-					 its data
+                     its data
 StandardTextFile   - object used to manipulate text representation of NeuroTools objects (spikes or
-					 analog signals)
+                     analog signals)
 StandardPickleFile - object used to manipulate pickle representation of NeuroTools objects (spikes or
-					 analog signals)
+                     analog signals)
 NestFile           - object used to manipulate raw NEST file that would not have been saved by pyNN
-					 (without headers)
+                     (without headers)
 DataHandler        - object to establish the interface between NeuroTools.signals and NeuroTools.io
 
 Functions:
@@ -53,15 +53,152 @@ import numpy as np
 from collections import MutableMapping
 import sys
 import cPickle as pickle
+import logging
+import StringIO
+# import psutil
+import os
+import resource
+from time import time
 
-# NMT imports
+# NMSAT imports
 import parameters
 from modules import check_dependency
-
 
 has_h5 = check_dependency('h5py')
 if has_h5:
     import h5py
+
+# assume we run on a local machine, will be changed accordingly if otherwise (for logging purposes)
+run_local = True
+
+
+class Timer:
+    """
+
+    """
+    def __init__(self):
+        self.timers = {}
+
+    def start(self, name):
+        """
+        Starts a new timer at the current timepoint. If the timer already exists, the start time will be overwritten,
+        otherwise a new timer entry is created.
+        :param name:
+        :return:
+        """
+        self.timers[name] = {
+            'start': time(),
+            'stop': 0.,
+            'duration': 0.
+        }
+
+    def restart(self, name):
+        assert name in self.timers
+        self.timers[name] = {
+            'start': time(),
+            'stop': 0.,
+            'duration': 0.
+        }
+
+    def stop(self, name):
+        if name in self.timers:
+            self.timers[name]['stop'] = time()
+            self.timers[name]['duration'] = time() - self.timers[name]['start']
+
+    def accumulate(self, name):
+        if name in self.timers:
+            self.timers[name]['stop'] = time()
+            self.timers[name]['duration'] += time() - self.timers[name]['start']
+
+    def get_all_timers(self):
+        return self.timers
+
+
+def log_stats(cmd=None, flush_file=None, flush_path=None):
+    """
+    Dump some statistics (system, timers, etc) at the end of the run.
+
+    :param cmd:
+    :param flush_file:
+    :param flush_path:
+    :return:
+    """
+    logger.info('************************************************************')
+    logger.info('************************ JOB STATS *************************')
+    logger.info('************************************************************')
+
+    if cmd:
+        logger.info('Calling command: {}'.format(cmd))
+
+    # system
+    logger.info('')
+    logger.info('System & Resources:')
+    # logger.info('\t\tMemory usage (MB, psutil): {}'.format(memory_usage_psutil()))
+    logger.info('\t\tPeak total memory usage (MB): {}'.format(memory_usage_resource()))
+
+    # timing
+    logger.info('')
+    logger.info('Timers:')
+    global log_timer
+    for name, timer in log_timer.get_all_timers().iteritems():
+        logger.info('\t\t{}: {} s'.format(name.capitalize(), timer['duration']))
+
+
+# flush to a main file
+    if flush_file and flush_path:
+        global main_log
+        with open(os.path.join(flush_path, flush_file), 'w') as f:
+            f.write(main_log.getvalue())
+
+
+def get_logger(name):
+    """
+    Initialize a new logger called `name`.
+    :param name: Logger name
+    :return: logging.Logger object
+    """
+    logging.basicConfig(format='[%(filename)s - %(levelname)s] %(message)s'.format(name), level=logging.INFO)
+    logger_ = logging.getLogger(name)
+
+    if name == 'main.py':
+        file_handler = logging.FileHandler('main.log')
+        logger_.addHandler(file_handler)
+
+    return logger_
+
+
+def update_log_handles(main=True, job_name=None, path=None):
+    """
+    Update log streams / files (including paths) according to how the program is run. If running from main.py,
+    we buffer all output to `main_log` and will flush to file at the end. If this is a job (on a cluster), write
+    directly to a file.
+
+    :param main: if running from main.py, log to buffer and flush later
+    :param job_name:
+    :param path:
+    :return:
+    """
+    if main:
+        global main_log
+        # logging.basicConfig(stream=main_log, level=logging.INFO)
+        handler = logging.StreamHandler(main_log)
+    else:
+        handler = logging.FileHandler('{}/job_{}.log'.format(path, job_name))
+
+    handler_format = logging.Formatter('[%(name)s - %(levelname)s] %(message)s')
+    handler.setFormatter(handler_format)
+    handler.setLevel(logging.INFO)
+
+    for name, logger_ in logging.Logger.manager.loggerDict.iteritems():
+        # whether to log into the main file (always, unless it's a submitted job on a cluster
+        if main:
+            if isinstance(logger_, logging.Logger):
+                logger_.addHandler(handler)
+        else:
+            logger_.addHandler(handler)
+            logger_.propagate = False
+            global run_local
+            run_local = False
 
 
 def extract_data_fromfile(fname):
@@ -84,10 +221,8 @@ def extract_data_fromfile(fname):
                         fp.writelines(info)
 
                 if data is None:
-                    # data = np.loadtxt(f)
                     data = get_data(f)
                 else:
-                    # data = np.concatenate((data, np.loadtxt(f)))
                     data = np.concatenate((data, get_data(f)))
     else:
         with open(fname, 'r') as fp:
@@ -187,9 +322,10 @@ def set_storage_locations(parameter_set, save=True):
         results = main_folder + 'Results/'
         activity = main_folder + 'Activity/'
         others = main_folder + 'Other/'
+        logs = main_folder + 'Logs/'
 
         dirs = {'main': main_folder, 'figures': figures, 'inputs': inputs, 'parameters': parameters, 'results':
-            results, 'activity': activity, 'other': others}
+            results, 'activity': activity, 'other': others, 'logs': logs}
 
         for d in dirs.values():
             try:
@@ -692,3 +828,20 @@ def asciify(d, is_root=True, al=list, lvl=0):
         return sl
     else:
         return al
+
+
+# def memory_usage_psutil():
+#     process = psutil.Process(os.getpid())
+#     mem = process.memory_info()[0] / float(2 ** 20)
+#     return mem
+
+
+def memory_usage_resource():
+    self = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.
+    children = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss / 1024.
+    return self + children
+
+# some variables need to be initialized
+log_timer = Timer()
+logger = get_logger(__name__)
+main_log = StringIO.StringIO()

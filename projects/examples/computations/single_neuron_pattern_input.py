@@ -67,12 +67,12 @@ def run(parameter_set, plot=False, display=False, save=True):
 
     # Current input (need to build 2 separate noise signals for the 2 input channels)
     # Generate input for channel 1
-    input_noise_ch1 = InputNoise(parameter_set.input_pars.noise, stop_time=total_stimulation_time)
+    input_noise_ch1 = InputNoise(parameter_set.input_pars.noise, rng=np.random, stop_time=total_stimulation_time)
     input_noise_ch1.generate()
     input_noise_ch1.re_seed(parameter_set.kernel_pars.np_seed)
 
     # Generate input for channel 2
-    input_noise_ch2 = InputNoise(parameter_set.input_pars.noise, stop_time=total_stimulation_time)
+    input_noise_ch2 = InputNoise(parameter_set.input_pars.noise, rng=np.random, stop_time=total_stimulation_time)
     input_noise_ch2.generate()
     input_noise_ch2.re_seed(parameter_set.kernel_pars.np_seed)
 

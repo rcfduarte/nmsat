@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import os
 import sys
 import copy
 
@@ -12,6 +13,7 @@ import importlib
 
 try:
     from modules.parameters import ParameterSpace
+    from modules import io
 except ImportError as e:
     NMSAT_HOME = environ.get("NMSAT_HOME")
 
@@ -22,7 +24,7 @@ except ImportError as e:
 
     raise ImportError("Import dependency not met: {}. ".format(e))
 
-
+logger = io.get_logger(__name__)
 version = "0.2"
 
 
@@ -36,16 +38,20 @@ def run_experiment(params_file_full_path, computation_function="noise_driven_dyn
     :param parameters: other CLI input parameters
     :return:
     """
+
+    io.update_log_handles(main=True)
+
     try:
         # determine the project folder and add it to sys.path
         project_dir, _ = path.split(path.split(params_file_full_path)[0])
         sys.path.append(project_dir)
         experiment = importlib.import_module("computations." + computation_function)
     except Exception as err:
-        print("Could not find experiment `{0}`. Is it in the project's ./computations/ directory? \nError: {1}".format(
-            computation_function, str(err)))
+        logger.error("Could not find experiment `{0}`. Is it in the project's ./computations/ directory? "
+                     "\nError: {1}".format(computation_function, str(err)))
         exit(-1)
 
+    io.log_timer.start('parameters')
     if 'keep_all' in parameters.keys():
         pars = ParameterSpace(params_file_full_path, keep_all=parameters['keep_all'])
         parameters.pop('keep_all')
@@ -54,17 +60,19 @@ def run_experiment(params_file_full_path, computation_function="noise_driven_dyn
 
     pars.update_run_parameters(cluster)
     pars.save(pars[0].kernel_pars.data_path+pars[0].kernel_pars.data_prefix+'_ParameterSpace.py')
+    io.log_timer.stop('parameters')
 
     if pars[0].kernel_pars.system['local']:
-        results = pars.run(experiment.run, **parameters)
-        return results
+        pars.run(experiment.run, **parameters)
     else:
         pars.run(experiment.run, project_dir, **parameters)
 
+    io.log_stats(cmd=str.join(' ', cmdl_parse), flush_file='main.log',
+                 flush_path=os.path.join(pars[0].kernel_pars.data_path+pars[0].kernel_pars.data_prefix, 'Logs'))
 
 def print_version():
-    print "NMSAT version {0}".format(version)
-    print "Copyright (C) Renato Duarte and Barna Zajzon, 2018"
+    print("NMSAT version {0}".format(version))
+    print("Copyright (C) Renato Duarte and Barna Zajzon, 2018")
 
 
 def print_welcome_message():
@@ -100,10 +108,10 @@ def create_parser():
 
 if __name__ == "__main__":
     print_welcome_message()
-    args = create_parser().parse_args(cmdl_parse[1:])  # avoids pynest sys.argv pollution
+    args = create_parser().parse_args(cmdl_parse[1:])  # avoids PyNEST sys.argv pollution
 
     d = dict([arg.split('=', 1) for arg in args.extra])
-    for k, v in d.items():
+    for k, v in d.iteritems():
         if v == 'False':
             d.update({k: False})
         elif v == 'True':
@@ -111,5 +119,5 @@ if __name__ == "__main__":
         elif v == 'None':
             d.update({k: None})
 
-    cluster = args.cluster[0] if args.cluster is not None else None
-    run_experiment(args.p_file[0], computation_function=args.c_function[0], cluster=cluster, **d)
+    cluster_name = args.cluster[0] if args.cluster is not None else None
+    run_experiment(args.p_file[0], computation_function=args.c_function[0], cluster=cluster_name, **d)
